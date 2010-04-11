@@ -2769,7 +2769,7 @@ namespace {
         }
 
         // Wait until the thread has finished launching and is gone to sleep
-        while (threads[i].state != THREAD_SLEEPING);
+        while (threads[i].state != THREAD_SLEEPING) {}
     }
   }
 
@@ -2810,7 +2810,7 @@ namespace {
 
     SplitPoint* sp;
 
-    for (sp = threads[threadID].splitPoint; sp && !sp->stopRequest; sp = sp->parent);
+    for (sp = threads[threadID].splitPoint; sp && !sp->stopRequest; sp = sp->parent) {}
     return sp != NULL;
   }
 
