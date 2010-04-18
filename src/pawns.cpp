@@ -254,7 +254,7 @@ Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
 
       // Test for candidate passed pawn
       candidate =   !passed
-                 && !(theirPawns & file_bb(f))
+                 && !opposed
                  && (  count_1s_max_15(neighboring_files_bb(f) & (behind_bb(Us, r) | rank_bb(r)) & ourPawns)
                      - count_1s_max_15(neighboring_files_bb(f) & in_front_bb(Us, r)              & theirPawns)
                      >= 0);
