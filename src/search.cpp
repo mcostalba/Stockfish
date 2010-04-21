@@ -570,7 +570,7 @@ void init_search() {
       for (int j = 0; j < 64; j++) // j == moveNumber
       {
           // FIXME: test using log instead of BSR
-          FutilityMarginsMatrix[i][j] = (i < 2 ? 0 : 112 * bitScanReverse32(i * i / 2)) - 8 * j;
+          FutilityMarginsMatrix[i][j] = (i < 2 ? 0 : 112 * bitScanReverse32(i * i / 2)) - 8 * j + 45;
       }
 
   // Init futility move count array
@@ -1294,7 +1294,7 @@ namespace {
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<NonPV>(depth, moveCount);
           futilityValueScaled =  ss[ply].eval + futility_margin(predictedDepth, moveCount)
-                               + H.gain(pos.piece_on(move_from(move)), move_to(move)) + 45;
+                               + H.gain(pos.piece_on(move_from(move)), move_to(move));
 
           if (futilityValueScaled < beta)
           {
@@ -1691,7 +1691,7 @@ namespace {
           // Value based pruning
           Depth predictedDepth = newDepth - reduction<NonPV>(sp->depth, moveCount);
           futilityValueScaled =  ss[sp->ply].eval + futility_margin(predictedDepth, moveCount)
-                                     + H.gain(pos.piece_on(move_from(move)), move_to(move)) + 45;
+                               + H.gain(pos.piece_on(move_from(move)), move_to(move));
 
           if (futilityValueScaled < sp->beta)
           {
