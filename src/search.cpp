@@ -1364,6 +1364,7 @@ namespace {
           break;
 
       // Uncomment to debug sp_search() in single thread mode
+      /*
       if (   bestValue < beta
           && depth >= 4
           && Iteration <= 99
@@ -1372,6 +1373,7 @@ namespace {
           && TM.split<true>(pos, ss, ply, &alpha, beta, &bestValue,
                       depth, mateThreat, &moveCount, &mp, threadID, PvNode))
           break;
+      */
     }
 
     // Step 19. Check for mate and stalemate
