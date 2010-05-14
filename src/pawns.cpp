@@ -231,7 +231,7 @@ Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
       // there are friendly pawns behind on neighboring files it cannot
       // be backward either.
       if (   (passed | isolated | chain)
-          || (ourPawns & outpost_mask(opposite_color(Us), s))
+          || (ourPawns & attack_span_mask(opposite_color(Us), s))
           || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
           backward = false;
       else
@@ -309,7 +309,7 @@ int PawnInfoTable::evaluate_pawn_storm(Square s, Rank r, File f, Bitboard theirP
   const int K = (Side == KingSide ? 2 : 4);
   const File RookFile = (Side == KingSide ? FILE_H : FILE_A);
 
-  Bitboard b = outpost_mask(Us, s) & theirPawns & StormFilesBB;
+  Bitboard b = attack_span_mask(Us, s) & theirPawns & StormFilesBB;
   int bonus = 0;
 
   while (b)
