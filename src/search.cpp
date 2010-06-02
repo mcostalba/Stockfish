@@ -285,7 +285,7 @@ namespace {
   Value root_search(Position& pos, SearchStack* ss, RootMoveList& rml, Value* alphaPtr, Value* betaPtr);
 
   template <NodeType PvNode>
-  Value search(Position& pos, SearchStack* ss, Value alpha, Value beta, Depth depth, bool allowNullmove, int threadID,  Move excludedMove = MOVE_NONE);
+  Value search(Position& pos, SearchStack* ss, Value alpha, Value beta, Depth depth, bool allowNullmove, int threadID);
 
   template <NodeType PvNode>
   Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta, Depth depth, int threadID);
@@ -1042,7 +1042,7 @@ namespace {
 
   template <NodeType PvNode>
   Value search(Position& pos, SearchStack* ss, Value alpha, Value beta, Depth depth,
-               bool allowNullmove, int threadID, Move excludedMove) {
+               bool allowNullmove, int threadID) {
 
     assert(alpha >= -VALUE_INFINITE && alpha <= VALUE_INFINITE);
     assert(beta > alpha && beta <= VALUE_INFINITE);
@@ -1054,7 +1054,8 @@ namespace {
     EvalInfo ei;
     StateInfo st;
     const TTEntry* tte;
-    Move ttMove, move;
+    Key posKey;
+    Move ttMove, move, excludedMove;
     Depth ext, newDepth;
     Value bestValue, value, oldAlpha;
     Value refinedValue, nullValue, futilityValueScaled; // Non-PV specific
@@ -1068,6 +1069,7 @@ namespace {
     // Step 1. Initialize node and poll. Polling can abort search
     TM.incrementNodeCounter(threadID);
     ss->init(ply);
+    (ss + 1)->excludedMove = MOVE_NONE;
     (ss + 2)->initKillers();
 
     if (threadID == 0 && ++NodesSincePoll > NodesBetweenPolls)
@@ -1093,7 +1095,8 @@ namespace {
 
     // We don't want the score of a partial search to overwrite a previous full search
     // TT value, so we use a different position key in case of an excluded move exists.
-    Key posKey = excludedMove ? pos.get_exclusion_key() : pos.get_key();
+    excludedMove = ss->excludedMove;
+    posKey = excludedMove ? pos.get_exclusion_key() : pos.get_key();
 
     tte = TT.retrieve(posKey);
     ttMove = (tte ? tte->move() : MOVE_NONE);
@@ -1273,7 +1276,9 @@ namespace {
           if (abs(ttValue) < VALUE_KNOWN_WIN)
           {
               Value b = ttValue - SingularExtensionMargin;
-              Value v = search<NonPV>(pos, ss, b - 1, b, depth / 2, false, threadID, move);
+              ss->excludedMove = move;
+              Value v = search<NonPV>(pos, ss, b - 1, b, depth / 2, false, threadID);
+              ss->excludedMove = MOVE_NONE;
 
               if (v < ttValue - SingularExtensionMargin)
                   ext = OnePly;
@@ -2237,6 +2242,7 @@ namespace {
     {
         ss->init(i);
         ss->initKillers();
+        ss->excludedMove = MOVE_NONE;
     }
   }
 
