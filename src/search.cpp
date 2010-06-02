@@ -1689,9 +1689,9 @@ namespace {
 
       // Step 12. Futility pruning (is omitted in PV nodes)
       if (   !PvNode
+          && !captureOrPromotion
           && !isCheck
           && !dangerous
-          && !captureOrPromotion
           && !move_is_castle(move))
       {
           // Move count based pruning
@@ -1725,8 +1725,8 @@ namespace {
       // If the move fails high will be re-searched at full depth.
       bool doFullDepthSearch = true;
 
-      if (   !dangerous
-          && !captureOrPromotion
+      if (   !captureOrPromotion
+          && !dangerous
           && !move_is_castle(move)
           && !move_is_killer(move, ss))
       {
@@ -1734,7 +1734,9 @@ namespace {
           if (ss->reduction)
           {
               Value localAlpha = sp->alpha;
-              value = -search<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, newDepth-ss->reduction, true, threadID);
+              Depth d = newDepth - ss->reduction;
+              value = d < OnePly ? -qsearch<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, Depth(0), threadID)
+                                 : - search<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, d, true, threadID);
               doFullDepthSearch = (value > localAlpha);
           }
 
@@ -1743,6 +1745,8 @@ namespace {
           // if the move fails high again then go with full depth search.
           if (doFullDepthSearch && ss->reduction > 2 * OnePly)
           {
+              assert(newDepth - OnePly >= OnePly);
+
               ss->reduction = OnePly;
               Value localAlpha = sp->alpha;
               value = -search<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, newDepth-ss->reduction, true, threadID);
@@ -1755,10 +1759,15 @@ namespace {
       {
           ss->reduction = Depth(0);
           Value localAlpha = sp->alpha;
-          value = -search<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, newDepth, true, threadID);
+          value = newDepth < OnePly ? -qsearch<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, Depth(0), threadID)
+                                    : - search<NonPV>(pos, ss+1, -(localAlpha+1), -localAlpha, newDepth, true, threadID);
 
+          // Step extra. pv search (only in PV nodes)
+          // Search only for possible new PV nodes, if instead value >= beta then
+          // parent node fails low with value <= alpha and tries another move.
           if (PvNode && value > localAlpha && value < sp->beta)
-              value = -search<PV>(pos, ss+1, -sp->beta, -sp->alpha, newDepth, false, threadID);
+              value = newDepth < OnePly ? -qsearch<PV>(pos, ss+1, -sp->beta, -sp->alpha, Depth(0), threadID)
+                                        : - search<PV>(pos, ss+1, -sp->beta, -sp->alpha, newDepth, false, threadID);
       }
 
       // Step 16. Undo move
