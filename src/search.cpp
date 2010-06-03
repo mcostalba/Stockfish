@@ -1422,11 +1422,12 @@ namespace {
     EvalInfo ei;
     StateInfo st;
     Move ttMove, move;
-    Value staticValue, bestValue, value, futilityBase, futilityValue;
+    Value staticValue, bestValue, value, futilityBase;
     bool isCheck, enoughMaterial, moveIsCheck, evasionPrunable;
     const TTEntry* tte = NULL;
     int moveCount = 0;
     Value oldAlpha = alpha;
+    Value futilityValue = VALUE_INFINITE;
 
     // Initialize, and make an early exit in case of an aborted search,
     // an instant draw, maximum ply reached, etc.
@@ -1481,7 +1482,7 @@ namespace {
         return bestValue;
     }
 
-    if (bestValue > alpha)
+    if (PvNode && bestValue > alpha)
         alpha = bestValue;
 
     // If we are near beta then try to get a cutoff pushing checks a bit further
@@ -1517,6 +1518,11 @@ namespace {
           && !move_is_promotion(move)
           && !pos.move_is_passed_pawn_push(move))
       {
+          // Can only decrease from previous move because of
+          // MVV ordering so we don't need to recheck.
+          if (futilityValue < alpha)
+              continue;
+
           futilityValue =  futilityBase
                          + pos.endgame_value_of_piece_on(move_to(move))
                          + (move_is_ep(move) ? PawnValueEndgame : Value(0));
