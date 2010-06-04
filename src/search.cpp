@@ -296,8 +296,8 @@ namespace {
   template <NodeType PvNode>
   Depth extension(const Position& pos, Move m, bool captureOrPromotion, bool moveIsCheck, bool singleEvasion, bool mateThreat, bool* dangerous);
 
-  void update_pv(SearchStack* ss, int ply);
-  void sp_update_pv(SearchStack* pss, SearchStack* ss, int ply);
+  void update_pv(SearchStack* ss);
+  void sp_update_pv(SearchStack* pss, SearchStack* ss);
   bool connected_moves(const Position& pos, Move m1, Move m2);
   bool value_is_mate(Value value);
   bool move_is_killer(Move m, SearchStack* ss);
@@ -366,9 +366,9 @@ void init_search() {
 
 // SearchStack::init() initializes a search stack. Used at the beginning of a
 // new search from the root.
-void SearchStack::init(int ply) {
+void SearchStack::init() {
 
-  pv[ply] = pv[ply + 1] = MOVE_NONE;
+  pv[0] = pv[1] = MOVE_NONE;
   currentMove = threatMove = MOVE_NONE;
   reduction = Depth(0);
   eval = VALUE_NONE;
@@ -932,7 +932,7 @@ namespace {
                 // We are failing high and going to do a research. It's important to update
                 // the score before research in case we run out of time while researching.
                 rml.set_move_score(i, value);
-                update_pv(ss, 0);
+                update_pv(ss);
                 TT.extract_pv(pos, ss->pv, PLY_MAX);
                 rml.set_move_pv(i, ss->pv);
 
@@ -972,7 +972,7 @@ namespace {
 
                 // Update PV
                 rml.set_move_score(i, value);
-                update_pv(ss, 0);
+                update_pv(ss);
                 TT.extract_pv(pos, ss->pv, PLY_MAX);
                 rml.set_move_pv(i, ss->pv);
 
@@ -1068,8 +1068,8 @@ namespace {
 
     // Step 1. Initialize node and poll. Polling can abort search
     TM.incrementNodeCounter(threadID);
-    ss->init(ply);
-    (ss + 2)->initKillers();
+    ss->init();
+    (ss+2)->initKillers();
 
     if (threadID == 0 && ++NodesSincePoll > NodesBetweenPolls)
     {
@@ -1240,7 +1240,7 @@ namespace {
         search<PvNode>(pos, ss, alpha, beta, d);
         ss->skipNullMove = false;
 
-        ttMove = ss->pv[ply];
+        ttMove = ss->pv[0];
         tte = TT.retrieve(posKey);
     }
 
@@ -1405,7 +1405,7 @@ namespace {
               if (PvNode && value < beta) // This guarantees that always: alpha < beta
                   alpha = value;
 
-              update_pv(ss, ply);
+              update_pv(ss);
 
               if (value == value_mate_in(ply + 1))
                   ss->mateKiller = move;
@@ -1443,7 +1443,7 @@ namespace {
     else if (bestValue >= beta)
     {
         TM.incrementBetaCounter(pos.side_to_move(), depth, threadID);
-        move = ss->pv[ply];
+        move = ss->pv[0];
         TT.store(posKey, value_to_tt(bestValue, ply), VALUE_TYPE_LOWER, depth, move, ss->eval, ei.kingDanger[pos.side_to_move()]);
         if (!pos.move_is_capture_or_promotion(move))
         {
@@ -1452,7 +1452,7 @@ namespace {
         }
     }
     else
-        TT.store(posKey, value_to_tt(bestValue, ply), VALUE_TYPE_EXACT, depth, ss->pv[ply], ss->eval, ei.kingDanger[pos.side_to_move()]);
+        TT.store(posKey, value_to_tt(bestValue, ply), VALUE_TYPE_EXACT, depth, ss->pv[0], ss->eval, ei.kingDanger[pos.side_to_move()]);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1484,7 +1484,7 @@ namespace {
     int ply = pos.ply();
 
     TM.incrementNodeCounter(pos.thread());
-    ss->pv[ply] = ss->pv[ply + 1] = ss->currentMove = MOVE_NONE;
+    ss->pv[0] = ss->pv[1] = ss->currentMove = MOVE_NONE;
     ss->eval = VALUE_NONE;
 
     // Check for an instant draw or maximum ply reached
@@ -1611,7 +1611,7 @@ namespace {
           if (value > alpha)
           {
               alpha = value;
-              update_pv(ss, ply);
+              update_pv(ss);
           }
        }
     }
@@ -1627,7 +1627,7 @@ namespace {
         TT.store(pos.get_key(), value_to_tt(bestValue, ply), VALUE_TYPE_UPPER, d, MOVE_NONE, ss->eval, ei.kingDanger[pos.side_to_move()]);
     else if (bestValue >= beta)
     {
-        move = ss->pv[ply];
+        move = ss->pv[0];
         TT.store(pos.get_key(), value_to_tt(bestValue, ply), VALUE_TYPE_LOWER, d, move, ss->eval, ei.kingDanger[pos.side_to_move()]);
 
         // Update killers only for good checking moves
@@ -1635,7 +1635,7 @@ namespace {
             update_killers(move, ss);
     }
     else
-        TT.store(pos.get_key(), value_to_tt(bestValue, ply), VALUE_TYPE_EXACT, d, ss->pv[ply], ss->eval, ei.kingDanger[pos.side_to_move()]);
+        TT.store(pos.get_key(), value_to_tt(bestValue, ply), VALUE_TYPE_EXACT, d, ss->pv[0], ss->eval, ei.kingDanger[pos.side_to_move()]);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1668,7 +1668,6 @@ namespace {
 
     Position pos(*sp->pos, threadID);
     CheckInfo ci(pos);
-    int ply = pos.ply();
     SearchStack* ss = sp->sstack[threadID] + 1;
     isCheck = pos.is_check();
 
@@ -1798,7 +1797,7 @@ namespace {
               if (PvNode && value < sp->beta) // This guarantees that always: sp->alpha < sp->beta
                   sp->alpha = value;
 
-              sp_update_pv(sp->parentSstack, ss, ply);
+              sp_update_pv(sp->parentSstack, ss);
           }
       }
     }
@@ -1814,18 +1813,16 @@ namespace {
   // It updates the PV in the SearchStack object corresponding to the
   // current node.
 
-  void update_pv(SearchStack* ss, int ply) {
+  void update_pv(SearchStack* ss) {
 
-    assert(ply >= 0 && ply < PLY_MAX);
+    Move* src = (ss+1)->pv;
+    Move* dst = ss->pv;
 
-    int p;
+    *dst = ss->currentMove;
 
-    ss->pv[ply] = ss->currentMove;
-
-    for (p = ply + 1; (ss+1)->pv[p] != MOVE_NONE; p++)
-        ss->pv[p] = (ss+1)->pv[p];
-
-    ss->pv[p] = MOVE_NONE;
+    do
+        *++dst = *src;
+    while (*src++ != MOVE_NONE);
   }
 
 
@@ -1833,18 +1830,17 @@ namespace {
   // difference between the two functions is that sp_update_pv also updates
   // the PV at the parent node.
 
-  void sp_update_pv(SearchStack* pss, SearchStack* ss, int ply) {
+  void sp_update_pv(SearchStack* pss, SearchStack* ss) {
 
-    assert(ply >= 0 && ply < PLY_MAX);
+    Move* src = (ss+1)->pv;
+    Move* dst = ss->pv;
+    Move* pdst = pss->pv;
 
-    int p;
+    *dst = *pdst = ss->currentMove;
 
-    ss->pv[ply] = pss->pv[ply] = ss->currentMove;
-
-    for (p = ply + 1; (ss+1)->pv[p] != MOVE_NONE; p++)
-        ss->pv[p] = pss->pv[p] = (ss+1)->pv[p];
-
-    ss->pv[p] = pss->pv[p] = MOVE_NONE;
+    do
+        *++dst = *++pdst = *src;
+    while (*src++ != MOVE_NONE);
   }
 
 
@@ -2249,7 +2245,7 @@ namespace {
 
         if (i < 3)
         {
-            ss->init(i);
+            ss->init();
             ss->initKillers();
         }
     }
