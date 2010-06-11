@@ -154,10 +154,15 @@ void benchmark(const string& commandLine) {
       Position pos(*it);
       cerr << "\nBench position: " << cnt << '/' << positions.size() << endl << endl;
       if (limitType == "perft")
-          totalNodes += perft(pos, maxDepth * OnePly);
-      else if (!think(pos, false, false, 0, dummy, dummy, 0, maxDepth, maxNodes, secsPerPos, moves))
-          break;
-      totalNodes += nodes_searched();
+      {
+          int64_t perftCnt = perft(pos, maxDepth * OnePly);
+          cerr << "\nPerft " << maxDepth << " result (nodes searched): " << perftCnt << endl << endl;
+          totalNodes += perftCnt;
+      } else {
+          if (!think(pos, false, false, 0, dummy, dummy, 0, maxDepth, maxNodes, secsPerPos, moves))
+              break;
+          totalNodes += nodes_searched();
+      }
   }
 
   cnt = get_system_time() - startTime;
