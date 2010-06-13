@@ -899,6 +899,16 @@ namespace {
                         }
                     }
 
+                    // The move failed high, but if reduction is very big we could
+                    // face a false positive, retry with a less aggressive reduction,
+                    // if the move fails high again then go with full depth search.
+                    if (doFullDepthSearch && ss[0].reduction > 2 * OnePly)
+                    {
+                        ss[0].reduction = OnePly;
+                        value = -search<NonPV>(pos, ss, -(alpha+1), -alpha, newDepth-ss[0].reduction, 1, true, 0);
+                        doFullDepthSearch = (value > alpha);
+                    }
+
                     // Step 15. Full depth search
                     if (doFullDepthSearch)
                     {
