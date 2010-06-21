@@ -904,7 +904,7 @@ namespace {
                     if (doFullDepthSearch && ss[0].reduction > 2 * OnePly)
                     {
                         ss[0].reduction = OnePly;
-                        value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth-ss->reduction, 0);
+                        value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth-ss->reduction);
                         doFullDepthSearch = (value > alpha);
                     }
 
