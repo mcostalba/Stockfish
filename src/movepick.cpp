@@ -229,7 +229,7 @@ void MovePicker::score_noncaptures() {
       from = move_from(m);
       to = move_to(m);
       piece = pos.piece_on(from);
-      hs = H.move_ordering_score(piece, to);
+      hs = H.value(piece, to);
 
       // Ensure history has always highest priority
       if (hs > 0)
@@ -261,7 +261,7 @@ void MovePicker::score_evasions_or_checks() {
           cur->score =  pos.midgame_value_of_piece_on(move_to(m))
                       - pos.type_of_piece_on(move_from(m)) + HistoryMax;
       else
-          cur->score = H.move_ordering_score(pos.piece_on(move_from(m)), move_to(m));
+          cur->score = H.value(pos.piece_on(move_from(m)), move_to(m));
   }
 }
 
