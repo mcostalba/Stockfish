@@ -2318,7 +2318,6 @@ namespace {
 
     while (   (tte = TT.retrieve(p.get_key())) != NULL
            && tte->move() != MOVE_NONE
-           && (tte->type() == VALUE_TYPE_EXACT || ply < 2)
            && move_is_legal(p, tte->move())
            && ply < PLY_MAX
            && (!p.is_draw() || ply < 2))
