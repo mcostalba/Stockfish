@@ -365,7 +365,6 @@ void init_search() {
 void SearchStack::init() {
 
   currentMove = threatMove = bestMove = MOVE_NONE;
-  eval = VALUE_NONE;
 }
 
 // SearchStack::initKillers() initializes killers for a search stack entry
@@ -773,8 +772,7 @@ namespace {
 
     // Step 5. Evaluate the position statically
     // At root we do this only to get reference value for child nodes
-    if (!isCheck)
-        ss->eval = evaluate(pos, ei);
+    ss->eval = isCheck ? VALUE_NONE : evaluate(pos, ei);
 
     // Step 6. Razoring (omitted at root)
     // Step 7. Static null move pruning (omitted at root)
@@ -1099,6 +1097,8 @@ namespace {
         refinedValue = refine_eval(tte, ss->eval, ply); // Enhance accuracy with TT value if possible
         update_gains(pos, (ss-1)->currentMove, (ss-1)->eval, ss->eval);
     }
+    else
+        ss->eval = VALUE_NONE;
 
     // Step 6. Razoring (is omitted in PV nodes)
     if (   !PvNode
@@ -1452,7 +1452,6 @@ namespace {
 
     TM.incrementNodeCounter(pos.thread());
     ss->bestMove = ss->currentMove = MOVE_NONE;
-    ss->eval = VALUE_NONE;
 
     // Check for an instant draw or maximum ply reached
     if (pos.is_draw() || ply >= PLY_MAX - 1)
@@ -1475,6 +1474,7 @@ namespace {
     if (isCheck)
     {
         bestValue = futilityBase = -VALUE_INFINITE;
+        ss->eval = VALUE_NONE;
         deepChecks = enoughMaterial = false;
     }
     else
