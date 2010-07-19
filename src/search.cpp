@@ -1072,8 +1072,9 @@ namespace {
     isCheck = pos.is_check();
     if (!isCheck)
     {
-        if (tte && tte->static_value() != VALUE_NONE)
+        if (tte)
         {
+            assert(tte->static_value() != VALUE_NONE);
             ss->eval = tte->static_value();
             ei.kingDanger[pos.side_to_move()] = tte->king_danger();
         }
@@ -1464,8 +1465,9 @@ namespace {
     }
     else
     {
-        if (tte && tte->static_value() != VALUE_NONE)
+        if (tte)
         {
+            assert(tte->static_value() != VALUE_NONE);
             ei.kingDanger[pos.side_to_move()] = tte->king_danger();
             bestValue = tte->static_value();
         }
