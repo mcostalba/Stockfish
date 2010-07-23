@@ -360,20 +360,6 @@ void init_search() {
 }
 
 
-// SearchStack::init() initializes a search stack entry.
-// Called at the beginning of search() when starting to examine a new node.
-void SearchStack::init() {
-
-  currentMove = bestMove = MOVE_NONE;
-}
-
-// SearchStack::initKillers() initializes killers for a search stack entry
-void SearchStack::initKillers() {
-
-  killers[0] = killers[1] = mateKiller = MOVE_NONE;
-}
-
-
 /// perft() is our utility to verify move generation is bug free. All the legal
 /// moves up to given depth are generated and counted and the sum returned.
 
@@ -764,7 +750,7 @@ namespace {
     isCheck = pos.is_check();
 
     // Step 1. Initialize node (polling is omitted at root)
-    ss->init();
+    ss->currentMove = ss->bestMove = MOVE_NONE;
 
     // Step 2. Check for aborted search (omitted at root)
     // Step 3. Mate distance pruning (omitted at root)
@@ -1019,7 +1005,7 @@ namespace {
     StateInfo st;
     const TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove;
+    Move ttMove, move, excludedMove, threatMove;
     Depth ext, newDepth;
     Value bestValue, value, oldAlpha;
     Value refinedValue, nullValue, futilityValueScaled; // Non-PV specific
@@ -1027,14 +1013,13 @@ namespace {
     bool mateThreat = false;
     int moveCount = 0;
     int threadID = pos.thread();
-    Move threatMove = MOVE_NONE;
     refinedValue = bestValue = value = -VALUE_INFINITE;
     oldAlpha = alpha;
 
     // Step 1. Initialize node and poll. Polling can abort search
     TM.incrementNodeCounter(threadID);
-    ss->init();
-    (ss+2)->initKillers();
+    ss->currentMove = ss->bestMove = threatMove = MOVE_NONE;
+    (ss+2)->killers[0] = (ss+2)->killers[1] = (ss+2)->mateKiller = MOVE_NONE;
 
     if (threadID == 0 && ++NodesSincePoll > NodesBetweenPolls)
     {
@@ -2213,7 +2198,7 @@ namespace {
         ss->reduction = Depth(0);
 
         if (i < 3)
-            ss->initKillers();
+            ss->killers[0] = ss->killers[1] = ss->mateKiller = MOVE_NONE;
     }
   }
 
@@ -2791,7 +2776,7 @@ namespace {
 
     // Initialize search stack
     init_ss_array(ss, PLY_MAX_PLUS_2);
-    ss[0].init();
+    ss[0].currentMove = ss[0].bestMove = MOVE_NONE;
     ss[0].eval = VALUE_NONE;
 
     // Generate all legal moves
