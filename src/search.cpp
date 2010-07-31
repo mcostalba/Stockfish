@@ -1078,7 +1078,7 @@ namespace {
         // Refresh tte entry to avoid aging
         TT.store(posKey, tte->value(), tte->type(), tte->depth(), ttMove, tte->static_value(), tte->king_danger());
 
-        ss->currentMove = ttMove; // Can be MOVE_NONE
+        ss->bestMove = ttMove; // Can be MOVE_NONE
         return value_from_tt(tte->value(), ply);
     }
 
@@ -1190,7 +1190,7 @@ namespace {
             if (nullValue == value_mated_in(ply + 2))
                 mateThreat = true;
 
-            ss->threatMove = (ss+1)->currentMove;
+            ss->threatMove = (ss+1)->bestMove;
             if (   depth < ThreatDepth
                 && (ss-1)->reduction
                 && connected_moves(pos, (ss-1)->currentMove, ss->threatMove))
@@ -1464,7 +1464,7 @@ namespace {
 
     if (!PvNode && tte && ok_to_use_TT(tte, depth, beta, ply))
     {
-        ss->currentMove = ttMove; // Can be MOVE_NONE
+        ss->bestMove = ttMove; // Can be MOVE_NONE
         return value_from_tt(tte->value(), ply);
     }
 
