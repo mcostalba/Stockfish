@@ -226,7 +226,7 @@ namespace {
 
   // Function prototypes
   template<bool HasPopCnt, bool Trace>
-  Value do_evaluate(const Position& pos, Value& margin);
+  Value do_evaluate(const Position& pos, Value& margin, Value alpha);
 
   template<Color Us, bool HasPopCnt>
   void init_eval_info(const Position& pos, EvalInfo& ei);
@@ -261,16 +261,16 @@ namespace {
 /// evaluate() is the main evaluation function. It always computes two
 /// values, an endgame score and a middle game score, and interpolates
 /// between them based on the remaining material.
-Value evaluate(const Position& pos, Value& margin) {
+Value evaluate(const Position& pos, Value& margin, Value alpha) {
 
-  return CpuHasPOPCNT ? do_evaluate<true, false>(pos, margin)
-                      : do_evaluate<false, false>(pos, margin);
+  return CpuHasPOPCNT ? do_evaluate<true, false>(pos, margin, alpha)
+                      : do_evaluate<false, false>(pos, margin, alpha);
 }
 
 namespace {
 
 template<bool HasPopCnt, bool Trace>
-Value do_evaluate(const Position& pos, Value& margin) {
+Value do_evaluate(const Position& pos, Value& margin, Value alpha) {
 
   EvalInfo ei;
   Value margins[2];
@@ -299,9 +299,26 @@ Value do_evaluate(const Position& pos, Value& margin) {
       return ei.mi->evaluate(pos);
   }
 
+  // Read game phase
+  Phase phase = ei.mi->game_phase();
+
   // Probe the pawn hash table
   ei.pi = Threads[pos.thread()].pawnTable.get_pawn_info(pos);
   score += ei.pi->pawns_value();
+
+  // Lazy evaluation. If we are at least one piece below alpha then stop here
+  if (alpha != -VALUE_INFINITE)
+  {
+      ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
+                                                    : ei.mi->scale_factor(pos, BLACK);
+      Value v = scale_by_game_phase(score, phase, sf);
+      v = (pos.side_to_move() == WHITE ? v : -v);
+      if (v < alpha - KnightValueMidgame)
+      {
+          margin = VALUE_ZERO;
+          return v;
+      }
+  }
 
   // Initialize attack and king safety bitboards
   init_eval_info<WHITE, HasPopCnt>(pos, ei);
@@ -343,7 +360,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // If we don't already have an unusual scale factor, check for opposite
   // colored bishop endgames, and use a lower scale for those.
-  if (   ei.mi->game_phase() < PHASE_MIDGAME
+  if (   phase < PHASE_MIDGAME
       && pos.opposite_colored_bishops()
       && sf == SCALE_FACTOR_NORMAL)
   {
@@ -364,7 +381,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // Interpolate between the middle game and the endgame score
   margin = margins[pos.side_to_move()];
-  Value v = scale_by_game_phase(score, ei.mi->game_phase(), sf);
+  Value v = scale_by_game_phase(score, phase, sf);
 
   // In case of tracing add all single evaluation contributions for both white and black
   if (Trace)
@@ -1187,7 +1204,7 @@ std::string trace_evaluate(const Position& pos) {
     TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
     memset(TracedScores, 0, 2 * 16 * sizeof(Score));
 
-    do_evaluate<false, true>(pos, margin);
+    do_evaluate<false, true>(pos, margin, -VALUE_INFINITE);
 
     totals = TraceStream.str();
     TraceStream.str("");
