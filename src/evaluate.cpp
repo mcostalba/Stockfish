@@ -313,7 +313,7 @@ Value do_evaluate(const Position& pos, Value& margin, Value alpha) {
                                                     : ei.mi->scale_factor(pos, BLACK);
       Value v = scale_by_game_phase(score, phase, sf);
       v = (pos.side_to_move() == WHITE ? v : -v);
-      if (v < alpha - KnightValueMidgame)
+      if (v < alpha - 2 * PawnValueMidgame)
       {
           margin = VALUE_ZERO;
           return v;
