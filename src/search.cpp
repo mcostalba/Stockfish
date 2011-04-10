@@ -820,7 +820,7 @@ namespace {
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, -VALUE_INFINITE);
+        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, VALUE_INFINITE);
         TT.store(posKey, VALUE_NONE, VALUE_TYPE_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
     }
 
@@ -1360,7 +1360,7 @@ split_point_start: // At split points actual search starts from here
             ss->eval = bestValue = tte->static_value();
         }
         else
-            ss->eval = bestValue = evaluate(pos, evalMargin, alpha);
+            ss->eval = bestValue = evaluate(pos, evalMargin, PvNode ? VALUE_INFINITE : beta);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
@@ -2041,7 +2041,7 @@ split_point_start: // At split points actual search starts from here
         // Don't overwrite existing correct entries
         if (!tte || tte->move() != pv[ply])
         {
-            v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m, -VALUE_INFINITE));
+            v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m, VALUE_INFINITE));
             TT.store(k, VALUE_NONE, VALUE_TYPE_NONE, DEPTH_NONE, pv[ply], v, m);
         }
         pos.do_move(pv[ply], *st++);

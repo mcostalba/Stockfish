@@ -261,16 +261,16 @@ namespace {
 /// evaluate() is the main evaluation function. It always computes two
 /// values, an endgame score and a middle game score, and interpolates
 /// between them based on the remaining material.
-Value evaluate(const Position& pos, Value& margin, Value alpha) {
+Value evaluate(const Position& pos, Value& margin, Value beta) {
 
-  return CpuHasPOPCNT ? do_evaluate<true, false>(pos, margin, alpha)
-                      : do_evaluate<false, false>(pos, margin, alpha);
+  return CpuHasPOPCNT ? do_evaluate<true, false>(pos, margin, beta)
+                      : do_evaluate<false, false>(pos, margin, beta);
 }
 
 namespace {
 
 template<bool HasPopCnt, bool Trace>
-Value do_evaluate(const Position& pos, Value& margin, Value alpha) {
+Value do_evaluate(const Position& pos, Value& margin, Value beta) {
 
   EvalInfo ei;
   Value margins[2];
@@ -306,14 +306,14 @@ Value do_evaluate(const Position& pos, Value& margin, Value alpha) {
   ei.pi = Threads[pos.thread()].pawnTable.get_pawn_info(pos);
   score += ei.pi->pawns_value();
 
-  // Lazy evaluation. If we are at least one piece below alpha then stop here
-  if (alpha != -VALUE_INFINITE)
+  // Lazy evaluation. If we are at least one piece far from beta then stop here
+  if (beta != VALUE_INFINITE)
   {
       ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
                                                     : ei.mi->scale_factor(pos, BLACK);
       Value v = scale_by_game_phase(score, phase, sf);
       v = (pos.side_to_move() == WHITE ? v : -v);
-      if (v < alpha - 2 * PawnValueMidgame)
+      if (abs(v - beta) >= KnightValueMidgame)
       {
           margin = VALUE_ZERO;
           return v;
