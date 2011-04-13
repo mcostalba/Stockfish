@@ -1365,7 +1365,8 @@ split_point_start: // At split points actual search starts from here
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
         {
-            if (!tte)
+            // Don't save in TT lazy eval score
+            if (!tte && bestValue < beta + KnightValueMidgame)
                 TT.store(pos.get_key(), value_to_tt(bestValue, ss->ply), VALUE_TYPE_LOWER, DEPTH_NONE, MOVE_NONE, ss->eval, evalMargin);
 
             return bestValue;
