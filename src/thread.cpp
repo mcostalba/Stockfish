@@ -182,20 +182,23 @@ void ThreadsManager::init() {
 
 void ThreadsManager::exit() {
 
+  // Wake up all the slave threads
+  for (int i = 1; i < MAX_THREADS; i++)
+  {
+      threads[i].do_terminate = true;
+      threads[i].wake_up();
+  }
+
   for (int i = 0; i < MAX_THREADS; i++)
   {
-      // Wake up all the slave threads and wait for termination
       if (i != 0)
       {
-          threads[i].do_terminate = true;
-          threads[i].wake_up();
-
+          // Wait for slave termination
 #if defined(_MSC_VER)
           WaitForSingleObject(threads[i].handle, 0);
           CloseHandle(threads[i].handle);
 #else
           pthread_join(threads[i].handle, NULL);
-          pthread_detach(threads[i].handle);
 #endif
       }
 
