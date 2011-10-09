@@ -715,13 +715,17 @@ namespace {
 
         // Initialize the 'attackUnits' variable, which is used later on as an
         // index to the KingDangerTable[] array. The initial value is based on
-        // the number and types of the enemy's attacking pieces, the number of
-        // attacked and undefended squares around our king, the square of the
-        // king, and the quality of the pawn shelter.
+        // the number and types of the enemy's attacking pieces and the number
+        // of attacked squares around our king.
         attackUnits =  Min(25, (ei.kingAttackersCount[Us][Them] * ei.kingAttackersWeight[Us][Them]) / 2)
-                     + 3 * (ei.kingAdjacentZoneAttacksCount[Us][Them] + count_1s<Max15>(undefended))
-                     + InitKingDanger[relative_square(Us, ksq)]
-                     - mg_value(ei.pi->king_shelter<Us>(pos, ksq)) / 32;
+                     + 3 * ei.kingAdjacentZoneAttacksCount[Us][Them]
+                     + InitKingDanger[relative_square(Us, ksq)];
+
+        // Reduce attackUnits according to number and types of the defending
+        // pieces and the quality of the pawn shelter.
+        attackUnits -=  Min(25, (ei.kingAttackersCount[Us][Us] * ei.kingAttackersWeight[Us][Us]) / 2)
+                      + 3 * ei.kingAdjacentZoneAttacksCount[Us][Us]
+                      + mg_value(ei.pi->king_shelter<Us>(pos, ksq)) / 32;
 
         // Analyse enemy's safe queen contact checks. First find undefended
         // squares around the king attacked by enemy queen...
