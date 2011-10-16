@@ -281,6 +281,10 @@ Value ThreadsManager::split(Position& pos, SearchStack* ss, Value alpha, Value b
   // If we are here it means we are not available
   assert(masterThread.state == Thread::SEARCHING);
 
+  masterThread.splitPoint = &splitPoint;
+  masterThread.activeSplitPoints++;
+  masterThread.state = Thread::WORKISWAITING;
+
   int workersCnt = 1; // At least the master is included
 
   // Try to allocate available threads and ask them to start searching setting
@@ -304,20 +308,13 @@ Value ThreadsManager::split(Position& pos, SearchStack* ss, Value alpha, Value b
 
   lock_release(&threadsLock);
 
-  // We failed to allocate even one slave, return
-  if (!Fake && workersCnt == 1)
-      return bestValue;
-
-  masterThread.splitPoint = &splitPoint;
-  masterThread.activeSplitPoints++;
-  masterThread.state = Thread::WORKISWAITING;
-
   // Everything is set up. The master thread enters the idle loop, from
   // which it will instantly launch a search, because its state is
   // Thread::WORKISWAITING. We send the split point as a second parameter to
   // the idle loop, which means that the main thread will return from the idle
   // loop when all threads have finished their work at this split point.
-  idle_loop(master, &splitPoint);
+  if (Fake || workersCnt > 1)
+      idle_loop(master, &splitPoint);
 
   // We have returned from the idle loop, which means that all threads are
   // finished. Note that changing state and decreasing activeSplitPoints is done
