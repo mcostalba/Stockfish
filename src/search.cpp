@@ -661,7 +661,7 @@ namespace {
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin);
+        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, VALUE_INFINTE);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
     }
 
@@ -1200,12 +1200,13 @@ split_point_start: // At split points actual search starts from here
             ss->eval = bestValue = tte->static_value();
         }
         else
-            ss->eval = bestValue = evaluate(pos, evalMargin);
+            ss->eval = bestValue = evaluate(pos, evalMargin, PvNode ? VALUE_INFINITE : beta);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
         {
-            if (!tte)
+            // Don't save in TT lazy eval score
+            if (!tte && bestValue < beta + KnightValueMidgame)
                 TT.store(pos.key(), value_to_tt(bestValue, ss->ply), BOUND_LOWER, DEPTH_NONE, MOVE_NONE, ss->eval, evalMargin);
 
             return bestValue;
@@ -1808,7 +1809,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
       // Don't overwrite existing correct entries
       if (!tte || tte->move() != pv[ply])
       {
-          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m));
+          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m, VALUE_INFINITE));
           TT.store(k, VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], v, m);
       }
       pos.do_move(pv[ply], *st++);
