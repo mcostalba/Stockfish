@@ -225,7 +225,7 @@ namespace {
 
   // Function prototypes
   template<bool Trace>
-  Value do_evaluate(const Position& pos, Value& margin, Value alpha);
+  Value do_evaluate(const Position& pos, Value& margin, const Value beta);
 
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei);
@@ -259,12 +259,12 @@ namespace {
 /// evaluate() is the main evaluation function. It always computes two
 /// values, an endgame score and a middle game score, and interpolates
 /// between them based on the remaining material.
-Value evaluate(const Position& pos, Value& margin, Value beta) { return do_evaluate<false>(pos, margin, beta); }
+Value evaluate(const Position& pos, Value& margin, const Value beta) { return do_evaluate<false>(pos, margin, beta); }
 
 namespace {
 
 template<bool Trace>
-Value do_evaluate(const Position& pos, Value& margin) {
+Value do_evaluate(const Position& pos, Value& margin, const Value beta) {
 
   EvalInfo ei;
   Value margins[2];
@@ -1190,7 +1190,7 @@ std::string trace_evaluate(const Position& pos) {
     TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
     memset(TracedScores, 0, 2 * 16 * sizeof(Score));
 
-    do_evaluate<false, true>(pos, margin, -VALUE_INFINITE);
+    do_evaluate<true>(pos, margin, -VALUE_INFINITE);
 
     totals = TraceStream.str();
     TraceStream.str("");

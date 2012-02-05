@@ -661,7 +661,7 @@ namespace {
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, VALUE_INFINTE);
+        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, VALUE_INFINITE);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
     }
 

@@ -24,7 +24,7 @@
 
 class Position;
 
-extern Value evaluate(const Position& pos, Value& margin, Value beta);
+extern Value evaluate(const Position& pos, Value& margin, const Value beta);
 extern std::string trace_evaluate(const Position& pos);
 extern void read_evaluation_uci_options(Color sideToMove);
 
