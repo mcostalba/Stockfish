@@ -81,10 +81,6 @@ namespace {
   // Minimum depth for use of singular extension
   const Depth SingularExtensionDepth[] = { 8 * ONE_PLY, 6 * ONE_PLY };
 
-	// Lazy evaluation margins
-	const Value LazyMarginQS = Value(0x140);
-	const Value LazyMargin = Value(0x2E0);
-	
   // Futility margin for quiescence search
   const Value FutilityMarginQS = Value(0x80);
 
@@ -665,11 +661,8 @@ namespace {
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, PvNode ? VALUE_INFINITE : beta, LazyMargin);
-				if (ss->evalMargin == VALUE_INFINITE)
-					ss->evalMargin = VALUE_NONE;
-				else
-        	TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
+        refinedValue = ss->eval = evaluate(pos, ss->evalMargin);
+        TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
     }
 
     // Update gain for the parent non-capture move given the static position
@@ -1199,7 +1192,6 @@ split_point_start: // At split points actual search starts from here
     }
     else
     {
-				bool lazyCutoff = false;
         if (tte)
         {
             assert(tte->static_value() != VALUE_NONE);
@@ -1208,19 +1200,12 @@ split_point_start: // At split points actual search starts from here
             ss->eval = bestValue = tte->static_value();
         }
         else
-				{
-						ss->eval = bestValue = evaluate(pos, evalMargin, PvNode ? VALUE_INFINITE : beta, LazyMarginQS);
-						if (evalMargin == VALUE_INFINITE) {
-							evalMargin = VALUE_NONE;
-							lazyCutoff = true;
-						}
-				}
+            ss->eval = bestValue = evaluate(pos, evalMargin);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
         {
-            // Don't save in TT lazy eval score
-            if (!tte && !lazyCutoff)
+            if (!tte)
                 TT.store(pos.key(), value_to_tt(bestValue, ss->ply), BOUND_LOWER, DEPTH_NONE, MOVE_NONE, ss->eval, evalMargin);
 
             return bestValue;
@@ -1823,7 +1808,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
       // Don't overwrite existing correct entries
       if (!tte || tte->move() != pv[ply])
       {
-          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m, VALUE_INFINITE, VALUE_NONE));
+          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m));
           TT.store(k, VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], v, m);
       }
       pos.do_move(pv[ply], *st++);
