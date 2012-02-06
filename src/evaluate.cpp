@@ -225,7 +225,7 @@ namespace {
 
   // Function prototypes
   template<bool Trace>
-  Value do_evaluate(const Position& pos, Value& margin);
+  Value do_evaluate(const Position& pos, Value& margin, const Value beta, const Value lazyMargin);
 
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei);
@@ -259,12 +259,14 @@ namespace {
 /// evaluate() is the main evaluation function. It always computes two
 /// values, an endgame score and a middle game score, and interpolates
 /// between them based on the remaining material.
-Value evaluate(const Position& pos, Value& margin) { return do_evaluate<false>(pos, margin); }
+Value evaluate(const Position& pos, Value& margin, const Value beta, const Value lazyMargin) {
+	return do_evaluate<false>(pos, margin, beta, lazyMargin);
+}
 
 namespace {
 
 template<bool Trace>
-Value do_evaluate(const Position& pos, Value& margin) {
+Value do_evaluate(const Position& pos, Value& margin, const Value beta, const Value lazyMargin) {
 
   EvalInfo ei;
   Value margins[2];
@@ -293,9 +295,26 @@ Value do_evaluate(const Position& pos, Value& margin) {
       return ei.mi->evaluate(pos);
   }
 
+  // Read game phase
+  const Phase phase = ei.mi->game_phase();
+
   // Probe the pawn hash table
   ei.pi = Threads[pos.thread()].pawnTable.pawn_info(pos);
   score += ei.pi->pawns_value();
+
+  // Lazy evaluation. If we are at least one piece away from beta then stop here
+  if (beta != VALUE_INFINITE)
+  {
+		ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
+		                                              : ei.mi->scale_factor(pos, BLACK);
+		Value v = scale_by_game_phase(score, phase, sf);
+		v = (pos.side_to_move() == WHITE ? v : -v);
+		if (abs(v - beta) >= lazyMargin)
+		{
+			margin = VALUE_INFINITE;
+			return v;
+		}
+  }
 
   // Initialize attack and king safety bitboards
   init_eval_info<WHITE>(pos, ei);
@@ -337,7 +356,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // If we don't already have an unusual scale factor, check for opposite
   // colored bishop endgames, and use a lower scale for those.
-  if (   ei.mi->game_phase() < PHASE_MIDGAME
+  if (   phase < PHASE_MIDGAME
       && pos.opposite_colored_bishops()
       && sf == SCALE_FACTOR_NORMAL)
   {
@@ -358,7 +377,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // Interpolate between the middle game and the endgame score
   margin = margins[pos.side_to_move()];
-  Value v = scale_by_game_phase(score, ei.mi->game_phase(), sf);
+  Value v = scale_by_game_phase(score, phase, sf);
 
   // In case of tracing add all single evaluation contributions for both white and black
   if (Trace)
@@ -1173,7 +1192,7 @@ std::string trace_evaluate(const Position& pos) {
     TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
     memset(TracedScores, 0, 2 * 16 * sizeof(Score));
 
-    do_evaluate<true>(pos, margin);
+    do_evaluate<true>(pos, margin, VALUE_INFINITE, VALUE_NONE);
 
     totals = TraceStream.str();
     TraceStream.str("");
