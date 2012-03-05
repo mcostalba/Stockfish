@@ -148,6 +148,10 @@ namespace {
     S(0, 0), S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118)
   };
 
+  const Score UndefendedPenalty[] = {
+    S(0, 0), S(3, 0), S(12, 2), S(12, 2), S(25, 6), S(45, 15)
+  };
+
   #undef S
 
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
@@ -619,12 +623,39 @@ namespace {
     Bitboard b;
     Score score = SCORE_ZERO;
 
-    // Enemy pieces not defended by a pawn and under our attack
+
+    // Enemy pieces not defended by a pawn
     Bitboard weakEnemies =  pos.pieces(Them)
-                          & ~ei.attackedBy[Them][PAWN]
-                          & ei.attackedBy[Us][0];
+													& ~ei.attackedBy[Them][PAWN];
+
+		Bitboard undefended = weakEnemies & ~ei.attackedBy[Them][0] & ~(Rank1BB | Rank8BB);
+		if (undefended)
+		{
+			const int multipliers[] = { 0, 1, 3, 6, 12, 22, 36, 36, 36, 36, 36, 36, 36, 36, 36 };
+
+			int undefendedCount = 0;
+			while (undefended)
+			{
+	      Square s = pop_1st_bit(&undefended);
+				PieceType pt = type_of(pos.piece_on(s));
+				if (pt != KING)
+				{
+					score += UndefendedPenalty[pt];
+					if (pt != PAWN)
+						undefendedCount++;
+				}
+			}
+			score = (multipliers[undefendedCount] * score) / 32;
+//			if (mg_value(score) > 20) {
+//				printf("%s,%d,%d,%d\n", pos.to_fen().c_str(), Us, mg_value(score), undefendedCount);
+//			}
+//			score = SCORE_ZERO;
+//			printf("%d,%s\n",undefendedCount,pos.to_fen().c_str());
+		}
+		
+		weakEnemies &= ei.attackedBy[Us][0];
     if (!weakEnemies)
-        return SCORE_ZERO;
+        return score;
 
     // Add bonus according to type of attacked enemy piece and to the
     // type of attacking piece, from knights to queens. Kings are not
@@ -635,7 +666,7 @@ namespace {
         if (b)
             for (PieceType pt2 = PAWN; pt2 < KING; pt2++)
                 if (b & pos.pieces(pt2))
-                    score += ThreatBonus[pt1][pt2];
+										score += ThreatBonus[pt1][pt2];
     }
     return score;
   }
