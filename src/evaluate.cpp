@@ -149,7 +149,7 @@ namespace {
   };
 
   const Score UndefendedPenalty[] = {
-    S(0, 0), S(3, 0), S(12, 2), S(12, 2), S(25, 6), S(45, 15)
+    S(0, 0), S(3, 0), S(20, 2), S(20, 2), S(0, 0), S(0, 0)
   };
 
   #undef S
@@ -628,30 +628,9 @@ namespace {
     Bitboard weakEnemies =  pos.pieces(Them)
 													& ~ei.attackedBy[Them][PAWN];
 
-		Bitboard undefended = weakEnemies & ~ei.attackedBy[Them][0] & ~(Rank1BB | Rank8BB);
+		Bitboard undefended = weakEnemies & ~ei.attackedBy[Them][0] & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
 		if (undefended)
-		{
-			const int multipliers[] = { 0, 1, 3, 6, 12, 22, 36, 36, 36, 36, 36, 36, 36, 36, 36 };
-
-			int undefendedCount = 0;
-			while (undefended)
-			{
-	      Square s = pop_1st_bit(&undefended);
-				PieceType pt = type_of(pos.piece_on(s));
-				if (pt != KING)
-				{
-					score += UndefendedPenalty[pt];
-					if (pt != PAWN)
-						undefendedCount++;
-				}
-			}
-			score = (multipliers[undefendedCount] * score) / 32;
-//			if (mg_value(score) > 20) {
-//				printf("%s,%d,%d,%d\n", pos.to_fen().c_str(), Us, mg_value(score), undefendedCount);
-//			}
-//			score = SCORE_ZERO;
-//			printf("%d,%s\n",undefendedCount,pos.to_fen().c_str());
-		}
+			score += make_score(10, 1) * popcount<Max15>(undefended);
 		
 		weakEnemies &= ei.attackedBy[Us][0];
     if (!weakEnemies)
