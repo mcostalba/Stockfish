@@ -20,17 +20,28 @@
 #include <algorithm>
 #include <sstream>
 
+#include "evaluate.h"
 #include "misc.h"
 #include "thread.h"
+#include "tt.h"
 #include "ucioption.h"
 
 using std::string;
 
 OptionsMap Options; // Global object
 
+namespace {
+
+/// 'On change' actions, triggered by an option's value change
+void on_eval(UCIOption&) { Eval::init(); }
+void on_threads(UCIOption&) { Threads.read_uci_options(); }
+void on_hash_size(UCIOption& o) { TT.set_size(o); }
+void on_clear_hash(UCIOption& o) { TT.clear(); o = false; } // UCI button
 
 /// Our case insensitive less() function as required by UCI protocol
-static bool ci_less(char c1, char c2) { return tolower(c1) < tolower(c2); }
+bool ci_less(char c1, char c2) { return tolower(c1) < tolower(c2); }
+
+}
 
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
   return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), ci_less);
@@ -51,19 +62,19 @@ OptionsMap::OptionsMap() {
   o["Search Log Filename"]         = UCIOption("SearchLog.txt");
   o["Book File"]                   = UCIOption("book.bin");
   o["Best Book Move"]              = UCIOption(false);
-  o["Mobility (Middle Game)"]      = UCIOption(100, 0, 200);
-  o["Mobility (Endgame)"]          = UCIOption(100, 0, 200);
-  o["Passed Pawns (Middle Game)"]  = UCIOption(100, 0, 200);
-  o["Passed Pawns (Endgame)"]      = UCIOption(100, 0, 200);
-  o["Space"]                       = UCIOption(100, 0, 200);
-  o["Aggressiveness"]              = UCIOption(100, 0, 200);
-  o["Cowardice"]                   = UCIOption(100, 0, 200);
-  o["Min Split Depth"]             = UCIOption(msd, 4, 7);
-  o["Max Threads per Split Point"] = UCIOption(5, 4, 8);
+  o["Mobility (Middle Game)"]      = UCIOption(100, 0, 200, on_eval);
+  o["Mobility (Endgame)"]          = UCIOption(100, 0, 200, on_eval);
+  o["Passed Pawns (Middle Game)"]  = UCIOption(100, 0, 200, on_eval);
+  o["Passed Pawns (Endgame)"]      = UCIOption(100, 0, 200, on_eval);
+  o["Space"]                       = UCIOption(100, 0, 200, on_eval);
+  o["Aggressiveness"]              = UCIOption(100, 0, 200, on_eval);
+  o["Cowardice"]                   = UCIOption(100, 0, 200, on_eval);
+  o["Min Split Depth"]             = UCIOption(msd, 4, 7, on_threads);
+  o["Max Threads per Split Point"] = UCIOption(5, 4, 8, on_threads);
   o["Threads"]                     = UCIOption(cpus, 1, MAX_THREADS);
-  o["Use Sleeping Threads"]        = UCIOption(true);
-  o["Hash"]                        = UCIOption(32, 4, 8192);
-  o["Clear Hash"]                  = UCIOption(false, "button");
+  o["Use Sleeping Threads"]        = UCIOption(true, on_threads);
+  o["Hash"]                        = UCIOption(32, 4, 8192, on_hash_size);
+  o["Clear Hash"]                  = UCIOption(false, on_clear_hash);
   o["Ponder"]                      = UCIOption(true);
   o["OwnBook"]                     = UCIOption(true);
   o["MultiPV"]                     = UCIOption(1, 1, 500);
@@ -74,12 +85,13 @@ OptionsMap::OptionsMap() {
   o["Minimum Thinking Time"]       = UCIOption(20, 0, 5000);
   o["Slow Mover"]                  = UCIOption(100, 10, 1000);
   o["UCI_Chess960"]                = UCIOption(false);
-  o["UCI_AnalyseMode"]             = UCIOption(false);
+  o["UCI_AnalyseMode"]             = UCIOption(false, on_eval);
 }
 
 
 /// operator<<() is used to output all the UCI options in chronological insertion
 /// order (the idx field) and in the format defined by the UCI protocol.
+
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
   for (size_t idx = 0; idx < om.size(); idx++)
@@ -103,26 +115,31 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
 /// UCIOption class c'tors
 
-UCIOption::UCIOption(const char* v) : type("string"), min(0), max(0), idx(Options.size())
+UCIOption::UCIOption(const char* v, Fn* f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = v; }
 
-UCIOption::UCIOption(bool v, string t) : type(t), min(0), max(0), idx(Options.size())
+UCIOption::UCIOption(bool v, Fn* f) : type("check"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = (v ? "true" : "false"); }
 
-UCIOption::UCIOption(int v, int minv, int maxv) : type("spin"), min(minv), max(maxv), idx(Options.size())
+UCIOption::UCIOption(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(maxv), idx(Options.size()), on_change(f)
 { std::ostringstream ss; ss << v; defaultValue = currentValue = ss.str(); }
 
 
 /// UCIOption::operator=() updates currentValue. Normally it's up to the GUI to
 /// check for option's limits, but we could receive the new value directly from
-/// the user by teminal window, so let's check the bounds anyway.
+/// the user by console window, so let's check the bounds anyway.
 
 void UCIOption::operator=(const string& v) {
 
   assert(!type.empty());
 
   if (   !v.empty()
-      && (type == "check" || type == "button") == (v == "true" || v == "false")
+      && (type == "check") == (v == "true" || v == "false")
       && (type != "spin" || (atoi(v.c_str()) >= min && atoi(v.c_str()) <= max)))
+  {
       currentValue = v;
+
+      if (on_change)
+          (*on_change)(*this);
+  }
 }

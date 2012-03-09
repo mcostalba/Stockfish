@@ -105,10 +105,7 @@ void uci_loop() {
           pos.flip_me();
 
       else if (token == "eval")
-      {
-          read_evaluation_uci_options(pos.side_to_move());
-          cout << trace_evaluate(pos) << endl;
-      }
+          cout << Eval::trace(pos) << endl;
 
       else if (token == "key")
           cout << "key: " << hex     << pos.key()

@@ -223,8 +223,8 @@ namespace {
   std::stringstream TraceStream;
 
   enum TracedType {
-      PST = 8, IMBALANCE = 9, MOBILITY = 10, THREAT = 11,
-      PASSED = 12, UNSTOPPABLE = 13, SPACE = 14, TOTAL = 15
+    PST = 8, IMBALANCE = 9, MOBILITY = 10, THREAT = 11,
+    PASSED = 12, UNSTOPPABLE = 13, SPACE = 14, TOTAL = 15
   };
 
   // Function prototypes
@@ -254,16 +254,104 @@ namespace {
   inline Score apply_weight(Score v, Score weight);
   Value scale_by_game_phase(const Score& v, Phase ph, ScaleFactor sf);
   Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight);
-  void init_safety();
   double to_cp(Value v);
   void trace_add(int idx, Score term_w, Score term_b = SCORE_ZERO);
+  void trace_row(const char* name, int idx);
 }
 
 
-/// evaluate() is the main evaluation function. It always computes two
-/// values, an endgame score and a middle game score, and interpolates
-/// between them based on the remaining material.
-Value evaluate(const Position& pos, Value& margin) { return do_evaluate<false>(pos, margin); }
+namespace Eval {
+
+  Color RootColor;
+
+  /// evaluate() is the main evaluation function. It always computes two
+  /// values, an endgame score and a middle game score, and interpolates
+  /// between them based on the remaining material.
+
+  Value evaluate(const Position& pos, Value& margin) {
+    return do_evaluate<false>(pos, margin);
+  }
+
+
+  /// init() computes evaluation weights from the corresponding UCI parameters
+  /// and setup king tables.
+
+  void init() {
+
+    Weights[Mobility]       = weight_option("Mobility (Middle Game)", "Mobility (Endgame)", WeightsInternal[Mobility]);
+    Weights[PassedPawns]    = weight_option("Passed Pawns (Middle Game)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
+    Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
+    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
+    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+
+    // King safety is asymmetrical. Our king danger level is weighted by
+    // "Cowardice" UCI parameter, instead the opponent one by "Aggressiveness".
+    // If running in analysis mode, make sure we use symmetrical king safety. We
+    // do this by replacing both Weights[kingDangerUs] and Weights[kingDangerThem]
+    // by their average.
+    if (Options["UCI_AnalyseMode"])
+        Weights[KingDangerUs] = Weights[KingDangerThem] = (Weights[KingDangerUs] + Weights[KingDangerThem]) / 2;
+
+    const int MaxSlope = 30;
+    const int Peak = 1280;
+
+    for (int t = 0, i = 1; i < 100; i++)
+    {
+        t = std::min(Peak, std::min(int(0.4 * i * i), t + MaxSlope));
+
+        KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
+        KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
+    }
+  }
+
+
+  /// trace() is like evaluate() but instead of a value returns a string suitable
+  /// to be print on stdout with the detailed descriptions and values of each
+  /// evaluation term. Used mainly for debugging.
+
+  std::string trace(const Position& pos) {
+
+    Value margin;
+    std::string totals;
+
+    RootColor = pos.side_to_move();
+
+    TraceStream.str("");
+    TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
+    memset(TracedScores, 0, 2 * 16 * sizeof(Score));
+
+    do_evaluate<true>(pos, margin);
+
+    totals = TraceStream.str();
+    TraceStream.str("");
+
+    TraceStream << std::setw(21) << "Eval term " << "|    White    |    Black    |     Total     \n"
+                <<             "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
+                <<             "---------------------+-------------+-------------+---------------\n";
+
+    trace_row("Material, PST, Tempo", PST);
+    trace_row("Material imbalance", IMBALANCE);
+    trace_row("Pawns", PAWN);
+    trace_row("Knights", KNIGHT);
+    trace_row("Bishops", BISHOP);
+    trace_row("Rooks", ROOK);
+    trace_row("Queens", QUEEN);
+    trace_row("Mobility", MOBILITY);
+    trace_row("King safety", KING);
+    trace_row("Threats", THREAT);
+    trace_row("Passed pawns", PASSED);
+    trace_row("Unstoppable pawns", UNSTOPPABLE);
+    trace_row("Space", SPACE);
+
+    TraceStream <<             "---------------------+-------------+-------------+---------------\n";
+    trace_row("Total", TOTAL);
+    TraceStream << totals;
+
+    return TraceStream.str();
+  }
+
+} // namespace Eval
+
 
 namespace {
 
@@ -390,34 +478,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
   return pos.side_to_move() == WHITE ? v : -v;
 }
 
-} // namespace
-
-
-/// read_weights() reads evaluation weights from the corresponding UCI parameters
-
-void read_evaluation_uci_options(Color us) {
-
-  // King safety is asymmetrical. Our king danger level is weighted by
-  // "Cowardice" UCI parameter, instead the opponent one by "Aggressiveness".
-  const int kingDangerUs   = (us == WHITE ? KingDangerUs   : KingDangerThem);
-  const int kingDangerThem = (us == WHITE ? KingDangerThem : KingDangerUs);
-
-  Weights[Mobility]       = weight_option("Mobility (Middle Game)", "Mobility (Endgame)", WeightsInternal[Mobility]);
-  Weights[PassedPawns]    = weight_option("Passed Pawns (Middle Game)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-  Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-  Weights[kingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-  Weights[kingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
-
-  // If running in analysis mode, make sure we use symmetrical king safety. We do this
-  // by replacing both Weights[kingDangerUs] and Weights[kingDangerThem] by their average.
-  if (Options["UCI_AnalyseMode"])
-      Weights[kingDangerUs] = Weights[kingDangerThem] = (Weights[kingDangerUs] + Weights[kingDangerThem]) / 2;
-
-  init_safety();
-}
-
-
-namespace {
 
   // init_eval_info() initializes king bitboards for given color adding
   // pawn attacks. To be done at the beginning of the evaluation.
@@ -522,7 +582,7 @@ namespace {
             assert(b);
 
             if (single_bit(b) && (b & pos.pieces(Them)))
-                score += ThreatBonus[Piece][type_of(pos.piece_on(first_1(b)))] / 2;
+                score += ThreatBonus[Piece][type_of(pos.piece_on(first_1(b)))];
         }
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -779,8 +839,8 @@ namespace {
         // value that will be used for pruning because this value can sometimes
         // be very big, and so capturing a single attacking piece can therefore
         // result in a score change far bigger than the value of the captured piece.
-        score -= KingDangerTable[Us][attackUnits];
-        margins[Us] += mg_value(KingDangerTable[Us][attackUnits]);
+        score -= KingDangerTable[Us == Eval::RootColor][attackUnits];
+        margins[Us] += mg_value(KingDangerTable[Us == Eval::RootColor][attackUnits]);
     }
 
     if (Trace)
@@ -1113,33 +1173,6 @@ namespace {
   }
 
 
-  // init_safety() initizes the king safety evaluation, based on UCI
-  // parameters. It is called from read_weights().
-
-  void init_safety() {
-
-    const Value MaxSlope = Value(30);
-    const Value Peak = Value(1280);
-    Value t[100];
-
-    // First setup the base table
-    for (int i = 0; i < 100; i++)
-    {
-        t[i] = Value(int(0.4 * i * i));
-
-        if (i > 0)
-            t[i] = std::min(t[i], t[i - 1] + MaxSlope);
-
-        t[i] = std::min(t[i], Peak);
-    }
-
-    // Then apply the weights and get the final KingDangerTable[] array
-    for (Color c = WHITE; c <= BLACK; c++)
-        for (int i = 0; i < 100; i++)
-            KingDangerTable[c][i] = apply_weight(make_score(t[i], 0), Weights[KingDangerUs + c]);
-  }
-
-
   // A couple of little helpers used by tracing code, to_cp() converts a value to
   // a double in centipawns scale, trace_add() stores white and black scores.
 
@@ -1147,14 +1180,15 @@ namespace {
 
   void trace_add(int idx, Score wScore, Score bScore) {
 
-      TracedScores[WHITE][idx] = wScore;
-      TracedScores[BLACK][idx] = bScore;
+    TracedScores[WHITE][idx] = wScore;
+    TracedScores[BLACK][idx] = bScore;
   }
+
 
   // trace_row() is an helper function used by tracing code to register the
   // values of a single evaluation term.
 
-  void trace_row(const char *name, int idx) {
+  void trace_row(const char* name, int idx) {
 
     Score wScore = TracedScores[WHITE][idx];
     Score bScore = TracedScores[BLACK][idx];
@@ -1176,48 +1210,4 @@ namespace {
                     << std::setw(6)  << to_cp(eg_value(wScore - bScore)) << " \n";
     }
   }
-}
-
-
-/// trace_evaluate() is like evaluate() but instead of a value returns a string
-/// suitable to be print on stdout with the detailed descriptions and values of
-/// each evaluation term. Used mainly for debugging.
-
-std::string trace_evaluate(const Position& pos) {
-
-    Value margin;
-    std::string totals;
-
-    TraceStream.str("");
-    TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
-    memset(TracedScores, 0, 2 * 16 * sizeof(Score));
-
-    do_evaluate<true>(pos, margin);
-
-    totals = TraceStream.str();
-    TraceStream.str("");
-
-    TraceStream << std::setw(21) << "Eval term " << "|    White    |    Black    |     Total     \n"
-                <<             "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
-                <<             "---------------------+-------------+-------------+---------------\n";
-
-    trace_row("Material, PST, Tempo", PST);
-    trace_row("Material imbalance", IMBALANCE);
-    trace_row("Pawns", PAWN);
-    trace_row("Knights", KNIGHT);
-    trace_row("Bishops", BISHOP);
-    trace_row("Rooks", ROOK);
-    trace_row("Queens", QUEEN);
-    trace_row("Mobility", MOBILITY);
-    trace_row("King safety", KING);
-    trace_row("Threats", THREAT);
-    trace_row("Passed pawns", PASSED);
-    trace_row("Unstoppable pawns", UNSTOPPABLE);
-    trace_row("Space", SPACE);
-
-    TraceStream <<             "---------------------+-------------+-------------+---------------\n";
-    trace_row("Total", TOTAL);
-    TraceStream << totals;
-
-    return TraceStream.str();
 }

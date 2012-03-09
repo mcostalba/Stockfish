@@ -48,6 +48,7 @@ namespace Search {
 using std::string;
 using std::cout;
 using std::endl;
+using Eval::evaluate;
 using namespace Search;
 
 namespace {
@@ -251,6 +252,7 @@ void Search::think() {
 
   Position& pos = RootPosition;
   Chess960 = pos.is_chess960();
+  Eval::RootColor = pos.side_to_move();
   SearchTime.restart();
   TimeMgr.init(Limits, pos.startpos_ply_counter());
   TT.new_search();
@@ -274,17 +276,6 @@ void Search::think() {
           std::swap(RootMoves[0], *find(RootMoves.begin(), RootMoves.end(), bookMove));
           goto finalize;
       }
-  }
-
-  // Read UCI options: GUI could change UCI parameters during the game
-  read_evaluation_uci_options(pos.side_to_move());
-  Threads.read_uci_options();
-
-  TT.set_size(Options["Hash"]);
-  if (Options["Clear Hash"])
-  {
-      Options["Clear Hash"] = false;
-      TT.clear();
   }
 
   UCIMultiPV = Options["MultiPV"];
