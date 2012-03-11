@@ -143,6 +143,8 @@ namespace {
     { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
   };
 
+	Score MultiThreatBonus = make_score(44, 66);
+
   #undef S
 
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
@@ -674,31 +676,42 @@ Value do_evaluate(const Position& pos, Value& margin) {
     if (!weakEnemies)
         return SCORE_ZERO;
 
-		b = ei.attackedBy[Us][PAWN] & weakEnemies;
+		int threatCount = 0;
+		
+		// Handle pawns specially, as they are always a threat for the piece
+		// they are attacking (except other pawns)
+		b = ei.attackedBy[Us][PAWN] & weakEnemies & ~pos.pieces(PAWN);
 		while (b) {
 			const PieceType pt = type_of(pos.piece_on(pop_1st_bit(&b)));
 			score += ThreatBonus[PAWN][pt];
-		}	
-		
+			threatCount++;
+		}
+
 		const Bitboard notPawnDefended = ~ei.attackedBy[Them][PAWN];
 
     // Add bonus according to type of attacked enemy piece and to the
     // type of attacking piece, from knights to queens. Kings are not
     // considered because are already handled in king evaluation.
     for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++) {
-			b = ei.attackedBy[Us][pt1] & weakEnemies;
+			b = ei.attackedBy[Us][pt1] & weakEnemies & ~pos.pieces(pt1);
 			if (b) {
 				for (PieceType pt2 = PAWN; pt2 < KING; pt2++) {
 					const Bitboard b2 = b & pos.pieces(pt2);
 					if (b2) {
-						if (pt1 < pt2)
+						// Only count a threat if a minor targets a major piece
+						if (pt1 < pt2 && pt2 > BISHOP) {
 							score += ThreatBonus[pt1][pt2];
-						else if (notPawnDefended & b2)
+							threatCount++;
+						} else if (notPawnDefended & b2)
 							score += ThreatBonus[pt1][pt2];
 					}
 				}
 			}
     }
+
+		if (threatCount > 1)
+			score += MultiThreatBonus;
+
     return score;
   }
 
