@@ -680,19 +680,24 @@ Value do_evaluate(const Position& pos, Value& margin) {
 			score += ThreatBonus[PAWN][pt];
 		}	
 		
-		weakEnemies &= ~ei.attackedBy[Them][PAWN];
-		
+		const Bitboard notPawnDefended = ~ei.attackedBy[Them][PAWN];
+
     // Add bonus according to type of attacked enemy piece and to the
     // type of attacking piece, from knights to queens. Kings are not
     // considered because are already handled in king evaluation.
-    for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++)
-    {
-        b = ei.attackedBy[Us][pt1] & weakEnemies;
-        if (b) {
-            for (PieceType pt2 = PAWN; pt2 < KING; pt2++)
-              if (b & pos.pieces(pt2))
-								score += ThreatBonus[pt1][pt2];
+    for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++) {
+			b = ei.attackedBy[Us][pt1] & weakEnemies;
+			if (b) {
+				for (PieceType pt2 = PAWN; pt2 < KING; pt2++) {
+					const Bitboard b2 = b & pos.pieces(pt2);
+					if (b2) {
+						if (pt1 < pt2)
+							score += ThreatBonus[pt1][pt2];
+						else if (notPawnDefended & b2)
+							score += ThreatBonus[pt1][pt2];
+					}
 				}
+			}
     }
     return score;
   }
