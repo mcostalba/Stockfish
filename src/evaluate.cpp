@@ -144,7 +144,7 @@ namespace {
   };
 	Score ThreatBonus[6][8] = {};
 
-	Score MultiThreatBonus = make_score(44, 66);
+	Score MultiThreatBonus;
 
   #undef S
 
@@ -299,8 +299,14 @@ namespace Eval {
 
 		// CLOP tuning
 		for (int i = 0; i < 6; i++)
-			for (int j = 0; j < 8; j++)
-				ThreatBonus[i][j] = weight_option("AttackO", "AttackE", ThreatBonusInternal[i][j]);
+			for (int j = 0; j < 8; j++) {
+				if (i == PAWN)
+					ThreatBonus[i][j] = ThreatBonusInternal[i][j];
+				else
+					ThreatBonus[i][j] = weight_option("AttackO", "AttackE", ThreatBonusInternal[i][j]);
+			}
+				
+		MultiThreatBonus = weight_option("MultiThreat", "MultiThreat", make_score(44, 66));
   }
 
 
