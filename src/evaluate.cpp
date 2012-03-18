@@ -551,9 +551,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (Piece == KNIGHT || Piece == QUEEN)
             b = pos.attacks_from<Piece>(s);
         else if (Piece == BISHOP)
-            b = attacks_bb<BISHOP>(s, pos.occupied_squares() & ~pos.pieces(QUEEN, Us));
+            b = attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(QUEEN, Us));
         else if (Piece == ROOK)
-            b = attacks_bb<ROOK>(s, pos.occupied_squares() & ~pos.pieces(ROOK, QUEEN, Us));
+            b = attacks_bb<ROOK>(s, pos.pieces() ^ pos.pieces(ROOK, QUEEN, Us));
         else
             assert(false);
 
@@ -577,7 +577,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (   (Piece == BISHOP || Piece == ROOK || Piece == QUEEN)
             && (PseudoAttacks[Piece][pos.king_square(Them)] & s))
         {
-            b = BetweenBB[s][pos.king_square(Them)] & pos.occupied_squares();
+            b = BetweenBB[s][pos.king_square(Them)] & pos.pieces();
 
             assert(b);
 
@@ -987,7 +987,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             // Opponent king cannot block because path is defended and position
             // is not in check. So only friendly pieces can be blockers.
             assert(!pos.in_check());
-            assert((queeningPath & pos.occupied_squares()) == (queeningPath & pos.pieces(c)));
+            assert((queeningPath & pos.pieces()) == (queeningPath & pos.pieces(c)));
 
             // Add moves needed to free the path from friendly pieces and retest condition
             movesToGo += popcount<Max15>(queeningPath & pos.pieces(c));
