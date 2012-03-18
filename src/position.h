@@ -108,7 +108,7 @@ public:
   Color side_to_move() const;
 
   // Bitboard representation of the position
-  Bitboard occupied_squares() const;
+  Bitboard pieces() const;
   Bitboard pieces(Color c) const;
   Bitboard pieces(PieceType pt) const;
   Bitboard pieces(PieceType pt, Color c) const;
@@ -231,7 +231,6 @@ private:
   // Bitboards
   Bitboard byTypeBB[8];        // [pieceType]
   Bitboard byColorBB[2];       // [color]
-  Bitboard occupied;
 
   // Piece counts
   int pieceCount[2][8];        // [color][pieceType]
@@ -285,8 +284,8 @@ inline Color Position::side_to_move() const {
   return sideToMove;
 }
 
-inline Bitboard Position::occupied_squares() const {
-  return occupied;
+inline Bitboard Position::pieces() const {
+  return byTypeBB[ALL_PIECES];
 }
 
 inline Bitboard Position::pieces(Color c) const {
@@ -334,7 +333,7 @@ inline bool Position::can_castle(Color c) const {
 }
 
 inline bool Position::castle_impeded(CastleRight f) const {
-  return occupied & castlePath[f];
+  return byTypeBB[ALL_PIECES] & castlePath[f];
 }
 
 inline Square Position::castle_rook_square(CastleRight f) const {
@@ -343,7 +342,7 @@ inline Square Position::castle_rook_square(CastleRight f) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s) const {
-  return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, occupied_squares())
+  return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, pieces())
         : Pt == QUEEN  ? attacks_from<ROOK>(s) | attacks_from<BISHOP>(s)
         : StepAttacksBB[Pt][s];
 }
@@ -354,11 +353,11 @@ inline Bitboard Position::attacks_from<PAWN>(Square s, Color c) const {
 }
 
 inline Bitboard Position::attacks_from(Piece p, Square s) const {
-  return attacks_from(p, s, occupied);
+  return attacks_from(p, s, byTypeBB[ALL_PIECES]);
 }
 
 inline Bitboard Position::attackers_to(Square s) const {
-  return attackers_to(s, occupied);
+  return attackers_to(s, byTypeBB[ALL_PIECES]);
 }
 
 inline Bitboard Position::checkers() const {
