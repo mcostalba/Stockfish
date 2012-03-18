@@ -690,7 +690,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
 		Bitboard undefended = weakEnemies & ~ei.attackedBy[Them][0] & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
 		if (undefended)
-			score += make_score(10, 1) * popcount<Max15>(undefended);
+			score += make_score(25, 10) * popcount<Max15>(undefended);
 		
 		weakEnemies &= ei.attackedBy[Us][0];
     if (!weakEnemies)
