@@ -148,10 +148,6 @@ namespace {
     S(0, 0), S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118)
   };
 
-  const Score UndefendedPenalty[] = {
-    S(0, 0), S(3, 0), S(20, 2), S(20, 2), S(0, 0), S(0, 0)
-  };
-
   #undef S
 
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
