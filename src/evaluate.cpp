@@ -679,16 +679,18 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Bitboard b;
     Score score = SCORE_ZERO;
 
-
     // Enemy pieces not defended by a pawn
-    Bitboard weakEnemies =  pos.pieces(Them)
-													& ~ei.attackedBy[Them][PAWN];
+    Bitboard weakEnemies =  pos.pieces(Them) & ~ei.attackedBy[Them][PAWN];
 
-		Bitboard undefended = weakEnemies & ~ei.attackedBy[Them][0] & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
-		if (undefended)
-			score += make_score(25, 10) * popcount<Max15>(undefended);
-		
-		weakEnemies &= ei.attackedBy[Us][0];
+    // Undefended minors get penalized
+    const Bitboard undefended = weakEnemies
+                              & ~ei.attackedBy[Them][0]
+                              & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
+    if (undefended)
+        score += make_score(25, 10) * popcount<Max15>(undefended);
+    
+    // Filter to enemy pieces attacked by us
+    weakEnemies &= ei.attackedBy[Us][0];
     if (!weakEnemies)
         return score;
 
@@ -701,7 +703,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (b)
             for (PieceType pt2 = PAWN; pt2 < KING; pt2++)
                 if (b & pos.pieces(pt2))
-										score += ThreatBonus[pt1][pt2];
+                    score += ThreatBonus[pt1][pt2];
     }
     return score;
   }
