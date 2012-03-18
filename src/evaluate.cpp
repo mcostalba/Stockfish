@@ -134,7 +134,7 @@ namespace {
 
   // ThreatBonus[attacking][attacked] contains threat bonuses according to
   // which piece type attacks which one.
-  const Score ThreatBonusInternal[][8] = {
+  const Score ThreatBonus[][8] = {
     {},
 	  { S(0, 0), S( 0,  0), S(56, 70), S(56, 70), S(76, 99), S(86,118) }, // PAWN
     { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
@@ -142,7 +142,6 @@ namespace {
     { S(0, 0), S(-1, 29), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
     { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
   };
-	Score ThreatBonus[6][8] = {};
 
 	Score MultiThreatBonus;
 
@@ -297,16 +296,7 @@ namespace Eval {
         KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
 
-		// CLOP tuning
-		for (int i = 0; i < 6; i++)
-			for (int j = 0; j < 8; j++) {
-				if (i == PAWN)
-					ThreatBonus[i][j] = ThreatBonusInternal[i][j];
-				else
-					ThreatBonus[i][j] = weight_option("AttackO", "AttackE", ThreatBonusInternal[i][j]);
-			}
-				
-		MultiThreatBonus = weight_option("MultiThreat", "MultiThreat", make_score(44, 66));
+		MultiThreatBonus = weight_option("MTO", "MTE", make_score(0, 0));
   }
 
 
@@ -711,20 +701,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
 					const Bitboard b2 = b & pos.pieces(pt2);
 					if (b2) {
 						// Only count a threat if a minor targets a major piece
-						if (pt1 < pt2 && pt2 > BISHOP) {
-							score += ThreatBonus[pt1][pt2];
+						if (pt1 < pt2 && pt2 > BISHOP)
 							threatCount++;
-						} else if (notPawnDefended & b2)
+						if (notPawnDefended & b2)
 							score += ThreatBonus[pt1][pt2];
 					}
 				}
 			}
     }
 
-		if (threatCount > 1) {
+		if (threatCount)
 			score += MultiThreatBonus;
-			//printf("%s,%d,%d,%d\n",pos.to_fen().c_str(),threatCount,Us,mg_value(score));
-		}
 
     return score;
   }
