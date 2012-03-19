@@ -135,18 +135,15 @@ namespace {
   // ThreatBonus[attacking][attacked] contains threat bonuses according to
   // which piece type attacks which one.
   const Score ThreatBonus[][8] = {
-    {}, {},
+    {},
+	  { S(0, 0), S( 0,  0), S(56, 70), S(56, 70), S(76, 99), S(86,118) }, // PAWN
     { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
     { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BISHOP
     { S(0, 0), S(-1, 29), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
     { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
   };
 
-  // ThreatenedByPawnPenalty[PieceType] contains a penalty according to which
-  // piece type is attacked by an enemy pawn.
-  const Score ThreatenedByPawnPenalty[] = {
-    S(0, 0), S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118)
-  };
+	Score MultiThreatBonus;
 
   #undef S
 
@@ -298,6 +295,8 @@ namespace Eval {
         KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
         KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
+
+		MultiThreatBonus = weight_option("MTO", "MTE", make_score(0, 0));
   }
 
 
@@ -581,11 +580,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 score += ThreatBonus[Piece][type_of(pos.piece_on(first_1(b)))];
         }
 
-        // Decrease score if we are attacked by an enemy pawn. Remaining part
-        // of threat evaluation must be done later when we have full attack info.
-        if (ei.attackedBy[Them][PAWN] & s)
-            score -= ThreatenedByPawnPenalty[Piece];
-
         // Bishop and knight outposts squares
         if (    (Piece == BISHOP || Piece == KNIGHT)
             && !(pos.pieces(PAWN, Them) & attack_span_mask(Us, s)))
@@ -679,24 +673,46 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Bitboard b;
     Score score = SCORE_ZERO;
 
-    // Enemy pieces not defended by a pawn and under our attack
-    Bitboard weakEnemies =  pos.pieces(Them)
-                          & ~ei.attackedBy[Them][PAWN]
-                          & ei.attackedBy[Us][0];
+    // Enemy pieces under our attack
+    Bitboard weakEnemies =  pos.pieces(Them) & ei.attackedBy[Us][0];
     if (!weakEnemies)
         return SCORE_ZERO;
+
+		int threatCount = 0;
+		
+		// Handle pawns specially, as they are always a threat for the piece
+		// they are attacking (except other pawns)
+		b = ei.attackedBy[Us][PAWN] & weakEnemies & ~pos.pieces(PAWN);
+		while (b) {
+			const PieceType pt = type_of(pos.piece_on(pop_1st_bit(&b)));
+			score += ThreatBonus[PAWN][pt];
+			threatCount++;
+		}
+
+		const Bitboard notPawnDefended = ~ei.attackedBy[Them][PAWN];
 
     // Add bonus according to type of attacked enemy piece and to the
     // type of attacking piece, from knights to queens. Kings are not
     // considered because are already handled in king evaluation.
-    for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++)
-    {
-        b = ei.attackedBy[Us][pt1] & weakEnemies;
-        if (b)
-            for (PieceType pt2 = PAWN; pt2 < KING; pt2++)
-                if (b & pos.pieces(pt2))
-                    score += ThreatBonus[pt1][pt2];
+    for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++) {
+			b = ei.attackedBy[Us][pt1] & weakEnemies & ~pos.pieces(pt1);
+			if (b) {
+				for (PieceType pt2 = PAWN; pt2 < KING; pt2++) {
+					const Bitboard b2 = b & pos.pieces(pt2);
+					if (b2) {
+						// Only count a threat if a minor targets a major piece
+						if (pt1 < pt2 && pt2 > BISHOP)
+							threatCount++;
+						if (notPawnDefended & b2)
+							score += ThreatBonus[pt1][pt2];
+					}
+				}
+			}
     }
+
+		if (threatCount)
+			score += MultiThreatBonus;
+
     return score;
   }
 

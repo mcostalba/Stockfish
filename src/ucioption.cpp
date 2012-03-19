@@ -88,6 +88,9 @@ OptionsMap::OptionsMap() {
   o["Slow Mover"]                  = UCIOption(100, 10, 1000);
   o["UCI_Chess960"]                = UCIOption(false);
   o["UCI_AnalyseMode"]             = UCIOption(false, on_eval);
+
+	o["MTO"] = UCIOption(0, 0, 100, on_eval);
+	o["MTE"] = UCIOption(0, 0, 100, on_eval);
 }
 
 
