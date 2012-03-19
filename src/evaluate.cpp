@@ -168,7 +168,7 @@ namespace {
   const Score TrappedBishopA1H1Penalty = make_score(100, 100);
 
   // Penalty for a minor piece that is not defended by anything
-  const Score UndefendedMinorPenalty = make_score(19, 12);
+  const Score UndefendedMinorPenalty = make_score(25, 10);
 
   // The SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middle game, each side is given a bonus
