@@ -167,6 +167,9 @@ namespace {
   // happen in Chess960 games.
   const Score TrappedBishopA1H1Penalty = make_score(100, 100);
 
+  // Penalty for a minor piece that is not defended by anything
+  const Score UndefendedMinorPenalty = make_score(19, 12);
+
   // The SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middle game, each side is given a bonus
   // based on how many squares inside this area are safe and available for
@@ -686,9 +689,12 @@ Value do_evaluate(const Position& pos, Value& margin) {
     const Bitboard undefended = weakEnemies
                               & ~ei.attackedBy[Them][0]
                               & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
-    if (undefended)
-        score += make_score(25, 10) * popcount<Max15>(undefended);
-    
+    if (undefended) {
+        score += UndefendedMinorPenalty;
+        if (!single_bit(undefended))
+            score += UndefendedMinorPenalty;
+    }
+
     // Filter to enemy pieces attacked by us
     weakEnemies &= ei.attackedBy[Us][0];
     if (!weakEnemies)
