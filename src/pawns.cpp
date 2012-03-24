@@ -67,12 +67,16 @@ namespace {
 
   const File ShelterFile[8] = { FILE_B, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_G };
 
+  inline Value score_non_center_file(const Value v) {
+		return Value(v * 7 / 16);
+  }
+
   typedef Value V;
   // Arrays are indexed by rank.  Zeroth value is for when no pawn on that file.
-  const Value PawnShelter[8] =	{ V(141), V(0), V( 38), V(102), V(128), V(141), V(141), V(141) };
-  const Value PawnStorm[8] =	{ V( 26), V(0), V(128), V( 51), V( 26), V(  0), V(  0), V(  0) };
+  const Value PawnShelter[8] =  { V(141), V(0), V( 38), V(102), V(128), V(141), V(141), V(141) };
+  const Value PawnStorm[8] =    { V( 26), V(0), V(128), V( 51), V( 26), V(  0), V(  0), V(  0) };
   // We compute shelter as a penalty for the given color, but shelter is used as a bonus, so we invert it using this as the basis.
-  const Value PawnShelterBasis =  V(141 + ((141 * 7 / 16) * 2));
+  const Value PawnShelterBasis =  PawnShelter[0] + score_non_center_file(PawnShelter[0]) * 2;
 
   inline Score apply_weight(Score v, Score w) {
     return make_score((int(mg_value(v)) * mg_value(w)) / 0x100,
@@ -235,7 +239,7 @@ int computePawnShelter(const Position &pos, Square ksq) {
                                       : RANK_1;
 
     shelter += fileOffset == 0 ? PawnShelter[shelterClosest]
-                               : (PawnShelter[shelterClosest] * 7) / 16;
+                               : score_non_center_file(PawnShelter[shelterClosest]);
 
     // Storm takes full penalty, unless there is an enemy pawn blocking us
     Bitboard stormFile  = theirPawns & FileBB[kingFile + fileOffset];
