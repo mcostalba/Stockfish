@@ -103,6 +103,7 @@ Endgames::Endgames() {
   add<KRPKR>("KRPKR");
   add<KBPKB>("KBPKB");
   add<KBPKN>("KBPKN");
+  add<KBPPKNP>("KBPPKNP");
   add<KBPPKB>("KBPPKB");
   add<KRPPKRP>("KRPPKRP");
 }
@@ -799,8 +800,20 @@ ScaleFactor Endgame<KBPPKB>::operator()(const Position& pos) const {
   }
 }
 
+bool KingDefendsInBNEndgame(const Position &pos, const Color strongerSide, const Color weakerSide, const Square pawnSq) {
+  Square strongerBishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+  Square weakerKingSq = pos.king_square(weakerSide);
 
-/// K, bisop and a pawn vs K and knight. There is a single rule: If the defending
+  if (   file_of(weakerKingSq) == file_of(pawnSq)
+      && relative_rank(strongerSide, pawnSq) < relative_rank(strongerSide, weakerKingSq)
+      && (   opposite_colors(weakerKingSq, strongerBishopSq)
+          || relative_rank(strongerSide, weakerKingSq) <= RANK_6))
+      return true;
+
+  return false;
+}
+
+/// K, bishop and a pawn vs K and knight. There is a single rule: If the defending
 /// king is somewhere along the path of the pawn, and the square of the king is
 /// not of the same color as the stronger side's bishop, it's a draw.
 template<>
@@ -814,18 +827,51 @@ ScaleFactor Endgame<KBPKN>::operator()(const Position& pos) const {
   assert(pos.piece_count(weakerSide, PAWN) == 0);
 
   Square pawnSq = pos.piece_list(strongerSide, PAWN)[0];
-  Square strongerBishopSq = pos.piece_list(strongerSide, BISHOP)[0];
-  Square weakerKingSq = pos.king_square(weakerSide);
 
-  if (   file_of(weakerKingSq) == file_of(pawnSq)
-      && relative_rank(strongerSide, pawnSq) < relative_rank(strongerSide, weakerKingSq)
-      && (   opposite_colors(weakerKingSq, strongerBishopSq)
-          || relative_rank(strongerSide, weakerKingSq) <= RANK_6))
-      return SCALE_FACTOR_DRAW;
-
-  return SCALE_FACTOR_NONE;
+  return KingDefendsInBNEndgame(pos, strongerSide, weakerSide, pawnSq) ? SCALE_FACTOR_DRAW
+																	   : SCALE_FACTOR_NONE;
 }
 
+// K, bishop and two pawns vs K, knight and pawn.  Uses the same rule as KBPKN if the extra
+// pawns are on the same file, and the enemy pawn is not on the same color square as the
+// bishop.
+template<>
+ScaleFactor Endgame<KBPPKNP>::operator()(const Position& pos) const {
+
+  assert(pos.non_pawn_material(strongerSide) == BishopValueMidgame);
+  assert(pos.piece_count(strongerSide, BISHOP) == 1);
+  assert(pos.piece_count(strongerSide, PAWN) == 2);
+  assert(pos.non_pawn_material(weakerSide) == KnightValueMidgame);
+  assert(pos.piece_count(weakerSide, KNIGHT) == 1);
+  assert(pos.piece_count(weakerSide, PAWN) == 1);
+
+  Square weakPawnSq = pos.piece_list(weakerSide, PAWN)[0];
+  Square psq1 = pos.piece_list(strongerSide, PAWN)[0];
+  Square psq2 = pos.piece_list(strongerSide, PAWN)[1];
+  Square strongerBishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+  Square passedSq, notPassedSq;
+  int passedCount = 0;
+
+  if (pos.pawn_is_passed(strongerSide, psq1)) {
+      passedCount++;
+      passedSq = psq1;
+      notPassedSq = psq2;
+  }
+  if (pos.pawn_is_passed(strongerSide, psq2)) {
+      passedCount++;
+      passedSq = psq2;
+      notPassedSq = psq1;
+  }
+  if (passedCount != 1)
+      return SCALE_FACTOR_NONE;
+
+  if (   file_of(notPassedSq) == file_of(weakPawnSq)
+      && opposite_colors(strongerBishopSq, weakPawnSq)
+      && KingDefendsInBNEndgame(pos, strongerSide, weakerSide, passedSq))
+      return ScaleFactor(16);
+  
+  return SCALE_FACTOR_NONE;
+}
 
 /// K, knight and a pawn vs K. There is a single rule: If the pawn is a rook pawn
 /// on the 7th rank and the defending king prevents the pawn from advancing, the
