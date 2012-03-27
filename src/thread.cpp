@@ -32,29 +32,61 @@ ThreadsManager Threads; // Global object
 namespace { extern "C" {
 
  // start_routine() is the C function which is called when a new thread
- // is launched. It simply calls idle_loop() of the supplied thread. The first
- // and last thread are special. First one is the main search thread while the
- // last one mimics a timer, they run in main_loop() and timer_loop().
+ // is launched. It is a wrapper to member function pointed by start_fn.
 
-  long start_routine(Thread* th) {
-
-    if (th->threadID == 0)
-        th->main_loop();
-
-    else if (th->threadID == MAX_THREADS)
-        th->timer_loop();
-
-    else
-        th->idle_loop(NULL);
-
-    return 0;
-  }
+ long start_routine(Thread* th) { (th->*(th->start_fn))(); return 0; }
 
 } }
 
 
+// Thread c'tor starts a newly-created thread of execution that will call
+// the idle loop function pointed by start_fn going immediately to sleep.
+
+Thread::Thread(Fn fn) {
+
+  is_searching = do_exit = false;
+  maxPly = splitPointsCnt = 0;
+  curSplitPoint = NULL;
+  start_fn = fn;
+  threadID = Threads.size();
+
+  do_sleep = (fn != &Thread::main_loop); // Avoid a race with start_searching()
+
+  lock_init(sleepLock);
+  cond_init(sleepCond);
+
+  for (int j = 0; j < MAX_SPLITPOINTS_PER_THREAD; j++)
+      lock_init(splitPoints[j].lock);
+
+  if (!thread_create(handle, start_routine, this))
+  {
+      std::cerr << "Failed to create thread number " << threadID << std::endl;
+      ::exit(EXIT_FAILURE);
+  }
+}
+
+
+// Thread d'tor waits for thread termination before to return.
+
+Thread::~Thread() {
+
+  assert(do_sleep);
+
+  do_exit = true; // Search must be already finished
+  wake_up();
+
+  thread_join(handle); // Wait for thread termination
+
+  lock_destroy(sleepLock);
+  cond_destroy(sleepCond);
+
+  for (int j = 0; j < MAX_SPLITPOINTS_PER_THREAD; j++)
+      lock_destroy(splitPoints[j].lock);
+}
+
+
 // Thread::timer_loop() is where the timer thread waits maxPly milliseconds and
-// then calls do_timer_event(). If maxPly is 0 thread sleeps until is woken up.
+// then calls check_time(). If maxPly is 0 thread sleeps until is woken up.
 extern void check_time();
 
 void Thread::timer_loop() {
@@ -100,11 +132,12 @@ void Thread::main_loop() {
 
 
 // Thread::wake_up() wakes up the thread, normally at the beginning of the search
-// or, if "sleeping threads" is used, when there is some work to do.
+// or, if "sleeping threads" is used at split time.
 
 void Thread::wake_up() {
 
   lock_grab(sleepLock);
+  do_sleep = false;
   cond_signal(sleepCond);
   lock_release(sleepLock);
 }
@@ -122,16 +155,13 @@ void Thread::wait_for_stop_or_ponderhit() {
   Signals.stopOnPonderhit = true;
 
   lock_grab(sleepLock);
-
-  while (!Signals.stop)
-      cond_wait(sleepCond, sleepLock);
-
+  while (!Signals.stop) cond_wait(sleepCond, sleepLock);
   lock_release(sleepLock);
 }
 
 
-// cutoff_occurred() checks whether a beta cutoff has occurred in the current
-// active split point, or in some ancestor of the split point.
+// Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
+// current active split point, or in some ancestor of the split point.
 
 bool Thread::cutoff_occurred() const {
 
@@ -143,12 +173,12 @@ bool Thread::cutoff_occurred() const {
 }
 
 
-// is_available_to() checks whether the thread is available to help the thread with
-// threadID "master" at a split point. An obvious requirement is that thread must be
-// idle. With more than two threads, this is not by itself sufficient: If the thread
-// is the master of some active split point, it is only available as a slave to the
-// threads which are busy searching the split point at the top of "slave"'s split
-// point stack (the "helpful master concept" in YBWC terminology).
+// Thread::is_available_to() checks whether the thread is available to help the
+// thread with threadID "master" at a split point. An obvious requirement is that
+// thread must be idle. With more than two threads, this is not sufficient: If
+// the thread is the master of some active split point, it is only available as a
+// slave to the threads which are busy searching the split point at the top of
+// "slave"'s split point stack (the "helpful master concept" in YBWC terminology).
 
 bool Thread::is_available_to(int master) const {
 
@@ -165,104 +195,82 @@ bool Thread::is_available_to(int master) const {
 }
 
 
+// init() is called at startup. Initializes lock and condition variable and
+// launches requested threads sending them immediately to sleep. We cannot use
+// a c'tor becuase Threads is a static object and we need a fully initialized
+// engine at this point due to allocation of endgames in Thread c'tor.
+
+void ThreadsManager::init() {
+
+  cond_init(sleepCond);
+  lock_init(splitLock);
+  timer = new Thread(&Thread::timer_loop);
+  threads.push_back(new Thread(&Thread::main_loop));
+  read_uci_options();
+}
+
+
+// d'tor cleanly terminates the threads when the program exits.
+
+ThreadsManager::~ThreadsManager() {
+
+  for (int i = 0; i < size(); i++)
+      delete threads[i];
+
+  delete timer;
+  lock_destroy(splitLock);
+  cond_destroy(sleepCond);
+}
+
+
 // read_uci_options() updates internal threads parameters from the corresponding
-// UCI options. It is called before to start a new search.
+// UCI options and creates/destroys threads to match the requested number. Thread
+// objects are dynamically allocated to avoid creating in advance all possible
+// threads, with included pawns and material tables, if only few are used.
 
 void ThreadsManager::read_uci_options() {
 
   maxThreadsPerSplitPoint = Options["Max Threads per Split Point"];
   minimumSplitDepth       = Options["Min Split Depth"] * ONE_PLY;
   useSleepingThreads      = Options["Use Sleeping Threads"];
-}
+  int requested           = Options["Threads"];
 
+  assert(requested > 0);
 
-// set_size() changes the number of active threads and raises do_sleep flag for
-// all the unused threads that will go immediately to sleep.
+  while (size() < requested)
+      threads.push_back(new Thread(&Thread::idle_loop));
 
-void ThreadsManager::set_size(int cnt) {
-
-  assert(cnt > 0 && cnt < MAX_THREADS);
-
-  activeThreads = cnt;
-
-  for (int i = 0; i < MAX_THREADS; i++)
-      if (i < activeThreads)
-      {
-          // Dynamically allocate pawn and material hash tables according to the
-          // number of active threads. This avoids preallocating memory for all
-          // possible threads if only few are used.
-          threads[i].pawnTable.init();
-          threads[i].materialTable.init();
-          threads[i].maxPly = 0;
-
-          threads[i].do_sleep = false;
-
-          if (!useSleepingThreads)
-              threads[i].wake_up();
-      }
-      else
-          threads[i].do_sleep = true;
-}
-
-
-// init() is called during startup. Initializes locks and condition variables
-// and launches all threads sending them immediately to sleep.
-
-void ThreadsManager::init() {
-
-  read_uci_options();
-
-  cond_init(sleepCond);
-  lock_init(splitLock);
-
-  // Allocate main thread tables to call evaluate() also when not searching
-  threads[0].pawnTable.init();
-  threads[0].materialTable.init();
-
-  // Create and launch all the threads, threads will go immediately to sleep
-  for (int i = 0; i <= MAX_THREADS; i++)
+  while (size() > requested)
   {
-      threads[i].is_searching = false;
-      threads[i].do_sleep = (i != 0); // Avoid a race with start_thinking()
-      threads[i].threadID = i;
-
-      lock_init(threads[i].sleepLock);
-      cond_init(threads[i].sleepCond);
-
-      for (int j = 0; j < MAX_SPLITPOINTS_PER_THREAD; j++)
-          lock_init(threads[i].splitPoints[j].lock);
-
-      if (!thread_create(threads[i].handle, start_routine, threads[i]))
-      {
-          std::cerr << "Failed to create thread number " << i << std::endl;
-          ::exit(EXIT_FAILURE);
-      }
+      delete threads.back();
+      threads.pop_back();
   }
 }
 
 
-// exit() is called to cleanly terminate the threads when the program finishes
+// wake_up() is called before a new search to start the threads that are waiting
+// on the sleep condition and to reset maxPly. When useSleepingThreads is set
+// threads will be woken up at split time.
 
-void ThreadsManager::exit() {
+void ThreadsManager::wake_up() const {
 
-  for (int i = 0; i <= MAX_THREADS; i++)
+  for (int i = 0; i < size(); i++)
   {
-      assert(threads[i].do_sleep);
+      threads[i]->maxPly = 0;
 
-      threads[i].do_exit = true; // Search must be already finished
-      threads[i].wake_up();
-
-      thread_join(threads[i].handle); // Wait for thread termination
-
-      lock_destroy(threads[i].sleepLock);
-      cond_destroy(threads[i].sleepCond);
-
-      for (int j = 0; j < MAX_SPLITPOINTS_PER_THREAD; j++)
-          lock_destroy(threads[i].splitPoints[j].lock);
+      if (!useSleepingThreads)
+          threads[i]->wake_up();
   }
+}
 
-  lock_destroy(splitLock);
-  cond_destroy(sleepCond);
+
+// sleep() is called after the search finishes to ask all the threads but the
+// main one to go waiting on a sleep condition.
+
+void ThreadsManager::sleep() const {
+
+  for (int i = 1; i < size(); i++) // Main thread will go to sleep by itself
+      threads[i]->do_sleep = true; // to avoid a race with start_searching()
 }
 
 
@@ -271,10 +279,10 @@ void ThreadsManager::exit() {
 
 bool ThreadsManager::available_slave_exists(int master) const {
 
-  assert(master >= 0 && master < activeThreads);
+  assert(master >= 0 && master < size());
 
-  for (int i = 0; i < activeThreads; i++)
-      if (threads[i].is_available_to(master))
+  for (int i = 0; i < size(); i++)
+      if (threads[i]->is_available_to(master))
           return true;
 
   return false;
@@ -300,11 +308,9 @@ Value ThreadsManager::split(Position& pos, Stack* ss, Value alpha, Value beta,
   assert(alpha < beta);
   assert(beta <= VALUE_INFINITE);
   assert(depth > DEPTH_ZERO);
-  assert(pos.thread() >= 0 && pos.thread() < activeThreads);
-  assert(activeThreads > 1);
 
   int master = pos.thread();
-  Thread& masterThread = threads[master];
+  Thread& masterThread = *threads[master];
 
   if (masterThread.splitPointsCnt >= MAX_SPLITPOINTS_PER_THREAD)
       return bestValue;
@@ -340,15 +346,15 @@ Value ThreadsManager::split(Position& pos, Stack* ss, Value alpha, Value beta,
   lock_grab(sp->lock);
   lock_grab(splitLock);
 
-  for (int i = 0; i < activeThreads && !Fake; i++)
-      if (threads[i].is_available_to(master))
+  for (int i = 0; i < size() && !Fake; ++i)
+      if (threads[i]->is_available_to(master))
       {
           sp->slavesMask |= 1ULL << i;
-          threads[i].curSplitPoint = sp;
-          threads[i].is_searching = true; // Slave leaves idle_loop()
+          threads[i]->curSplitPoint = sp;
+          threads[i]->is_searching = true; // Slave leaves idle_loop()
 
           if (useSleepingThreads)
-              threads[i].wake_up();
+              threads[i]->wake_up();
 
           if (++slavesCnt + 1 >= maxThreadsPerSplitPoint) // Master is always included
               break;
@@ -399,72 +405,42 @@ template Value ThreadsManager::split<true>(Position&, Stack*, Value, Value, Valu
 
 void ThreadsManager::set_timer(int msec) {
 
-  Thread& timer = threads[MAX_THREADS];
-
-  lock_grab(timer.sleepLock);
-  timer.maxPly = msec;
-  cond_signal(timer.sleepCond); // Wake up and restart the timer
-  lock_release(timer.sleepLock);
+  lock_grab(timer->sleepLock);
+  timer->maxPly = msec;
+  cond_signal(timer->sleepCond); // Wake up and restart the timer
+  lock_release(timer->sleepLock);
 }
 
 
-// ThreadsManager::start_thinking() is used by UI thread to wake up the main
-// thread parked in main_loop() and starting a new search. If asyncMode is true
-// then function returns immediately, otherwise caller is blocked waiting for
-// the search to finish.
+// ThreadsManager::wait_for_search_finished() waits for main thread to go to
+// sleep, this means search is finished. Then returns.
 
-void ThreadsManager::start_thinking(const Position& pos, const LimitsType& limits,
-                                    const std::set<Move>& searchMoves, bool async) {
-  Thread& main = threads[0];
+void ThreadsManager::wait_for_search_finished() {
 
-  lock_grab(main.sleepLock);
+  Thread* main = threads[0];
+  lock_grab(main->sleepLock);
+  while (!main->do_sleep) cond_wait(sleepCond, main->sleepLock);
+  lock_release(main->sleepLock);
+}
 
-  // Wait main thread has finished before to launch a new search
-  while (!main.do_sleep)
-      cond_wait(sleepCond, main.sleepLock);
 
-  // Copy input arguments to initialize the search
+// ThreadsManager::start_searching() wakes up the main thread sleeping in
+// main_loop() so to start a new search, then returns immediately.
+
+void ThreadsManager::start_searching(const Position& pos, const LimitsType& limits,
+                                     const std::set<Move>& searchMoves) {
+  wait_for_search_finished();
+
+  Signals.stopOnPonderhit = Signals.firstRootMove = false;
+  Signals.stop = Signals.failedLowAtRoot = false;
+
   RootPosition.copy(pos, 0);
   Limits = limits;
   RootMoves.clear();
 
-  // Populate RootMoves with all the legal moves (default) or, if a searchMoves
-  // set is given, with the subset of legal moves to search.
   for (MoveList<MV_LEGAL> ml(pos); !ml.end(); ++ml)
       if (searchMoves.empty() || searchMoves.count(ml.move()))
           RootMoves.push_back(RootMove(ml.move()));
 
-  // Reset signals before to start the new search
-  Signals.stopOnPonderhit = Signals.firstRootMove = false;
-  Signals.stop = Signals.failedLowAtRoot = false;
-
-  main.do_sleep = false;
-  cond_signal(main.sleepCond); // Wake up main thread and start searching
-
-  if (!async)
-      while (!main.do_sleep)
-          cond_wait(sleepCond, main.sleepLock);
-
-  lock_release(main.sleepLock);
-}
-
-
-// ThreadsManager::stop_thinking() is used by UI thread to raise a stop request
-// and to wait for the main thread finishing the search. Needed to wait exiting
-// and terminate the threads after a 'quit' command.
-
-void ThreadsManager::stop_thinking() {
-
-  Thread& main = threads[0];
-
-  Search::Signals.stop = true;
-
-  lock_grab(main.sleepLock);
-
-  cond_signal(main.sleepCond); // In case is waiting for stop or ponderhit
-
-  while (!main.do_sleep)
-      cond_wait(sleepCond, main.sleepLock);
-
-  lock_release(main.sleepLock);
+  threads[0]->wake_up();
 }
