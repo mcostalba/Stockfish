@@ -138,8 +138,32 @@ Square pop_1st_bit(Bitboard* b) {
    return Square(BSFTable[((~(u.b.h ^ (u.b.h - 1))) * 0x783A9B23) >> 26]);
 }
 
-#endif // !defined(USE_BSFQ)
+Square last_1(Bitboard b) {
 
+  int result = 0;
+
+  if (b > 0xFFFFFFFF)
+  {
+      b >>= 32;
+      result = 32;
+  }
+
+  if (b > 0xFFFF)
+  {
+      b >>= 16;
+      result += 16;
+  }
+
+  if (b > 0xFF)
+  {
+      b >>= 8;
+      result += 8;
+  }
+
+  return Square(result + BitCount8Bit[b]);
+}
+
+#endif // !defined(USE_BSFQ)
 
 /// bitboards_init() initializes various bitboard arrays. It is called during
 /// program initialization.
