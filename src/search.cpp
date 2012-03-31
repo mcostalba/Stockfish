@@ -28,7 +28,6 @@
 #include "book.h"
 #include "evaluate.h"
 #include "history.h"
-#include "misc.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "search.h"
@@ -43,6 +42,7 @@ namespace Search {
   LimitsType Limits;
   std::vector<RootMove> RootMoves;
   Position RootPosition;
+  Time SearchTime;
 }
 
 using std::string;
@@ -118,7 +118,6 @@ namespace {
 
   size_t MultiPV, UCIMultiPV, PVIdx;
   TimeManager TimeMgr;
-  Time SearchTime;
   int BestMoveChanges;
   int SkillLevel;
   bool SkillLevelEnabled, Chess960;
@@ -253,7 +252,6 @@ void Search::think() {
   Position& pos = RootPosition;
   Chess960 = pos.is_chess960();
   Eval::RootColor = pos.side_to_move();
-  SearchTime.restart();
   TimeMgr.init(Limits, pos.startpos_ply_counter(), pos.side_to_move());
   TT.new_search();
   H.clear();
@@ -292,8 +290,8 @@ void Search::think() {
       log << "\nSearching: "  << pos.to_fen()
           << "\ninfinite: "   << Limits.infinite
           << " ponder: "      << Limits.ponder
-          << " time: "        << Limits.times[pos.side_to_move()]
-          << " increment: "   << Limits.incs[pos.side_to_move()]
+          << " time: "        << Limits.time[pos.side_to_move()]
+          << " increment: "   << Limits.inc[pos.side_to_move()]
           << " moves to go: " << Limits.movestogo
           << endl;
   }

@@ -69,9 +69,7 @@ void uci_loop() {
       if (token == "quit" || token == "stop")
       {
           Search::Signals.stop = true;
-
-          if (token == "quit") // Cannot quit while threads are still running
-              Threads.wait_for_search_finished();
+          Threads.wait_for_search_finished(); // Cannot quit while threads are running
       }
 
       else if (token == "ponderhit")
@@ -82,11 +80,17 @@ void uci_loop() {
           Search::Limits.ponder = false;
 
           if (Search::Signals.stopOnPonderhit)
+          {
               Search::Signals.stop = true;
+              Threads.wait_for_search_finished(); // Wake up if is sleeping
+          }
       }
 
       else if (token == "go")
           go(pos, is);
+
+      else if (token == "ucinewgame")
+      { /* Avoid returning "Unknown command" */ }
 
       else if (token == "isready")
           cout << "readyok" << endl;
@@ -200,13 +204,13 @@ namespace {
     while (is >> token)
     {
         if (token == "wtime")
-            is >> limits.times[WHITE];
+            is >> limits.time[WHITE];
         else if (token == "btime")
-            is >> limits.times[BLACK];
+            is >> limits.time[BLACK];
         else if (token == "winc")
-            is >> limits.incs[WHITE];
+            is >> limits.inc[WHITE];
         else if (token == "binc")
-            is >> limits.incs[BLACK];
+            is >> limits.inc[BLACK];
         else if (token == "movestogo")
             is >> limits.movestogo;
         else if (token == "depth")

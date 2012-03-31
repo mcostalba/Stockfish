@@ -419,6 +419,7 @@ void ThreadsManager::wait_for_search_finished() {
 
   Thread* main = threads[0];
   lock_grab(main->sleepLock);
+  cond_signal(main->sleepCond); // In case is waiting for stop or ponderhit
   while (!main->do_sleep) cond_wait(sleepCond, main->sleepLock);
   lock_release(main->sleepLock);
 }
@@ -430,6 +431,8 @@ void ThreadsManager::wait_for_search_finished() {
 void ThreadsManager::start_searching(const Position& pos, const LimitsType& limits,
                                      const std::set<Move>& searchMoves) {
   wait_for_search_finished();
+
+  SearchTime.restart(); // As early as possible
 
   Signals.stopOnPonderhit = Signals.firstRootMove = false;
   Signals.stop = Signals.failedLowAtRoot = false;

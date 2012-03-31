@@ -20,11 +20,8 @@
 #if !defined(TT_H_INCLUDED)
 #define TT_H_INCLUDED
 
-#include <iostream>
-
 #include "misc.h"
 #include "types.h"
-
 
 /// The TTEntry is the class of transposition table entries
 ///
@@ -135,36 +132,5 @@ inline void TranspositionTable::refresh(const TTEntry* tte) const {
 
   const_cast<TTEntry*>(tte)->set_generation(generation);
 }
-
-
-/// A simple fixed size hash table used to store pawns and material
-/// configurations. It is basically just an array of Entry objects.
-/// Without cluster concept, overwrite policy nor resizing.
-
-template<class Entry, int HashSize>
-struct SimpleHash {
-
-  typedef SimpleHash<Entry, HashSize> Base;
-
-  SimpleHash() {
-
-    entries = new (std::nothrow) Entry[HashSize];
-    if (!entries)
-    {
-        std::cerr << "Failed to allocate " << HashSize * sizeof(Entry)
-                  << " bytes for hash table." << std::endl;
-        ::exit(EXIT_FAILURE);
-    }
-    memset(entries, 0, HashSize * sizeof(Entry));
-  }
-
-  virtual ~SimpleHash() { delete [] entries; }
-
-  Entry* probe(Key key) const { return entries + ((uint32_t)key & (HashSize - 1)); }
-  void prefetch(Key key) const { ::prefetch((char*)probe(key)); }
-
-protected:
-  Entry* entries;
-};
 
 #endif // !defined(TT_H_INCLUDED)
