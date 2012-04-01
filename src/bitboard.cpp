@@ -68,24 +68,6 @@ namespace {
                    Bitboard masks[], unsigned shifts[], Square deltas[], Fn index);
 }
 
-
-/// print_bitboard() prints a bitboard in an easily readable format to the
-/// standard output. This is sometimes useful for debugging.
-
-void print_bitboard(Bitboard b) {
-
-  for (Rank r = RANK_8; r >= RANK_1; r--)
-  {
-      std::cout << "+---+---+---+---+---+---+---+---+" << '\n';
-      for (File f = FILE_A; f <= FILE_H; f++)
-          std::cout << "| " << ((b & make_square(f, r)) ? "X " : "  ");
-
-      std::cout << "|\n";
-  }
-  std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
-}
-
-
 /// first_1() finds the least significant nonzero bit in a nonzero bitboard.
 /// pop_1st_bit() finds and clears the least significant nonzero bit in a
 /// nonzero bitboard.
@@ -166,10 +148,29 @@ Square last_1(Bitboard b) {
 
 #endif // !defined(USE_BSFQ)
 
-/// bitboards_init() initializes various bitboard arrays. It is called during
+
+/// Bitboards::print() prints a bitboard in an easily readable format to the
+/// standard output. This is sometimes useful for debugging.
+
+void Bitboards::print(Bitboard b) {
+
+  for (Rank rank = RANK_8; rank >= RANK_1; rank--)
+  {
+      std::cout << "+---+---+---+---+---+---+---+---+" << '\n';
+
+      for (File file = FILE_A; file <= FILE_H; file++)
+          std::cout << "| " << ((b & make_square(file, rank)) ? "X " : "  ");
+
+      std::cout << "|\n";
+  }
+  std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
+}
+
+
+/// Bitboards::init() initializes various bitboard arrays. It is called during
 /// program initialization.
 
-void bitboards_init() {
+void Bitboards::init() {
 
   for (int k = 0, i = 0; i < 8; i++)
       while (k < (2 << i))
@@ -235,7 +236,7 @@ void bitboards_init() {
               {
                   Square to = s + Square(c == WHITE ? steps[pt][k] : -steps[pt][k]);
 
-                  if (square_is_ok(to) && square_distance(s, to) < 3)
+                  if (is_ok(to) && square_distance(s, to) < 3)
                       StepAttacksBB[make_piece(c, pt)][s] |= to;
               }
 
@@ -272,7 +273,7 @@ namespace {
 
     for (int i = 0; i < 4; i++)
         for (Square s = sq + deltas[i];
-             square_is_ok(s) && square_distance(s, s - deltas[i]) == 1;
+             is_ok(s) && square_distance(s, s - deltas[i]) == 1;
              s += deltas[i])
         {
             attack |= s;
