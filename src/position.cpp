@@ -62,15 +62,8 @@ const Value PieceValueEndgame[17] = {
   RookValueEndgame, QueenValueEndgame
 };
 
-
-namespace {
-
-  // Bonus for having the side to move (modified by Joona Kiiski)
-  const Score TempoValue = make_score(48, 22);
-
-  // To convert a Piece to and from a FEN char
-  const string PieceToChar(" PNBRQK  pnbrqk  .");
-}
+// To convert a Piece to and from a FEN char
+static const string PieceToChar(" PNBRQK  pnbrqk  .");
 
 
 /// CheckInfo c'tor
@@ -92,25 +85,18 @@ CheckInfo::CheckInfo(const Position& pos) {
 }
 
 
-/// Position c'tors. Here we always create a copy of the original position
-/// or the FEN string, we want the new born Position object do not depend
-/// on any external data so we detach state pointer from the source one.
+/// Position::operator=() creates a copy of 'pos'. We want the new born Position
+/// object do not depend on any external data so we detach state pointer from
+/// the source one.
 
-void Position::copy(const Position& pos, int th) {
+void Position::operator=(const Position& pos) {
 
   memcpy(this, &pos, sizeof(Position));
   startState = *st;
   st = &startState;
-  threadID = th;
   nodes = 0;
 
   assert(pos_is_ok());
-}
-
-Position::Position(const string& fen, bool isChess960, int th) {
-
-  from_fen(fen, isChess960);
-  threadID = th;
 }
 
 
@@ -118,7 +104,7 @@ Position::Position(const string& fen, bool isChess960, int th) {
 /// string. This function is not very robust - make sure that input FENs are
 /// correct (this is assumed to be the responsibility of the GUI).
 
-void Position::from_fen(const string& fenStr, bool isChess960) {
+void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -229,11 +215,12 @@ void Position::from_fen(const string& fenStr, bool isChess960) {
   st->key = compute_key();
   st->pawnKey = compute_pawn_key();
   st->materialKey = compute_material_key();
-  st->value = compute_value();
+  st->psqScore = compute_psq_score();
   st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
   st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
   st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
   chess960 = isChess960;
+  thisThread = th;
 
   assert(pos_is_ok());
 }
@@ -245,24 +232,24 @@ void Position::from_fen(const string& fenStr, bool isChess960) {
 void Position::set_castle_right(Color c, Square rfrom) {
 
   Square kfrom = king_square(c);
-  bool kingSide = kfrom < rfrom;
-  int cr = (kingSide ? WHITE_OO : WHITE_OOO) << c;
+  CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
+  CastleRight cr = make_castle_right(c, cs);
 
   st->castleRights |= cr;
   castleRightsMask[kfrom] |= cr;
   castleRightsMask[rfrom] |= cr;
-  castleRookSquare[cr] = rfrom;
+  castleRookSquare[c][cs] = rfrom;
 
-  Square kto = relative_square(c, kingSide ? SQ_G1 : SQ_C1);
-  Square rto = relative_square(c, kingSide ? SQ_F1 : SQ_D1);
+  Square kto = relative_square(c, cs == KING_SIDE ? SQ_G1 : SQ_C1);
+  Square rto = relative_square(c, cs == KING_SIDE ? SQ_F1 : SQ_D1);
 
   for (Square s = std::min(rfrom, rto); s <= std::max(rfrom, rto); s++)
       if (s != kfrom && s != rfrom)
-          castlePath[cr] |= s;
+          castlePath[c][cs] |= s;
 
   for (Square s = std::min(kfrom, kto); s <= std::max(kfrom, kto); s++)
       if (s != kfrom && s != rfrom)
-          castlePath[cr] |= s;
+          castlePath[c][cs] |= s;
 }
 
 
@@ -283,7 +270,7 @@ const string Position::to_fen() const {
       {
           sq = make_square(file, rank);
 
-          if (square_is_empty(sq))
+          if (square_empty(sq))
               emptyCnt++;
           else
           {
@@ -306,16 +293,16 @@ const string Position::to_fen() const {
   fen << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE_OO))))) : 'K');
+      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, KING_SIDE))))) : 'K');
 
   if (can_castle(WHITE_OOO))
-      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE_OOO))))) : 'Q');
+      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, QUEEN_SIDE))))) : 'Q');
 
   if (can_castle(BLACK_OO))
-      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK_OO))) : 'k');
+      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, KING_SIDE))) : 'k');
 
   if (can_castle(BLACK_OOO))
-      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK_OOO))) : 'q');
+      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE))) : 'q');
 
   if (st->castleRights == CASTLES_NONE)
       fen << '-';
@@ -336,7 +323,7 @@ void Position::print(Move move) const {
 
   if (move)
   {
-      Position p(*this, thread());
+      Position p(*this);
       cout << "\nMove is: " << (sideToMove == BLACK ? ".." : "") << move_to_san(p, move);
   }
 
@@ -434,7 +421,7 @@ bool Position::move_attacks_square(Move m, Square s) const {
   Square to = to_sq(m);
   Piece piece = piece_moved(m);
 
-  assert(!square_is_empty(from));
+  assert(!square_empty(from));
 
   // Update occupancy as if the piece is moving
   occ = pieces() ^ from ^ to;
@@ -576,7 +563,7 @@ bool Position::is_pseudo_legal(const Move m) const {
       case DELTA_N:
       case DELTA_S:
       // Pawn push. The destination square must be empty.
-      if (!square_is_empty(to))
+      if (!square_empty(to))
           return false;
       break;
 
@@ -585,8 +572,8 @@ bool Position::is_pseudo_legal(const Move m) const {
       // rank, and both the destination square and the square between the
       // source and destination squares must be empty.
       if (   rank_of(to) != RANK_4
-          || !square_is_empty(to)
-          || !square_is_empty(from + DELTA_N))
+          || !square_empty(to)
+          || !square_empty(from + DELTA_N))
           return false;
       break;
 
@@ -595,8 +582,8 @@ bool Position::is_pseudo_legal(const Move m) const {
       // rank, and both the destination square and the square between the
       // source and destination squares must be empty.
       if (   rank_of(to) != RANK_5
-          || !square_is_empty(to)
-          || !square_is_empty(from + DELTA_S))
+          || !square_empty(to)
+          || !square_empty(from + DELTA_S))
           return false;
       break;
 
@@ -724,7 +711,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
     Key pawnKey, materialKey;
     Value npMaterial[2];
     int castleRights, rule50, pliesFromNull;
-    Score value;
+    Score psq_score;
     Square epSquare;
   };
 
@@ -808,7 +795,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       st->materialKey ^= zobrist[them][capture][pieceCount[them][capture]];
 
       // Update incremental scores
-      st->value -= pst(make_piece(them, capture), capsq);
+      st->psqScore -= pieceSquareTable[make_piece(them, capture)][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -836,7 +823,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   prefetch((char*)TT.first_entry(k));
 
   // Move the piece
-  Bitboard from_to_bb = SquareBB[from] | SquareBB[to];
+  Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
   byTypeBB[ALL_PIECES] ^= from_to_bb;
   byTypeBB[pt] ^= from_to_bb;
   byColorBB[us] ^= from_to_bb;
@@ -888,8 +875,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
                             ^ zobrist[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
-          st->value +=  pst(make_piece(us, promotion), to)
-                      - pst(make_piece(us, PAWN), to);
+          st->psqScore +=  pieceSquareTable[make_piece(us, promotion)][to]
+                         - pieceSquareTable[make_piece(us, PAWN)][to];
 
           // Update material
           st->npMaterial[us] += PieceValueMidgame[promotion];
@@ -903,11 +890,11 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   }
 
   // Prefetch pawn and material hash tables
-  prefetch((char*)Threads[threadID].pawnTable.entries[st->pawnKey]);
-  prefetch((char*)Threads[threadID].materialTable.entries[st->materialKey]);
+  prefetch((char*)thisThread->pawnTable.entries[st->pawnKey]);
+  prefetch((char*)thisThread->materialTable.entries[st->materialKey]);
 
   // Update incremental scores
-  st->value += pst_delta(piece, from, to);
+  st->psqScore += psq_delta(piece, from, to);
 
   // Set capture piece
   st->capturedType = capture;
@@ -940,9 +927,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       }
   }
 
-  // Finish
   sideToMove = ~sideToMove;
-  st->value += (sideToMove == WHITE ?  TempoValue : -TempoValue);
 
   assert(pos_is_ok());
 }
@@ -971,7 +956,7 @@ void Position::undo_move(Move m) {
   PieceType pt = type_of(piece);
   PieceType capture = st->capturedType;
 
-  assert(square_is_empty(from));
+  assert(square_empty(from));
   assert(color_of(piece) == us);
   assert(capture != KING);
 
@@ -1001,7 +986,7 @@ void Position::undo_move(Move m) {
   }
 
   // Put the piece back at the source square
-  Bitboard from_to_bb = SquareBB[from] | SquareBB[to];
+  Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
   byTypeBB[ALL_PIECES] ^= from_to_bb;
   byTypeBB[pt] ^= from_to_bb;
   byColorBB[us] ^= from_to_bb;
@@ -1084,21 +1069,13 @@ void Position::do_castle_move(Move m) {
   assert(piece_on(kfrom) == make_piece(us, KING));
   assert(piece_on(rfrom) == make_piece(us, ROOK));
 
-  // Remove pieces from source squares
-  byTypeBB[ALL_PIECES] ^= kfrom;
-  byTypeBB[KING] ^= kfrom;
-  byColorBB[us] ^= kfrom;
-  byTypeBB[ALL_PIECES] ^= rfrom;
-  byTypeBB[ROOK] ^= rfrom;
-  byColorBB[us] ^= rfrom;
-
-  // Put pieces on destination squares
-  byTypeBB[ALL_PIECES] |= kto;
-  byTypeBB[KING] |= kto;
-  byColorBB[us] |= kto;
-  byTypeBB[ALL_PIECES] |= rto;
-  byTypeBB[ROOK] |= rto;
-  byColorBB[us] |= rto;
+  // Move the pieces, with some care; in chess960 could be kto == rfrom
+  Bitboard k_from_to_bb = SquareBB[kfrom] ^ SquareBB[kto];
+  Bitboard r_from_to_bb = SquareBB[rfrom] ^ SquareBB[rto];
+  byTypeBB[KING] ^= k_from_to_bb;
+  byTypeBB[ROOK] ^= r_from_to_bb;
+  byTypeBB[ALL_PIECES] ^= k_from_to_bb ^ r_from_to_bb;
+  byColorBB[us] ^= k_from_to_bb ^ r_from_to_bb;
 
   // Update board
   Piece king = make_piece(us, KING);
@@ -1120,8 +1097,8 @@ void Position::do_castle_move(Move m) {
       st->capturedType = NO_PIECE_TYPE;
 
       // Update incremental scores
-      st->value += pst_delta(king, kfrom, kto);
-      st->value += pst_delta(rook, rfrom, rto);
+      st->psqScore += psq_delta(king, kfrom, kto);
+      st->psqScore += psq_delta(rook, rfrom, rto);
 
       // Update hash key
       st->key ^= zobrist[us][KING][kfrom] ^ zobrist[us][KING][kto];
@@ -1141,9 +1118,7 @@ void Position::do_castle_move(Move m) {
       // Update checkers BB
       st->checkersBB = attackers_to(king_square(~us)) & pieces(us);
 
-      // Finish
       sideToMove = ~sideToMove;
-      st->value += (sideToMove == WHITE ?  TempoValue : -TempoValue);
   }
   else
       // Undo: point our state pointer back to the previous state
@@ -1169,7 +1144,7 @@ void Position::do_null_move(StateInfo& backupSt) {
 
   dst->key      = src->key;
   dst->epSquare = src->epSquare;
-  dst->value    = src->value;
+  dst->psqScore = src->psqScore;
   dst->rule50   = src->rule50;
   dst->pliesFromNull = src->pliesFromNull;
 
@@ -1186,7 +1161,6 @@ void Position::do_null_move(StateInfo& backupSt) {
       st->epSquare = SQ_NONE;
       st->rule50++;
       st->pliesFromNull = 0;
-      st->value += (sideToMove == WHITE) ?  TempoValue : -TempoValue;
   }
 
   assert(pos_is_ok());
@@ -1358,19 +1332,21 @@ void Position::put_piece(Piece p, Square s) {
 
 Key Position::compute_key() const {
 
-  Key result = zobCastle[st->castleRights];
+  Key k = zobCastle[st->castleRights];
 
-  for (Square s = SQ_A1; s <= SQ_H8; s++)
-      if (!square_is_empty(s))
-          result ^= zobrist[color_of(piece_on(s))][type_of(piece_on(s))][s];
+  for (Bitboard b = pieces(); b; )
+  {
+      Square s = pop_1st_bit(&b);
+      k ^= zobrist[color_of(piece_on(s))][type_of(piece_on(s))][s];
+  }
 
   if (ep_square() != SQ_NONE)
-      result ^= zobEp[file_of(ep_square())];
+      k ^= zobEp[file_of(ep_square())];
 
   if (sideToMove == BLACK)
-      result ^= zobSideToMove;
+      k ^= zobSideToMove;
 
-  return result;
+  return k;
 }
 
 
@@ -1382,16 +1358,15 @@ Key Position::compute_key() const {
 
 Key Position::compute_pawn_key() const {
 
-  Bitboard b;
-  Key result = 0;
+  Key k = 0;
 
-  for (Color c = WHITE; c <= BLACK; c++)
+  for (Bitboard b = pieces(PAWN); b; )
   {
-      b = pieces(PAWN, c);
-      while (b)
-          result ^= zobrist[c][PAWN][pop_1st_bit(&b)];
+      Square s = pop_1st_bit(&b);
+      k ^= zobrist[color_of(piece_on(s))][PAWN][s];
   }
-  return result;
+
+  return k;
 }
 
 
@@ -1403,36 +1378,32 @@ Key Position::compute_pawn_key() const {
 
 Key Position::compute_material_key() const {
 
-  Key result = 0;
+  Key k = 0;
 
   for (Color c = WHITE; c <= BLACK; c++)
       for (PieceType pt = PAWN; pt <= QUEEN; pt++)
-          for (int i = 0; i < piece_count(c, pt); i++)
-              result ^= zobrist[c][pt][i];
+          for (int cnt = 0; cnt < piece_count(c, pt); cnt++)
+              k ^= zobrist[c][pt][cnt];
 
-  return result;
+  return k;
 }
 
 
-/// Position::compute_value() compute the incremental scores for the middle
+/// Position::compute_psq_score() computes the incremental scores for the middle
 /// game and the endgame. These functions are used to initialize the incremental
 /// scores when a new position is set up, and to verify that the scores are correctly
 /// updated by do_move and undo_move when the program is running in debug mode.
-Score Position::compute_value() const {
+Score Position::compute_psq_score() const {
 
-  Bitboard b;
-  Score result = SCORE_ZERO;
+  Score score = SCORE_ZERO;
 
-  for (Color c = WHITE; c <= BLACK; c++)
-      for (PieceType pt = PAWN; pt <= KING; pt++)
-      {
-          b = pieces(pt, c);
-          while (b)
-              result += pst(make_piece(c, pt), pop_1st_bit(&b));
-      }
+  for (Bitboard b = pieces(); b; )
+  {
+      Square s = pop_1st_bit(&b);
+      score += pieceSquareTable[piece_on(s)][s];
+  }
 
-  result += (sideToMove == WHITE ? TempoValue / 2 : -TempoValue / 2);
-  return result;
+  return score;
 }
 
 
@@ -1443,12 +1414,12 @@ Score Position::compute_value() const {
 
 Value Position::compute_non_pawn_material(Color c) const {
 
-  Value result = VALUE_ZERO;
+  Value value = VALUE_ZERO;
 
   for (PieceType pt = KNIGHT; pt <= QUEEN; pt++)
-      result += piece_count(c, pt) * PieceValueMidgame[pt];
+      value += piece_count(c, pt) * PieceValueMidgame[pt];
 
-  return result;
+  return value;
 }
 
 
@@ -1527,64 +1498,56 @@ void Position::init() {
   zobSideToMove = rk.rand<Key>();
   zobExclusion  = rk.rand<Key>();
 
-  for (Piece p = W_PAWN; p <= W_KING; p++)
+  for (PieceType pt = PAWN; pt <= KING; pt++)
   {
-      Score ps = make_score(PieceValueMidgame[p], PieceValueEndgame[p]);
+      Score v = make_score(PieceValueMidgame[pt], PieceValueEndgame[pt]);
 
       for (Square s = SQ_A1; s <= SQ_H8; s++)
       {
-          pieceSquareTable[p][s] = ps + PSQT[p][s];
-          pieceSquareTable[p+8][~s] = -pieceSquareTable[p][s];
+          pieceSquareTable[make_piece(WHITE, pt)][ s] =  (v + PSQT[pt][s]);
+          pieceSquareTable[make_piece(BLACK, pt)][~s] = -(v + PSQT[pt][s]);
       }
   }
 }
 
 
-/// Position::flip_me() flips position with the white and black sides reversed. This
+/// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging especially for finding evaluation symmetry bugs.
 
-void Position::flip_me() {
+void Position::flip() {
 
-  // Make a copy of current position before to start changing
-  const Position pos(*this, threadID);
+  const Position pos(*this);
 
   clear();
-  threadID = pos.thread();
 
-  // Board
+  sideToMove = ~pos.side_to_move();
+  thisThread = pos.this_thread();
+  nodes = pos.nodes_searched();
+  chess960 = pos.is_chess960();
+  startPosPly = pos.startpos_ply_counter();
+
   for (Square s = SQ_A1; s <= SQ_H8; s++)
-      if (!pos.square_is_empty(s))
+      if (!pos.square_empty(s))
           put_piece(Piece(pos.piece_on(s) ^ 8), ~s);
 
-  // Side to move
-  sideToMove = ~pos.side_to_move();
-
-  // Castling rights
   if (pos.can_castle(WHITE_OO))
-      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE_OO));
+      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE, KING_SIDE));
   if (pos.can_castle(WHITE_OOO))
-      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE_OOO));
+      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE, QUEEN_SIDE));
   if (pos.can_castle(BLACK_OO))
-      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK_OO));
+      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK, KING_SIDE));
   if (pos.can_castle(BLACK_OOO))
-      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK_OOO));
+      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK, QUEEN_SIDE));
 
-  // En passant square
   if (pos.st->epSquare != SQ_NONE)
       st->epSquare = ~pos.st->epSquare;
 
-  // Checkers
   st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
 
-  // Hash keys
   st->key = compute_key();
   st->pawnKey = compute_pawn_key();
   st->materialKey = compute_material_key();
-
-  // Incremental scores
-  st->value = compute_value();
-
-  // Material
+  st->psqScore = compute_psq_score();
   st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
   st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
 
@@ -1597,42 +1560,39 @@ void Position::flip_me() {
 
 bool Position::pos_is_ok(int* failedStep) const {
 
+  int dummy, *step = failedStep ? failedStep : &dummy;
+
   // What features of the position should be verified?
-  const bool debugAll = false;
+  const bool all = false;
 
-  const bool debugBitboards       = debugAll || false;
-  const bool debugKingCount       = debugAll || false;
-  const bool debugKingCapture     = debugAll || false;
-  const bool debugCheckerCount    = debugAll || false;
-  const bool debugKey             = debugAll || false;
-  const bool debugMaterialKey     = debugAll || false;
-  const bool debugPawnKey         = debugAll || false;
-  const bool debugIncrementalEval = debugAll || false;
-  const bool debugNonPawnMaterial = debugAll || false;
-  const bool debugPieceCounts     = debugAll || false;
-  const bool debugPieceList       = debugAll || false;
-  const bool debugCastleSquares   = debugAll || false;
+  const bool debugBitboards       = all || false;
+  const bool debugKingCount       = all || false;
+  const bool debugKingCapture     = all || false;
+  const bool debugCheckerCount    = all || false;
+  const bool debugKey             = all || false;
+  const bool debugMaterialKey     = all || false;
+  const bool debugPawnKey         = all || false;
+  const bool debugIncrementalEval = all || false;
+  const bool debugNonPawnMaterial = all || false;
+  const bool debugPieceCounts     = all || false;
+  const bool debugPieceList       = all || false;
+  const bool debugCastleSquares   = all || false;
 
-  if (failedStep) *failedStep = 1;
+  *step = 1;
 
-  // Side to move OK?
   if (sideToMove != WHITE && sideToMove != BLACK)
       return false;
 
-  // Are the king squares in the position correct?
-  if (failedStep) (*failedStep)++;
-  if (piece_on(king_square(WHITE)) != W_KING)
+  if ((*step)++, piece_on(king_square(WHITE)) != W_KING)
       return false;
 
-  if (failedStep) (*failedStep)++;
-  if (piece_on(king_square(BLACK)) != B_KING)
+  if ((*step)++, piece_on(king_square(BLACK)) != B_KING)
       return false;
 
-  // Do both sides have exactly one king?
-  if (failedStep) (*failedStep)++;
-  if (debugKingCount)
+  if ((*step)++, debugKingCount)
   {
-      int kingCount[2] = {0, 0};
+      int kingCount[2] = {};
+
       for (Square s = SQ_A1; s <= SQ_H8; s++)
           if (type_of(piece_on(s)) == KING)
               kingCount[color_of(piece_on(s))]++;
@@ -1641,25 +1601,14 @@ bool Position::pos_is_ok(int* failedStep) const {
           return false;
   }
 
-  // Can the side to move capture the opponent's king?
-  if (failedStep) (*failedStep)++;
-  if (debugKingCapture)
-  {
-      Color us = sideToMove;
-      Color them = ~us;
-      Square ksq = king_square(them);
-      if (attackers_to(ksq) & pieces(us))
+  if ((*step)++, debugKingCapture)
+      if (attackers_to(king_square(~sideToMove)) & pieces(sideToMove))
           return false;
-  }
 
-  // Is there more than 2 checkers?
-  if (failedStep) (*failedStep)++;
-  if (debugCheckerCount && popcount<Full>(st->checkersBB) > 2)
+  if ((*step)++, debugCheckerCount && popcount<Full>(st->checkersBB) > 2)
       return false;
 
-  // Bitboards OK?
-  if (failedStep) (*failedStep)++;
-  if (debugBitboards)
+  if ((*step)++, debugBitboards)
   {
       // The intersection of the white and black pieces must be empty
       if (pieces(WHITE) & pieces(BLACK))
@@ -1677,57 +1626,35 @@ bool Position::pos_is_ok(int* failedStep) const {
                   return false;
   }
 
-  // En passant square OK?
-  if (failedStep) (*failedStep)++;
-  if (ep_square() != SQ_NONE)
+  if ((*step)++, ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6)
+      return false;
+
+  if ((*step)++, debugKey && st->key != compute_key())
+      return false;
+
+  if ((*step)++, debugPawnKey && st->pawnKey != compute_pawn_key())
+      return false;
+
+  if ((*step)++, debugMaterialKey && st->materialKey != compute_material_key())
+      return false;
+
+  if ((*step)++, debugIncrementalEval && st->psqScore != compute_psq_score())
+      return false;
+
+  if ((*step)++, debugNonPawnMaterial)
   {
-      // The en passant square must be on rank 6, from the point of view of the
-      // side to move.
-      if (relative_rank(sideToMove, ep_square()) != RANK_6)
+      if (   st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
+          || st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
           return false;
   }
 
-  // Hash key OK?
-  if (failedStep) (*failedStep)++;
-  if (debugKey && st->key != compute_key())
-      return false;
-
-  // Pawn hash key OK?
-  if (failedStep) (*failedStep)++;
-  if (debugPawnKey && st->pawnKey != compute_pawn_key())
-      return false;
-
-  // Material hash key OK?
-  if (failedStep) (*failedStep)++;
-  if (debugMaterialKey && st->materialKey != compute_material_key())
-      return false;
-
-  // Incremental eval OK?
-  if (failedStep) (*failedStep)++;
-  if (debugIncrementalEval && st->value != compute_value())
-      return false;
-
-  // Non-pawn material OK?
-  if (failedStep) (*failedStep)++;
-  if (debugNonPawnMaterial)
-  {
-      if (st->npMaterial[WHITE] != compute_non_pawn_material(WHITE))
-          return false;
-
-      if (st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
-          return false;
-  }
-
-  // Piece counts OK?
-  if (failedStep) (*failedStep)++;
-  if (debugPieceCounts)
+  if ((*step)++, debugPieceCounts)
       for (Color c = WHITE; c <= BLACK; c++)
           for (PieceType pt = PAWN; pt <= KING; pt++)
               if (pieceCount[c][pt] != popcount<Full>(pieces(pt, c)))
                   return false;
 
-  if (failedStep) (*failedStep)++;
-  if (debugPieceList)
+  if ((*step)++, debugPieceList)
       for (Color c = WHITE; c <= BLACK; c++)
           for (PieceType pt = PAWN; pt <= KING; pt++)
               for (int i = 0; i < pieceCount[c][pt]; i++)
@@ -1739,20 +1666,23 @@ bool Position::pos_is_ok(int* failedStep) const {
                       return false;
               }
 
-  if (failedStep) (*failedStep)++;
-  if (debugCastleSquares)
-      for (CastleRight f = WHITE_OO; f <= BLACK_OOO; f = CastleRight(f << 1))
-      {
-          if (!can_castle(f))
-              continue;
+  if ((*step)++, debugCastleSquares)
+      for (Color c = WHITE; c <= BLACK; c++)
+          for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
+          {
+              CastleRight cr = make_castle_right(c, s);
 
-          Piece rook = (f & (WHITE_OO | WHITE_OOO) ? W_ROOK : B_ROOK);
+              if (!can_castle(cr))
+                  continue;
 
-          if (   piece_on(castleRookSquare[f]) != rook
-              || castleRightsMask[castleRookSquare[f]] != f)
-              return false;
-      }
+              if ((castleRightsMask[king_square(c)] & cr) != cr)
+                  return false;
 
-  if (failedStep) *failedStep = 0;
+              if (   piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
+                  || castleRightsMask[castleRookSquare[c][s]] != cr)
+                  return false;
+          }
+
+  *step = 0;
   return true;
 }

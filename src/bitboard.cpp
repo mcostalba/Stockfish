@@ -92,37 +92,18 @@ Square first_1(Bitboard b) {
   return Square(BSFTable[(fold * 0x783A9B23) >> 26]);
 }
 
-// Use type-punning
-union b_union {
-
-    Bitboard dummy;
-    struct {
-#if defined (BIGENDIAN)
-        uint32_t h;
-        uint32_t l;
-#else
-        uint32_t l;
-        uint32_t h;
-#endif
-    } b;
-};
-
 Square pop_1st_bit(Bitboard* b) {
 
-   const b_union u = *((b_union*)b);
-
-   if (u.b.l)
-   {
-       ((b_union*)b)->b.l = u.b.l & (u.b.l - 1);
-       return Square(BSFTable[((u.b.l ^ (u.b.l - 1)) * 0x783A9B23) >> 26]);
-   }
-
-   ((b_union*)b)->b.h = u.b.h & (u.b.h - 1);
-   return Square(BSFTable[((~(u.b.h ^ (u.b.h - 1))) * 0x783A9B23) >> 26]);
+  Bitboard bb = *b;
+  *b = bb & (bb - 1);
+  bb ^= (bb - 1);
+  uint32_t fold = unsigned(bb) ^ unsigned(bb >> 32);
+  return Square(BSFTable[(fold * 0x783A9B23) >> 26]);
 }
 
 Square last_1(Bitboard b) {
 
+  unsigned b32;
   int result = 0;
 
   if (b > 0xFFFFFFFF)
@@ -131,19 +112,21 @@ Square last_1(Bitboard b) {
       result = 32;
   }
 
-  if (b > 0xFFFF)
+  b32 = unsigned(b);
+
+  if (b32 > 0xFFFF)
   {
-      b >>= 16;
+      b32 >>= 16;
       result += 16;
   }
 
-  if (b > 0xFF)
+  if (b32 > 0xFF)
   {
-      b >>= 8;
+      b32 >>= 8;
       result += 8;
   }
 
-  return Square(result + MS1BTable[b]);
+  return Square(result + MS1BTable[b32]);
 }
 
 #endif // !defined(USE_BSFQ)

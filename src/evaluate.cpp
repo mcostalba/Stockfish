@@ -150,6 +150,9 @@ namespace {
 
   #undef S
 
+  // Bonus for having the side to move (modified by Joona Kiiski)
+  const Score Tempo = make_score(24, 11);
+
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
   const Score RookOn7thBonus  = make_score(47, 98);
   const Score QueenOn7thBonus = make_score(27, 54);
@@ -167,8 +170,8 @@ namespace {
   // happen in Chess960 games.
   const Score TrappedBishopA1H1Penalty = make_score(100, 100);
 
-  // Penalty for a minor piece that is not defended by anything
-  const Score UndefendedPiecePenalty = make_score(25, 10);
+  // Penalty for an undefended bishop or knight
+  const Score UndefendedMinorPenalty = make_score(25, 10);
 
   // The SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middle game, each side is given a bonus
@@ -362,16 +365,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
   Value margins[2];
   Score score, mobilityWhite, mobilityBlack;
 
-  // Initialize score by reading the incrementally updated scores included
-  // in the position object (material + piece square tables).
-  score = pos.value();
-
   // margins[] store the uncertainty estimation of position's evaluation
   // that typically is used by the search for pruning decisions.
   margins[WHITE] = margins[BLACK] = VALUE_ZERO;
 
+  // Initialize score by reading the incrementally updated scores included
+  // in the position object (material + piece square tables) and adding
+  // Tempo bonus. Score is computed from the point of view of white.
+  score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
+
   // Probe the material hash table
-  ei.mi = Threads[pos.thread()].materialTable.probe(pos);
+  ei.mi = pos.this_thread()->materialTable.probe(pos);
   score += ei.mi->material_value();
 
   // If we have a specialized evaluation function for the current material
@@ -383,7 +387,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   }
 
   // Probe the pawn hash table
-  ei.pi = Threads[pos.thread()].pawnTable.probe(pos);
+  ei.pi = pos.this_thread()->pawnTable.probe(pos);
   score += ei.pi->pawns_value();
 
   // Initialize attack and king safety bitboards
@@ -427,7 +431,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // If we don't already have an unusual scale factor, check for opposite
   // colored bishop endgames, and use a lower scale for those.
   if (   ei.mi->game_phase() < PHASE_MIDGAME
-      && pos.opposite_colored_bishops()
+      && pos.opposite_bishops()
       && sf == SCALE_FACTOR_NORMAL)
   {
       // Only the two bishops ?
@@ -451,7 +455,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // In case of tracing add all single evaluation contributions for both white and black
   if (Trace)
   {
-      trace_add(PST, pos.value());
+      trace_add(PST, pos.psq_score());
       trace_add(IMBALANCE, ei.mi->material_value());
       trace_add(PAWN, ei.pi->pawns_value());
       trace_add(MOBILITY, apply_weight(mobilityWhite, Weights[Mobility]), apply_weight(mobilityBlack, Weights[Mobility]));
@@ -610,7 +614,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 Square d = pawn_push(Us) + (file_of(s) == FILE_A ? DELTA_E : DELTA_W);
                 if (pos.piece_on(s + d) == make_piece(Us, PAWN))
                 {
-                    if (!pos.square_is_empty(s + d + pawn_push(Us)))
+                    if (!pos.square_empty(s + d + pawn_push(Us)))
                         score -= 2*TrappedBishopA1H1Penalty;
                     else if (pos.piece_on(s + 2*d) == make_piece(Us, PAWN))
                         score -= TrappedBishopA1H1Penalty;
@@ -676,18 +680,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, undefended, undefendedMinors, weakEnemies;
+    Bitboard b, undefendedMinors, weakEnemies;
     Score score = SCORE_ZERO;
 
-    // Undefended pieces get penalized even if not under attack
-    undefended = pos.pieces(Them) & ~ei.attackedBy[Them][0];
-    undefendedMinors = undefended & (pos.pieces(BISHOP) | pos.pieces(KNIGHT));
+    // Undefended minors get penalized even if not under attack
+    undefendedMinors =  pos.pieces(Them)
+                      & (pos.pieces(BISHOP) | pos.pieces(KNIGHT))
+                      & ~ei.attackedBy[Them][0];
 
     if (undefendedMinors)
-        score += single_bit(undefendedMinors) ? UndefendedPiecePenalty
-                                              : UndefendedPiecePenalty * 2;
-    if (undefended & pos.pieces(ROOK))
-        score += UndefendedPiecePenalty;
+        score += single_bit(undefendedMinors) ? UndefendedMinorPenalty
+                                              : UndefendedMinorPenalty * 2;
 
     // Enemy pieces not defended by a pawn and under our attack
     weakEnemies =  pos.pieces(Them)
@@ -891,7 +894,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ebonus -= Value(square_distance(pos.king_square(Us), blockSq + pawn_push(Us)) * rr);
 
             // If the pawn is free to advance, increase bonus
-            if (pos.square_is_empty(blockSq))
+            if (pos.square_empty(blockSq))
             {
                 squaresToQueen = squares_in_front_of(Us, s);
                 defendedSquares = squaresToQueen & ei.attackedBy[Us][0];

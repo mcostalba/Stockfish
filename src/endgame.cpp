@@ -77,7 +77,7 @@ namespace {
     string fen =  sides[0] + char('0' + int(8 - code.length()))
                 + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
 
-    return Position(fen, false, 0).material_key();
+    return Position(fen, false, NULL).material_key();
   }
 
   template<typename M>
@@ -148,7 +148,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 
   if (   pos.piece_count(strongerSide, QUEEN)
       || pos.piece_count(strongerSide, ROOK)
-      || pos.both_color_bishops(strongerSide)) {
+      || pos.bishop_pair(strongerSide)) {
     result += VALUE_KNOWN_WIN;
   }
 
