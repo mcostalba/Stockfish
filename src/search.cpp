@@ -67,7 +67,7 @@ namespace {
   const Depth RazorDepth = 4 * ONE_PLY;
 
   // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d) { return Value(0x200 + 0x10 * int(d)); }
+  inline Value razor_margin(Depth d) { return Value(0x200 + 0x28 * int(d)); }
 
   // Maximum depth for use of dynamic threat detection when null move fails low
   const Depth ThreatDepth = 5 * ONE_PLY;
@@ -212,7 +212,7 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.25 * pow(d, 2.0));
+      FutilityMoveCounts[d] = int(3.001 + 0.30 * pow(d, 2.15));
 }
 
 
