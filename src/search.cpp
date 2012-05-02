@@ -67,7 +67,7 @@ namespace {
   const Depth RazorDepth = 4 * ONE_PLY;
 
   // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d) { return Value(0x200 + 0x10 * int(d)); }
+  inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
 
   // Maximum depth for use of dynamic threat detection when null move fails low
   const Depth ThreatDepth = 5 * ONE_PLY;
@@ -77,13 +77,13 @@ namespace {
 
   // At Non-PV nodes we do an internal iterative deepening search
   // when the static evaluation is bigger then beta - IIDMargin.
-  const Value IIDMargin = Value(0x100);
+  const Value IIDMargin = Value(256);
 
   // Minimum depth for use of singular extension
   const Depth SingularExtensionDepth[] = { 8 * ONE_PLY, 6 * ONE_PLY };
 
   // Futility margin for quiescence search
-  const Value FutilityMarginQS = Value(0x80);
+  const Value FutilityMarginQS = Value(128);
 
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
@@ -863,7 +863,7 @@ split_point_start: // At split points actual search starts from here
           ext = ONE_PLY;
 
       else if (givesCheck && pos.see_sign(move) >= 0)
-          ext = PvNode ? ONE_PLY : ONE_PLY / 2;
+          ext = ONE_PLY / 2;
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
@@ -1052,6 +1052,7 @@ split_point_start: // At split points actual search starts from here
       // Step 19. Check for split
       if (   !SpNode
           &&  depth >= Threads.min_split_depth()
+          &&  depth - reduction<PvNode>(depth, moveCount) >= Threads.min_split_depth()
           &&  bestValue < beta
           &&  Threads.available_slave_exists(thisThread)
           && !Signals.stop
