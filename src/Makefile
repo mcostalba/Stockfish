@@ -201,6 +201,15 @@ ifeq ($(COMP),clang)
 	profile_clean = gcc-profile-clean
 endif
 
+ifeq ($(COMP),armcross)
+	comp=armcross
+	CXX=arm-linux-gnueabi-g++
+	profile_prepare = gcc-profile-prepare
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+	profile_clean = gcc-profile-clean
+endif
+
 ### 3.2 General compiler settings
 CXXFLAGS = -g -Wall -Wcast-qual -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 
@@ -217,6 +226,10 @@ ifeq ($(comp),icc)
 endif
 
 ifeq ($(comp),clang)
+	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+endif
+
+ifeq ($(comp),armcross)
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
@@ -281,6 +294,20 @@ ifeq ($(optimize),yes)
 			endif
 		endif
 	endif
+
+	ifeq ($(comp),armcross)
+		CXXFLAGS += -O3
+
+		ifeq ($(os),osx)
+			ifeq ($(arch),i386)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+			ifeq ($(arch),x86_64)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+		endif
+	endif
+
 endif
 
 ### 3.6. Bits
@@ -442,7 +469,8 @@ config-sanity:
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
+	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || \
+     test "$(comp)" = "clang" || test "$(comp)" = "armcross"
 
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
