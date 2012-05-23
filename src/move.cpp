@@ -56,7 +56,10 @@ const string move_to_uci(Move m, bool chess960) {
 /// simple coordinate notation and returns an equivalent Move if any.
 /// Moves are guaranteed to be legal.
 
-Move move_from_uci(const Position& pos, const string& str) {
+Move move_from_uci(const Position& pos, string& str) {
+
+  if (str.length() == 5) // Junior could send promotion in uppercase
+      str[4] = char(tolower(str[4]));
 
   for (MoveList<MV_LEGAL> ml(pos); !ml.end(); ++ml)
       if (str == move_to_uci(ml.move(), pos.is_chess960()))

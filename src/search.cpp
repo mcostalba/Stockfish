@@ -51,6 +51,11 @@ using std::endl;
 using Eval::evaluate;
 using namespace Search;
 
+// For some reason argument-dependent lookup (ADL) doesn't work for Android's
+// STLPort, so explicitly qualify following functions.
+using std::count;
+using std::find;
+
 namespace {
 
   // Set to true to force running with one thread. Used for debugging
@@ -1052,7 +1057,6 @@ split_point_start: // At split points actual search starts from here
       // Step 19. Check for split
       if (   !SpNode
           &&  depth >= Threads.min_split_depth()
-          &&  depth - reduction<PvNode>(depth, moveCount) >= Threads.min_split_depth()
           &&  bestValue < beta
           &&  Threads.available_slave_exists(thisThread)
           && !Signals.stop
