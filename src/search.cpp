@@ -416,8 +416,6 @@ namespace {
                 for (size_t i = 0; i <= PVIdx; i++)
                     RootMoves[i].insert_pv_in_tt(pos);
 
-                // CHANGED TO HAPPEN before Signals.stop is checked below! Is
-                // this a problem?
                 // Send full PV info to GUI if we are going to leave the loop or
                 // if we have a fail high/low and we are deep in the search.
                 if ((bestValue > alpha && bestValue < beta) || SearchTime.elapsed() > 2000)
