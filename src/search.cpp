@@ -416,16 +416,18 @@ namespace {
                 for (size_t i = 0; i <= PVIdx; i++)
                     RootMoves[i].insert_pv_in_tt(pos);
 
+                // CHANGED TO HAPPEN before Signals.stop is checked below! Is
+                // this a problem?
+                // Send full PV info to GUI if we are going to leave the loop or
+                // if we have a fail high/low and we are deep in the search.
+                if ((bestValue > alpha && bestValue < beta) || SearchTime.elapsed() > 2000)
+                    cout << uci_pv(pos, depth, alpha, beta) << endl;
+
                 // If search has been stopped exit the aspiration window loop.
                 // Sorting and writing PV back to TT is safe becuase RootMoves
                 // is still valid, although refers to previous iteration.
                 if (Signals.stop)
                     break;
-
-                // Send full PV info to GUI if we are going to leave the loop or
-                // if we have a fail high/low and we are deep in the search.
-                if ((bestValue > alpha && bestValue < beta) || SearchTime.elapsed() > 2000)
-                    cout << uci_pv(pos, depth, alpha, beta) << endl;
 
                 // In case of failing high/low increase aspiration window and
                 // research, otherwise exit the fail high/low loop.
