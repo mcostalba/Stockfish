@@ -651,13 +651,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (ei.pi->file_is_half_open(Us, f))
             {
                 if (ei.pi->file_is_half_open(Them, f))
-				{
-					score += RookOpenFileBonus;
-				}
+			score += RookOpenFileBonus;
                 else
-				{
-					score += RookHalfOpenFileBonus;
-				}
+			score += RookHalfOpenFileBonus;
             }
 
             // Penalize rooks which are trapped inside a king. Penalize more if
