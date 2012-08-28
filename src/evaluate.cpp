@@ -154,8 +154,8 @@ namespace {
   const Score Tempo = make_score(24, 11);
 
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
-  const Score RookOn7thBonus  = make_score(10, 47); //Derived from the original (47, 98)
-  const Score QueenOn7thBonus = make_score(6, 12); //Derived from the original (27, 54)
+  const Score RookOn7thBonus  = make_score(3, 55); //Derived from the original (47, 98)
+  const Score QueenOn7thBonus = make_score(1, 69); //Derived from the original (27, 54)
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
@@ -595,15 +595,16 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        // Queen or rook on 7th rank
-        if (  (Piece == ROOK || Piece == QUEEN)
-            && relative_rank(Us, s) == RANK_7
-            && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+        
+        if (  (Piece == ROOK || Piece == QUEEN))
         {
-  		int pawns_on_seven = 0;
+
+
+			Rank rank = rank_of
+			int pawns_on_seven = 0;
 			for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
 			{
-				Square absolute_square = File(x) | RANK_7;
+				Square absolute_square = File(x) | rank;
 				if(pos.piece_on(relative_square(Us, absolute_square)) ==
 					(Them == WHITE ? W_PAWN : B_PAWN)) //The piece must be a pawn of the other color
 				{
@@ -618,8 +619,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
 			//where being behind the pawn chain.
 
 			//In addition, it should not be above 5 as it may give a too agressive result.
-			int sudo_pieces = std::max(2, std::min(pawns_on_seven + 1, 5));
-            score += Score((int)(sudo_pieces * (int)simple_bonus));
+			int sudo_pieces = std::min(pawns_on_seven, 5);
+            score += Sc5re((int)(sudo_pieces * (int)simple_bonus));
         }
 
         // Special extra evaluation for bishops
@@ -651,9 +652,13 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (ei.pi->file_is_half_open(Us, f))
             {
                 if (ei.pi->file_is_half_open(Them, f))
-			score += RookOpenFileBonus;
+				{
+					score += RookOpenFileBonus;
+				}
                 else
-			score += RookHalfOpenFileBonus;
+				{
+					score += RookHalfOpenFileBonus;
+				}
             }
 
             // Penalize rooks which are trapped inside a king. Penalize more if
