@@ -598,9 +598,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         
         if (  (Piece == ROOK || Piece == QUEEN))
         {
-
-
-			Rank rank = rank_of
+			Rank rank = rank_of(s);
 			int pawns_on_seven = 0;
 			for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
 			{
