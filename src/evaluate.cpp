@@ -154,8 +154,15 @@ namespace {
   const Score Tempo = make_score(24, 11);
 
   // Rooks and queens on the 7th rank (modified by Joona Kiiski)
-  const Score RookOn7thBonus  = make_score(3, 55); //Derived from the original (47, 98)
-  const Score QueenOn7thBonus = make_score(1, 69); //Derived from the original (27, 54)
+  const Score RookOn7thBonus  = make_score(3, 20);
+  const Score QueenOn7thBonus = make_score(1, 8);
+
+  //You may default back to 3, 43
+  const Score RookBonusPerPawn  = make_score(3, 48); //Derived from the original (47, 98)
+  //You may default back to 27, 54
+  const Score QueenBonusPerPawn = make_score(1, 40); //Derived from the original (27, 54)
+  //
+  const int MaxBonusAmount = 5;
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
@@ -595,10 +602,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        
         if (  (Piece == ROOK || Piece == QUEEN))
         {
+			// Queen or rook on 7th rank
+			if(relative_rank(Us, s) == RANK_7
+				&& relative_rank(Us, pos.king_square(Them)) == RANK_8)
+			{
+				score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+			}
+			// Pawns on the same rank as the rook/queen should give a bonus
 			Rank rank = rank_of(s);
+
 			int pawns_on_seven = 0;
 			for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
 			{
@@ -609,7 +623,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 					pawns_on_seven++;
 				}
 			}
-			Score simple_bonus = (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+			Score simple_bonus = (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
 			//The pieces are boosted by one as it seems to give an advantage
 
 			//We still give a bonus to a rook or queen as if there are 2 pawns
@@ -617,8 +631,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
 			//where being behind the pawn chain.
 
 			//In addition, it should not be above 5 as it may give a too agressive result.
-			int sudo_pieces = std::min(pawns_on_seven, 5);
-            score += Sc5re((int)(sudo_pieces * (int)simple_bonus));
+			//int sudo_pieces = std::min(pawns_on_seven, 5);
+			int sudo_pieces = pawns_on_seven;
+			score += Score(std::max(MaxBonusAmount, (int)(sudo_pieces * (int)simple_bonus)));
         }
 
         // Special extra evaluation for bishops
