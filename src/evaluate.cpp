@@ -604,36 +604,36 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         if (  (Piece == ROOK || Piece == QUEEN))
         {
-			// Queen or rook on 7th rank
-			if(relative_rank(Us, s) == RANK_7
-				&& relative_rank(Us, pos.king_square(Them)) == RANK_8)
+		// Queen or rook on 7th rank
+		if(relative_rank(Us, s) == RANK_7
+			&& relative_rank(Us, pos.king_square(Them)) == RANK_8)
+		{
+			score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+		}
+		// Pawns on the same rank as the rook/queen should give a bonus
+		Rank rank = rank_of(s);
+
+		int pawns_on_seven = 0;
+		for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
+		{
+			Square absolute_square = File(x) | rank;
+			if(pos.piece_on(relative_square(Us, absolute_square)) ==
+				(Them == WHITE ? W_PAWN : B_PAWN)) //The piece must be a pawn of the other color
 			{
-				score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+				pawns_on_seven++;
 			}
-			// Pawns on the same rank as the rook/queen should give a bonus
-			Rank rank = rank_of(s);
+		}
+		Score simple_bonus = (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
+		//The pieces are boosted by one as it seems to give an advantage
 
-			int pawns_on_seven = 0;
-			for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
-			{
-				Square absolute_square = File(x) | rank;
-				if(pos.piece_on(relative_square(Us, absolute_square)) ==
-					(Them == WHITE ? W_PAWN : B_PAWN)) //The piece must be a pawn of the other color
-				{
-					pawns_on_seven++;
-				}
-			}
-			Score simple_bonus = (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
-			//The pieces are boosted by one as it seems to give an advantage
+		//We still give a bonus to a rook or queen as if there are 2 pawns
+		//when there aren't any pawns in order to prevent odd situations
+		//where being behind the pawn chain.
 
-			//We still give a bonus to a rook or queen as if there are 2 pawns
-			//when there aren't any pawns in order to prevent odd situations
-			//where being behind the pawn chain.
-
-			//In addition, it should not be above 5 as it may give a too agressive result.
-			//int sudo_pieces = std::min(pawns_on_seven, 5);
-			int sudo_pieces = pawns_on_seven;
-			score += Score(std::max(MaxBonusAmount, (int)(sudo_pieces * (int)simple_bonus)));
+		//In addition, it should not be above 5 as it may give a too agressive result.
+		//int sudo_pieces = std::min(pawns_on_seven, 5);
+		int sudo_pieces = pawns_on_seven;
+		score += Score(std::max(MaxBonusAmount, (int)(sudo_pieces * (int)simple_bonus)));
         }
 
         // Special extra evaluation for bishops
