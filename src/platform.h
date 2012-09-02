@@ -42,22 +42,4 @@ typedef unsigned __int64 uint64_t;
 #  include <inttypes.h>
 #endif
 
-#if !defined(_WIN32) && !defined(_WIN64) // Linux - Unix
-
-#  include <sys/time.h>
-typedef timeval sys_time_t;
-
-inline void system_time(sys_time_t* t) { gettimeofday(t, NULL); }
-inline int64_t time_to_msec(const sys_time_t& t) { return t.tv_sec * 1000LL + t.tv_usec / 1000; }
-
-#else // Windows and MinGW
-
-#  include <sys/timeb.h>
-typedef _timeb sys_time_t;
-
-inline void system_time(sys_time_t* t) { _ftime(t); }
-inline int64_t time_to_msec(const sys_time_t& t) { return t.time * 1000LL + t.millitm; }
-
-#endif
-
 #endif // !defined(PLATFORM_H_INCLUDED)
