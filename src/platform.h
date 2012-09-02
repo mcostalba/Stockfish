@@ -50,13 +50,6 @@ typedef timeval sys_time_t;
 inline void system_time(sys_time_t* t) { gettimeofday(t, NULL); }
 inline int64_t time_to_msec(const sys_time_t& t) { return t.tv_sec * 1000LL + t.tv_usec / 1000; }
 
-#  include <pthread.h>
-typedef pthread_t NativeHandle;
-typedef void*(*pt_start_fn)(void*);
-
-#  define thread_create(x,f,t) !pthread_create(&(x),NULL,(pt_start_fn)f,t)
-#  define thread_join(x) pthread_join(x, NULL)
-
 #else // Windows and MinGW
 
 #  include <sys/timeb.h>
@@ -64,23 +57,6 @@ typedef _timeb sys_time_t;
 
 inline void system_time(sys_time_t* t) { _ftime(t); }
 inline int64_t time_to_msec(const sys_time_t& t) { return t.time * 1000LL + t.millitm; }
-
-#if !defined(NOMINMAX)
-#  define NOMINMAX // disable macros min() and max()
-#endif
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#undef WIN32_LEAN_AND_MEAN
-#undef NOMINMAX
-
-// We use critical sections on Windows to support Windows XP and older versions,
-// unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
-// but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION Lock;
-
-#  define thread_create(x,f,t) (x = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)f,t,0,NULL), x != NULL)
-#  define thread_join(x) { WaitForSingleObject(x, INFINITE); CloseHandle(x); }
 
 #endif
 

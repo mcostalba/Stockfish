@@ -22,6 +22,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 #include "material.h"
@@ -67,9 +68,11 @@ struct SplitPoint {
 /// tables so that once we get a pointer to an entry its life time is unlimited
 /// and we don't have to care about someone changing the entry under our feet.
 
-class Thread {
+class Thread : public std::thread {
 
   typedef void (Thread::* Fn) (); // Pointer to member function
+
+  using std::thread::operator=;
 
 public:
   Thread(Fn fn);
@@ -90,8 +93,6 @@ public:
   int maxPly;
   std::mutex mutex;
   std::condition_variable sleepCondition;
-  NativeHandle handle;
-  Fn start_fn;
   SplitPoint* volatile curSplitPoint;
   volatile int splitPointsCnt;
   volatile bool is_searching;

@@ -18,6 +18,7 @@
 */
 
 #include <cassert>
+#include <functional>
 #include <iostream>
 
 #include "movegen.h"
@@ -29,34 +30,20 @@ using namespace Search;
 
 ThreadPool Threads; // Global object
 
-namespace { extern "C" {
-
- // start_routine() is the C function which is called when a new thread
- // is launched. It is a wrapper to member function pointed by start_fn.
-
- long start_routine(Thread* th) { (th->*(th->start_fn))(); return 0; }
-
-} }
-
 
 // Thread c'tor starts a newly-created thread of execution that will call
-// the idle loop function pointed by start_fn going immediately to sleep.
+// the idle loop function pointed by 'fn' going immediately to sleep.
 
 Thread::Thread(Fn fn) {
 
   is_searching = do_exit = false;
   maxPly = splitPointsCnt = 0;
   curSplitPoint = NULL;
-  start_fn = fn;
   idx = Threads.size();
 
   do_sleep = (fn != &Thread::main_loop); // Avoid a race with start_searching()
 
-  if (!thread_create(handle, start_routine, this))
-  {
-      std::cerr << "Failed to create thread number " << idx << std::endl;
-      ::exit(EXIT_FAILURE);
-  }
+  *this = std::thread(std::mem_fun(fn), this); // Thread starts calling 'fn'
 }
 
 
@@ -68,7 +55,7 @@ Thread::~Thread() {
 
   do_exit = true; // Search must be already finished
   wake_up();
-  thread_join(handle); // Wait for thread termination
+  join();
 }
 
 
