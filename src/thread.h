@@ -20,6 +20,8 @@
 #if !defined(THREAD_H_INCLUDED)
 #define THREAD_H_INCLUDED
 
+#include <condition_variable>
+#include <mutex>
 #include <vector>
 
 #include "material.h"
@@ -30,31 +32,6 @@
 
 const int MAX_THREADS = 32;
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
-
-struct Mutex {
-  Mutex() { lock_init(l); }
- ~Mutex() { lock_destroy(l); }
-
-  void lock() { lock_grab(l); }
-  void unlock() { lock_release(l); }
-
-private:
-  friend struct ConditionVariable;
-
-  Lock l;
-};
-
-struct ConditionVariable {
-  ConditionVariable() { cond_init(c); }
- ~ConditionVariable() { cond_destroy(c); }
-
-  void wait(Mutex& m) { cond_wait(c, m.l); }
-  void wait_for(Mutex& m, int ms) { timed_wait(c, m.l, ms); }
-  void notify_one() { cond_signal(c); }
-
-private:
-  WaitCondition c;
-};
 
 class Thread;
 
@@ -74,7 +51,7 @@ struct SplitPoint {
   SplitPoint* parent;
 
   // Shared data
-  Mutex mutex;
+  std::mutex mutex;
   volatile uint64_t slavesMask;
   volatile int64_t nodes;
   volatile Value alpha;
@@ -111,8 +88,8 @@ public:
   PawnTable pawnTable;
   size_t idx;
   int maxPly;
-  Mutex mutex;
-  ConditionVariable sleepCondition;
+  std::mutex mutex;
+  std::condition_variable sleepCondition;
   NativeHandle handle;
   Fn start_fn;
   SplitPoint* volatile curSplitPoint;
@@ -156,8 +133,8 @@ private:
 
   std::vector<Thread*> threads;
   Thread* timer;
-  Mutex mutex;
-  ConditionVariable sleepCondition;
+  std::mutex mutex;
+  std::condition_variable sleepCondition;
   Depth minimumSplitDepth;
   int maxThreadsPerSplitPoint;
   bool useSleepingThreads;

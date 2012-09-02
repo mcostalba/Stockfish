@@ -80,9 +80,8 @@ void Thread::timer_loop() {
 
   while (!do_exit)
   {
-      mutex.lock();
-      sleepCondition.wait_for(mutex, maxPly ? maxPly : INT_MAX);
-      mutex.unlock();
+      std::unique_lock<std::mutex> lk(mutex);
+      sleepCondition.wait_for(lk, std::chrono::milliseconds(maxPly ? maxPly : INT_MAX));
       check_time();
   }
 }
@@ -95,7 +94,7 @@ void Thread::main_loop() {
 
   while (true)
   {
-      mutex.lock();
+      std::unique_lock<std::mutex> lk(mutex);
 
       do_sleep = true; // Always return to sleep after a search
       is_searching = false;
@@ -103,10 +102,10 @@ void Thread::main_loop() {
       while (do_sleep && !do_exit)
       {
           Threads.sleepCondition.notify_one(); // Wake up UI thread if needed
-          sleepCondition.wait(mutex);
+          sleepCondition.wait(lk);
       }
 
-      mutex.unlock();
+      lk.unlock();
 
       if (do_exit)
           return;
@@ -125,9 +124,8 @@ void Thread::main_loop() {
 
 void Thread::wake_up() {
 
-  mutex.lock();
+  std::unique_lock<std::mutex> lk(mutex);
   sleepCondition.notify_one();
-  mutex.unlock();
 }
 
 
@@ -142,9 +140,8 @@ void Thread::wait_for_stop_or_ponderhit() {
 
   Signals.stopOnPonderhit = true;
 
-  mutex.lock();
-  while (!Signals.stop) sleepCondition.wait(mutex);;
-  mutex.unlock();
+  std::unique_lock<std::mutex> lk(mutex);
+  sleepCondition.wait(lk, []{ return Signals.stop; });
 }
 
 
@@ -390,10 +387,9 @@ template Value ThreadPool::split<true>(Position&, Stack*, Value, Value, Value, M
 
 void ThreadPool::set_timer(int msec) {
 
-  timer->mutex.lock();
+  std::unique_lock<std::mutex> lk(timer->mutex);
   timer->maxPly = msec;
   timer->sleepCondition.notify_one(); // Wake up and restart the timer
-  timer->mutex.unlock();
 }
 
 
@@ -403,10 +399,9 @@ void ThreadPool::set_timer(int msec) {
 void ThreadPool::wait_for_search_finished() {
 
   Thread* t = main_thread();
-  t->mutex.lock();
+  std::unique_lock<std::mutex> lk(t->mutex);
   t->sleepCondition.notify_one(); // In case is waiting for stop or ponderhit
-  while (!t->do_sleep) sleepCondition.wait(t->mutex);
-  t->mutex.unlock();
+  sleepCondition.wait(lk, [&]{ return t->do_sleep; });
 }
 
 

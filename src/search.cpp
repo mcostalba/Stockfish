@@ -1669,23 +1669,18 @@ void Thread::idle_loop() {
           }
 
           // Grab the lock to avoid races with Thread::wake_up()
-          mutex.lock();
+          std::unique_lock<std::mutex> lk(mutex);
 
           // If we are master and all slaves have finished don't go to sleep
           if (sp_master && !sp_master->slavesMask)
-          {
-              mutex.unlock();
               break;
-          }
 
           // Do sleep after retesting sleep conditions under lock protection, in
           // particular we need to avoid a deadlock in case a master thread has,
           // in the meanwhile, allocated us and sent the wake_up() call before we
           // had the chance to grab the lock.
           if (do_sleep || !is_searching)
-              sleepCondition.wait(mutex);
-
-          mutex.unlock();
+              sleepCondition.wait(lk);
       }
 
       // If this thread has been assigned work, launch a search
