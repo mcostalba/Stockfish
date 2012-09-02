@@ -153,16 +153,11 @@ namespace {
   // Bonus for having the side to move (modified by Joona Kiiski)
   const Score Tempo = make_score(24, 11);
 
-  // Rooks and queens on the 7th rank (modified by Joona Kiiski)
-  const Score RookOn7thBonus  = make_score(3, 20);
-  const Score QueenOn7thBonus = make_score(1, 8);
-
-  //You may default back to 3, 43
-  const Score RookBonusPerPawn  = make_score(3, 48); //Derived from the original (47, 98)
-  //You may default back to 27, 54
-  const Score QueenBonusPerPawn = make_score(1, 40); //Derived from the original (27, 54)
-  //
-  const int MaxBonusAmount = 5;
+  // Rooks and queens on the 7th rank
+  const Score RookOn7thBonus    = make_score(3, 20);
+  const Score QueenOn7thBonus   = make_score(1, 8);
+  const Score RookBonusPerPawn  = make_score(3, 48);
+  const Score QueenBonusPerPawn = make_score(1, 40);
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
@@ -602,38 +597,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        if (  (Piece == ROOK || Piece == QUEEN))
+        if (Piece == ROOK || Piece == QUEEN)
         {
-		// Queen or rook on 7th rank
-		if(relative_rank(Us, s) == RANK_7
-			&& relative_rank(Us, pos.king_square(Them)) == RANK_8)
-		{
-			score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
-		}
-		// Pawns on the same rank as the rook/queen should give a bonus
-		Rank rank = rank_of(s);
-
-		int pawns_on_seven = 0;
-		for(int x = 0; x < 8; x++) //Going through every file on the seventh rank
-		{
-			Square absolute_square = File(x) | rank;
-			if(pos.piece_on(relative_square(Us, absolute_square)) ==
-				(Them == WHITE ? W_PAWN : B_PAWN)) //The piece must be a pawn of the other color
-			{
-				pawns_on_seven++;
-			}
-		}
-		Score simple_bonus = (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
-		//The pieces are boosted by one as it seems to give an advantage
-
-		//We still give a bonus to a rook or queen as if there are 2 pawns
-		//when there aren't any pawns in order to prevent odd situations
-		//where being behind the pawn chain.
-
-		//In addition, it should not be above 5 as it may give a too agressive result.
-		//int sudo_pieces = std::min(pawns_on_seven, 5);
-		int sudo_pieces = pawns_on_seven;
-		score += Score(std::max(MaxBonusAmount, (int)(sudo_pieces * (int)simple_bonus)));
+            // Queen or rook on 7th rank
+            if (   relative_rank(Us, s) == RANK_7
+                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+            {
+                score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+            }
+            // Pawns on same rank as rook or queen
+            int pawn_count = popcount<Max15>(pos.pieces(Them, PAWN) & RankBB[rank_of(s)]);
+            score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * pawn_count;
         }
 
         // Special extra evaluation for bishops
@@ -665,13 +639,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (ei.pi->file_is_half_open(Us, f))
             {
                 if (ei.pi->file_is_half_open(Them, f))
-				{
-					score += RookOpenFileBonus;
-				}
+                    score += RookOpenFileBonus;
                 else
-				{
-					score += RookHalfOpenFileBonus;
-				}
+                    score += RookHalfOpenFileBonus;
             }
 
             // Penalize rooks which are trapped inside a king. Penalize more if
