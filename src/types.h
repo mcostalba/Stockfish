@@ -37,9 +37,15 @@
 
 #include <cctype>
 #include <climits>
+#include <cstdint>
 #include <cstdlib>
 
-#include "platform.h"
+#if defined(_MSC_VER)
+// Disable some silly and noisy warning from MSVC compiler
+#pragma warning(disable: 4127) // Conditional expression is constant
+#pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
+#pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
+#endif
 
 #if defined(_WIN64)
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
