@@ -28,7 +28,6 @@
 #include "types.h"
 
 extern const std::string engine_info(bool to_uci = false);
-extern int cpu_count();
 extern void prefetch(char* addr);
 extern void start_logger(bool b);
 

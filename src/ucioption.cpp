@@ -56,7 +56,7 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 
 void init(OptionsMap& o) {
 
-  int cpus = std::min(cpu_count(), MAX_THREADS);
+  int cpus = std::min((int)std::thread::hardware_concurrency(), MAX_THREADS);
   int msd = cpus < 8 ? 4 : 7;
 
   o["Use Debug Log"]               = Option(false, on_logger);

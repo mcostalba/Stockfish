@@ -24,10 +24,6 @@
 #include "misc.h"
 #include "thread.h"
 
-#if defined(__hpux)
-#    include <sys/pstat.h>
-#endif
-
 using namespace std;
 
 /// Version number. If Version is left empty, then Tag plus current
@@ -165,31 +161,6 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
 /// Trampoline helper to avoid moving Logger to misc.h
 void start_logger(bool b) { Logger::start(b); }
-
-
-/// cpu_count() tries to detect the number of CPU cores
-
-int cpu_count() {
-
-#if defined(_WIN32) || defined(_WIN64)
-  SYSTEM_INFO s;
-  GetSystemInfo(&s);
-  return s.dwNumberOfProcessors;
-#else
-
-#  if defined(_SC_NPROCESSORS_ONLN)
-  return sysconf(_SC_NPROCESSORS_ONLN);
-#  elif defined(__hpux)
-  struct pst_dynamic psd;
-  if (pstat_getdynamic(&psd, sizeof(psd), (size_t)1, 0) == -1)
-      return 1;
-  return psd.psd_proc_cnt;
-#  else
-  return 1;
-#  endif
-
-#endif
-}
 
 
 /// prefetch() preloads the given address in L1/L2 cache. This is a non
