@@ -43,7 +43,7 @@ Thread::Thread(Fn fn) {
 
   do_sleep = (fn != &Thread::main_loop); // Avoid a race with start_searching()
 
-  *this = std::thread(std::mem_fun(fn), this); // Thread starts calling 'fn'
+  nativeThread = std::thread(std::mem_fun(fn), this); // Starts and calls 'fn'
 }
 
 
@@ -55,7 +55,7 @@ Thread::~Thread() {
 
   do_exit = true; // Search must be already finished
   wake_up();
-  join();
+  nativeThread.join();
 }
 
 

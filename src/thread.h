@@ -68,11 +68,9 @@ struct SplitPoint {
 /// tables so that once we get a pointer to an entry its life time is unlimited
 /// and we don't have to care about someone changing the entry under our feet.
 
-class Thread : public std::thread {
+class Thread {
 
   typedef void (Thread::* Fn) (); // Pointer to member function
-
-  using std::thread::operator=;
 
 public:
   Thread(Fn fn);
@@ -91,6 +89,7 @@ public:
   PawnTable pawnTable;
   size_t idx;
   int maxPly;
+  std::thread nativeThread;
   std::mutex mutex;
   std::condition_variable sleepCondition;
   SplitPoint* volatile curSplitPoint;
