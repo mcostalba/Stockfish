@@ -21,7 +21,9 @@
 #define ENDGAME_H_INCLUDED
 
 #include <map>
+#include <memory>
 #include <string>
+#include <type_traits>
 
 #include "position.h"
 #include "types.h"
@@ -61,12 +63,9 @@ enum EndgameType {
 };
 
 
-/// Endgame functions can be of two types according if return a Value or a
-/// ScaleFactor. Type eg_fun<int>::type equals to either ScaleFactor or Value
-/// depending if the template parameter is 0 or 1.
-
-template<int> struct eg_fun { typedef Value type; };
-template<> struct eg_fun<1> { typedef ScaleFactor type; };
+/// Endgame functions can return a Value or a ScaleFactor, according to EndgameType
+template<EndgameType E>
+using eg_fun = std::conditional<(E < SCALE_FUNS), Value, ScaleFactor>;
 
 
 /// Base and derived templates for endgame evaluation and scaling functions
@@ -80,7 +79,7 @@ struct EndgameBase {
 };
 
 
-template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
+template<EndgameType E, typename T = typename eg_fun<E>::type>
 struct Endgame : public EndgameBase<T> {
 
   explicit Endgame(Color c) : strongerSide(c), weakerSide(~c) {}
@@ -98,23 +97,22 @@ private:
 
 class Endgames {
 
-  typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
-  typedef std::map<Key, EndgameBase<eg_fun<1>::type>*> M2;
+  typedef std::map<Key, std::unique_ptr<EndgameBase<Value>>> M1;
+  typedef std::map<Key, std::unique_ptr<EndgameBase<ScaleFactor>>> M2;
 
   M1 m1;
   M2 m2;
 
-  M1& map(M1::mapped_type) { return m1; }
-  M2& map(M2::mapped_type) { return m2; }
+  M1& map(M1::mapped_type::element_type*) { return m1; }
+  M2& map(M2::mapped_type::element_type*) { return m2; }
 
   template<EndgameType E> void add(const std::string& code);
 
 public:
   Endgames();
-  ~Endgames();
 
   template<typename T> T probe(Key key, T& eg)
-  { return eg = map(eg).count(key) ? map(eg)[key] : NULL; }
+  { return eg = map(eg).count(key) ? map(eg)[key].get() : NULL; }
 };
 
 #endif // !defined(ENDGAME_H_INCLUDED)

@@ -79,9 +79,6 @@ namespace {
     return Position(fen, false, NULL).material_key();
   }
 
-  template<typename M>
-  void delete_endgame(const typename M::value_type& p) { delete p.second; }
-
 } // namespace
 
 
@@ -106,17 +103,14 @@ Endgames::Endgames() {
   add<KRPPKRP>("KRPPKRP");
 }
 
-Endgames::~Endgames() {
-
-  for_each(m1.begin(), m1.end(), delete_endgame<M1>);
-  for_each(m2.begin(), m2.end(), delete_endgame<M2>);
-}
 
 template<EndgameType E>
 void Endgames::add(const string& code) {
 
-  map((Endgame<E>*)0)[key(code, WHITE)] = new Endgame<E>(WHITE);
-  map((Endgame<E>*)0)[key(code, BLACK)] = new Endgame<E>(BLACK);
+  typedef EndgameBase<typename eg_fun<E>::type> T;
+
+  map((Endgame<E>*)0)[key(code, WHITE)] = std::unique_ptr<T>(new Endgame<E>(WHITE));
+  map((Endgame<E>*)0)[key(code, BLACK)] = std::unique_ptr<T>(new Endgame<E>(BLACK));
 }
 
 
