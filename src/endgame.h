@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "position.h"
 #include "types.h"
@@ -91,28 +92,27 @@ private:
 };
 
 
-/// Endgames class stores in two std::map the pointers to endgame evaluation
-/// and scaling base objects. Then we use polymorphism to invoke the actual
-/// endgame function calling its operator() that is virtual.
+/// Endgames class stores in two std::map the std::unique_ptr to endgame
+/// evaluation and scaling base objects. Then we use polymorphism to invoke
+/// the actual endgame function calling its operator() that is virtual.
 
 class Endgames {
 
-  typedef std::map<Key, std::unique_ptr<EndgameBase<Value>>> M1;
-  typedef std::map<Key, std::unique_ptr<EndgameBase<ScaleFactor>>> M2;
+  template<typename T> using Map = std::map<Key, std::unique_ptr<T>>;
 
-  M1 m1;
-  M2 m2;
+  std::pair<Map<EndgameBase<Value>>, Map<EndgameBase<ScaleFactor>>> maps;
 
-  M1& map(M1::mapped_type::element_type*) { return m1; }
-  M2& map(M2::mapped_type::element_type*) { return m2; }
+  // Understand this!
+  template<typename T, int I = std::is_same<T, EndgameBase<ScaleFactor>>::value>
+  auto map() -> decltype(std::get<I>(maps)) { return std::get<I>(maps); }
 
   template<EndgameType E> void add(const std::string& code);
 
 public:
   Endgames();
 
-  template<typename T> T probe(Key key, T& eg)
-  { return eg = map(eg).count(key) ? map(eg)[key].get() : NULL; }
+  template<typename T> T* probe(Key key, T*& eg)
+  { return eg = map<T>().count(key) ? map<T>()[key].get() : NULL; }
 };
 
 #endif // !defined(ENDGAME_H_INCLUDED)
