@@ -35,6 +35,7 @@
 ///               | only in 64-bit mode. For compiling requires hardware with
 ///               | popcnt support.
 
+#include <cctype>
 #include <climits>
 #include <cstdlib>
 
@@ -118,20 +119,18 @@ enum Move {
   MOVE_NULL = 65
 };
 
-struct MoveStack {
-  Move move;
-  int score;
+enum MoveType {
+  NORMAL    = 0,
+  PROMOTION = 1 << 14,
+  ENPASSANT = 2 << 14,
+  CASTLE    = 3 << 14
 };
 
-inline bool operator<(const MoveStack& f, const MoveStack& s) {
-  return f.score < s.score;
-}
-
-enum CastleRight {
+enum CastleRight {  // Defined as in PolyGlot book hash key
   CASTLES_NONE = 0,
   WHITE_OO     = 1,
-  BLACK_OO     = 2,
-  WHITE_OOO    = 4,
+  WHITE_OOO    = 2,
+  BLACK_OO     = 4,
   BLACK_OOO    = 8,
   ALL_CASTLES  = 15
 };
@@ -167,7 +166,15 @@ enum Value {
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
 
   VALUE_ENSURE_INTEGER_SIZE_P = INT_MAX,
-  VALUE_ENSURE_INTEGER_SIZE_N = INT_MIN
+  VALUE_ENSURE_INTEGER_SIZE_N = INT_MIN,
+
+  Mg = 0, Eg = 1,
+
+  PawnValueMg   = 198,   PawnValueEg   = 258,
+  KnightValueMg = 817,   KnightValueEg = 846,
+  BishopValueMg = 836,   BishopValueEg = 857,
+  RookValueMg   = 1270,  RookValueEg   = 1278,
+  QueenValueMg  = 2521,  QueenValueEg  = 2558
 };
 
 enum PieceType {
@@ -311,20 +318,31 @@ inline Score apply_weight(Score v, Score w) {
 #undef ENABLE_OPERATORS_ON
 #undef ENABLE_SAFE_OPERATORS_ON
 
-const Value PawnValueMidgame   = Value(0x0C6);
-const Value PawnValueEndgame   = Value(0x102);
-const Value KnightValueMidgame = Value(0x331);
-const Value KnightValueEndgame = Value(0x34E);
-const Value BishopValueMidgame = Value(0x344);
-const Value BishopValueEndgame = Value(0x359);
-const Value RookValueMidgame   = Value(0x4F6);
-const Value RookValueEndgame   = Value(0x4FE);
-const Value QueenValueMidgame  = Value(0x9D9);
-const Value QueenValueEndgame  = Value(0x9FE);
+namespace Zobrist {
 
-extern const Value PieceValueMidgame[17]; // Indexed by Piece or PieceType
-extern const Value PieceValueEndgame[17];
-extern int SquareDistance[64][64];
+  extern Key psq[2][8][64]; // [color][pieceType][square / piece count]
+  extern Key enpassant[8];  // [file]
+  extern Key castle[16];    // [castleRight]
+  extern Key side;
+  extern Key exclusion;
+
+  void init();
+}
+
+CACHE_LINE_ALIGNMENT
+
+extern Score pieceSquareTable[16][64]; // [piece][square]
+extern Value PieceValue[2][18];        // [Mg / Eg][piece / pieceType]
+extern int SquareDistance[64][64];     // [square][square]
+
+struct MoveStack {
+  Move move;
+  int score;
+};
+
+inline bool operator<(const MoveStack& f, const MoveStack& s) {
+  return f.score < s.score;
+}
 
 inline Color operator~(Color c) {
   return Color(c ^ 1);
@@ -332,6 +350,10 @@ inline Color operator~(Color c) {
 
 inline Square operator~(Square s) {
   return Square(s ^ 56); // Vertical flip SQ_A1 -> SQ_A8
+}
+
+inline Square operator|(File f, Rank r) {
+  return Square((r << 3) | f);
 }
 
 inline Value mate_in(int ply) {
@@ -347,7 +369,7 @@ inline Piece make_piece(Color c, PieceType pt) {
 }
 
 inline CastleRight make_castle_right(Color c, CastlingSide s) {
-  return CastleRight((s == KING_SIDE ? WHITE_OO : WHITE_OOO) << c);
+  return CastleRight(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
 }
 
 inline PieceType type_of(Piece p)  {
@@ -356,10 +378,6 @@ inline PieceType type_of(Piece p)  {
 
 inline Color color_of(Piece p) {
   return Color(p >> 3);
-}
-
-inline Square make_square(File f, Rank r) {
-  return Square((r << 3) | f);
 }
 
 inline bool is_ok(Square s) {
@@ -391,7 +409,7 @@ inline Rank relative_rank(Color c, Square s) {
 }
 
 inline bool opposite_colors(Square s1, Square s2) {
-  int s = s1 ^ s2;
+  int s = int(s1) ^ int(s2);
   return ((s >> 3) ^ s) & 1;
 }
 
@@ -405,10 +423,6 @@ inline int rank_distance(Square s1, Square s2) {
 
 inline int square_distance(Square s1, Square s2) {
   return SquareDistance[s1][s2];
-}
-
-inline char piece_type_to_char(PieceType pt) {
-  return " PNBRQK"[pt];
 }
 
 inline char file_to_char(File f) {
@@ -431,20 +445,8 @@ inline Square to_sq(Move m) {
   return Square(m & 0x3F);
 }
 
-inline bool is_special(Move m) {
-  return m & (3 << 14);
-}
-
-inline bool is_promotion(Move m) {
-  return (m & (3 << 14)) == (1 << 14);
-}
-
-inline int is_enpassant(Move m) {
-  return (m & (3 << 14)) == (2 << 14);
-}
-
-inline int is_castle(Move m) {
-  return (m & (3 << 14)) == (3 << 14);
+inline MoveType type_of(Move m) {
+  return MoveType(m & (3 << 14));
 }
 
 inline PieceType promotion_type(Move m) {
@@ -455,16 +457,9 @@ inline Move make_move(Square from, Square to) {
   return Move(to | (from << 6));
 }
 
-inline Move make_promotion(Square from, Square to, PieceType pt) {
-  return Move(to | (from << 6) | (1 << 14) | ((pt - 2) << 12)) ;
-}
-
-inline Move make_enpassant(Square from, Square to) {
-  return Move(to | (from << 6) | (2 << 14));
-}
-
-inline Move make_castle(Square from, Square to) {
-  return Move(to | (from << 6) | (3 << 14));
+template<MoveType T>
+inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
+  return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12)) ;
 }
 
 inline bool is_ok(Move m) {

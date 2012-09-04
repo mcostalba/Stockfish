@@ -17,39 +17,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MOVEGEN_H_INCLUDED)
-#define MOVEGEN_H_INCLUDED
+#if !defined(NOTATION_H_INCLUDED)
+#define NOTATION_H_INCLUDED
+
+#include <string>
 
 #include "types.h"
 
-enum GenType {
-  CAPTURES,
-  QUIETS,
-  QUIET_CHECKS,
-  EVASIONS,
-  NON_EVASIONS,
-  LEGAL
-};
-
 class Position;
 
-template<GenType>
-MoveStack* generate(const Position& pos, MoveStack* mlist);
+std::string score_to_uci(Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
+Move move_from_uci(const Position& pos, std::string& str);
+const std::string move_to_uci(Move m, bool chess960);
+const std::string move_to_san(Position& pos, Move m);
+std::string pretty_pv(Position& pos, int depth, Value score, int time, Move pv[]);
 
-/// The MoveList struct is a simple wrapper around generate(), sometimes comes
-/// handy to use this class instead of the low level generate() function.
-template<GenType T>
-struct MoveList {
-
-  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) {}
-  void operator++() { cur++; }
-  bool end() const { return cur == last; }
-  Move move() const { return cur->move; }
-  size_t size() const { return last - mlist; }
-
-private:
-  MoveStack mlist[MAX_MOVES];
-  MoveStack *cur, *last;
-};
-
-#endif // !defined(MOVEGEN_H_INCLUDED)
+#endif // !defined(NOTATION_H_INCLUDED)

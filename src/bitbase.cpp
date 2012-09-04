@@ -62,14 +62,14 @@ namespace {
 }
 
 
-uint32_t probe_kpk_bitbase(Square wksq, Square wpsq, Square bksq, Color stm) {
+uint32_t Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color stm) {
 
   int idx = index(wksq, bksq, wpsq, stm);
   return KPKBitbase[idx / 32] & (1 << (idx & 31));
 }
 
 
-void kpk_bitbase_init() {
+void Bitbases::init_kpk() {
 
   Result db[IndexMax];
   KPKPosition pos;
@@ -117,7 +117,7 @@ namespace {
     stm  = Color(idx & 1);
     bksq = Square((idx >> 1) & 63);
     wksq = Square((idx >> 7) & 63);
-    psq  = make_square(File((idx >> 13) & 3), Rank((idx >> 15) + 1));
+    psq  = File((idx >> 13) & 3) | Rank((idx >> 15) + 1);
   }
 
   Result KPKPosition::classify_leaf(int idx) {
@@ -156,7 +156,7 @@ namespace {
         && rank_of(psq) < RANK_7)
         return DRAW;
 
-    //  Case 4: White king in front of pawn and black has opposition
+    // Case 4: White king in front of pawn and black has opposition
     if (   stm == WHITE
         && wksq == psq + DELTA_N
         && bksq == wksq + DELTA_N + DELTA_N
@@ -166,6 +166,13 @@ namespace {
     // Case 5: Stalemate with rook pawn
     if (   bksq == SQ_A8
         && file_of(psq) == FILE_A)
+        return DRAW;
+
+    // Case 6: White king trapped on the rook file
+    if (   file_of(wksq) == FILE_A
+        && file_of(psq) == FILE_A
+        && rank_of(wksq) > rank_of(psq)
+        && bksq == wksq + 2)
         return DRAW;
 
     return UNKNOWN;
@@ -189,8 +196,8 @@ namespace {
 
     while (b)
     {
-        r |= Us == WHITE ? db[index(pop_1st_bit(&b), bksq, psq, BLACK)]
-                         : db[index(wksq, pop_1st_bit(&b), psq, WHITE)];
+        r |= Us == WHITE ? db[index(pop_lsb(&b), bksq, psq, BLACK)]
+                         : db[index(wksq, pop_lsb(&b), psq, WHITE)];
 
         if (Us == WHITE && (r & WIN))
             return WIN;

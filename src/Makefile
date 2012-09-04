@@ -20,11 +20,18 @@
 ### Section 1. General Configuration
 ### ==========================================================================
 
+### Establish the operating system name
+UNAME = $(shell uname)
+
 ### Executable name
 EXE = stockfish
 
 ### Installation dir definitions
 PREFIX = /usr/local
+# Haiku has a non-standard filesystem layout
+ifeq ($(UNAME),Haiku)
+	PREFIX=/boot/common
+endif
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
@@ -32,7 +39,7 @@ PGOBENCH = ./$(EXE) bench 32 1 10 default depth
 
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
-	material.o misc.o move.o movegen.o movepick.o pawns.o position.o \
+	material.o misc.o movegen.o movepick.o notation.o pawns.o position.o \
 	search.o thread.o timeman.o tt.o uci.o ucioption.o
 
 ### ==========================================================================
@@ -229,7 +236,10 @@ LDFLAGS = $(EXTRALDFLAGS)
 
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
-	LDFLAGS += -lpthread
+	# Haiku has pthreads in its libroot, so only link it in on other platforms
+	ifneq ($(UNAME),Haiku)
+		LDFLAGS += -lpthread
+	endif
 endif
 
 ifeq ($(os),osx)
@@ -270,7 +280,8 @@ ifeq ($(optimize),yes)
 	endif
 
 	ifeq ($(comp),clang)
-		CXXFLAGS += -O4
+		### -O4 requires a linker that supports LLVM's LTO
+		CXXFLAGS += -O3
 
 		ifeq ($(os),osx)
 			ifeq ($(arch),i386)

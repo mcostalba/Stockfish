@@ -60,6 +60,14 @@ struct StateInfo {
   StateInfo* previous;
 };
 
+struct ReducedStateInfo {
+  Key pawnKey, materialKey;
+  Value npMaterial[2];
+  int castleRights, rule50, pliesFromNull;
+  Score psqScore;
+  Square epSquare;
+};
+
 
 /// The position data structure. A position consists of the following data:
 ///
@@ -86,10 +94,9 @@ struct StateInfo {
 class Position {
 public:
   Position() {}
-  Position(const Position& p) { *this = p; }
   Position(const Position& p, Thread* t) { *this = p; thisThread = t; }
   Position(const std::string& f, bool c960, Thread* t) { from_fen(f, c960, t); }
-  void operator=(const Position&);
+  Position& operator=(const Position&);
 
   // Text input/output
   void from_fen(const std::string& fen, bool isChess960, Thread* th);
@@ -98,11 +105,11 @@ public:
 
   // Position representation
   Bitboard pieces() const;
-  Bitboard pieces(Color c) const;
   Bitboard pieces(PieceType pt) const;
-  Bitboard pieces(PieceType pt, Color c) const;
   Bitboard pieces(PieceType pt1, PieceType pt2) const;
-  Bitboard pieces(PieceType pt1, PieceType pt2, Color c) const;
+  Bitboard pieces(Color c) const;
+  Bitboard pieces(Color c, PieceType pt) const;
+  Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
   Piece piece_on(Square s) const;
   Square king_square(Color c) const;
   Square ep_square() const;
@@ -133,6 +140,7 @@ public:
   // Properties of moves
   bool move_gives_check(Move m, const CheckInfo& ci) const;
   bool move_attacks_square(Move m, Square s) const;
+  bool move_is_legal(const Move m) const;
   bool pl_move_is_legal(Move m, Bitboard pinned) const;
   bool is_pseudo_legal(const Move m) const;
   bool is_capture(Move m) const;
@@ -181,15 +189,11 @@ public:
   bool pos_is_ok(int* failedStep = NULL) const;
   void flip();
 
-  // Global initialization
-  static void init();
-
 private:
   // Initialization helpers (used while setting up a position)
   void clear();
   void put_piece(Piece p, Square s);
   void set_castle_right(Color c, Square rfrom);
-  bool move_is_legal(const Move m) const;
 
   // Helper template functions
   template<bool Do> void do_castle_move(Move m);
@@ -223,14 +227,6 @@ private:
   Thread* thisThread;
   StateInfo* st;
   int chess960;
-
-  // Static variables
-  static Score pieceSquareTable[16][64]; // [piece][square]
-  static Key zobrist[2][8][64];          // [color][pieceType][square]/[piece count]
-  static Key zobEp[8];                   // [file]
-  static Key zobCastle[16];              // [castleRight]
-  static Key zobSideToMove;
-  static Key zobExclusion;
 };
 
 inline int64_t Position::nodes_searched() const {
@@ -261,24 +257,24 @@ inline Bitboard Position::pieces() const {
   return byTypeBB[ALL_PIECES];
 }
 
-inline Bitboard Position::pieces(Color c) const {
-  return byColorBB[c];
-}
-
 inline Bitboard Position::pieces(PieceType pt) const {
   return byTypeBB[pt];
-}
-
-inline Bitboard Position::pieces(PieceType pt, Color c) const {
-  return byTypeBB[pt] & byColorBB[c];
 }
 
 inline Bitboard Position::pieces(PieceType pt1, PieceType pt2) const {
   return byTypeBB[pt1] | byTypeBB[pt2];
 }
 
-inline Bitboard Position::pieces(PieceType pt1, PieceType pt2, Color c) const {
-  return (byTypeBB[pt1] | byTypeBB[pt2]) & byColorBB[c];
+inline Bitboard Position::pieces(Color c) const {
+  return byColorBB[c];
+}
+
+inline Bitboard Position::pieces(Color c, PieceType pt) const {
+  return byColorBB[c] & byTypeBB[pt];
+}
+
+inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
+  return byColorBB[c] & (byTypeBB[pt1] | byTypeBB[pt2]);
 }
 
 inline int Position::piece_count(Color c, PieceType pt) const {
@@ -302,7 +298,7 @@ inline int Position::can_castle(CastleRight f) const {
 }
 
 inline int Position::can_castle(Color c) const {
-  return st->castleRights & ((WHITE_OO | WHITE_OOO) << c);
+  return st->castleRights & ((WHITE_OO | WHITE_OOO) << (2 * c));
 }
 
 inline bool Position::castle_impeded(Color c, CastlingSide s) const {
@@ -351,7 +347,7 @@ inline Bitboard Position::pinned_pieces() const {
 }
 
 inline bool Position::pawn_is_passed(Color c, Square s) const {
-  return !(pieces(PAWN, ~c) & passed_pawn_mask(c, s));
+  return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
 }
 
 inline Key Position::key() const {
@@ -359,7 +355,7 @@ inline Key Position::key() const {
 }
 
 inline Key Position::exclusion_key() const {
-  return st->key ^ zobExclusion;
+  return st->key ^ Zobrist::exclusion;
 }
 
 inline Key Position::pawn_key() const {
@@ -406,7 +402,7 @@ inline bool Position::bishop_pair(Color c) const {
 }
 
 inline bool Position::pawn_on_7th(Color c) const {
-  return pieces(PAWN, c) & rank_bb(relative_rank(c, RANK_7));
+  return pieces(c, PAWN) & rank_bb(relative_rank(c, RANK_7));
 }
 
 inline bool Position::is_chess960() const {
@@ -416,14 +412,14 @@ inline bool Position::is_chess960() const {
 inline bool Position::is_capture_or_promotion(Move m) const {
 
   assert(is_ok(m));
-  return is_special(m) ? !is_castle(m) : !is_empty(to_sq(m));
+  return type_of(m) ? type_of(m) != CASTLE : !is_empty(to_sq(m));
 }
 
 inline bool Position::is_capture(Move m) const {
 
   // Note that castle is coded as "king captures the rook"
   assert(is_ok(m));
-  return (!is_empty(to_sq(m)) && !is_castle(m)) || is_enpassant(m);
+  return (!is_empty(to_sq(m)) && type_of(m) != CASTLE) || type_of(m) == ENPASSANT;
 }
 
 inline PieceType Position::captured_piece_type() const {

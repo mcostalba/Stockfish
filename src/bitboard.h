@@ -25,8 +25,15 @@
 
 namespace Bitboards {
 
-extern void init();
-extern void print(Bitboard b);
+void init();
+void print(Bitboard b);
+
+}
+
+namespace Bitbases {
+
+void init_kpk();
+uint32_t probe_kpk(Square wksq, Square wpsq, Square bksq, Color stm);
 
 }
 
@@ -50,6 +57,7 @@ extern Bitboard ThisAndAdjacentFilesBB[8];
 extern Bitboard InFrontBB[2][8];
 extern Bitboard StepAttacksBB[16][64];
 extern Bitboard BetweenBB[64][64];
+extern Bitboard DistanceRingsBB[64][8];
 extern Bitboard ForwardBB[2][64];
 extern Bitboard PassedPawnMask[2][64];
 extern Bitboard AttackSpanMask[2][64];
@@ -216,56 +224,56 @@ FORCE_INLINE unsigned magic_index(Square s, Bitboard occ) {
 
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occ) {
-  Bitboard** const Attacks = Pt == ROOK ? RAttacks : BAttacks;
-  return Attacks[s][magic_index<Pt>(s, occ)];
+  return (Pt == ROOK ? RAttacks : BAttacks)[s][magic_index<Pt>(s, occ)];
 }
 
 
-/// first_1() finds the least significant nonzero bit in a nonzero bitboard.
-/// pop_1st_bit() finds and clears the least significant nonzero bit in a
-/// nonzero bitboard.
+/// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
+/// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
 
 #if defined(USE_BSFQ)
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#  if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 
-FORCE_INLINE Square first_1(Bitboard b) {
+FORCE_INLINE Square lsb(Bitboard b) {
   unsigned long index;
   _BitScanForward64(&index, b);
   return (Square) index;
 }
 
-FORCE_INLINE Square last_1(Bitboard b) {
+FORCE_INLINE Square msb(Bitboard b) {
   unsigned long index;
   _BitScanReverse64(&index, b);
   return (Square) index;
 }
-#else
 
-FORCE_INLINE Square first_1(Bitboard b) { // Assembly code by Heinz van Saanen
-  Bitboard dummy;
-  __asm__("bsfq %1, %0": "=r"(dummy): "rm"(b) );
-  return (Square) dummy;
+#  else
+
+FORCE_INLINE Square lsb(Bitboard b) { // Assembly code by Heinz van Saanen
+  Bitboard index;
+  __asm__("bsfq %1, %0": "=r"(index): "rm"(b) );
+  return (Square) index;
 }
 
-FORCE_INLINE Square last_1(Bitboard b) {
-  Bitboard dummy;
-  __asm__("bsrq %1, %0": "=r"(dummy): "rm"(b) );
-  return (Square) dummy;
+FORCE_INLINE Square msb(Bitboard b) {
+  Bitboard index;
+  __asm__("bsrq %1, %0": "=r"(index): "rm"(b) );
+  return (Square) index;
 }
-#endif
 
-FORCE_INLINE Square pop_1st_bit(Bitboard* b) {
-  const Square s = first_1(*b);
-  *b &= ~(1ULL<<s);
+#  endif
+
+FORCE_INLINE Square pop_lsb(Bitboard* b) {
+  const Square s = lsb(*b);
+  *b &= ~(1ULL << s);
   return s;
 }
 
 #else // if !defined(USE_BSFQ)
 
-extern Square first_1(Bitboard b);
-extern Square last_1(Bitboard b);
-extern Square pop_1st_bit(Bitboard* b);
+extern Square msb(Bitboard b);
+extern Square lsb(Bitboard b);
+extern Square pop_lsb(Bitboard* b);
 
 #endif
 

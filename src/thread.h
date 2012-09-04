@@ -31,6 +31,31 @@
 const int MAX_THREADS = 32;
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
+struct Mutex {
+  Mutex() { lock_init(l); }
+ ~Mutex() { lock_destroy(l); }
+
+  void lock() { lock_grab(l); }
+  void unlock() { lock_release(l); }
+
+private:
+  friend struct ConditionVariable;
+
+  Lock l;
+};
+
+struct ConditionVariable {
+  ConditionVariable() { cond_init(c); }
+ ~ConditionVariable() { cond_destroy(c); }
+
+  void wait(Mutex& m) { cond_wait(c, m.l); }
+  void wait_for(Mutex& m, int ms) { timed_wait(c, m.l, ms); }
+  void notify_one() { cond_signal(c); }
+
+private:
+  WaitCondition c;
+};
+
 class Thread;
 
 struct SplitPoint {
@@ -49,7 +74,7 @@ struct SplitPoint {
   SplitPoint* parent;
 
   // Shared data
-  Lock lock;
+  Mutex mutex;
   volatile uint64_t slavesMask;
   volatile int64_t nodes;
   volatile Value alpha;
@@ -67,20 +92,16 @@ struct SplitPoint {
 
 class Thread {
 
-  Thread(const Thread&);            // Only declared to disable the default ones
-  Thread& operator=(const Thread&); // that are not suitable in this case.
-
-  typedef void (Thread::* Fn) ();
+  typedef void (Thread::* Fn) (); // Pointer to member function
 
 public:
   Thread(Fn fn);
-  ~Thread();
+ ~Thread();
 
   void wake_up();
   bool cutoff_occurred() const;
   bool is_available_to(Thread* master) const;
-  void idle_loop(SplitPoint* sp_master);
-  void idle_loop() { idle_loop(NULL); } // Hack to allow storing in start_fn
+  void idle_loop();
   void main_loop();
   void timer_loop();
   void wait_for_stop_or_ponderhit();
@@ -88,10 +109,10 @@ public:
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   MaterialTable materialTable;
   PawnTable pawnTable;
-  int idx;
+  size_t idx;
   int maxPly;
-  Lock sleepLock;
-  WaitCondition sleepCond;
+  Mutex mutex;
+  ConditionVariable sleepCondition;
   NativeHandle handle;
   Fn start_fn;
   SplitPoint* volatile curSplitPoint;
@@ -102,23 +123,20 @@ public:
 };
 
 
-/// ThreadsManager class handles all the threads related stuff like init, starting,
+/// ThreadPool class handles all the threads related stuff like init, starting,
 /// parking and, the most important, launching a slave thread at a split point.
 /// All the access to shared thread data is done through this class.
 
-class ThreadsManager {
-  /* As long as the single ThreadsManager object is defined as a global we don't
-     need to explicitly initialize to zero its data members because variables with
-     static storage duration are automatically set to zero before enter main()
-  */
-public:
-  void init(); // No c'tor becuase Threads is static and we need engine initialized
-  ~ThreadsManager();
+class ThreadPool {
 
-  Thread& operator[](int id) { return *threads[id]; }
+public:
+  void init(); // No c'tor and d'tor, threads rely on globals that should
+  void exit(); // be initialized and valid during the whole thread lifetime.
+
+  Thread& operator[](size_t id) { return *threads[id]; }
   bool use_sleeping_threads() const { return useSleepingThreads; }
   int min_split_depth() const { return minimumSplitDepth; }
-  int size() const { return (int)threads.size(); }
+  size_t size() const { return threads.size(); }
   Thread* main_thread() { return threads[0]; }
 
   void wake_up() const;
@@ -127,8 +145,8 @@ public:
   bool available_slave_exists(Thread* master) const;
   void set_timer(int msec);
   void wait_for_search_finished();
-  void start_searching(const Position& pos, const Search::LimitsType& limits,
-                       const std::vector<Move>& searchMoves);
+  void start_searching(const Position&, const Search::LimitsType&,
+                       const std::vector<Move>&, Search::StateStackPtr&);
 
   template <bool Fake>
   Value split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value bestValue, Move* bestMove,
@@ -138,13 +156,13 @@ private:
 
   std::vector<Thread*> threads;
   Thread* timer;
-  Lock splitLock;
-  WaitCondition sleepCond;
+  Mutex mutex;
+  ConditionVariable sleepCondition;
   Depth minimumSplitDepth;
   int maxThreadsPerSplitPoint;
   bool useSleepingThreads;
 };
 
-extern ThreadsManager Threads;
+extern ThreadPool Threads;
 
 #endif // !defined(THREAD_H_INCLUDED)

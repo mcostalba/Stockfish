@@ -28,19 +28,17 @@
 #include "tt.h"
 #include "ucioption.h"
 
-extern void uci_loop(const std::string&);
-extern void kpk_bitbase_init();
-
 int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+  UCI::init(Options);
   Bitboards::init();
-  Position::init();
-  kpk_bitbase_init();
+  Zobrist::init();
+  Bitbases::init_kpk();
   Search::init();
-  Threads.init();
   Eval::init();
+  Threads.init();
   TT.set_size(Options["Hash"]);
 
   std::string args;
@@ -48,5 +46,7 @@ int main(int argc, char* argv[]) {
   for (int i = 1; i < argc; i++)
       args += std::string(argv[i]) + " ";
 
-  uci_loop(args);
+  UCI::loop(args);
+
+  Threads.exit();
 }

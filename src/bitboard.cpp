@@ -23,6 +23,7 @@
 
 #include "bitboard.h"
 #include "bitcount.h"
+#include "misc.h"
 #include "rkiss.h"
 
 CACHE_LINE_ALIGNMENT
@@ -45,15 +46,19 @@ Bitboard ThisAndAdjacentFilesBB[8];
 Bitboard InFrontBB[2][8];
 Bitboard StepAttacksBB[16][64];
 Bitboard BetweenBB[64][64];
+Bitboard DistanceRingsBB[64][8];
 Bitboard ForwardBB[2][64];
 Bitboard PassedPawnMask[2][64];
 Bitboard AttackSpanMask[2][64];
 Bitboard PseudoAttacks[6][64];
 
-uint8_t BitCount8Bit[256];
 int SquareDistance[64][64];
 
 namespace {
+
+  // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
+  const uint64_t DeBruijn_64 = 0x218A392CD3D5DBFULL;
+  const uint32_t DeBruijn_32 = 0x783A9B23;
 
   CACHE_LINE_ALIGNMENT
 
@@ -61,6 +66,7 @@ namespace {
   int MS1BTable[256];
   Bitboard RTable[0x19000]; // Storage space for rook attacks
   Bitboard BTable[0x1480];  // Storage space for bishop attacks
+  uint8_t BitCount8Bit[256];
 
   typedef unsigned (Fn)(Square, Bitboard);
 
@@ -68,40 +74,35 @@ namespace {
                    Bitboard masks[], unsigned shifts[], Square deltas[], Fn index);
 }
 
-/// first_1() finds the least significant nonzero bit in a nonzero bitboard.
-/// pop_1st_bit() finds and clears the least significant nonzero bit in a
-/// nonzero bitboard.
+/// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
+/// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
 
-#if defined(IS_64BIT) && !defined(USE_BSFQ)
+#if !defined(USE_BSFQ)
 
-Square first_1(Bitboard b) {
-  return Square(BSFTable[((b & -b) * 0x218A392CD3D5DBFULL) >> 58]);
-}
+Square lsb(Bitboard b) {
 
-Square pop_1st_bit(Bitboard* b) {
-  Bitboard bb = *b;
-  *b &= (*b - 1);
-  return Square(BSFTable[((bb & -bb) * 0x218A392CD3D5DBFULL) >> 58]);
-}
+  if (Is64Bit)
+      return Square(BSFTable[((b & -b) * DeBruijn_64) >> 58]);
 
-#elif !defined(USE_BSFQ)
-
-Square first_1(Bitboard b) {
   b ^= (b - 1);
   uint32_t fold = unsigned(b) ^ unsigned(b >> 32);
-  return Square(BSFTable[(fold * 0x783A9B23) >> 26]);
+  return Square(BSFTable[(fold * DeBruijn_32) >> 26]);
 }
 
-Square pop_1st_bit(Bitboard* b) {
+Square pop_lsb(Bitboard* b) {
 
   Bitboard bb = *b;
   *b = bb & (bb - 1);
+
+  if (Is64Bit)
+      return Square(BSFTable[((bb & -bb) * DeBruijn_64) >> 58]);
+
   bb ^= (bb - 1);
   uint32_t fold = unsigned(bb) ^ unsigned(bb >> 32);
-  return Square(BSFTable[(fold * 0x783A9B23) >> 26]);
+  return Square(BSFTable[(fold * DeBruijn_32) >> 26]);
 }
 
-Square last_1(Bitboard b) {
+Square msb(Bitboard b) {
 
   unsigned b32;
   int result = 0;
@@ -137,16 +138,18 @@ Square last_1(Bitboard b) {
 
 void Bitboards::print(Bitboard b) {
 
+  sync_cout;
+
   for (Rank rank = RANK_8; rank >= RANK_1; rank--)
   {
       std::cout << "+---+---+---+---+---+---+---+---+" << '\n';
 
       for (File file = FILE_A; file <= FILE_H; file++)
-          std::cout << "| " << ((b & make_square(file, rank)) ? "X " : "  ");
+          std::cout << "| " << (b & (file | rank) ? "X " : "  ");
 
       std::cout << "|\n";
   }
-  std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
+  std::cout << "+---+---+---+---+---+---+---+---+" << sync_endl;
 }
 
 
@@ -168,35 +171,38 @@ void Bitboards::init() {
   FileBB[FILE_A] = FileABB;
   RankBB[RANK_1] = Rank1BB;
 
-  for (int f = FILE_B; f <= FILE_H; f++)
+  for (int i = 1; i < 8; i++)
   {
-      FileBB[f] = FileBB[f - 1] << 1;
-      RankBB[f] = RankBB[f - 1] << 8;
+      FileBB[i] = FileBB[i - 1] << 1;
+      RankBB[i] = RankBB[i - 1] << 8;
   }
 
-  for (int f = FILE_A; f <= FILE_H; f++)
+  for (File f = FILE_A; f <= FILE_H; f++)
   {
       AdjacentFilesBB[f] = (f > FILE_A ? FileBB[f - 1] : 0) | (f < FILE_H ? FileBB[f + 1] : 0);
       ThisAndAdjacentFilesBB[f] = FileBB[f] | AdjacentFilesBB[f];
   }
 
-  for (int rw = RANK_7, rb = RANK_2; rw >= RANK_1; rw--, rb++)
-  {
-      InFrontBB[WHITE][rw] = InFrontBB[WHITE][rw + 1] | RankBB[rw + 1];
-      InFrontBB[BLACK][rb] = InFrontBB[BLACK][rb - 1] | RankBB[rb - 1];
-  }
+  for (Rank r = RANK_1; r < RANK_8; r++)
+      InFrontBB[WHITE][r] = ~(InFrontBB[BLACK][r + 1] = InFrontBB[BLACK][r] | RankBB[r]);
 
   for (Color c = WHITE; c <= BLACK; c++)
       for (Square s = SQ_A1; s <= SQ_H8; s++)
       {
-          ForwardBB[c][s]      = in_front_bb(c, s) & file_bb(s);
-          PassedPawnMask[c][s] = in_front_bb(c, s) & this_and_adjacent_files_bb(file_of(s));
-          AttackSpanMask[c][s] = in_front_bb(c, s) & adjacent_files_bb(file_of(s));
+          ForwardBB[c][s]      = InFrontBB[c][rank_of(s)] & FileBB[file_of(s)];
+          PassedPawnMask[c][s] = InFrontBB[c][rank_of(s)] & ThisAndAdjacentFilesBB[file_of(s)];
+          AttackSpanMask[c][s] = InFrontBB[c][rank_of(s)] & AdjacentFilesBB[file_of(s)];
       }
 
   for (Square s1 = SQ_A1; s1 <= SQ_H8; s1++)
       for (Square s2 = SQ_A1; s2 <= SQ_H8; s2++)
           SquareDistance[s1][s2] = std::max(file_distance(s1, s2), rank_distance(s1, s2));
+
+  for (Square s1 = SQ_A1; s1 <= SQ_H8; s1++)
+      for (int d = 1; d < 8; d++)
+          for (Square s2 = SQ_A1; s2 <= SQ_H8; s2++)
+              if (SquareDistance[s1][s2] == d)
+                  DistanceRingsBB[s1][d - 1] |= s2;
 
   for (int i = 0; i < 64; i++)
       if (!Is64Bit) // Matt Taylor's folding trick for 32 bit systems
@@ -204,10 +210,10 @@ void Bitboards::init() {
           Bitboard b = 1ULL << i;
           b ^= b - 1;
           b ^= b >> 32;
-          BSFTable[(uint32_t)(b * 0x783A9B23) >> 26] = i;
+          BSFTable[(uint32_t)(b * DeBruijn_32) >> 26] = i;
       }
       else
-          BSFTable[((1ULL << i) * 0x218A392CD3D5DBFULL) >> 58] = i;
+          BSFTable[((1ULL << i) * DeBruijn_64) >> 58] = i;
 
   int steps[][9] = { {}, { 7, 9 }, { 17, 15, 10, 6, -6, -10, -15, -17 },
                      {}, {}, {}, { 9, 7, -7, -9, 8, 1, -1, -8 } };
@@ -231,9 +237,8 @@ void Bitboards::init() {
 
   for (Square s = SQ_A1; s <= SQ_H8; s++)
   {
-      PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
-      PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0);
-      PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] | PseudoAttacks[ROOK][s];
+      PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
+      PseudoAttacks[QUEEN][s] |= PseudoAttacks[  ROOK][s] = attacks_bb<  ROOK>(s, 0);
   }
 
   for (Square s1 = SQ_A1; s1 <= SQ_H8; s1++)
@@ -269,25 +274,17 @@ namespace {
   }
 
 
-  Bitboard pick_random(Bitboard mask, RKISS& rk, int booster) {
-
-    Bitboard magic;
+  Bitboard pick_random(RKISS& rk, int booster) {
 
     // Values s1 and s2 are used to rotate the candidate magic of a
     // quantity known to be the optimal to quickly find the magics.
     int s1 = booster & 63, s2 = (booster >> 6) & 63;
 
-    while (true)
-    {
-        magic = rk.rand<Bitboard>();
-        magic = (magic >> s1) | (magic << (64 - s1));
-        magic &= rk.rand<Bitboard>();
-        magic = (magic >> s2) | (magic << (64 - s2));
-        magic &= rk.rand<Bitboard>();
-
-        if (BitCount8Bit[(mask * magic) >> 56] >= 6)
-            return magic;
-    }
+    Bitboard m = rk.rand<Bitboard>();
+    m = (m >> s1) | (m << (64 - s1));
+    m &= rk.rand<Bitboard>();
+    m = (m >> s2) | (m << (64 - s2));
+    return m & rk.rand<Bitboard>();
   }
 
 
@@ -340,7 +337,9 @@ namespace {
         // Find a magic for square 's' picking up an (almost) random number
         // until we find the one that passes the verification test.
         do {
-            magics[s] = pick_random(masks[s], rk, booster);
+            do magics[s] = pick_random(rk, booster);
+            while (BitCount8Bit[(magics[s] * masks[s]) >> 56] < 6);
+
             memset(attacks[s], 0, size * sizeof(Bitboard));
 
             // A good magic must map every possible occupancy to an index that
@@ -353,6 +352,8 @@ namespace {
 
                 if (attack && attack != reference[i])
                     break;
+
+                assert(reference[i] != 0);
 
                 attack = reference[i];
             }

@@ -20,35 +20,35 @@
 #if !defined(UCIOPTION_H_INCLUDED)
 #define UCIOPTION_H_INCLUDED
 
-#include <cassert>
-#include <cstdlib>
 #include <map>
 #include <string>
 
-struct OptionsMap;
+namespace UCI {
 
-/// UCIOption class implements an option as defined by UCI protocol
-class UCIOption {
+class Option;
 
-  typedef void (Fn)(const UCIOption&);
+/// Custom comparator because UCI options should be case insensitive
+struct CaseInsensitiveLess {
+  bool operator() (const std::string&, const std::string&) const;
+};
+
+/// Our options container is actually a std::map
+typedef std::map<std::string, Option, CaseInsensitiveLess> OptionsMap;
+
+/// Option class implements an option as defined by UCI protocol
+class Option {
+
+  typedef void (Fn)(const Option&);
 
 public:
-  UCIOption(Fn* = NULL);
-  UCIOption(bool v, Fn* = NULL);
-  UCIOption(const char* v, Fn* = NULL);
-  UCIOption(int v, int min, int max, Fn* = NULL);
+  Option(Fn* = NULL);
+  Option(bool v, Fn* = NULL);
+  Option(const char* v, Fn* = NULL);
+  Option(int v, int min, int max, Fn* = NULL);
 
-  void operator=(const std::string& v);
-
-  operator int() const {
-    assert(type == "check" || type == "spin");
-    return (type == "spin" ? atoi(currentValue.c_str()) : currentValue == "true");
-  }
-
-  operator std::string() const {
-    assert(type == "string");
-    return currentValue;
-  }
+  Option& operator=(const std::string& v);
+  operator int() const;
+  operator std::string() const;
 
 private:
   friend std::ostream& operator<<(std::ostream&, const OptionsMap&);
@@ -59,19 +59,11 @@ private:
   Fn* on_change;
 };
 
+void init(OptionsMap&);
+void loop(const std::string&);
 
-/// Custom comparator because UCI options should be case insensitive
-struct CaseInsensitiveLess {
-  bool operator() (const std::string&, const std::string&) const;
-};
+} // namespace UCI
 
-
-/// Our options container is actually a map with a customized c'tor
-struct OptionsMap : public std::map<std::string, UCIOption, CaseInsensitiveLess> {
-  OptionsMap();
-};
-
-extern std::ostream& operator<<(std::ostream&, const OptionsMap&);
-extern OptionsMap Options;
+extern UCI::OptionsMap Options;
 
 #endif // !defined(UCIOPTION_H_INCLUDED)

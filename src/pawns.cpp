@@ -104,8 +104,8 @@ PawnEntry* PawnTable::probe(const Position& pos) {
   e->kingSquares[WHITE] = e->kingSquares[BLACK] = SQ_NONE;
   e->halfOpenFiles[WHITE] = e->halfOpenFiles[BLACK] = 0xFF;
 
-  Bitboard wPawns = pos.pieces(PAWN, WHITE);
-  Bitboard bPawns = pos.pieces(PAWN, BLACK);
+  Bitboard wPawns = pos.pieces(WHITE, PAWN);
+  Bitboard bPawns = pos.pieces(BLACK, PAWN);
   e->pawnAttacks[WHITE] = ((wPawns & ~FileHBB) << 9) | ((wPawns & ~FileABB) << 7);
   e->pawnAttacks[BLACK] = ((bPawns & ~FileHBB) >> 7) | ((bPawns & ~FileABB) >> 9);
 
@@ -240,12 +240,12 @@ Value PawnEntry::shelter_storm(const Position& pos, Square ksq) {
   {
       // Shelter penalty is higher for the pawn in front of the king
       b = ourPawns & FileBB[f];
-      rkUs = b ? rank_of(Us == WHITE ? first_1(b) : ~last_1(b)) : RANK_1;
+      rkUs = b ? rank_of(Us == WHITE ? lsb(b) : ~msb(b)) : RANK_1;
       safety -= ShelterWeakness[f != kf][rkUs];
 
       // Storm danger is smaller if enemy pawn is blocked
       b  = theirPawns & FileBB[f];
-      rkThem = b ? rank_of(Us == WHITE ? first_1(b) : ~last_1(b)) : RANK_1;
+      rkThem = b ? rank_of(Us == WHITE ? lsb(b) : ~msb(b)) : RANK_1;
       safety -= StormDanger[rkThem == rkUs + 1][rkThem];
   }
 
@@ -261,9 +261,14 @@ Score PawnEntry::update_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
   castleRights[Us] = pos.can_castle(Us);
+  minKPdistance[Us] = 0;
+
+  Bitboard pawns = pos.pieces(Us, PAWN);
+  if (pawns)
+      while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
 
   if (relative_rank(Us, ksq) > RANK_4)
-      return kingSafety[Us] = SCORE_ZERO;
+      return kingSafety[Us] = make_score(0, -16 * minKPdistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
@@ -274,7 +279,7 @@ Score PawnEntry::update_safety(const Position& pos, Square ksq) {
   if (pos.can_castle(make_castle_right(Us, QUEEN_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-  return kingSafety[Us] = make_score(bonus, 0);
+  return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);
 }
 
 // Explicit template instantiation

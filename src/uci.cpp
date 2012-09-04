@@ -22,9 +22,11 @@
 #include <string>
 
 #include "evaluate.h"
+#include "notation.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
+#include "tt.h"
 #include "ucioption.h"
 
 using namespace std;
@@ -37,9 +39,8 @@ namespace {
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
   // Keep track of position keys along the setup moves (from start position to the
-  // position just before to start searching). This is needed by draw detection
-  // where, due to 50 moves rule, we need to check at most 100 plies back.
-  StateInfo StateRingBuf[102], *SetupState = StateRingBuf;
+  // position just before to start searching). Needed by repetition draw detection.
+  Search::StateStackPtr SetupStates;
 
   void set_option(istringstream& up);
   void set_position(Position& pos, istringstream& up);
@@ -52,7 +53,7 @@ namespace {
 /// that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
 /// commands, the function also supports a few debug commands.
 
-void uci_loop(const string& args) {
+void UCI::loop(const string& args) {
 
   Position pos(StartFEN, false, Threads.main_thread()); // The root position
   string cmd, token;
@@ -93,10 +94,10 @@ void uci_loop(const string& args) {
           go(pos, is);
 
       else if (token == "ucinewgame")
-      { /* Avoid returning "Unknown command" */ }
+          TT.clear();
 
       else if (token == "isready")
-          cout << "readyok" << endl;
+          sync_cout << "readyok" << sync_endl;
 
       else if (token == "position")
           set_position(pos, is);
@@ -111,20 +112,20 @@ void uci_loop(const string& args) {
           pos.flip();
 
       else if (token == "eval")
-          cout << Eval::trace(pos) << endl;
+          sync_cout << Eval::trace(pos) << sync_endl;
 
       else if (token == "bench")
           benchmark(pos, is);
 
       else if (token == "key")
-          cout << "key: " << hex     << pos.key()
-               << "\nmaterial key: " << pos.material_key()
-               << "\npawn key: "     << pos.pawn_key() << endl;
+          sync_cout << "key: " << hex     << pos.key()
+                    << "\nmaterial key: " << pos.material_key()
+                    << "\npawn key: "     << pos.pawn_key() << sync_endl;
 
       else if (token == "uci")
-          cout << "id name "     << engine_info(true)
-               << "\n"           << Options
-               << "\nuciok"      << endl;
+          sync_cout << "id name " << engine_info(true)
+                    << "\n"       << Options
+                    << "\nuciok"  << sync_endl;
 
       else if (token == "perft" && (is >> token)) // Read depth
       {
@@ -137,7 +138,7 @@ void uci_loop(const string& args) {
       }
 
       else
-          cout << "Unknown command: " << cmd << endl;
+          sync_cout << "Unknown command: " << cmd << sync_endl;
 
       if (!args.empty()) // Command line arguments have one-shot behaviour
       {
@@ -150,10 +151,10 @@ void uci_loop(const string& args) {
 
 namespace {
 
-  // set_position() is called when engine receives the "position" UCI
-  // command. The function sets up the position described in the given
-  // fen string ("fen") or the starting position ("startpos") and then
-  // makes the moves given in the following move list ("moves").
+  // set_position() is called when engine receives the "position" UCI command.
+  // The function sets up the position described in the given fen string ("fen")
+  // or the starting position ("startpos") and then makes the moves given in the
+  // following move list ("moves").
 
   void set_position(Position& pos, istringstream& is) {
 
@@ -174,15 +175,13 @@ namespace {
         return;
 
     pos.from_fen(fen, Options["UCI_Chess960"], Threads.main_thread());
+    SetupStates = Search::StateStackPtr(new std::stack<StateInfo>());
 
     // Parse move list (if any)
     while (is >> token && (m = move_from_uci(pos, token)) != MOVE_NONE)
     {
-        pos.do_move(m, *SetupState);
-
-        // Increment pointer to StateRingBuf circular buffer
-        if (++SetupState - StateRingBuf >= 102)
-            SetupState = StateRingBuf;
+        SetupStates->push(StateInfo());
+        pos.do_move(m, SetupStates->top());
     }
   }
 
@@ -207,7 +206,7 @@ namespace {
     if (Options.count(name))
         Options[name] = value;
     else
-        cout << "No such option: " << name << endl;
+        sync_cout << "No such option: " << name << sync_endl;
   }
 
 
@@ -248,6 +247,6 @@ namespace {
                 searchMoves.push_back(move_from_uci(pos, token));
     }
 
-    Threads.start_searching(pos, limits, searchMoves);
+    Threads.start_searching(pos, limits, searchMoves, SetupStates);
   }
 }
