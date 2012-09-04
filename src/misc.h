@@ -20,7 +20,6 @@
 #if !defined(MISC_H_INCLUDED)
 #define MISC_H_INCLUDED
 
-#include <chrono>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -43,15 +42,10 @@ struct Log : public std::ofstream {
 };
 
 
-struct Time {
-  int64_t msec() const { return std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch()).count(); }
-  int elapsed() const { return std::chrono::duration_cast<std::chrono::milliseconds>(now().t-t).count(); }
-
-  static Time now() { Time t; t.t = std::chrono::steady_clock::now(); return t; }
-
-private:
-  std::chrono::steady_clock::time_point t;
-};
+namespace Time {
+  typedef int64_t point;
+  point now();
+}
 
 
 template<class Entry, int Size>

@@ -17,6 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -25,6 +26,7 @@
 #include "thread.h"
 
 using namespace std;
+using namespace std::chrono;
 
 /// Version number. If Version is left empty, then Tag plus current
 /// date (in the format YYMMDD) is used as a version number.
@@ -61,6 +63,13 @@ const string engine_info(bool to_uci) {
     << "Tord Romstad, Marco Costalba and Joona Kiiski";
 
   return s.str();
+}
+
+
+/// Convert system time to milliseconds. That's all we need.
+
+Time::point Time::now() {
+  return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
 }
 
 
