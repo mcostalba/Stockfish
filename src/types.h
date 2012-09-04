@@ -160,7 +160,7 @@ enum Bound {
   BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
 };
 
-enum Value {
+enum Value : int {
   VALUE_ZERO      = 0,
   VALUE_DRAW      = 0,
   VALUE_KNOWN_WIN = 15000,
@@ -170,9 +170,6 @@ enum Value {
 
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
-
-  VALUE_ENSURE_INTEGER_SIZE_P = INT_MAX,
-  VALUE_ENSURE_INTEGER_SIZE_N = INT_MIN,
 
   Mg = 0, Eg = 1,
 
@@ -243,15 +240,10 @@ enum Rank {
 };
 
 
-/// Score enum keeps a midgame and an endgame value in a single integer (enum),
-/// first LSB 16 bits are used to store endgame value, while upper bits are used
-/// for midgame value. Compiler is free to choose the enum type as long as can
-/// keep its data, so ensure Score to be an integer type.
-enum Score {
-  SCORE_ZERO = 0,
-  SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX,
-  SCORE_ENSURE_INTEGER_SIZE_N = INT_MIN
-};
+/// Score enum keeps a midgame and an endgame value in a single integer, first
+/// LSB 16 bits are used to store endgame value, while upper bits are used for
+/// midgame value.
+enum Score : int { SCORE_ZERO };
 
 inline Score make_score(int mg, int eg) { return Score((mg << 16) + eg); }
 
