@@ -104,10 +104,8 @@ Endgames::Endgames() {
 }
 
 
-template<EndgameType E>
+template<EndgameType E, typename T>
 void Endgames::add(const string& code) {
-
-  typedef EndgameBase<typename eg_fun<E>::type> T;
 
   map<T>()[key(code, WHITE)] = std::unique_ptr<T>(new Endgame<E>(WHITE));
   map<T>()[key(code, BLACK)] = std::unique_ptr<T>(new Endgame<E>(BLACK));

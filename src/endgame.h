@@ -100,19 +100,19 @@ class Endgames {
 
   template<typename T> using Map = std::map<Key, std::unique_ptr<T>>;
 
-  std::pair<Map<EndgameBase<Value>>, Map<EndgameBase<ScaleFactor>>> maps;
+  template<EndgameType E, typename T = EndgameBase<typename eg_fun<E>::type>>
+  void add(const std::string& code);
 
-  // Understand this!
   template<typename T, int I = std::is_same<T, EndgameBase<ScaleFactor>>::value>
-  auto map() -> decltype(std::get<I>(maps)) { return std::get<I>(maps); }
+  Map<T>& map() { return std::get<I>(maps); }
 
-  template<EndgameType E> void add(const std::string& code);
+  std::pair<Map<EndgameBase<Value>>, Map<EndgameBase<ScaleFactor>>> maps;
 
 public:
   Endgames();
 
-  template<typename T> T* probe(Key key, T*& eg)
-  { return eg = map<T>().count(key) ? map<T>()[key].get() : NULL; }
+  template<typename T> T* probe(Key key, T** eg)
+  { return *eg = map<T>().count(key) ? map<T>()[key].get() : NULL; }
 };
 
 #endif // !defined(ENDGAME_H_INCLUDED)
