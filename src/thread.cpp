@@ -406,7 +406,7 @@ void ThreadPool::start_searching(const Position& pos, const LimitsType& limits,
 
   RootPosition = pos;
   Limits = limits;
-  SetupStates = states; // Ownership transfer here
+  SetupStates = std::move(states); // Ownership transfer here
   RootMoves.clear();
 
   for (MoveList<LEGAL> ml(pos); !ml.end(); ++ml)
