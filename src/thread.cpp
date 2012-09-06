@@ -184,8 +184,8 @@ void ThreadPool::init() {
 
 void ThreadPool::exit() {
 
-  for (size_t i = 0; i < threads.size(); i++)
-      delete threads[i];
+  for (Thread* th : threads)
+      delete th;
 
   delete timer;
 }
@@ -222,13 +222,13 @@ void ThreadPool::read_uci_options() {
 
 void ThreadPool::wake_up() const {
 
-  for (size_t i = 0; i < threads.size(); i++)
+  for (Thread* th : threads)
   {
-      threads[i]->maxPly = 0;
-      threads[i]->do_sleep = false;
+      th->maxPly = 0;
+      th->do_sleep = false;
 
       if (!useSleepingThreads)
-          threads[i]->wake_up();
+          th->wake_up();
   }
 }
 
@@ -238,9 +238,9 @@ void ThreadPool::wake_up() const {
 
 void ThreadPool::sleep() const {
 
-  // Main thread will go to sleep by itself to avoid a race with start_searching()
-  for (size_t i = 1; i < threads.size(); i++)
-      threads[i]->do_sleep = true;
+  for (Thread* th : threads)
+      if (th->idx != 0) // Not main thread to avoid a race with start_searching()
+          th->do_sleep = true;
 }
 
 
@@ -249,8 +249,8 @@ void ThreadPool::sleep() const {
 
 bool ThreadPool::available_slave_exists(Thread* master) const {
 
-  for (size_t i = 0; i < threads.size(); i++)
-      if (threads[i]->is_available_to(master))
+  for (Thread* th : threads)
+      if (th->is_available_to(master))
           return true;
 
   return false;
@@ -314,15 +314,15 @@ Value ThreadPool::split(Position& pos, Stack* ss, Value alpha, Value beta,
   sp.mutex.lock();
   mutex.lock();
 
-  for (size_t i = 0; i < threads.size() && !Fake; ++i)
-      if (threads[i]->is_available_to(master))
+  for (Thread* th : threads)
+      if (th->is_available_to(master) && !Fake)
       {
-          sp.slavesMask |= 1ULL << i;
-          threads[i]->curSplitPoint = &sp;
-          threads[i]->is_searching = true; // Slave leaves idle_loop()
+          sp.slavesMask |= 1ULL << th->idx;
+          th->curSplitPoint = &sp;
+          th->is_searching = true; // Slave leaves idle_loop()
 
           if (useSleepingThreads)
-              threads[i]->wake_up();
+              th->wake_up();
 
           if (++slavesCnt + 1 >= maxThreadsPerSplitPoint) // Master is always included
               break;

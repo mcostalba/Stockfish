@@ -341,8 +341,8 @@ namespace {
     {
         // Save last iteration's scores before first PV line is searched and all
         // the move scores but the (new) PV are set to -VALUE_INFINITE.
-        for (size_t i = 0; i < RootMoves.size(); i++)
-            RootMoves[i].prevScore = RootMoves[i].score;
+        for (RootMove& rm : RootMoves)
+            rm.prevScore = rm.score;
 
         prevBestMoveChanges = BestMoveChanges;
         BestMoveChanges = 0;

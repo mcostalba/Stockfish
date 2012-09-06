@@ -89,7 +89,7 @@ void benchmark(const Position& current, istream& is) {
       fens = Defaults;
 
   else if (fenFile == "current")
-      fens.push_back(current.to_fen());
+      fens = { current.to_fen() };
 
   else
   {
