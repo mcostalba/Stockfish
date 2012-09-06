@@ -467,8 +467,7 @@ inline bool is_ok(Move m) {
 #include <string>
 
 inline const std::string square_to_string(Square s) {
-  char ch[] = { file_to_char(file_of(s)), rank_to_char(rank_of(s)), 0 };
-  return ch;
+  return { file_to_char(file_of(s)), rank_to_char(rank_of(s)) };
 }
 
 /// Our insertion sort implementation, works with pointers and iterators and is
