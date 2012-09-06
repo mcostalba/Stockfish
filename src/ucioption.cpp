@@ -43,10 +43,10 @@ void on_clear_hash(const Option&) { TT.clear(); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
-bool ci_less(char c1, char c2) { return tolower(c1) < tolower(c2); }
-
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
-  return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), ci_less);
+
+  return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+         [](char c1, char c2) { return tolower(c1) < tolower(c2); });
 }
 
 
@@ -97,20 +97,18 @@ void init(OptionsMap& o) {
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
   for (size_t idx = 0; idx < om.size(); idx++)
-      for (OptionsMap::const_iterator it = om.begin(); it != om.end(); ++it)
-          if (it->second.idx == idx)
-          {
-              const Option& o = it->second;
-              os << "\noption name " << it->first << " type " << o.type;
+  {
+      auto it = std::find_if(om.begin(), om.end(), [idx](const OptionsMap::value_type& p)
+                                                   { return p.second.idx == idx; });
+      const Option& o = it->second;
+      os << "\noption name " << it->first << " type " << o.type;
 
-              if (o.type != "button")
-                  os << " default " << o.defaultValue;
+      if (o.type != "button")
+          os << " default " << o.defaultValue;
 
-              if (o.type == "spin")
-                  os << " min " << o.min << " max " << o.max;
-
-              break;
-          }
+      if (o.type == "spin")
+          os << " min " << o.min << " max " << o.max;
+  }
   return os;
 }
 
