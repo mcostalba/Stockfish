@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
 #include <sstream>
 
 #include "evaluate.h"
@@ -130,7 +129,7 @@ Option::Option(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(
 
 Option::operator int() const {
   assert(type == "check" || type == "spin");
-  return (type == "spin" ? atoi(currentValue.c_str()) : currentValue == "true");
+  return (type == "spin" ? stoi(currentValue) : currentValue == "true");
 }
 
 Option::operator std::string() const {
@@ -149,7 +148,7 @@ Option& Option::operator=(const string& v) {
 
   if (   (type != "button" && v.empty())
       || (type == "check" && v != "true" && v != "false")
-      || (type == "spin" && (atoi(v.c_str()) < min || atoi(v.c_str()) > max)))
+      || (type == "spin" && (stoi(v) < min || stoi(v) > max)))
       return *this;
 
   if (type != "button")

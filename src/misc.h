@@ -37,7 +37,7 @@ extern void dbg_print();
 
 
 struct Log : public std::ofstream {
-  Log(const std::string& f = "log.txt") : std::ofstream(f.c_str(), std::ios::out | std::ios::app) {}
+  Log(const std::string& f = "log.txt") : std::ofstream(f, std::ios::out | std::ios::app) {}
  ~Log() { if (is_open()) close(); }
 };
 

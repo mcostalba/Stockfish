@@ -47,7 +47,7 @@ public:
 private:
   template<typename T> Book& operator>>(T& n);
 
-  bool open(const char* fName);
+  bool open(const std::string& fName);
   size_t find_first(uint64_t key);
 
   RKISS RKiss;

@@ -77,13 +77,13 @@ void benchmark(const Position& current, istream& is) {
   TT.clear();
 
   if (limitType == "time")
-      limits.movetime = 1000 * atoi(limit.c_str()); // movetime is in ms
+      limits.movetime = 1000 * stoi(limit); // movetime is in ms
 
   else if (limitType == "nodes")
-      limits.nodes = atoi(limit.c_str());
+      limits.nodes = stoi(limit);
 
   else
-      limits.depth = atoi(limit.c_str());
+      limits.depth = stoi(limit);
 
   if (fenFile == "default")
       fens = Defaults;
@@ -94,7 +94,7 @@ void benchmark(const Position& current, istream& is) {
   else
   {
       string fen;
-      ifstream file(fenFile.c_str());
+      ifstream file(fenFile);
 
       if (!file.is_open())
       {

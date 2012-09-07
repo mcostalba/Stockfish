@@ -368,7 +368,7 @@ template<> Book& Book::operator>>(BookEntry& e) {
 /// Book::open() tries to open a book file with the given name after closing
 /// any exsisting one.
 
-bool Book::open(const char* fName) {
+bool Book::open(const string& fName) {
 
   if (is_open()) // Cannot close an already closed file
       close();
@@ -387,7 +387,7 @@ bool Book::open(const char* fName) {
 
 Move Book::probe(const Position& pos, const string& fName, bool pickBest) {
 
-  if (fileName != fName && !open(fName.c_str()))
+  if (fileName != fName && !open(fName))
       return MOVE_NONE;
 
   BookEntry e;
