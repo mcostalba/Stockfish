@@ -41,15 +41,13 @@ MoveStack* generate(const Position& pos, MoveStack* mlist);
 template<GenType T>
 struct MoveList {
 
-  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) {}
-  void operator++() { cur++; }
-  bool end() const { return cur == last; }
-  Move move() const { return cur->move; }
+  explicit MoveList(const Position& pos) : last(generate<T>(pos, mlist)) {}
+  const MoveStack* begin() const { return mlist; }
+  const MoveStack* end() const { return last; }
   size_t size() const { return last - mlist; }
 
 private:
-  MoveStack mlist[MAX_MOVES];
-  MoveStack *cur, *last;
+  MoveStack mlist[MAX_MOVES], *last;
 };
 
 #endif // !defined(MOVEGEN_H_INCLUDED)

@@ -409,9 +409,9 @@ void ThreadPool::start_searching(const Position& pos, const LimitsType& limits,
   SetupStates = std::move(states); // Ownership transfer here
   RootMoves.clear();
 
-  for (MoveList<LEGAL> ml(pos); !ml.end(); ++ml)
-      if (searchMoves.empty() || count(searchMoves.begin(), searchMoves.end(), ml.move()))
-          RootMoves.push_back(RootMove(ml.move()));
+  for (const MoveStack& ms : MoveList<LEGAL>(pos))
+      if (searchMoves.empty() || count(searchMoves.begin(), searchMoves.end(), ms.move))
+          RootMoves.push_back(RootMove(ms.move));
 
   main_thread()->do_sleep = false;
   main_thread()->wake_up();

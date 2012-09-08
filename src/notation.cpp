@@ -89,9 +89,9 @@ Move move_from_uci(const Position& pos, string& str) {
   if (str.length() == 5) // Junior could send promotion piece in uppercase
       str[4] = char(tolower(str[4]));
 
-  for (MoveList<LEGAL> ml(pos); !ml.end(); ++ml)
-      if (str == move_to_uci(ml.move(), pos.is_chess960()))
-          return ml.move();
+  for (const MoveStack& ms : MoveList<LEGAL>(pos))
+      if (str == move_to_uci(ms.move, pos.is_chess960()))
+          return ms.move;
 
   return MOVE_NONE;
 }

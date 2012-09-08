@@ -429,9 +429,9 @@ Move Book::probe(const Position& pos, const string& fName, bool pickBest) {
       move = make<PROMOTION>(from_sq(move), to_sq(move), PieceType(pt + 1));
 
   // Add 'special move' flags and verify it is legal
-  for (MoveList<LEGAL> ml(pos); !ml.end(); ++ml)
-      if (move == (ml.move() & 0x3FFF))
-          return ml.move();
+  for (const MoveStack& ms : MoveList<LEGAL>(pos))
+      if (move == (ms.move & 0x3FFF))
+          return ms.move;
 
   return MOVE_NONE;
 }

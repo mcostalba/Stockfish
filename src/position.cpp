@@ -555,8 +555,8 @@ bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
 
 bool Position::move_is_legal(const Move m) const {
 
-  for (MoveList<LEGAL> ml(*this); !ml.end(); ++ml)
-      if (ml.move() == m)
+  for (const MoveStack& ms : MoveList<LEGAL>(*this))
+      if (ms.move == m)
           return true;
 
   return false;
