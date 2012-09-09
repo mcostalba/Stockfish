@@ -17,7 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
 
 #include "movegen.h"
@@ -47,9 +46,8 @@ namespace {
 
     assert(!pos.in_check());
 
-    for (Square s = std::min(kfrom, kto), e = std::max(kfrom, kto); s <= e; s++)
-        if (    s != kfrom // We are not in check
-            && (pos.attackers_to(s) & enemies))
+    for (Square s = kto; s != kfrom; s += (Square)(Side == KING_SIDE ? -1 : 1))
+        if (pos.attackers_to(s) & enemies)
             return mlist;
 
     // Because we generate only legal castling moves we need to verify that
@@ -431,16 +429,16 @@ MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist) {
 template<>
 MoveStack* generate<LEGAL>(const Position& pos, MoveStack* mlist) {
 
-  MoveStack *last, *cur = mlist;
+  MoveStack *end, *cur = mlist;
   Bitboard pinned = pos.pinned_pieces();
 
-  last = pos.in_check() ? generate<EVASIONS>(pos, mlist)
-                        : generate<NON_EVASIONS>(pos, mlist);
-  while (cur != last)
+  end = pos.in_check() ? generate<EVASIONS>(pos, mlist)
+                       : generate<NON_EVASIONS>(pos, mlist);
+  while (cur != end)
       if (!pos.pl_move_is_legal(cur->move, pinned))
-          cur->move = (--last)->move;
+          cur->move = (--end)->move;
       else
           cur++;
 
-  return last;
+  return end;
 }
