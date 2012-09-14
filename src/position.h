@@ -186,7 +186,7 @@ public:
   template<bool SkipRepetition> bool is_draw() const;
 
   // Position consistency check, for debugging
-  bool pos_is_ok(int* failedStep = NULL) const;
+  bool pos_is_ok(int* failedStep = nullptr) const;
   void flip();
 
 private:

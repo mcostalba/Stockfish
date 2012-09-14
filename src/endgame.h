@@ -112,7 +112,7 @@ public:
   Endgames();
 
   template<typename T> T* probe(Key key, T** eg)
-  { return *eg = map<T>().count(key) ? map<T>()[key].get() : NULL; }
+  { return *eg = map<T>().count(key) ? map<T>()[key].get() : nullptr; }
 };
 
 #endif // !defined(ENDGAME_H_INCLUDED)

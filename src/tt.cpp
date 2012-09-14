@@ -28,7 +28,7 @@ TranspositionTable TT; // Our global transposition table
 TranspositionTable::TranspositionTable() {
 
   size = generation = 0;
-  entries = NULL;
+  entries = nullptr;
 }
 
 TranspositionTable::~TranspositionTable() {
@@ -127,7 +127,7 @@ TTEntry* TranspositionTable::probe(const Key posKey) const {
       if (tte->key() == posKey32)
           return tte;
 
-  return NULL;
+  return nullptr;
 }
 
 

@@ -41,10 +41,10 @@ class Option {
   typedef void (Fn)(const Option&);
 
 public:
-  Option(Fn* = NULL);
-  Option(bool v, Fn* = NULL);
-  Option(const char* v, Fn* = NULL);
-  Option(int v, int min, int max, Fn* = NULL);
+  Option(Fn* = nullptr);
+  Option(bool v, Fn* = nullptr);
+  Option(const char* v, Fn* = nullptr);
+  Option(int v, int min, int max, Fn* = nullptr);
 
   Option& operator=(const std::string& v);
   operator int() const;

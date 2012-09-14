@@ -114,7 +114,7 @@ inline Phase MaterialEntry::game_phase() const {
 }
 
 inline bool MaterialEntry::specialized_eval_exists() const {
-  return evaluationFunction != NULL;
+  return evaluationFunction != nullptr;
 }
 
 #endif // !defined(MATERIAL_H_INCLUDED)

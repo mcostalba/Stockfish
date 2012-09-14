@@ -258,7 +258,7 @@ namespace {
 
   template<GenType Type> FORCE_INLINE
   MoveStack* generate_all_moves(const Position& pos, MoveStack* mlist, Color us,
-                                Bitboard target, const CheckInfo* ci = NULL) {
+                                Bitboard target, const CheckInfo* ci = nullptr) {
 
     mlist = (us == WHITE ? generate_pawn_moves<WHITE, Type>(pos, mlist, target, ci)
                          : generate_pawn_moves<BLACK, Type>(pos, mlist, target, ci));

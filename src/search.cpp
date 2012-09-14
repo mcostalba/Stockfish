@@ -532,7 +532,7 @@ namespace {
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount = 0, playedMoveCount = 0;
     Thread* thisThread = pos.this_thread();
-    SplitPoint* sp = NULL;
+    SplitPoint* sp = nullptr;
 
     refinedValue = bestValue = value = -VALUE_INFINITE;
     oldAlpha = alpha;
@@ -546,7 +546,7 @@ namespace {
     // Step 1. Initialize node
     if (SpNode)
     {
-        tte = NULL;
+        tte = nullptr;
         ttMove = excludedMove = MOVE_NONE;
         ttValue = VALUE_ZERO;
         sp = ss->sp;
@@ -1600,7 +1600,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
   pv.push_back(m);
   pos.do_move(m, *st++);
 
-  while (   (tte = TT.probe(pos.key())) != NULL
+  while (   (tte = TT.probe(pos.key())) != nullptr
          && (m = tte->move()) != MOVE_NONE // Local copy, TT entry could change
          && pos.is_pseudo_legal(m)
          && pos.pl_move_is_legal(m, pos.pinned_pieces())
@@ -1655,7 +1655,7 @@ void Thread::idle_loop() {
 
   // Pointer 'sp_master', if non-NULL, points to the active SplitPoint
   // object for which the thread is the master.
-  const SplitPoint* sp_master = splitPointsCnt ? curSplitPoint : NULL;
+  const SplitPoint* sp_master = splitPointsCnt ? curSplitPoint : nullptr;
 
   assert(!sp_master || (sp_master->master == this && is_searching));
 

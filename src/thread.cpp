@@ -38,7 +38,7 @@ Thread::Thread(Fn fn) {
 
   is_searching = do_exit = false;
   maxPly = splitPointsCnt = 0;
-  curSplitPoint = NULL;
+  curSplitPoint = nullptr;
   idx = Threads.size();
 
   do_sleep = (fn != &Thread::main_loop); // Avoid a race with start_searching()
