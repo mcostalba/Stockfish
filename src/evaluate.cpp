@@ -156,8 +156,8 @@ namespace {
   // Rooks and queens on the 7th rank
   const Score RookOn7thBonus    = make_score(3, 20);
   const Score QueenOn7thBonus   = make_score(1, 8);
-  const Score RookBonusPerPawn  = make_score(3, 48);
-  const Score QueenBonusPerPawn = make_score(1, 40);
+  const Score RookBonusPerPawn  = make_score(3, 38);
+  const Score QueenBonusPerPawn = make_score(1, 37);
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
