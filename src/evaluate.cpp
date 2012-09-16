@@ -138,7 +138,7 @@ namespace {
     {}, {},
     { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
     { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BISHOP
-    { S(0, 0), S(-1, 29), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
+    { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
     { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
   };
 
@@ -156,9 +156,8 @@ namespace {
   // Rooks and queens on the 7th rank
   const Score RookOn7thBonus    = make_score(3, 20);
   const Score QueenOn7thBonus   = make_score(1, 8);
-
-  Score RookBonusPerPawn;
-  Score QueenBonusPerPawn;
+  const Score RookBonusPerPawn  = make_score(3, 38);
+  const Score QueenBonusPerPawn = make_score(1, 30);
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
@@ -287,9 +286,6 @@ namespace Eval {
     Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
     Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
     Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
-
-  RookBonusPerPawn  = make_score(Options["Rook Macro"], Options["Rook Micro"]);
-    QueenBonusPerPawn = make_score(Options["Queen Macro"], Options["Queen Micro"]);
 
     // King safety is asymmetrical. Our king danger level is weighted by
     // "Cowardice" UCI parameter, instead the opponent one by "Aggressiveness".
@@ -603,21 +599,16 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         if (Piece == ROOK || Piece == QUEEN)
         {
-			Rank rook_rank = rank_of(s);
-
             // Queen or rook on 7th rank
-            if (rook_rank == relative_rank(Us, s)
+            if (   relative_rank(Us, s) == RANK_7
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
             {
                 score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
             }
             // Pawns on same rank as rook or queen
-			if(rook_rank == RANK_1 || rook_rank == RANK_8)
-			{
-				Bitboard b = pos.pieces(Them, PAWN) & RankBB[rook_rank];
-				if(b)
-					score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(b);
-			}
+            const Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
+            if (pawns)
+                score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(pawns);
         }
 
         // Special extra evaluation for bishops
