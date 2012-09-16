@@ -599,6 +599,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         if (Piece == ROOK || Piece == QUEEN)
         {
+            Rank rook_rank = rank_of(s);
+          
             // Queen or rook on 7th rank
             if (   relative_rank(Us, s) == RANK_7
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
@@ -607,8 +609,10 @@ Value do_evaluate(const Position& pos, Value& margin) {
             }
             // Pawns on same rank as rook or queen
             const Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
-            if (pawns)
-                score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(pawns);
+            
+            if (rook_rank == RANK_8 || rook_rank == RANK_1)
+                if (pawns)
+                    score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(pawns);
         }
 
         // Special extra evaluation for bishops
