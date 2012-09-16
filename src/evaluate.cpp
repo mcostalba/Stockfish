@@ -138,7 +138,7 @@ namespace {
     {}, {},
     { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
     { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BISHOP
-    { S(0, 0), S(-1, 29), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
+    { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
     { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
   };
 
@@ -153,9 +153,11 @@ namespace {
   // Bonus for having the side to move (modified by Joona Kiiski)
   const Score Tempo = make_score(24, 11);
 
-  // Rooks and queens on the 7th rank (modified by Joona Kiiski)
-  const Score RookOn7thBonus  = make_score(47, 98);
-  const Score QueenOn7thBonus = make_score(27, 54);
+  // Rooks and queens on the 7th rank
+  const Score RookOn7thBonus    = make_score(3, 20);
+  const Score QueenOn7thBonus   = make_score(1, 8);
+  const Score RookBonusPerPawn  = make_score(3, 38);
+  const Score QueenBonusPerPawn = make_score(1, 30);
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus = make_score(43, 21);
@@ -595,12 +597,22 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        // Queen or rook on 7th rank
-        if (  (Piece == ROOK || Piece == QUEEN)
-            && relative_rank(Us, s) == RANK_7
-            && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+        if (Piece == ROOK || Piece == QUEEN)
         {
-            score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+            Rank rook_rank = rank_of(s);
+          
+            // Queen or rook on 7th rank
+            if (   relative_rank(Us, s) == RANK_7
+                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+            {
+                score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+            }
+            // Pawns on same rank as rook or queen
+            const Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
+            
+            if (rook_rank == RANK_8 || rook_rank == RANK_1)
+                if (pawns)
+                    score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(pawns);
         }
 
         // Special extra evaluation for bishops
