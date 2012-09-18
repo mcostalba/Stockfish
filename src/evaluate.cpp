@@ -597,21 +597,19 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        if (Piece == ROOK || Piece == QUEEN)
+        if (   (Piece == ROOK || Piece == QUEEN)
+            && relative_rank(Us, s) > RANK_5)
         {
+            // Pawns on same rank as rook or queen
+            Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
+            if (pawns)
+                score +=  (more_than_one(pawns) ? 3 : 1)
+                        * (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
+
             // Queen or rook on 7th rank
             if (   relative_rank(Us, s) == RANK_7
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-            {
                 score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
-            }
-            // Pawns on same rank as rook or queen
-            if (relative_rank(Us, s) >= RANK_5) {
-                const Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
-                if (pawns) {
-                    score += (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn) * popcount<Max15>(pawns);
-                }
-            }
         }
 
         // Special extra evaluation for bishops
