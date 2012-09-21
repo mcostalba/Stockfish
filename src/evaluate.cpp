@@ -597,16 +597,14 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        if (Piece == ROOK || Piece == QUEEN)
+        if (   (Piece == ROOK || Piece == QUEEN)
+            && relative_rank(Us, s) >= RANK_5)
         {
             // Pawns on same rank as rook or queen
-            if (relative_rank(Us, s) == RANK_5)
-            {
-                Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
-                if (pawns)
-                    score +=  (more_than_one(pawns) ? 3 : 1)
-                            * (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
-            }
+            Bitboard pawns = pos.pieces(Them, PAWN) & RankBB[rank_of(s)];
+            if (pawns)
+                score +=  (more_than_one(pawns) ? 3 : 1)
+                        * (Piece == ROOK ? RookBonusPerPawn : QueenBonusPerPawn);
 
             // Queen or rook on 7th rank
             if (   relative_rank(Us, s) == RANK_7
