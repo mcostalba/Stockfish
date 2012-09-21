@@ -158,8 +158,8 @@ namespace {
   const Score QueenOn7thBonus = make_score(1,  8);
 
   // Rooks and queens attacking pawns on the same rank
-  const Score RookOnPawnBonus  = make_score(3, 48);
-  const Score QueenOnPawnBonus = make_score(1, 40);
+  Score RookOnPawnBonus  = make_score(3, 48);
+  Score QueenOnPawnBonus = make_score(1, 40);
 
   // Rooks on open files (modified by Joona Kiiski)
   const Score RookOpenFileBonus     = make_score(43, 21);
@@ -307,6 +307,10 @@ namespace Eval {
         KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
         KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
+
+    // Read values of parameters under tuning
+    RookOnPawnBonus  = make_score(3, Options["p1"]);
+    QueenOnPawnBonus = make_score(1, Options["p2"]);
   }
 
 

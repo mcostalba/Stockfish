@@ -88,6 +88,10 @@ void init(OptionsMap& o) {
   o["Slow Mover"]                  = Option(100, 10, 1000);
   o["UCI_Chess960"]                = Option(false);
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
+
+  // Tuning parameters
+  o["p1"] = Option(48, 0, 100, on_eval);
+  o["p2"] = Option(40, 0, 100, on_eval);
 }
 
 
