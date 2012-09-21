@@ -1,0 +1,53 @@
+#
+# DummyExperiment.clop
+#
+# Example of experiment definition
+#
+
+# Name (used for .log and .dat files)
+Name DummyExperiment
+
+# Script for running a game. See DummyScript.py for details.
+Script ./DummyScript.py
+
+# Parameter(s) to be optimized
+# <parameter_type> <name> <min> <max>
+# <parameter_type> may be:
+#  LinearParameter
+#  IntegerParameter
+#  GammaParameter
+#  IntegerGammaParameter
+# For GammaParameter, quadratic regression is performed on log(x)
+# Warning: 123 and not 123.0 should be used for IntegerParameter
+LinearParameter p1  0.0 1.0
+LinearParameter p2  0.0 1.0
+LinearParameter p3  0.0 1.0
+LinearParameter p4  0.0 1.0
+LinearParameter p5  0.0 1.0
+
+# This could be the list of machine names in a distributed experiment.
+# In order to run 4 games in parallel, 2 on machine1, 2 on machine2: 
+Processor machine1
+Processor machine1
+Processor machine2
+Processor machine2
+
+# Call the script "Replications" times in a row with identical parameter values
+# Replications may be used to alternate colors, for instance.
+# Seed % Replications would indicate color.
+Replications 2
+
+# Parameters of statistical model of outcome
+# For binary outcome (Win/Loss, no draws), use "DrawElo 0"
+# For chess, use "DrawElo 100"
+DrawElo 100
+
+# Regression parameters
+# H 3 is recommended (it is the default value)
+# Correlations may be "all" (default) or "none"
+# Even if variables are not correlated "all" should work well. The problem is
+# that the regression might become very costly if the number of variables is
+# high. So use "Correlations none" only if you are certain parameters are
+# independent or you have so many variables that "all" is too costly.
+H 3
+Correlations all
