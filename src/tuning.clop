@@ -19,18 +19,12 @@ Script ./DummyScript.py
 #  IntegerGammaParameter
 # For GammaParameter, quadratic regression is performed on log(x)
 # Warning: 123 and not 123.0 should be used for IntegerParameter
-LinearParameter p1  0.0 1.0
-LinearParameter p2  0.0 1.0
-LinearParameter p3  0.0 1.0
-LinearParameter p4  0.0 1.0
-LinearParameter p5  0.0 1.0
+IntegerParameter p1  0 80
+IntegerParameter p2  0 80
 
 # This could be the list of machine names in a distributed experiment.
-# In order to run 4 games in parallel, 2 on machine1, 2 on machine2: 
+# In order to run 4 games in parallel, 2 on machine1, 2 on machine2:
 Processor machine1
-Processor machine1
-Processor machine2
-Processor machine2
 
 # Call the script "Replications" times in a row with identical parameter values
 # Replications may be used to alternate colors, for instance.
