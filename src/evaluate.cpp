@@ -311,6 +311,10 @@ namespace Eval {
     // Read values of parameters under tuning
     RookOnPawnBonus  = make_score(3, Options["p1"]);
     QueenOnPawnBonus = make_score(1, Options["p2"]);
+
+    // Log to file and double check everything works
+    Log l("samples.txt");
+    l << Options["p1"] << ", " << Options["p2"] << std::endl;
   }
 
 
