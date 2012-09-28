@@ -113,6 +113,7 @@ public:
   Piece piece_on(Square s) const;
   Square king_square(Color c) const;
   Square ep_square() const;
+  int fifty_move_rule() const;
   bool is_empty(Square s) const;
   const Square* piece_list(Color c, PieceType pt) const;
   int piece_count(Color c, PieceType pt) const;
@@ -287,6 +288,10 @@ inline const Square* Position::piece_list(Color c, PieceType pt) const {
 
 inline Square Position::ep_square() const {
   return st->epSquare;
+}
+
+inline int Position::fifty_move_rule() const {
+  return st->rule50;
 }
 
 inline Square Position::king_square(Color c) const {
