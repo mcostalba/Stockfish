@@ -220,7 +220,7 @@ namespace {
   };
   
   const int FiftyMoveScale[] = {
-    0,  3,  5,  7,  9,  10, 13, 16, 19, 25,
+	  0,  3,  5,  7,  9,  10, 13, 16, 19, 25,
 	  30, 33, 35, 40, 41, 41, 42, 43, 44, 45,
 	  46, 46, 46, 47, 47, 47, 48, 48, 49, 49,
 	  50, 50, 50, 51, 52, 53, 54, 55, 55, 56,
@@ -465,11 +465,12 @@ Value do_evaluate(const Position& pos, Value& margin) {
           // a bit drawish, but not as drawish as with only the two bishops.
            sf = ScaleFactor(50);
   }
-  
-  
+
+
   double scalePercent = (double)FiftyMoveScale[pos.fifty_move_rule()] / 100;
 
   sf = ScaleFactor((int)sf - int(scalePercent * (double)sf));
+
 
   margin = margins[pos.side_to_move()];
   Value v = interpolate(score, ei.mi->game_phase(), sf);
