@@ -279,6 +279,8 @@ void Search::think() {
   // used to check for remaining available thinking time.
   if (Limits.use_time_management())
       Threads.set_timer(std::min(100, std::max(TimeMgr.available_time() / 16, TimerResolution)));
+  else if (Limits.nodes)
+      Threads.set_timer(2 * TimerResolution);
   else
       Threads.set_timer(100);
 
@@ -516,25 +518,25 @@ namespace {
     const bool RootNode = (NT == Root || NT == SplitPointRoot);
 
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
-    assert((alpha == beta - 1) || PvNode);
+    assert(PvNode || (alpha == beta - 1));
     assert(depth > DEPTH_ZERO);
 
     Move movesSearched[64];
     StateInfo st;
     const TTEntry *tte;
+    SplitPoint* sp;
     Key posKey;
     Move ttMove, move, excludedMove, bestMove, threatMove;
     Depth ext, newDepth;
     Bound bt;
     Value bestValue, value, oldAlpha, ttValue;
-    Value refinedValue, nullValue, futilityBase, futilityValue;
-    bool isPvMove, inCheck, singularExtensionNode, givesCheck;
+    Value refinedValue, nullValue, futilityValue;
+    bool pvMove, inCheck, singularExtensionNode, givesCheck;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
-    int moveCount = 0, playedMoveCount = 0;
-    Thread* thisThread = pos.this_thread();
-    SplitPoint* sp = nullptr;
+    int moveCount, playedMoveCount;
 
-    refinedValue = bestValue = value = -VALUE_INFINITE;
+    Thread* thisThread = pos.this_thread();
+    moveCount = playedMoveCount = 0;
     oldAlpha = alpha;
     inCheck = pos.in_check();
     ss->ply = (ss-1)->ply + 1;
@@ -548,43 +550,36 @@ namespace {
     {
         tte = nullptr;
         ttMove = excludedMove = MOVE_NONE;
-        ttValue = VALUE_ZERO;
+        ttValue = VALUE_NONE;
         sp = ss->sp;
         bestMove = sp->bestMove;
         threatMove = sp->threatMove;
         bestValue = sp->bestValue;
-        moveCount = sp->moveCount; // Lock must be held here
 
-        assert(bestValue > -VALUE_INFINITE && moveCount > 0);
+        assert(bestValue > -VALUE_INFINITE && sp->moveCount > 0);
 
         goto split_point_start;
     }
     else
     {
+        bestValue = -VALUE_INFINITE;
         ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
         (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
-
     }
 
-    // Step 2. Check for aborted search and immediate draw
-    // Enforce node limit here. FIXME: This only works with 1 search thread.
-    if (Limits.nodes && pos.nodes_searched() >= Limits.nodes)
-        Signals.stop = true;
-
-    if ((   Signals.stop
-         || pos.is_draw<false>()
-         || ss->ply > MAX_PLY) && !RootNode)
-        return VALUE_DRAW;
-
-    // Step 3. Mate distance pruning. Even if we mate at the next move our score
-    // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
-    // a shorter mate was found upward in the tree then there is no need to search
-    // further, we will never beat current alpha. Same logic but with reversed signs
-    // applies also in the opposite condition of being mated instead of giving mate,
-    // in this case return a fail-high score.
     if (!RootNode)
     {
+        // Step 2. Check for aborted search and immediate draw
+        if (Signals.stop || pos.is_draw<false>() || ss->ply > MAX_PLY)
+            return VALUE_DRAW;
+
+        // Step 3. Mate distance pruning. Even if we mate at the next move our score
+        // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
+        // a shorter mate was found upward in the tree then there is no need to search
+        // further, we will never beat current alpha. Same logic but with reversed signs
+        // applies also in the opposite condition of being mated instead of giving mate,
+        // in this case return a fail-high score.
         alpha = std::max(mated_in(ss->ply), alpha);
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
@@ -598,7 +593,7 @@ namespace {
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey);
     ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
-    ttValue = tte ? value_from_tt(tte->value(), ss->ply) : VALUE_ZERO;
+    ttValue = tte ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
 
     // At PV nodes we check for exact scores, while at non-PV nodes we check for
     // a fail high/low. Biggest advantage at probing at PV nodes is to have a
@@ -623,7 +618,7 @@ namespace {
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
     if (inCheck)
-        ss->eval = ss->evalMargin = VALUE_NONE;
+        ss->eval = ss->evalMargin = refinedValue = VALUE_NONE;
     else if (tte)
     {
         assert(tte->static_value() != VALUE_NONE);
@@ -791,7 +786,7 @@ split_point_start: // At split points actual search starts from here
 
     MovePicker mp(pos, ttMove, depth, H, ss, PvNode ? -VALUE_INFINITE : beta);
     CheckInfo ci(pos);
-    futilityBase = ss->eval + ss->evalMargin;
+    value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= SingularExtensionDepth[PvNode]
@@ -818,12 +813,12 @@ split_point_start: // At split points actual search starts from here
       if (RootNode && !std::count(RootMoves.begin() + PVIdx, RootMoves.end(), move))
           continue;
 
-      // At PV and SpNode nodes we want all moves to be legal since the beginning
-      if ((PvNode || SpNode) && !pos.pl_move_is_legal(move, ci.pinned))
-          continue;
-
       if (SpNode)
       {
+          // Shared counter cannot be decremented later if move turns out to be illegal
+          if (!pos.pl_move_is_legal(move, ci.pinned))
+              continue;
+
           moveCount = ++sp->moveCount;
           sp->mutex.unlock();
       }
@@ -840,7 +835,6 @@ split_point_start: // At split points actual search starts from here
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
       }
 
-      isPvMove = (PvNode && moveCount <= 1);
       captureOrPromotion = pos.is_capture_or_promotion(move);
       givesCheck = pos.move_gives_check(move, ci);
       dangerous = givesCheck || is_dangerous(pos, move, captureOrPromotion);
@@ -900,7 +894,7 @@ split_point_start: // At split points actual search starts from here
           // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(depth, moveCount);
-          futilityValue =  futilityBase + futility_margin(predictedDepth, moveCount)
+          futilityValue =  ss->eval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
                          + H.gain(pos.piece_moved(move), to_sq(move));
 
           if (futilityValue < beta)
@@ -929,6 +923,7 @@ split_point_start: // At split points actual search starts from here
           continue;
       }
 
+      pvMove = PvNode ? moveCount == 1 : false;
       ss->currentMove = move;
       if (!SpNode && !captureOrPromotion && playedMoveCount < 64)
           movesSearched[playedMoveCount++] = move;
@@ -939,7 +934,7 @@ split_point_start: // At split points actual search starts from here
       // Step 15. Reduced depth search (LMR). If the move fails high will be
       // re-searched at full depth.
       if (    depth > 3 * ONE_PLY
-          && !isPvMove
+          && !pvMove
           && !captureOrPromotion
           && !dangerous
           &&  ss->killers[0] != move
@@ -955,7 +950,7 @@ split_point_start: // At split points actual search starts from here
           ss->reduction = DEPTH_ZERO;
       }
       else
-          doFullDepthSearch = !isPvMove;
+          doFullDepthSearch = !pvMove;
 
       // Step 16. Full depth search, when LMR is skipped or fails high
       if (doFullDepthSearch)
@@ -968,7 +963,7 @@ split_point_start: // At split points actual search starts from here
       // Only for PV nodes do a full PV search on the first move or after a fail
       // high, in the latter case search only if value < beta, otherwise let the
       // parent node to fail low with value <= alpha and to try another move.
-      if (PvNode && (isPvMove || (value > alpha && (RootNode || value < beta))))
+      if (PvNode && (pvMove || (value > alpha && (RootNode || value < beta))))
           value = newDepth < ONE_PLY ? -qsearch<PV>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                      : - search<PV>(pos, ss+1, -beta, -alpha, newDepth);
 
@@ -994,7 +989,7 @@ split_point_start: // At split points actual search starts from here
           RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
 
           // PV move or new best move ?
-          if (isPvMove || value > alpha)
+          if (pvMove || value > alpha)
           {
               rm.score = value;
               rm.extract_pv_from_tt(pos);
@@ -1002,7 +997,7 @@ split_point_start: // At split points actual search starts from here
               // We record how often the best move has been changed in each
               // iteration. This information is used for time management: When
               // the best move changes frequently, we allocate some more time.
-              if (!isPvMove && MultiPV == 1)
+              if (!pvMove && MultiPV == 1)
                   BestMoveChanges++;
           }
           else
@@ -1710,6 +1705,10 @@ void Thread::idle_loop() {
 
           sp->mutex.lock();
 
+          assert(sp->activePositions[idx] == NULL);
+
+          sp->activePositions[idx] = &pos;
+
           if (sp->nodeType == Root)
               search<SplitPointRoot>(pos, ss+1, sp->alpha, sp->beta, sp->depth);
           else if (sp->nodeType == PV)
@@ -1722,6 +1721,7 @@ void Thread::idle_loop() {
           assert(is_searching);
 
           is_searching = false;
+          sp->activePositions[idx] = NULL;
           sp->slavesMask &= ~(1ULL << idx);
           sp->nodes += pos.nodes_searched();
 
@@ -1752,6 +1752,7 @@ void Thread::idle_loop() {
 void check_time() {
 
   static Time::point lastInfoTime = Time::now();
+  int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
   if (Time::now() - lastInfoTime >= 1000)
   {
@@ -1762,6 +1763,35 @@ void check_time() {
   if (Limits.ponder)
       return;
 
+  if (Limits.nodes)
+  {
+      Threads.mutex.lock();
+
+      nodes = RootPosition.nodes_searched();
+
+      // Loop across all split points and sum accumulated SplitPoint nodes plus
+      // all the currently active slaves positions.
+      for (size_t i = 0; i < Threads.size(); i++)
+          for (int j = 0; j < Threads[i].splitPointsCnt; j++)
+          {
+              SplitPoint& sp = Threads[i].splitPoints[j];
+
+              sp.mutex.lock();
+
+              nodes += sp.nodes;
+              Bitboard sm = sp.slavesMask;
+              while (sm)
+              {
+                  Position* pos = sp.activePositions[pop_lsb(&sm)];
+                  nodes += pos ? pos->nodes_searched() : 0;
+              }
+
+              sp.mutex.unlock();
+          }
+
+      Threads.mutex.unlock();
+  }
+
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove
                          && !Signals.failedLowAtRoot
@@ -1771,6 +1801,7 @@ void check_time() {
                    || stillAtFirstMove;
 
   if (   (Limits.use_time_management() && noMoreTime)
-      || (Limits.movetime && elapsed >= Limits.movetime))
+      || (Limits.movetime && elapsed >= Limits.movetime)
+      || (Limits.nodes && nodes >= Limits.nodes))
       Signals.stop = true;
 }

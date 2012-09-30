@@ -53,6 +53,7 @@ struct SplitPoint {
 
   // Shared data
   std::mutex mutex;
+  Position* activePositions[MAX_THREADS];
   volatile uint64_t slavesMask;
   volatile int64_t nodes;
   volatile Value alpha;
@@ -130,6 +131,7 @@ public:
               Depth depth, Move threatMove, int moveCount, MovePicker* mp, int nodeType);
 private:
   friend class Thread;
+  friend void check_time();
 
   std::vector<Thread*> threads;
   Thread* timer;
