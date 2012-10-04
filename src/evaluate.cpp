@@ -31,46 +31,6 @@
 
 namespace {
 
-  // Struct EvalInfo contains various information computed and collected
-  // by the evaluation functions.
-  struct EvalInfo {
-
-    // Pointers to material and pawn hash table entries
-    MaterialEntry* mi;
-    PawnEntry* pi;
-
-    // attackedBy[color][piece type] is a bitboard representing all squares
-    // attacked by a given color and piece type, attackedBy[color][0] contains
-    // all squares attacked by the given color.
-    Bitboard attackedBy[2][8];
-
-    // kingRing[color] is the zone around the king which is considered
-    // by the king safety evaluation. This consists of the squares directly
-    // adjacent to the king, and the three (or two, for a king on an edge file)
-    // squares two ranks in front of the king. For instance, if black's king
-    // is on g8, kingRing[BLACK] is a bitboard containing the squares f8, h8,
-    // f7, g7, h7, f6, g6 and h6.
-    Bitboard kingRing[2];
-
-    // kingAttackersCount[color] is the number of pieces of the given color
-    // which attack a square in the kingRing of the enemy king.
-    int kingAttackersCount[2];
-
-    // kingAttackersWeight[color] is the sum of the "weight" of the pieces of the
-    // given color which attack a square in the kingRing of the enemy king. The
-    // weights of the individual piece types are given by the variables
-    // QueenAttackWeight, RookAttackWeight, BishopAttackWeight and
-    // KnightAttackWeight in evaluate.cpp
-    int kingAttackersWeight[2];
-
-    // kingAdjacentZoneAttacksCount[color] is the number of attacks to squares
-    // directly adjacent to the king of the given color. Pieces which attack
-    // more than one square are counted multiple times. For instance, if black's
-    // king is on g8 and there's a white knight on g5, this knight adds
-    // 2 to kingAdjacentZoneAttacksCount[BLACK].
-    int kingAdjacentZoneAttacksCount[2];
-  };
-
   // Evaluation grain size, must be a power of 2
   const int GrainSize = 8;
 
@@ -235,7 +195,7 @@ namespace {
 
   // Function prototypes
   template<bool Trace>
-  Value do_evaluate(const Position& pos, Value& margin);
+  Value do_evaluate(const Position& pos, Value& margin, EvalInfo& ei);
 
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei);
@@ -273,8 +233,8 @@ namespace Eval {
   /// values, an endgame score and a middle game score, and interpolates
   /// between them based on the remaining material.
 
-  Value evaluate(const Position& pos, Value& margin) {
-    return do_evaluate<false>(pos, margin);
+  Value evaluate(const Position& pos, Value& margin, EvalInfo& ei) {
+    return do_evaluate<false>(pos, margin, ei);
   }
 
 
@@ -325,7 +285,8 @@ namespace Eval {
     TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
     memset(TracedScores, 0, 2 * 16 * sizeof(Score));
 
-    do_evaluate<true>(pos, margin);
+    EvalInfo ei;
+    do_evaluate<true>(pos, margin, ei);
 
     totals = TraceStream.str();
     TraceStream.str("");
@@ -361,11 +322,10 @@ namespace Eval {
 namespace {
 
 template<bool Trace>
-Value do_evaluate(const Position& pos, Value& margin) {
+Value do_evaluate(const Position& pos, Value& margin, EvalInfo& ei) {
 
   assert(!pos.in_check());
 
-  EvalInfo ei;
   Value margins[2];
   Score score, mobilityWhite, mobilityBlack;
 
@@ -585,8 +545,15 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
             assert(b);
 
-            if (!more_than_one(b) && (b & pos.pieces(Them)))
+            if (!more_than_one(b)) {
+              if (b & pos.pieces(Them)) {
                 score += ThreatBonus[Piece][type_of(pos.piece_on(lsb(b)))];
+                if (b & ~pos.pieces(PAWN))
+                  ei.pinThreat[Us] = true;
+              } else if (b & ~pos.pieces(PAWN)) {
+                ei.pinThreat[Us] = true;
+              }
+            }
         }
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -737,6 +704,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
     const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us));
+
+    ei.pinThreat[Us] = false;
 
     score += evaluate_pieces<KNIGHT, Us, Trace>(pos, ei, mobility, mobilityArea);
     score += evaluate_pieces<BISHOP, Us, Trace>(pos, ei, mobility, mobilityArea);

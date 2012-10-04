@@ -23,13 +23,57 @@
 #include "types.h"
 
 class Position;
+class MaterialEntry;
+class PawnEntry;
+
+// Struct EvalInfo contains various information computed and collected
+// by the evaluation functions.
+struct EvalInfo {
+
+  // Pointers to material and pawn hash table entries
+  MaterialEntry* mi;
+  PawnEntry* pi;
+
+  // attackedBy[color][piece type] is a bitboard representing all squares
+  // attacked by a given color and piece type, attackedBy[color][0] contains
+  // all squares attacked by the given color.
+  Bitboard attackedBy[2][8];
+
+  // kingRing[color] is the zone around the king which is considered
+  // by the king safety evaluation. This consists of the squares directly
+  // adjacent to the king, and the three (or two, for a king on an edge file)
+  // squares two ranks in front of the king. For instance, if black's king
+  // is on g8, kingRing[BLACK] is a bitboard containing the squares f8, h8,
+  // f7, g7, h7, f6, g6 and h6.
+  Bitboard kingRing[2];
+
+  // kingAttackersCount[color] is the number of pieces of the given color
+  // which attack a square in the kingRing of the enemy king.
+  int kingAttackersCount[2];
+
+  // kingAttackersWeight[color] is the sum of the "weight" of the pieces of the
+  // given color which attack a square in the kingRing of the enemy king. The
+  // weights of the individual piece types are given by the variables
+  // QueenAttackWeight, RookAttackWeight, BishopAttackWeight and
+  // KnightAttackWeight in evaluate.cpp
+  int kingAttackersWeight[2];
+
+  // kingAdjacentZoneAttacksCount[color] is the number of attacks to squares
+  // directly adjacent to the king of the given color. Pieces which attack
+  // more than one square are counted multiple times. For instance, if black's
+  // king is on g8 and there's a white knight on g5, this knight adds
+  // 2 to kingAdjacentZoneAttacksCount[BLACK].
+  int kingAdjacentZoneAttacksCount[2];
+
+  bool pinThreat[2];
+};
 
 namespace Eval {
 
 extern Color RootColor;
 
 extern void init();
-extern Value evaluate(const Position& pos, Value& margin);
+extern Value evaluate(const Position& pos, Value& margin, EvalInfo& ei);
 extern std::string trace(const Position& pos);
 
 }
