@@ -477,6 +477,12 @@ namespace {
     }
   }
 
+  bool isSafeNull(const Position& pos, const EvalInfo& ei) {
+    const Color Us = pos.side_to_move();
+    const Color Them = Us == WHITE ? BLACK : WHITE;
+    return pos.non_pawn_material(Us)
+        && !ei.pinThreat[Them];
+  }
 
   // search<>() is the main search function for both PV and non-PV nodes and for
   // normal and SplitPoint nodes. When called just after a split point the search
@@ -588,6 +594,7 @@ namespace {
     }
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
+    EvalInfo ei;
     if (inCheck)
         ss->eval = ss->evalMargin = refinedValue = VALUE_NONE;
     else if (tte)
@@ -597,10 +604,11 @@ namespace {
         ss->eval = tte->static_value();
         ss->evalMargin = tte->static_value_margin();
         refinedValue = refine_eval(tte, ttValue, ss->eval);
+        ei.pinThreat[WHITE] = ei.pinThreat[BLACK] = false;
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin);
+        refinedValue = ss->eval = evaluate(pos, ss->evalMargin, ei);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
     }
 
@@ -642,7 +650,7 @@ namespace {
         && !inCheck
         &&  refinedValue - futility_margin(depth, 0) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  isSafeNull(pos, ei))
         return refinedValue - futility_margin(depth, 0);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
@@ -652,7 +660,7 @@ namespace {
         && !inCheck
         &&  refinedValue >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  isSafeNull(pos, ei))
     {
         ss->currentMove = MOVE_NULL;
 
@@ -1082,6 +1090,7 @@ split_point_start: // At split points actual search starts from here
     assert(depth <= DEPTH_ZERO);
 
     StateInfo st;
+    EvalInfo ei;
     Move ttMove, move, bestMove;
     Value ttValue, bestValue, value, evalMargin, futilityValue, futilityBase;
     bool inCheck, enoughMaterial, givesCheck, evasionPrunable;
@@ -1132,7 +1141,7 @@ split_point_start: // At split points actual search starts from here
             ss->eval = bestValue = tte->static_value();
         }
         else
-            ss->eval = bestValue = evaluate(pos, evalMargin);
+            ss->eval = bestValue = evaluate(pos, evalMargin, ei);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
@@ -1603,7 +1612,8 @@ void RootMove::insert_pv_in_tt(Position& pos) {
       // Don't overwrite existing correct entries
       if (!tte || tte->move() != pv[ply])
       {
-          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m));
+          EvalInfo ei;
+          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m, ei));
           TT.store(k, VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], v, m);
       }
       pos.do_move(pv[ply], *st++);
