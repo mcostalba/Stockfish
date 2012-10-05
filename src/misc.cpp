@@ -223,7 +223,14 @@ void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 /// loaded from memory, that can be quite slow.
 #if defined(NO_PREFETCH)
 
-void prefetch(char*) {}
+void prefetch(char* addr)
+{
+  #if defined(__GNUC__)
+  //If the target does not support data prefetch, no other code is
+  //generated and GCC does not issue a warning.
+  __builtin_prefetch(addr);
+  #endif
+}
 
 #else
 
