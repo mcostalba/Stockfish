@@ -55,6 +55,9 @@ namespace {
   // Set to true to force running with one thread. Used for debugging
   const bool FakeSplit = false;
 
+  // This is the minimum interval in msec between two check_time() calls
+  const int TimerResolution = 5;
+
   // Different node types, used as template parameter
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -62,27 +65,8 @@ namespace {
   const bool Slidings[18] = { 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 };
   inline bool piece_is_slider(Piece p) { return Slidings[p]; }
 
-  // Maximum depth for razoring
-  const Depth RazorDepth = 4 * ONE_PLY;
-
   // Dynamic razoring margin based on depth
   inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
-
-  // Maximum depth for use of dynamic threat detection when null move fails low
-  const Depth ThreatDepth = 5 * ONE_PLY;
-
-  // Minimum depth for use of internal iterative deepening
-  const Depth IIDDepth[] = { 8 * ONE_PLY, 5 * ONE_PLY };
-
-  // At Non-PV nodes we do an internal iterative deepening search
-  // when the static evaluation is bigger then beta - IIDMargin.
-  const Value IIDMargin = Value(256);
-
-  // Minimum depth for use of singular extension
-  const Depth SingularExtensionDepth[] = { 8 * ONE_PLY, 6 * ONE_PLY };
-
-  // Futility margin for quiescence search
-  const Value FutilityMarginQS = Value(128);
 
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
@@ -107,21 +91,12 @@ namespace {
     return (Depth) Reductions[PvNode][std::min(int(d) / ONE_PLY, 63)][std::min(mn, 63)];
   }
 
-  // Easy move margin. An easy move candidate must be at least this much better
-  // than the second best move.
-  const Value EasyMoveMargin = Value(0x150);
-
-  // This is the minimum interval in msec between two check_time() calls
-  const int TimerResolution = 5;
-
-
   size_t MultiPV, UCIMultiPV, PVIdx;
   TimeManager TimeMgr;
   int BestMoveChanges;
   int SkillLevel;
   bool SkillLevelEnabled, Chess960;
   History H;
-
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
@@ -469,7 +444,7 @@ namespace {
                 && (   (bestMoveNeverChanged &&  pos.captured_piece_type())
                     || Time::now() - SearchTime > (TimeMgr.available_time() * 40) / 100))
             {
-                Value rBeta = bestValue - EasyMoveMargin;
+                Value rBeta = bestValue - 2 * PawnValueMg;
                 (ss+1)->excludedMove = RootMoves[0].pv[0];
                 (ss+1)->skipNullMove = true;
                 Value v = search<NonPV>(pos, ss+1, rBeta - 1, rBeta, (depth - 3) * ONE_PLY);
@@ -528,51 +503,47 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove, threatMove;
     Depth ext, newDepth;
-    Bound bt;
-    Value bestValue, value, oldAlpha, ttValue;
+    Value bestValue, value, ttValue;
     Value refinedValue, nullValue, futilityValue;
     bool pvMove, inCheck, singularExtensionNode, givesCheck;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, playedMoveCount;
 
+    // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     moveCount = playedMoveCount = 0;
-    oldAlpha = alpha;
     inCheck = pos.in_check();
+
+    if (SpNode)
+    {
+        sp = ss->sp;
+        bestMove   = sp->bestMove;
+        threatMove = sp->threatMove;
+        bestValue  = sp->bestValue;
+        tte = nullptr;
+        ttMove = excludedMove = MOVE_NONE;
+        ttValue = VALUE_NONE;
+
+        assert(sp->bestValue > -VALUE_INFINITE && sp->moveCount > 0);
+
+        goto split_point_start;
+    }
+
+    bestValue = -VALUE_INFINITE;
+    ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
+    (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
+    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Used to send selDepth info to GUI
     if (PvNode && thisThread->maxPly < ss->ply)
         thisThread->maxPly = ss->ply;
 
-    // Step 1. Initialize node
-    if (SpNode)
-    {
-        tte = nullptr;
-        ttMove = excludedMove = MOVE_NONE;
-        ttValue = VALUE_NONE;
-        sp = ss->sp;
-        bestMove = sp->bestMove;
-        threatMove = sp->threatMove;
-        bestValue = sp->bestValue;
-
-        assert(bestValue > -VALUE_INFINITE && sp->moveCount > 0);
-
-        goto split_point_start;
-    }
-    else
-    {
-        bestValue = -VALUE_INFINITE;
-        ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
-        (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
-        (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
-    }
-
     if (!RootNode)
     {
         // Step 2. Check for aborted search and immediate draw
         if (Signals.stop || pos.is_draw<false>() || ss->ply > MAX_PLY)
-            return VALUE_DRAW;
+            return Eval::ValueDrawContempt;
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -647,7 +618,7 @@ namespace {
 
     // Step 6. Razoring (is omitted in PV nodes)
     if (   !PvNode
-        &&  depth < RazorDepth
+        &&  depth < 4 * ONE_PLY
         && !inCheck
         &&  refinedValue + razor_margin(depth) < beta
         &&  ttMove == MOVE_NONE
@@ -667,7 +638,7 @@ namespace {
     // the score by more than futility_margin(depth) if we do a null move.
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth < RazorDepth
+        &&  depth < 4 * ONE_PLY
         && !inCheck
         &&  refinedValue - futility_margin(depth, 0) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
@@ -726,7 +697,7 @@ namespace {
             // parent node, which will trigger a re-search with full depth).
             threatMove = (ss+1)->currentMove;
 
-            if (   depth < ThreatDepth
+            if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
                 && connected_moves(pos, (ss-1)->currentMove, threatMove))
@@ -739,7 +710,7 @@ namespace {
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
     if (   !PvNode
-        &&  depth >= RazorDepth + ONE_PLY
+        &&  depth >= 5 * ONE_PLY
         && !inCheck
         && !ss->skipNullMove
         &&  excludedMove == MOVE_NONE
@@ -768,9 +739,9 @@ namespace {
     }
 
     // Step 10. Internal iterative deepening
-    if (   depth >= IIDDepth[PvNode]
+    if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
-        && (PvNode || (!inCheck && ss->eval + IIDMargin >= beta)))
+        && (PvNode || (!inCheck && ss->eval + Value(256) >= beta)))
     {
         Depth d = (PvNode ? depth - 2 * ONE_PLY : depth / 2);
 
@@ -789,7 +760,7 @@ split_point_start: // At split points actual search starts from here
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     singularExtensionNode =   !RootNode
                            && !SpNode
-                           &&  depth >= SingularExtensionDepth[PvNode]
+                           &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
                            &&  ttMove != MOVE_NONE
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->type() & BOUND_LOWER)
@@ -797,10 +768,7 @@ split_point_start: // At split points actual search starts from here
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-    while (    bestValue < beta
-           && (move = mp.next_move<SpNode>()) != MOVE_NONE
-           && !thisThread->cutoff_occurred()
-           && !Signals.stop)
+    while (bestValue < beta && (move = mp.next_move<SpNode>()) != MOVE_NONE)
     {
       assert(is_ok(move));
 
@@ -866,7 +834,7 @@ split_point_start: // At split points actual search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < rBeta)
-              ext = ONE_PLY;
+              ext = rBeta >= beta ? ONE_PLY + ONE_PLY / 2 : ONE_PLY;
       }
 
       // Update current move (this must be done after singular extension search)
@@ -984,7 +952,10 @@ split_point_start: // At split points actual search starts from here
       // was aborted because the user interrupted the search or because we
       // ran out of time. In this case, the return value of the search cannot
       // be trusted, and we don't update the best move and/or PV.
-      if (RootNode && !Signals.stop)
+      if (Signals.stop || thisThread->cutoff_occurred())
+          return bestValue;
+
+      if (RootNode)
       {
           RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
 
@@ -1005,40 +976,42 @@ split_point_start: // At split points actual search starts from here
               // is not a problem when sorting becuase sort is stable and move
               // position in the list is preserved, just the PV is pushed up.
               rm.score = -VALUE_INFINITE;
-
       }
 
       if (value > bestValue)
       {
           bestValue = value;
-          bestMove = move;
 
-          if (   PvNode
-              && value > alpha
-              && value < beta) // We want always alpha < beta
-              alpha = value;
-
-          if (SpNode && !thisThread->cutoff_occurred())
+          if (value > alpha)
           {
-              sp->bestValue = value;
-              sp->bestMove = move;
+              bestMove = move;
+
+              if (PvNode && value < beta)
+                  alpha = bestValue; // Update alpha here! Always alpha < beta
+          }
+
+          if (SpNode)
+          {
+              sp->bestValue = bestValue;
+              sp->bestMove = bestMove;
               sp->alpha = alpha;
 
-              if (value >= beta)
+              if (bestValue >= beta)
                   sp->cutoff = true;
           }
       }
 
-      // Step 19. Check for split
+      // Step 19. Check for splitting the search
       if (   !SpNode
           &&  depth >= Threads.min_split_depth()
           &&  bestValue < beta
-          &&  Threads.available_slave_exists(thisThread)
-          && !Signals.stop
-          && !thisThread->cutoff_occurred())
+          &&  Threads.available_slave_exists(thisThread))
           bestValue = Threads.split<FakeSplit>(pos, ss, alpha, beta, bestValue, &bestMove,
-                                               depth, threatMove, moveCount, &mp, NT);
+                                               depth, threatMove, moveCount, mp, NT);
     }
+
+    if (SpNode)
+        return bestValue;
 
     // Step 20. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it
@@ -1046,41 +1019,34 @@ split_point_start: // At split points actual search starts from here
     // case of Signals.stop or thread.cutoff_occurred() are set, but this is
     // harmless because return value is discarded anyhow in the parent nodes.
     // If we are in a singular extension search then return a fail low score.
+    // A split node has at least one move, the one tried before to be splitted.
     if (!moveCount)
-        return excludedMove ? oldAlpha : inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+        return excludedMove ? alpha : inCheck ? mated_in(ss->ply) : VALUE_DRAW;
 
     // If we have pruned all the moves without searching return a fail-low score
     if (bestValue == -VALUE_INFINITE)
     {
         assert(!playedMoveCount);
 
-        bestValue = oldAlpha;
+        bestValue = alpha;
     }
 
-    // Step 21. Update tables
-    // Update transposition table entry, killers and history
-    if (!SpNode && !Signals.stop && !thisThread->cutoff_occurred())
+    if (bestValue >= beta) // Failed high
     {
-        move = bestValue <= oldAlpha ? MOVE_NONE : bestMove;
-        bt   = bestValue <= oldAlpha ? BOUND_UPPER
-             : bestValue >= beta ? BOUND_LOWER : BOUND_EXACT;
+        TT.store(posKey, value_to_tt(bestValue, ss->ply), BOUND_LOWER, depth,
+                 bestMove, ss->eval, ss->evalMargin);
 
-        TT.store(posKey, value_to_tt(bestValue, ss->ply), bt, depth, move, ss->eval, ss->evalMargin);
-
-        // Update killers and history for non capture cut-off moves
-        if (    bestValue >= beta
-            && !pos.is_capture_or_promotion(move)
-            && !inCheck)
+        if (!pos.is_capture_or_promotion(bestMove) && !inCheck)
         {
-            if (move != ss->killers[0])
+            if (bestMove != ss->killers[0])
             {
                 ss->killers[1] = ss->killers[0];
-                ss->killers[0] = move;
+                ss->killers[0] = bestMove;
             }
 
             // Increase history value of the cut-off move
             Value bonus = Value(int(depth) * int(depth));
-            H.add(pos.piece_moved(move), to_sq(move), bonus);
+            H.add(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
 
             // Decrease history of all the other played non-capture moves
             for (int i = 0; i < playedMoveCount - 1; i++)
@@ -1090,6 +1056,10 @@ split_point_start: // At split points actual search starts from here
             }
         }
     }
+    else // Failed low or PV search
+        TT.store(posKey, value_to_tt(bestValue, ss->ply),
+                 PvNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
+                 depth, bestMove, ss->eval, ss->evalMargin);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1125,7 +1095,7 @@ split_point_start: // At split points actual search starts from here
 
     // Check for an instant draw or maximum ply reached
     if (pos.is_draw<true>() || ss->ply > MAX_PLY)
-        return VALUE_DRAW;
+        return Eval::ValueDrawContempt;
 
     // Decide whether or not to include checks, this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
@@ -1176,7 +1146,7 @@ split_point_start: // At split points actual search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = ss->eval + evalMargin + FutilityMarginQS;
+        futilityBase = ss->eval + evalMargin + Value(128);
         enoughMaterial = pos.non_pawn_material(pos.side_to_move()) > RookValueMg;
     }
 
@@ -1514,7 +1484,7 @@ split_point_start: // At split points actual search starts from here
         int s = RootMoves[i].score;
 
         // Don't allow crazy blunders even at very low skills
-        if (i > 0 && RootMoves[i-1].score > s + EasyMoveMargin)
+        if (i > 0 && RootMoves[i-1].score > s + 2 * PawnValueMg)
             break;
 
         // This is our magic formula
