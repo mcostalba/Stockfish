@@ -240,7 +240,13 @@ void prefetch(char* addr) {
   _mm_prefetch(addr+64, _MM_HINT_T0); // 64 bytes ahead
 #  else
   __builtin_prefetch(addr);
+  #if defined(IS_32BYTES_CACHE_LINE)
+  __builtin_prefetch(addr+32);
+  #endif
   __builtin_prefetch(addr+64);
+  #if defined(IS_32BYTES_CACHE_LINE)
+  __builtin_prefetch(addr+96);
+  #endif
 #  endif
 }
 

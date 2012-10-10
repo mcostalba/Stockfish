@@ -162,6 +162,15 @@ ifeq ($(ARCH),osx-x86-32)
 	popcnt = no
 endif
 
+#arm section
+ifeq ($(ARCH),arm-32)
+    arch = arm-32
+    os = any
+    bits = 32
+    prefetch = yes
+    bsfq = no
+    popcnt = no
+endif
 
 ### ==========================================================================
 ### Section 3. Low-level configuration
@@ -175,7 +184,6 @@ endif
 ifeq ($(COMP),mingw)
 	comp=mingw
 	CXX=g++
-	prefetch = yes
 	profile_prepare = gcc-profile-prepare
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
@@ -185,7 +193,6 @@ endif
 ifeq ($(COMP),gcc)
 	comp=gcc
 	CXX=g++
-	prefetch = yes
 	profile_prepare = gcc-profile-prepare
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
@@ -268,6 +275,10 @@ ifeq ($(optimize),yes)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
+
+		ifeq ($(arch),arm-32)
+			CXXFLAGS += -fno-gcse -fprefetch-loop-arrays
+		endif
 	endif
 
 	ifeq ($(comp),mingw)
@@ -304,8 +315,17 @@ endif
 
 ### 3.7 prefetch
 ifeq ($(prefetch),yes)
-	CXXFLAGS += -msse
-	DEPENDFLAGS += -msse
+	ifeq ($(arch),i386)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+	endif
+	ifeq ($(arch),x86_64)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+ 	endif
+	ifeq ($(arch),arm-32)
+		CXXFLAGS += -DIS_32BYTES_CACHE_LINE
+	endif
 else
 	CXXFLAGS += -DNO_PREFETCH
 endif
@@ -363,6 +383,7 @@ help:
 	@echo "osx-ppc-32           > PPC-Mac OS X 32 bit"
 	@echo "osx-x86-64           > x86-Mac OS X 64 bit"
 	@echo "osx-x86-32           > x86-Mac OS X 32 bit"
+	@echo "arm-32               > ARM 32 bit"
 	@echo "general-64           > unspecified 64-bit"
 	@echo "general-32           > unspecified 32-bit"
 	@echo ""
@@ -452,7 +473,7 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
-	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc"
+	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "arm-32"
 	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
