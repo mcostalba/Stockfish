@@ -311,14 +311,17 @@ endif
 
 ### 3.7 prefetch
 ifeq ($(prefetch),yes)
-    ifeq ($(arch),i386)
-	    CXXFLAGS += -msse
-	    DEPENDFLAGS += -msse
-    endif
-    ifeq ($(arch),x86_64)
-        CXXFLAGS += -msse
-        DEPENDFLAGS += -msse
-    endif
+	ifeq ($(arch),i386)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+	endif
+	ifeq ($(arch),x86_64)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+ 	endif
+	ifeq ($(arch),arm-32)
+		CXXFLAGS += -DIS_32BYTES_CACHE_LINE
+	endif
 else
 	CXXFLAGS += -DNO_PREFETCH
 endif
