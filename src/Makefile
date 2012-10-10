@@ -275,6 +275,10 @@ ifeq ($(optimize),yes)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
+
+		ifeq ($(arch),arm-32)
+			CXXFLAGS += -fno-gcse
+		endif
 	endif
 
 	ifeq ($(comp),mingw)
