@@ -319,6 +319,9 @@ ifeq ($(prefetch),yes)
 	    CXXFLAGS += -msse
 	    DEPENDFLAGS += -msse
     endif
+    ifeq ($(arch),arm-32)
+        CXXFLAGS += -DIS_32BYTES_CACHE_LINE
+    endif
 else
 	CXXFLAGS += -DNO_PREFETCH
 endif
