@@ -47,7 +47,7 @@
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
 #endif
 
-#if defined(_WIN64)
+#if defined(_WIN64) && !defined(IS_64BIT)
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
 #  define IS_64BIT
 #  define USE_BSFQ
@@ -56,6 +56,10 @@
 #if defined(USE_POPCNT) && defined(_MSC_VER) && defined(__INTEL_COMPILER)
 #  include <nmmintrin.h> // Intel header for _mm_popcnt_u64() intrinsic
 #endif
+
+#  if !defined(NO_PREFETCH) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#  endif
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #  define CACHE_LINE_ALIGNMENT __declspec(align(64))
