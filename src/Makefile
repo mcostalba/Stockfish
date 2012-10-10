@@ -277,7 +277,7 @@ ifeq ($(optimize),yes)
 		endif
 
 		ifeq ($(arch),arm-32)
-			CXXFLAGS += -fno-gcse
+			CXXFLAGS += -fno-gcse -fprefetch-loop-arrays
 		endif
 	endif
 
