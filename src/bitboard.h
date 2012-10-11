@@ -247,6 +247,22 @@ FORCE_INLINE Square msb(Bitboard b) {
   return (Square) index;
 }
 
+#  elif defined(__arm__)
+
+FORCE_INLINE int lsb32(uint32_t v) {
+  __asm__("rbit %0, %1" : "=r"(v) : "r"(v));
+  return (__builtin_clz(v));
+}
+
+FORCE_INLINE Square msb(Bitboard b) {
+  return (Square) (63-__builtin_clzll(b)); 
+}
+
+FORCE_INLINE Square lsb(Bitboard b) {  
+  const uint32_t lb =  b & 0xFFFFFFFF;
+  return (Square) (lb ? lsb32(lb) : 32 + lsb32((uint32_t)(b >> 32)) ); 
+}
+
 #  else
 
 FORCE_INLINE Square lsb(Bitboard b) { // Assembly code by Heinz van Saanen
