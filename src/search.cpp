@@ -41,7 +41,8 @@ namespace Search {
   volatile SignalsType Signals;
   LimitsType Limits;
   std::vector<RootMove> RootMoves;
-  Position RootPosition;
+  Position RootPos;
+  Color RootColor;
   Time::point SearchTime;
   StateStackPtr SetupStates;
 }
@@ -86,11 +87,10 @@ namespace {
     return (Depth) Reductions[PvNode][std::min(int(d) / ONE_PLY, 63)][std::min(mn, 63)];
   }
 
-  size_t MultiPV, UCIMultiPV, PVIdx;
+  size_t PVSize, PVIdx;
   TimeManager TimeMgr;
   int BestMoveChanges;
-  int SkillLevel;
-  bool SkillLevelEnabled, Chess960;
+  Value DrawValue[COLOR_NB];
   History H;
 
   template <NodeType NT>
@@ -100,15 +100,28 @@ namespace {
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
 
   void id_loop(Position& pos);
-  bool check_is_dangerous(Position &pos, Move move, Value futilityBase, Value beta);
+  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
   bool connected_moves(const Position& pos, Move m1, Move m2);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
-  bool can_return_tt(const TTEntry* tte, Depth depth, Value ttValue, Value beta);
   bool connected_threat(const Position& pos, Move m, Move threat);
-  Value refine_eval(const TTEntry* tte, Value ttValue, Value defaultEval);
-  Move do_skill_level();
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
+
+  struct Skill {
+    Skill(int l) : level(l), best(MOVE_NONE) {}
+   ~Skill() {
+      if (enabled()) // Swap best PV line with the sub-optimal one
+          std::swap(RootMoves[0], *std::find(RootMoves.begin(),
+                    RootMoves.end(), best ? best : pick_move()));
+    }
+
+    bool enabled() const { return level < 20; }
+    bool time_to_pick(int depth) const { return depth == 1 + level; }
+    Move pick_move();
+
+    int level;
+    Move best;
+  };
 
 } // namespace
 
@@ -136,7 +149,7 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.25 * pow(d, 2.0));
+      FutilityMoveCounts[d] = int(3.001 + 0.25 * pow(double(d), 2.0));
 }
 
 
@@ -166,33 +179,28 @@ size_t Search::perft(Position& pos, Depth depth) {
 
 /// Search::think() is the external interface to Stockfish's search, and is
 /// called by the main thread when the program receives the UCI 'go' command. It
-/// searches from RootPosition and at the end prints the "bestmove" to output.
+/// searches from RootPos and at the end prints the "bestmove" to output.
 
 void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
 
-  Position& pos = RootPosition;
-  Chess960 = pos.is_chess960();
-  Eval::RootColor = pos.side_to_move();
-  Eval::ValueDraw[ Eval::RootColor] = VALUE_DRAW - Eval::ContemptFactor;
-  Eval::ValueDraw[~Eval::RootColor] = VALUE_DRAW + Eval::ContemptFactor;
-  TimeMgr.init(Limits, pos.startpos_ply_counter(), pos.side_to_move());
-  TT.new_search();
-  H.clear();
+  RootColor = RootPos.side_to_move();
+  TimeMgr.init(Limits, RootPos.startpos_ply_counter(), RootColor);
 
   if (RootMoves.empty())
   {
-      sync_cout << "info depth 0 score "
-                << score_to_uci(pos.in_check() ? -VALUE_MATE : VALUE_DRAW) << sync_endl;
-
       RootMoves.push_back(MOVE_NONE);
+      sync_cout << "info depth 0 score "
+                << score_to_uci(RootPos.in_check() ? -VALUE_MATE : VALUE_DRAW)
+                << sync_endl;
+
       goto finalize;
   }
 
   if (Options["OwnBook"] && !Limits.infinite)
   {
-      Move bookMove = book.probe(pos, Options["Book File"], Options["Best Book Move"]);
+      Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
 
       if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
       {
@@ -201,22 +209,24 @@ void Search::think() {
       }
   }
 
-  UCIMultiPV = Options["MultiPV"];
-  SkillLevel = Options["Skill Level"];
-
-  // Do we have to play with skill handicap? In this case enable MultiPV that
-  // we will use behind the scenes to retrieve a set of possible moves.
-  SkillLevelEnabled = (SkillLevel < 20);
-  MultiPV = (SkillLevelEnabled ? std::max(UCIMultiPV, (size_t)4) : UCIMultiPV);
+  if (Options["Contempt Factor"] && !Options["UCI_AnalyseMode"])
+  {
+      int cf = Options["Contempt Factor"] * PawnValueMg / 100; // From centipawns
+      cf = cf * MaterialTable::game_phase(RootPos) / PHASE_MIDGAME; // Scale down with phase
+      DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
+      DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
+  }
+  else
+      DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
 
   if (Options["Use Search Log"])
   {
       Log log(Options["Search Log Filename"]);
-      log << "\nSearching: "  << pos.to_fen()
+      log << "\nSearching: "  << RootPos.to_fen()
           << "\ninfinite: "   << Limits.infinite
           << " ponder: "      << Limits.ponder
-          << " time: "        << Limits.time[pos.side_to_move()]
-          << " increment: "   << Limits.inc[pos.side_to_move()]
+          << " time: "        << Limits.time[RootColor]
+          << " increment: "   << Limits.inc[RootColor]
           << " moves to go: " << Limits.movestogo
           << std::endl;
   }
@@ -226,14 +236,14 @@ void Search::think() {
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
   if (Limits.use_time_management())
-      Threads.set_timer(std::min(100, std::max(TimeMgr.available_time() / 16, TimerResolution)));
+      Threads.set_timer(std::min(100, std::max(TimeMgr.available_time() / 16,
+                                               TimerResolution)));
   else if (Limits.nodes)
       Threads.set_timer(2 * TimerResolution);
   else
       Threads.set_timer(100);
 
-  // We're ready to start searching. Call the iterative deepening loop function
-  id_loop(pos);
+  id_loop(RootPos); // Let's start searching !
 
   Threads.set_timer(0); // Stop timer
   Threads.sleep();
@@ -243,14 +253,14 @@ void Search::think() {
       Time::point elapsed = Time::now() - SearchTime + 1;
 
       Log log(Options["Search Log Filename"]);
-      log << "Nodes: "          << pos.nodes_searched()
-          << "\nNodes/second: " << pos.nodes_searched() * 1000 / elapsed
-          << "\nBest move: "    << move_to_san(pos, RootMoves[0].pv[0]);
+      log << "Nodes: "          << RootPos.nodes_searched()
+          << "\nNodes/second: " << RootPos.nodes_searched() * 1000 / elapsed
+          << "\nBest move: "    << move_to_san(RootPos, RootMoves[0].pv[0]);
 
       StateInfo st;
-      pos.do_move(RootMoves[0].pv[0], st);
-      log << "\nPonder move: " << move_to_san(pos, RootMoves[0].pv[1]) << std::endl;
-      pos.undo_move(RootMoves[0].pv[0]);
+      RootPos.do_move(RootMoves[0].pv[0], st);
+      log << "\nPonder move: " << move_to_san(RootPos, RootMoves[0].pv[1]) << std::endl;
+      RootPos.undo_move(RootMoves[0].pv[0]);
   }
 
 finalize:
@@ -259,11 +269,12 @@ finalize:
   // but if we are pondering or in infinite search, we shouldn't print the best
   // move before we are told to do so.
   if (!Signals.stop && (Limits.ponder || Limits.infinite))
-      pos.this_thread()->wait_for_stop_or_ponderhit();
+      RootPos.this_thread()->wait_for_stop_or_ponderhit();
 
   // Best move could be MOVE_NONE when searching on a stalemate position
-  sync_cout << "bestmove " << move_to_uci(RootMoves[0].pv[0], Chess960)
-            << " ponder "  << move_to_uci(RootMoves[0].pv[1], Chess960) << sync_endl;
+  sync_cout << "bestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
+            << " ponder "  << move_to_uci(RootMoves[0].pv[1], RootPos.is_chess960())
+            << sync_endl;
 }
 
 
@@ -279,26 +290,37 @@ namespace {
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
     bool bestMoveNeverChanged = true;
-    Move skillBest = MOVE_NONE;
 
     memset(ss, 0, 4 * sizeof(Stack));
     depth = BestMoveChanges = 0;
     bestValue = delta = -VALUE_INFINITE;
     ss->currentMove = MOVE_NULL; // Hack to skip update gains
+    TT.new_search();
+    H.clear();
+
+    PVSize = Options["MultiPV"];
+    Skill skill(Options["Skill Level"]);
+
+    // Do we have to play with skill handicap? In this case enable MultiPV search
+    // that we will use behind the scenes to retrieve a set of possible moves.
+    if (skill.enabled() && PVSize < 4)
+        PVSize = 4;
+
+    PVSize = std::min(PVSize, RootMoves.size());
 
     // Iterative deepening loop until requested to stop or target depth reached
-    while (!Signals.stop && ++depth <= MAX_PLY && (!Limits.depth || depth <= Limits.depth))
+    while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
         // Save last iteration's scores before first PV line is searched and all
         // the move scores but the (new) PV are set to -VALUE_INFINITE.
         for (RootMove& rm : RootMoves)
             rm.prevScore = rm.score;
 
-        prevBestMoveChanges = BestMoveChanges;
+        prevBestMoveChanges = BestMoveChanges; // Only sensible when PVSize == 1
         BestMoveChanges = 0;
 
         // MultiPV loop. We perform a full root search for each PV line
-        for (PVIdx = 0; PVIdx < std::min(MultiPV, RootMoves.size()); PVIdx++)
+        for (PVIdx = 0; PVIdx < PVSize; PVIdx++)
         {
             // Set aspiration window default width
             if (depth >= 5 && abs(RootMoves[PVIdx].prevScore) < VALUE_KNOWN_WIN)
@@ -329,37 +351,37 @@ namespace {
                 // the already searched PV lines are preserved.
                 sort<RootMove>(RootMoves.begin() + PVIdx, RootMoves.end());
 
-                // In case we have found an exact score and we are going to leave
-                // the fail high/low loop then reorder the PV moves, otherwise
-                // leave the last PV move in its position so to be searched again.
-                // Of course this is needed only in MultiPV search.
-                if (PVIdx && bestValue > alpha && bestValue < beta)
-                    sort<RootMove>(RootMoves.begin(), RootMoves.begin() + PVIdx);
-
                 // Write PV back to transposition table in case the relevant
                 // entries have been overwritten during the search.
                 for (size_t i = 0; i <= PVIdx; i++)
                     RootMoves[i].insert_pv_in_tt(pos);
 
-                // If search has been stopped exit the aspiration window loop.
-                // Sorting and writing PV back to TT is safe becuase RootMoves
-                // is still valid, although refers to previous iteration.
+                // If search has been stopped return immediately. Sorting and
+                // writing PV back to TT is safe becuase RootMoves is still
+                // valid, although refers to previous iteration.
                 if (Signals.stop)
-                    break;
-
-                // Send full PV info to GUI if we are going to leave the loop or
-                // if we have a fail high/low and we are deep in the search.
-                if ((bestValue > alpha && bestValue < beta) || Time::now() - SearchTime > 2000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                    return;
 
                 // In case of failing high/low increase aspiration window and
-                // research, otherwise exit the fail high/low loop.
-                if (bestValue >= beta)
+                // research, otherwise exit the loop.
+                if (bestValue > alpha && bestValue < beta)
+                    break;
+
+                // Give some update (without cluttering the UI) before to research
+                if (Time::now() - SearchTime > 3000)
+                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+
+                if (abs(bestValue) >= VALUE_KNOWN_WIN)
+                {
+                    alpha = -VALUE_INFINITE;
+                    beta  =  VALUE_INFINITE;
+                }
+                else if (bestValue >= beta)
                 {
                     beta += delta;
                     delta += delta / 2;
                 }
-                else if (bestValue <= alpha)
+                else
                 {
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
@@ -367,25 +389,20 @@ namespace {
                     alpha -= delta;
                     delta += delta / 2;
                 }
-                else
-                    break;
-
-                // Search with full window in case we have a win/mate score
-                if (abs(bestValue) >= VALUE_KNOWN_WIN)
-                {
-                    alpha = -VALUE_INFINITE;
-                    beta  =  VALUE_INFINITE;
-                }
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
+
+            // Sort the PV lines searched so far and update the GUI
+            sort<RootMove>(RootMoves.begin(), RootMoves.begin() + PVIdx);
+            sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
 
-        // Skills: Do we need to pick now the best move ?
-        if (SkillLevelEnabled && depth == 1 + SkillLevel)
-            skillBest = do_skill_level();
+        // Do we need to pick now the sub-optimal best move ?
+        if (skill.enabled() && skill.time_to_pick(depth))
+            skill.pick_move();
 
-        if (!Signals.stop && Options["Use Search Log"])
+        if (Options["Use Search Log"])
         {
             Log log(Options["Search Log Filename"]);
             log << pretty_pv(pos, depth, bestValue, Time::now() - SearchTime, &RootMoves[0].pv[0])
@@ -397,12 +414,12 @@ namespace {
             bestMoveNeverChanged = false;
 
         // Do we have time for the next iteration? Can we stop searching now?
-        if (!Signals.stop && !Signals.stopOnPonderhit && Limits.use_time_management())
+        if (Limits.use_time_management() && !Signals.stopOnPonderhit)
         {
             bool stop = false; // Local variable, not the volatile Signals.stop
 
             // Take in account some extra time if the best move has changed
-            if (depth > 4 && depth < 50)
+            if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges, prevBestMoveChanges);
 
             // Stop search if most of available time is already consumed. We
@@ -414,6 +431,7 @@ namespace {
             // Stop search early if one move seems to be much better than others
             if (    depth >= 12
                 && !stop
+                &&  PVSize == 1
                 && (   (bestMoveNeverChanged &&  pos.captured_piece_type())
                     || Time::now() - SearchTime > (TimeMgr.available_time() * 40) / 100))
             {
@@ -438,15 +456,6 @@ namespace {
                     Signals.stop = true;
             }
         }
-    }
-
-    // When using skills swap best PV line with the sub-optimal one
-    if (SkillLevelEnabled)
-    {
-        if (skillBest == MOVE_NONE) // Still unassigned ?
-            skillBest = do_skill_level();
-
-        std::swap(RootMoves[0], *std::find(RootMoves.begin(), RootMoves.end(), skillBest));
     }
   }
 
@@ -477,7 +486,7 @@ namespace {
     Move ttMove, move, excludedMove, bestMove, threatMove;
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
-    Value refinedValue, nullValue, futilityValue;
+    Value eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, playedMoveCount;
@@ -515,8 +524,8 @@ namespace {
     if (!RootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (Signals.stop || pos.is_draw<false>() || ss->ply > MAX_PLY)
-            return Eval::ValueDraw[pos.side_to_move()];
+        if (Signals.stop || pos.is_draw<true, PvNode>() || ss->ply > MAX_PLY)
+            return DrawValue[pos.side_to_move()];
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -543,8 +552,13 @@ namespace {
     // a fail high/low. Biggest advantage at probing at PV nodes is to have a
     // smooth experience in analysis mode. We don't probe at Root nodes otherwise
     // we should also update RootMoveList to avoid bogus output.
-    if (!RootNode && tte && (PvNode ? tte->depth() >= depth && tte->type() == BOUND_EXACT
-                                    : can_return_tt(tte, depth, ttValue, beta)))
+    if (   !RootNode
+        && tte
+        && tte->depth() >= depth
+        && ttValue != VALUE_NONE // Only in case of TT access race
+        && (           PvNode ?  tte->type() == BOUND_EXACT
+            : ttValue >= beta ? (tte->type() & BOUND_LOWER)
+                              : (tte->type() & BOUND_UPPER)))
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
@@ -562,38 +576,51 @@ namespace {
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
     if (inCheck)
-        ss->eval = ss->evalMargin = refinedValue = VALUE_NONE;
+        ss->staticEval = ss->evalMargin = eval = VALUE_NONE;
+
     else if (tte)
     {
-        assert(tte->static_value() != VALUE_NONE);
+        // Following asserts are valid only in single thread condition because
+        // TT access is always racy and its contents cannot be trusted.
+        assert(tte->static_value() != VALUE_NONE || Threads.size() > 1);
+        assert(ttValue != VALUE_NONE || tte->type() == BOUND_NONE || Threads.size() > 1);
 
-        ss->eval = tte->static_value();
+        ss->staticEval = eval = tte->static_value();
         ss->evalMargin = tte->static_value_margin();
-        refinedValue = refine_eval(tte, ttValue, ss->eval);
+
+        if (eval == VALUE_NONE || ss->evalMargin == VALUE_NONE) // Due to a race
+            eval = ss->staticEval = evaluate(pos, ss->evalMargin);
+
+        // Can ttValue be used as a better position evaluation?
+        if (ttValue != VALUE_NONE)
+            if (   ((tte->type() & BOUND_LOWER) && ttValue > eval)
+                || ((tte->type() & BOUND_UPPER) && ttValue < eval))
+                eval = ttValue;
     }
     else
     {
-        refinedValue = ss->eval = evaluate(pos, ss->evalMargin);
-        TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
+        eval = ss->staticEval = evaluate(pos, ss->evalMargin);
+        TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
+                 ss->staticEval, ss->evalMargin);
     }
 
     // Update gain for the parent non-capture move given the static position
     // evaluation before and after the move.
-    if (    (move = (ss-1)->currentMove) != MOVE_NULL
-        &&  (ss-1)->eval != VALUE_NONE
-        &&  ss->eval != VALUE_NONE
+    if (   (move = (ss-1)->currentMove) != MOVE_NULL
+        && (ss-1)->staticEval != VALUE_NONE
+        &&  ss->staticEval != VALUE_NONE
         && !pos.captured_piece_type()
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
-        H.update_gain(pos.piece_on(to), to, -(ss-1)->eval - ss->eval);
+        H.update_gain(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
     // Step 6. Razoring (is omitted in PV nodes)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         && !inCheck
-        &&  refinedValue + razor_margin(depth) < beta
+        &&  eval + razor_margin(depth) < beta
         &&  ttMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
@@ -613,17 +640,17 @@ namespace {
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
         && !inCheck
-        &&  refinedValue - FutilityMargins[depth][0] >= beta
+        &&  eval - FutilityMargins[depth][0] >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return refinedValue - FutilityMargins[depth][0];
+        return eval - FutilityMargins[depth][0];
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth > ONE_PLY
         && !inCheck
-        &&  refinedValue >= beta
+        &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
     {
@@ -633,7 +660,7 @@ namespace {
         Depth R = 3 * ONE_PLY + depth / 4;
 
         // Null move dynamic reduction based on value
-        if (refinedValue - PawnValueMg > beta)
+        if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
         pos.do_null_move<true>(st);
@@ -714,7 +741,7 @@ namespace {
     // Step 10. Internal iterative deepening
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
-        && (PvNode || (!inCheck && ss->eval + Value(256) >= beta)))
+        && (PvNode || (!inCheck && ss->staticEval + Value(256) >= beta)))
     {
         Depth d = (PvNode ? depth - 2 * ONE_PLY : depth / 2);
 
@@ -772,7 +799,7 @@ split_point_start: // At split points actual search starts from here
 
           if (thisThread == Threads.main_thread() && Time::now() - SearchTime > 2000)
               sync_cout << "info depth " << depth / ONE_PLY
-                        << " currmove " << move_to_uci(move, Chess960)
+                        << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
       }
 
@@ -786,7 +813,7 @@ split_point_start: // At split points actual search starts from here
                      && type_of(pos.piece_on(to_sq(move))) != PAWN
                      && type_of(move) == NORMAL
                      && (  pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK)
-                         - PieceValue[Mg][pos.piece_on(to_sq(move))] == VALUE_ZERO));
+                         - PieceValue[MG][pos.piece_on(to_sq(move))] == VALUE_ZERO));
 
       // Step 12. Extend checks and, in PV nodes, also dangerous moves
       if (PvNode && dangerous)
@@ -801,11 +828,13 @@ split_point_start: // At split points actual search starts from here
       // on all the other moves but the ttMove, if result is lower than ttValue minus
       // a margin then we extend ttMove.
       if (    singularExtensionNode
-          && !ext
           &&  move == ttMove
+          && !ext
           &&  pos.pl_move_is_legal(move, ci.pinned)
           &&  abs(ttValue) < VALUE_KNOWN_WIN)
       {
+          assert(ttValue != VALUE_NONE);
+
           Value rBeta = ttValue - int(depth);
           ss->excludedMove = move;
           ss->skipNullMove = true;
@@ -826,7 +855,8 @@ split_point_start: // At split points actual search starts from here
           && !inCheck
           && !dangerous
           &&  move != ttMove
-          && (bestValue > VALUE_MATED_IN_MAX_PLY || bestValue == -VALUE_INFINITE))
+          && (bestValue > VALUE_MATED_IN_MAX_PLY || (   bestValue == -VALUE_INFINITE
+                                                     && alpha > VALUE_MATED_IN_MAX_PLY)))
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
@@ -843,7 +873,7 @@ split_point_start: // At split points actual search starts from here
           // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(depth, moveCount);
-          futilityValue =  ss->eval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
+          futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
                          + H.gain(pos.piece_moved(move), to_sq(move));
 
           if (futilityValue < beta)
@@ -934,7 +964,7 @@ split_point_start: // At split points actual search starts from here
       // ran out of time. In this case, the return value of the search cannot
       // be trusted, and we don't update the best move and/or PV.
       if (Signals.stop || thisThread->cutoff_occurred())
-          return bestValue;
+          return value; // To avoid returning VALUE_INFINITE
 
       if (RootNode)
       {
@@ -949,7 +979,7 @@ split_point_start: // At split points actual search starts from here
               // We record how often the best move has been changed in each
               // iteration. This information is used for time management: When
               // the best move changes frequently, we allocate some more time.
-              if (!pvMove && MultiPV == 1)
+              if (!pvMove)
                   BestMoveChanges++;
           }
           else
@@ -1005,7 +1035,8 @@ split_point_start: // At split points actual search starts from here
     // If we are in a singular extension search then return a fail low score.
     // A split node has at least one move, the one tried before to be splitted.
     if (!moveCount)
-        return excludedMove ? alpha : inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+        return  excludedMove ? alpha
+              : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
 
     // If we have pruned all the moves without searching return a fail-low score
     if (bestValue == -VALUE_INFINITE)
@@ -1018,7 +1049,7 @@ split_point_start: // At split points actual search starts from here
     if (bestValue >= beta) // Failed high
     {
         TT.store(posKey, value_to_tt(bestValue, ss->ply), BOUND_LOWER, depth,
-                 bestMove, ss->eval, ss->evalMargin);
+                 bestMove, ss->staticEval, ss->evalMargin);
 
         if (!pos.is_capture_or_promotion(bestMove) && !inCheck)
         {
@@ -1043,7 +1074,7 @@ split_point_start: // At split points actual search starts from here
     else // Failed low or PV search
         TT.store(posKey, value_to_tt(bestValue, ss->ply),
                  PvNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-                 depth, bestMove, ss->eval, ss->evalMargin);
+                 depth, bestMove, ss->staticEval, ss->evalMargin);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1078,8 +1109,8 @@ split_point_start: // At split points actual search starts from here
     ss->ply = (ss-1)->ply + 1;
 
     // Check for an instant draw or maximum ply reached
-    if (pos.is_draw<true>() || ss->ply > MAX_PLY)
-        return Eval::ValueDraw[pos.side_to_move()];
+    if (pos.is_draw<false, false>() || ss->ply > MAX_PLY)
+        return DrawValue[pos.side_to_move()];
 
     // Transposition table lookup. At PV nodes, we don't use the TT for
     // pruning, but only for move ordering.
@@ -1091,9 +1122,14 @@ split_point_start: // At split points actual search starts from here
     // Decide whether or not to include checks, this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
     // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-    ttDepth = inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
-
-    if (!PvNode && tte && can_return_tt(tte, ttDepth, ttValue, beta))
+    ttDepth = inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
+                                                  : DEPTH_QS_NO_CHECKS;
+    if (   tte
+        && tte->depth() >= ttDepth
+        && ttValue != VALUE_NONE // Only in case of TT access race
+        && (           PvNode ?  tte->type() == BOUND_EXACT
+            : ttValue >= beta ? (tte->type() & BOUND_LOWER)
+                              : (tte->type() & BOUND_UPPER)))
     {
         ss->currentMove = ttMove; // Can be MOVE_NONE
         return ttValue;
@@ -1102,7 +1138,7 @@ split_point_start: // At split points actual search starts from here
     // Evaluate the position statically
     if (inCheck)
     {
-        ss->eval = ss->evalMargin = VALUE_NONE;
+        ss->staticEval = ss->evalMargin = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
         enoughMaterial = false;
     }
@@ -1110,19 +1146,23 @@ split_point_start: // At split points actual search starts from here
     {
         if (tte)
         {
-            assert(tte->static_value() != VALUE_NONE);
+            assert(tte->static_value() != VALUE_NONE || Threads.size() > 1);
 
-            ss->eval = bestValue = tte->static_value();
+            ss->staticEval = bestValue = tte->static_value();
             ss->evalMargin = tte->static_value_margin();
+
+            if (ss->staticEval == VALUE_NONE || ss->evalMargin == VALUE_NONE) // Due to a race
+                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
         }
         else
-            ss->eval = bestValue = evaluate(pos, ss->evalMargin);
+            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
         {
             if (!tte)
-                TT.store(pos.key(), value_to_tt(bestValue, ss->ply), BOUND_LOWER, DEPTH_NONE, MOVE_NONE, ss->eval, ss->evalMargin);
+                TT.store(pos.key(), value_to_tt(bestValue, ss->ply), BOUND_LOWER,
+                         DEPTH_NONE, MOVE_NONE, ss->staticEval, ss->evalMargin);
 
             return bestValue;
         }
@@ -1130,7 +1170,7 @@ split_point_start: // At split points actual search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = ss->eval + ss->evalMargin + Value(128);
+        futilityBase = ss->staticEval + ss->evalMargin + Value(128);
         enoughMaterial = pos.non_pawn_material(pos.side_to_move()) > RookValueMg;
     }
 
@@ -1158,7 +1198,7 @@ split_point_start: // At split points actual search starts from here
           && !pos.is_passed_pawn_push(move))
       {
           futilityValue =  futilityBase
-                         + PieceValue[Eg][pos.piece_on(to_sq(move))]
+                         + PieceValue[EG][pos.piece_on(to_sq(move))]
                          + (type_of(move) == ENPASSANT ? PawnValueEg : VALUE_ZERO);
 
           if (futilityValue < beta)
@@ -1197,7 +1237,7 @@ split_point_start: // At split points actual search starts from here
           &&  givesCheck
           &&  move != ttMove
           && !pos.is_capture_or_promotion(move)
-          &&  ss->eval + PawnValueMg / 4 < beta
+          &&  ss->staticEval + PawnValueMg / 4 < beta
           && !check_is_dangerous(pos, move, futilityBase, beta))
           continue;
 
@@ -1229,7 +1269,7 @@ split_point_start: // At split points actual search starts from here
               else // Fail high
               {
                   TT.store(posKey, value_to_tt(value, ss->ply), BOUND_LOWER,
-                           ttDepth, move, ss->eval, ss->evalMargin);
+                           ttDepth, move, ss->staticEval, ss->evalMargin);
 
                   return value;
               }
@@ -1244,7 +1284,7 @@ split_point_start: // At split points actual search starts from here
 
     TT.store(posKey, value_to_tt(bestValue, ss->ply),
              PvNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-             ttDepth, bestMove, ss->eval, ss->evalMargin);
+             ttDepth, bestMove, ss->staticEval, ss->evalMargin);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1252,44 +1292,60 @@ split_point_start: // At split points actual search starts from here
   }
 
 
-  // check_is_dangerous() tests if a checking move can be pruned in qsearch().
-  // bestValue is updated only when returning false because in that case move
-  // will be pruned.
+  // value_to_tt() adjusts a mate score from "plies to mate from the root" to
+  // "plies to mate from the current position". Non-mate scores are unchanged.
+  // The function is called before storing a value to the transposition table.
 
-  bool check_is_dangerous(Position &pos, Move move, Value futilityBase, Value beta)
+  Value value_to_tt(Value v, int ply) {
+
+    assert(v != VALUE_NONE);
+
+    return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
+          : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
+  }
+
+
+  // value_from_tt() is the inverse of value_to_tt(): It adjusts a mate score
+  // from the transposition table (where refers to the plies to mate/be mated
+  // from current position) to "plies to mate/be mated from the root".
+
+  Value value_from_tt(Value v, int ply) {
+
+    return  v == VALUE_NONE             ? VALUE_NONE
+          : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
+          : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+  }
+
+
+  // check_is_dangerous() tests if a checking move can be pruned in qsearch()
+
+  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta)
   {
-    Bitboard b, occ, oldAtt, newAtt, kingAtt;
-    Square from, to, ksq;
-    Piece pc;
-    Color them;
+    Piece pc = pos.piece_moved(move);
+    Square from = from_sq(move);
+    Square to = to_sq(move);
+    Color them = ~pos.side_to_move();
+    Square ksq = pos.king_square(them);
+    Bitboard enemies = pos.pieces(them);
+    Bitboard kingAtt = pos.attacks_from<KING>(ksq);
+    Bitboard occ = pos.pieces() ^ from ^ ksq;
+    Bitboard oldAtt = pos.attacks_from(pc, from, occ);
+    Bitboard newAtt = pos.attacks_from(pc, to, occ);
 
-    from = from_sq(move);
-    to = to_sq(move);
-    them = ~pos.side_to_move();
-    ksq = pos.king_square(them);
-    kingAtt = pos.attacks_from<KING>(ksq);
-    pc = pos.piece_moved(move);
-
-    occ = pos.pieces() ^ from ^ ksq;
-    oldAtt = pos.attacks_from(pc, from, occ);
-    newAtt = pos.attacks_from(pc,   to, occ);
-
-    // Rule 1. Checks which give opponent's king at most one escape square are dangerous
-    b = kingAtt & ~pos.pieces(them) & ~newAtt & ~(1ULL << to);
-
-    if (!more_than_one(b))
+    // Checks which give opponent's king at most one escape square are dangerous
+    if (!more_than_one(kingAtt & ~(enemies | newAtt | to)))
         return true;
 
-    // Rule 2. Queen contact check is very dangerous
+    // Queen contact check is very dangerous
     if (type_of(pc) == QUEEN && (kingAtt & to))
         return true;
 
-    // Rule 3. Creating new double threats with checks
-    b = pos.pieces(them) & newAtt & ~oldAtt & ~(1ULL << ksq);
+    // Creating new double threats with checks is dangerous
+    Bitboard b = (enemies ^ ksq) & newAtt & ~oldAtt;
     while (b)
     {
         // Note that here we generate illegal "double move"!
-        if (futilityBase + PieceValue[Eg][pos.piece_on(pop_lsb(&b))] >= beta)
+        if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
             return true;
     }
 
@@ -1345,38 +1401,6 @@ split_point_start: // At split points actual search starts from here
   }
 
 
-  // value_to_tt() adjusts a mate score from "plies to mate from the root" to
-  // "plies to mate from the current position". Non-mate scores are unchanged.
-  // The function is called before storing a value to the transposition table.
-
-  Value value_to_tt(Value v, int ply) {
-
-    if (v >= VALUE_MATE_IN_MAX_PLY)
-      return v + ply;
-
-    if (v <= VALUE_MATED_IN_MAX_PLY)
-      return v - ply;
-
-    return v;
-  }
-
-
-  // value_from_tt() is the inverse of value_to_tt(): It adjusts a mate score
-  // from the transposition table (where refers to the plies to mate/be mated
-  // from current position) to "plies to mate/be mated from the root".
-
-  Value value_from_tt(Value v, int ply) {
-
-    if (v >= VALUE_MATE_IN_MAX_PLY)
-      return v - ply;
-
-    if (v <= VALUE_MATED_IN_MAX_PLY)
-      return v + ply;
-
-    return v;
-  }
-
-
   // connected_threat() tests whether it is safe to forward prune a move or if
   // is somehow connected to the threat move returned by null search.
 
@@ -1401,7 +1425,7 @@ split_point_start: // At split points actual search starts from here
     // Case 2: If the threatened piece has value less than or equal to the
     // value of the threatening piece, don't prune moves which defend it.
     if (   pos.is_capture(threat)
-        && (   PieceValue[Mg][pos.piece_on(tfrom)] >= PieceValue[Mg][pos.piece_on(tto)]
+        && (   PieceValue[MG][pos.piece_on(tfrom)] >= PieceValue[MG][pos.piece_on(tto)]
             || type_of(pos.piece_on(tfrom)) == KING)
         && pos.move_attacks_square(m, tto))
         return true;
@@ -1417,41 +1441,10 @@ split_point_start: // At split points actual search starts from here
   }
 
 
-  // can_return_tt() returns true if a transposition table score can be used to
-  // cut-off at a given point in search.
-
-  bool can_return_tt(const TTEntry* tte, Depth depth, Value v, Value beta) {
-
-    return   (   tte->depth() >= depth
-              || v >= std::max(VALUE_MATE_IN_MAX_PLY, beta)
-              || v < std::min(VALUE_MATED_IN_MAX_PLY, beta))
-
-          && (   ((tte->type() & BOUND_LOWER) && v >= beta)
-              || ((tte->type() & BOUND_UPPER) && v < beta));
-  }
-
-
-  // refine_eval() returns the transposition table score if possible, otherwise
-  // falls back on static position evaluation.
-
-  Value refine_eval(const TTEntry* tte, Value v, Value defaultEval) {
-
-      assert(tte);
-
-      if (   ((tte->type() & BOUND_LOWER) && v >= defaultEval)
-          || ((tte->type() & BOUND_UPPER) && v < defaultEval))
-          return v;
-
-      return defaultEval;
-  }
-
-
   // When playing with strength handicap choose best move among the MultiPV set
-  // using a statistical rule dependent on SkillLevel. Idea by Heinz van Saanen.
+  // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 
-  Move do_skill_level() {
-
-    assert(MultiPV > 1);
+  Move Skill::pick_move() {
 
     static RKISS rk;
 
@@ -1460,16 +1453,15 @@ split_point_start: // At split points actual search starts from here
         rk.rand<unsigned>();
 
     // RootMoves are already sorted by score in descending order
-    size_t size = std::min(MultiPV, RootMoves.size());
-    int variance = std::min(RootMoves[0].score - RootMoves[size - 1].score, PawnValueMg);
-    int weakness = 120 - 2 * SkillLevel;
+    int variance = std::min(RootMoves[0].score - RootMoves[PVSize - 1].score, PawnValueMg);
+    int weakness = 120 - 2 * level;
     int max_s = -VALUE_INFINITE;
-    Move best = MOVE_NONE;
+    best = MOVE_NONE;
 
     // Choose best move. For each move score we add two terms both dependent on
     // weakness, one deterministic and bigger for weaker moves, and one random,
     // then we choose the move with the resulting highest score.
-    for (size_t i = 0; i < size; i++)
+    for (size_t i = 0; i < PVSize; i++)
     {
         int s = RootMoves[i].score;
 
@@ -1499,23 +1491,24 @@ split_point_start: // At split points actual search starts from here
 
     std::stringstream s;
     Time::point elaspsed = Time::now() - SearchTime + 1;
+    size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
     int selDepth = 0;
 
     for (size_t i = 0; i < Threads.size(); i++)
         if (Threads[i].maxPly > selDepth)
             selDepth = Threads[i].maxPly;
 
-    for (size_t i = 0; i < std::min(UCIMultiPV, RootMoves.size()); i++)
+    for (size_t i = 0; i < uciPVSize; i++)
     {
         bool updated = (i <= PVIdx);
 
         if (depth == 1 && !updated)
             continue;
 
-        int d = (updated ? depth : depth - 1);
-        Value v = (updated ? RootMoves[i].score : RootMoves[i].prevScore);
+        int d   = updated ? depth : depth - 1;
+        Value v = updated ? RootMoves[i].score : RootMoves[i].prevScore;
 
-        if (s.rdbuf()->in_avail())
+        if (s.rdbuf()->in_avail()) // Not at first line
             s << "\n";
 
         s << "info depth " << d
@@ -1528,7 +1521,7 @@ split_point_start: // At split points actual search starts from here
           << " pv";
 
         for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; j++)
-            s <<  " " << move_to_uci(RootMoves[i].pv[j], Chess960);
+            s <<  " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
     }
 
     return s.str();
@@ -1546,29 +1539,27 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
   TTEntry* tte;
-  int ply = 1;
+  int ply = 0;
   Move m = pv[0];
 
-  assert(m != MOVE_NONE && pos.is_pseudo_legal(m));
-
   pv.clear();
-  pv.push_back(m);
-  pos.do_move(m, *st++);
 
-  while (   (tte = TT.probe(pos.key())) != nullptr
-         && (m = tte->move()) != MOVE_NONE // Local copy, TT entry could change
-         && pos.is_pseudo_legal(m)
-         && pos.pl_move_is_legal(m, pos.pinned_pieces())
-         && ply < MAX_PLY
-         && (!pos.is_draw<false>() || ply < 2))
-  {
+  do {
       pv.push_back(m);
-      pos.do_move(m, *st++);
-      ply++;
-  }
-  pv.push_back(MOVE_NONE);
 
-  do pos.undo_move(pv[--ply]); while (ply);
+      assert(pos.move_is_legal(pv[ply]));
+      pos.do_move(pv[ply++], *st++);
+      tte = TT.probe(pos.key());
+
+  } while (   tte
+           && pos.is_pseudo_legal(m = tte->move()) // Local copy, TT could change
+           && pos.pl_move_is_legal(m, pos.pinned_pieces())
+           && ply < MAX_PLY
+           && (!pos.is_draw<true, true>() || ply < 2));
+
+  pv.push_back(MOVE_NONE); // Must be zero-terminating
+
+  while (ply) pos.undo_move(pv[--ply]);
 }
 
 
@@ -1580,27 +1571,28 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
   TTEntry* tte;
-  Key k;
-  Value v, m = VALUE_NONE;
   int ply = 0;
-
-  assert(pv[ply] != MOVE_NONE && pos.is_pseudo_legal(pv[ply]));
+  Value v, m;
 
   do {
-      k = pos.key();
-      tte = TT.probe(k);
+      tte = TT.probe(pos.key());
 
-      // Don't overwrite existing correct entries
-      if (!tte || tte->move() != pv[ply])
+      if (!tte || tte->move() != pv[ply]) // Don't overwrite correct entries
       {
-          v = (pos.in_check() ? VALUE_NONE : evaluate(pos, m));
-          TT.store(k, VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], v, m);
+          if (pos.in_check())
+              v = m = VALUE_NONE;
+          else
+              v = evaluate(pos, m);
+
+          TT.store(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], v, m);
       }
-      pos.do_move(pv[ply], *st++);
 
-  } while (pv[++ply] != MOVE_NONE);
+      assert(pos.move_is_legal(pv[ply]));
+      pos.do_move(pv[ply++], *st++);
 
-  do pos.undo_move(pv[--ply]); while (ply);
+  } while (pv[ply] != MOVE_NONE);
+
+  while (ply) pos.undo_move(pv[--ply]);
 }
 
 
@@ -1727,7 +1719,7 @@ void check_time() {
   {
       Threads.mutex.lock();
 
-      nodes = RootPosition.nodes_searched();
+      nodes = RootPos.nodes_searched();
 
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active slaves positions.

@@ -20,7 +20,7 @@
 #include <cassert>
 #include <iomanip>
 #include <sstream>
-#include <string>
+#include <stack>
 
 #include "movegen.h"
 #include "notation.h"
@@ -28,7 +28,7 @@
 
 using namespace std;
 
-static const char* PieceToChar = " PNBRQK  pnbrqk";
+static const char* PieceToChar[COLOR_NB] = { " PNBRQK", " pnbrqk" };
 
 
 /// score_to_uci() converts a value to a string suitable for use with the UCI
@@ -75,7 +75,7 @@ const string move_to_uci(Move m, bool chess960) {
   string move = square_to_string(from) + square_to_string(to);
 
   if (type_of(m) == PROMOTION)
-      move += PieceToChar[make_piece(BLACK, promotion_type(m))]; // Lower case
+      move += PieceToChar[BLACK][promotion_type(m)]; // Lower case
 
   return move;
 }
@@ -125,7 +125,7 @@ const string move_to_san(Position& pos, Move m) {
   {
       if (pt != PAWN)
       {
-          san = PieceToChar[pt]; // Upper case
+          san = PieceToChar[WHITE][pt]; // Upper case
 
           // Disambiguation if we have more then one piece with destination 'to'
           // note that for pawns is not needed because starting file is explicit.
@@ -167,7 +167,7 @@ const string move_to_san(Position& pos, Move m) {
       san += square_to_string(to);
 
       if (type_of(m) == PROMOTION)
-          san += string("=") + PieceToChar[promotion_type(m)];
+          san += string("=") + PieceToChar[WHITE][promotion_type(m)];
   }
 
   if (pos.move_gives_check(m, CheckInfo(pos)))
@@ -226,7 +226,7 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
   const int64_t K = 1000;
   const int64_t M = 1000000;
 
-  StateInfo state[MAX_PLY_PLUS_2], *st = state;
+  std::stack<StateInfo> st;
   Move* m = pv;
   string san, padding;
   size_t length;
@@ -261,7 +261,8 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
       s << san << ' ';
       length += san.length() + 1;
 
-      pos.do_move(*m++, *st++);
+      st.push(StateInfo());
+      pos.do_move(*m++, st.top());
   }
 
   while (m != pv)

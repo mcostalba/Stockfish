@@ -58,6 +58,7 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 # bsfq = yes/no       --- -DUSE_BSFQ       --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
 # popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt x86_64 asm-instruction
+# sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -77,6 +78,7 @@ ifeq ($(ARCH),general-64)
 	prefetch = no
 	bsfq = no
 	popcnt = no
+	sse = no
 endif
 
 ifeq ($(ARCH),general-32)
@@ -86,6 +88,7 @@ ifeq ($(ARCH),general-32)
 	prefetch = no
 	bsfq = no
 	popcnt = no
+	sse = no
 endif
 
 # x86-section
@@ -96,6 +99,7 @@ ifeq ($(ARCH),x86-64)
 	prefetch = yes
 	bsfq = yes
 	popcnt = no
+	sse = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
@@ -105,6 +109,7 @@ ifeq ($(ARCH),x86-64-modern)
 	prefetch = yes
 	bsfq = yes
 	popcnt = yes
+	sse = yes
 endif
 
 ifeq ($(ARCH),x86-32)
@@ -114,6 +119,7 @@ ifeq ($(ARCH),x86-32)
 	prefetch = yes
 	bsfq = no
 	popcnt = no
+	sse = yes
 endif
 
 ifeq ($(ARCH),x86-32-old)
@@ -123,6 +129,18 @@ ifeq ($(ARCH),x86-32-old)
 	prefetch = no
 	bsfq = no
 	popcnt = no
+	sse = no
+endif
+
+#arm section
+ifeq ($(ARCH),armv7)
+	arch = armv7
+	os = any
+	bits = 32
+	prefetch = yes
+	bsfq = yes
+	popcnt = no
+	sse = no
 endif
 
 # osx-section
@@ -133,6 +151,7 @@ ifeq ($(ARCH),osx-ppc-64)
 	prefetch = no
 	bsfq = no
 	popcnt = no
+	sse = no
 endif
 
 ifeq ($(ARCH),osx-ppc-32)
@@ -142,6 +161,7 @@ ifeq ($(ARCH),osx-ppc-32)
 	prefetch = no
 	bsfq = no
 	popcnt = no
+	sse = no
 endif
 
 ifeq ($(ARCH),osx-x86-64)
@@ -151,6 +171,7 @@ ifeq ($(ARCH),osx-x86-64)
 	prefetch = yes
 	bsfq = yes
 	popcnt = no
+	sse = yes
 endif
 
 ifeq ($(ARCH),osx-x86-32)
@@ -160,6 +181,7 @@ ifeq ($(ARCH),osx-x86-32)
 	prefetch = yes
 	bsfq = no
 	popcnt = no
+	sse = yes
 endif
 
 
@@ -175,7 +197,6 @@ endif
 ifeq ($(COMP),mingw)
 	comp=mingw
 	CXX=g++
-	prefetch = yes
 	profile_prepare = gcc-profile-prepare
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
@@ -185,7 +206,6 @@ endif
 ifeq ($(COMP),gcc)
 	comp=gcc
 	CXX=g++
-	prefetch = yes
 	profile_prepare = gcc-profile-prepare
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
@@ -204,7 +224,6 @@ endif
 ifeq ($(COMP),clang)
 	comp=clang
 	CXX=clang++
-	prefetch = yes
 	profile_prepare = gcc-profile-prepare
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
@@ -231,7 +250,7 @@ ifeq ($(comp),clang)
 endif
 
 ifeq ($(os),osx)
-	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.0
 endif
 
 ### 3.3 General linker settings
@@ -246,7 +265,7 @@ ifneq ($(comp),mingw)
 endif
 
 ifeq ($(os),osx)
-	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.6
+	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.0
 endif
 
 ### 3.4 Debugging
@@ -267,6 +286,10 @@ ifeq ($(optimize),yes)
 			ifeq ($(arch),x86_64)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
+		endif
+
+		ifeq ($(arch),armv7)
+			CXXFLAGS += -fno-gcse
 		endif
 	endif
 
@@ -304,8 +327,10 @@ endif
 
 ### 3.7 prefetch
 ifeq ($(prefetch),yes)
-	CXXFLAGS += -msse
-	DEPENDFLAGS += -msse
+	ifeq ($(sse),yes)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+	endif
 else
 	CXXFLAGS += -DNO_PREFETCH
 endif
@@ -363,6 +388,7 @@ help:
 	@echo "osx-ppc-32           > PPC-Mac OS X 32 bit"
 	@echo "osx-x86-64           > x86-Mac OS X 64 bit"
 	@echo "osx-x86-32           > x86-Mac OS X 32 bit"
+	@echo "armv7                > ARMv7 32 bit"
 	@echo "general-64           > unspecified 64-bit"
 	@echo "general-32           > unspecified 32-bit"
 	@echo ""
@@ -441,6 +467,7 @@ config-sanity:
 	@echo "prefetch: '$(prefetch)'"
 	@echo "bsfq: '$(bsfq)'"
 	@echo "popcnt: '$(popcnt)'"
+	@echo "sse: '$(sse)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
@@ -452,12 +479,13 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
-	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc"
+	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
 	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
+	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 $(EXE): $(OBJS)

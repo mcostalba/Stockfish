@@ -404,7 +404,7 @@ void ThreadPool::start_searching(const Position& pos, const LimitsType& limits,
   Signals.stopOnPonderhit = Signals.firstRootMove = false;
   Signals.stop = Signals.failedLowAtRoot = false;
 
-  RootPosition = pos;
+  RootPos = pos;
   Limits = limits;
   SetupStates = std::move(states); // Ownership transfer here
   RootMoves.clear();

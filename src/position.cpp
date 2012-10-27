@@ -40,16 +40,16 @@ static const string PieceToChar(" PNBRQK  pnbrqk");
 
 CACHE_LINE_ALIGNMENT
 
-Score pieceSquareTable[16][64]; // [piece][square]
-Value PieceValue[2][18] = {     // [Mg / Eg][piece / pieceType]
+Score pieceSquareTable[PIECE_NB][SQUARE_NB];
+Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 
 namespace Zobrist {
 
-Key psq[2][8][64]; // [color][pieceType][square / piece count]
-Key enpassant[8];  // [file]
-Key castle[16];    // [castleRight]
+Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Key enpassant[FILE_NB];
+Key castle[CASTLE_RIGHT_NB];
 Key side;
 Key exclusion;
 
@@ -86,10 +86,10 @@ void init() {
 
   for (PieceType pt = PAWN; pt <= KING; pt++)
   {
-      PieceValue[Mg][make_piece(BLACK, pt)] = PieceValue[Mg][pt];
-      PieceValue[Eg][make_piece(BLACK, pt)] = PieceValue[Eg][pt];
+      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
+      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
 
-      Score v = make_score(PieceValue[Mg][pt], PieceValue[Eg][pt]);
+      Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
 
       for (Square s = SQ_A1; s <= SQ_H8; s++)
       {
@@ -400,10 +400,8 @@ void Position::print(Move move) const {
   sync_cout;
 
   if (move)
-  {
-      Position p(*this);
-      cout << "\nMove is: " << (sideToMove == BLACK ? ".." : "") << move_to_san(p, move);
-  }
+      cout << "\nMove is: " << (sideToMove == BLACK ? ".." : "")
+           << move_to_san(*const_cast<Position*>(this), move);
 
   for (Square sq = SQ_A1; sq <= SQ_H8; sq++)
       if (piece_on(sq) != NO_PIECE)
@@ -830,7 +828,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
           st->pawnKey ^= Zobrist::psq[them][PAWN][capsq];
       }
       else
-          st->npMaterial[them] -= PieceValue[Mg][capture];
+          st->npMaterial[them] -= PieceValue[MG][capture];
 
       // Remove the captured piece
       byTypeBB[ALL_PIECES] ^= capsq;
@@ -938,7 +936,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
                          - pieceSquareTable[make_piece(us, PAWN)][to];
 
           // Update material
-          st->npMaterial[us] += PieceValue[Mg][promotion];
+          st->npMaterial[us] += PieceValue[MG][promotion];
       }
 
       // Update pawn hash key
@@ -1243,7 +1241,7 @@ int Position::see_sign(Move m) const {
   // Early return if SEE cannot be negative because captured piece value
   // is not less then capturing one. Note that king moves always return
   // here because king midgame value is set to 0.
-  if (PieceValue[Mg][piece_on(to_sq(m))] >= PieceValue[Mg][piece_moved(m)])
+  if (PieceValue[MG][piece_on(to_sq(m))] >= PieceValue[MG][piece_moved(m)])
       return 1;
 
   return see(m);
@@ -1290,7 +1288,7 @@ int Position::see(Move m) const {
   stm = ~color_of(piece_on(from));
   stmAttackers = attackers & pieces(stm);
   if (!stmAttackers)
-      return PieceValue[Mg][captured];
+      return PieceValue[MG][captured];
 
   // The destination square is defended, which makes things rather more
   // difficult to compute. We proceed by building up a "swap list" containing
@@ -1298,14 +1296,14 @@ int Position::see(Move m) const {
   // destination square, where the sides alternately capture, and always
   // capture with the least valuable piece. After each capture, we look for
   // new X-ray attacks from behind the capturing piece.
-  swapList[0] = PieceValue[Mg][captured];
+  swapList[0] = PieceValue[MG][captured];
   captured = type_of(piece_on(from));
 
   do {
       assert(slIndex < 32);
 
       // Add the new entry to the swap list
-      swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[Mg][captured];
+      swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
       slIndex++;
 
       // Locate and remove from 'occupied' the next least valuable attacker
@@ -1347,9 +1345,6 @@ void Position::clear() {
   for (int i = 0; i < 8; i++)
       for (int j = 0; j < 16; j++)
           pieceList[0][i][j] = pieceList[1][i][j] = SQ_NONE;
-
-  for (Square sq = SQ_A1; sq <= SQ_H8; sq++)
-      board[sq] = NO_PIECE;
 }
 
 
@@ -1463,7 +1458,7 @@ Value Position::compute_non_pawn_material(Color c) const {
   Value value = VALUE_ZERO;
 
   for (PieceType pt = KNIGHT; pt <= QUEEN; pt++)
-      value += piece_count(c, pt) * PieceValue[Mg][pt];
+      value += piece_count(c, pt) * PieceValue[MG][pt];
 
   return value;
 }
@@ -1472,20 +1467,17 @@ Value Position::compute_non_pawn_material(Color c) const {
 /// Position::is_draw() tests whether the position is drawn by material,
 /// repetition, or the 50 moves rule. It does not detect stalemates, this
 /// must be done by the search.
-template<bool SkipRepetition>
+template<bool CheckRepetition, bool CheckThreeFold>
 bool Position::is_draw() const {
 
-  // Draw by material?
   if (   !pieces(PAWN)
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
       return true;
 
-  // Draw by the 50 moves rule?
   if (st->rule50 > 99 && (!in_check() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  // Draw by repetition?
-  if (!SkipRepetition)
+  if (CheckRepetition)
   {
       int i = 4, e = std::min(st->rule50, st->pliesFromNull);
 
@@ -1493,15 +1485,13 @@ bool Position::is_draw() const {
       {
           StateInfo* stp = st->previous->previous;
 
-          do {
+          for (int cnt = 0; i <= e; i += 2)
+          {
               stp = stp->previous->previous;
 
-              if (stp->key == st->key)
+              if (stp->key == st->key && (!CheckThreeFold || ++cnt >= 2))
                   return true;
-
-              i +=2;
-
-          } while (i <= e);
+          }
       }
   }
 
@@ -1509,8 +1499,9 @@ bool Position::is_draw() const {
 }
 
 // Explicit template instantiations
-template bool Position::is_draw<false>() const;
-template bool Position::is_draw<true>() const;
+template bool Position::is_draw<true,  true>() const;
+template bool Position::is_draw<true, false>() const;
+template bool Position::is_draw<false,false>() const;
 
 
 /// Position::flip() flips position with the white and black sides reversed. This
@@ -1593,7 +1584,7 @@ bool Position::pos_is_ok(int* failedStep) const {
 
   if ((*step)++, debugKingCount)
   {
-      int kingCount[2] = {};
+      int kingCount[COLOR_NB] = {};
 
       for (Square s = SQ_A1; s <= SQ_H8; s++)
           if (type_of(piece_on(s)) == KING)

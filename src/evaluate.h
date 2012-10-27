@@ -26,10 +26,6 @@ class Position;
 
 namespace Eval {
 
-extern Color RootColor;
-extern Value ContemptFactor;
-extern Value ValueDraw[2];
-
 extern void init();
 extern Value evaluate(const Position& pos, Value& margin);
 extern std::string trace(const Position& pos);
