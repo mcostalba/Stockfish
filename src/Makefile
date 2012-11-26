@@ -234,7 +234,8 @@ ifeq ($(comp),armcross)
 endif
 
 ifeq ($(os),osx)
-	CXXFLAGS += -arch $(arch)
+	# -mmacosx-version-min=10.6 avoids "illegal instruction: 4" under OS X Lion.
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
 endif
 
 ### 3.3 General linker settings
