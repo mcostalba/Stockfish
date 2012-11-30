@@ -62,10 +62,6 @@ namespace {
   // Different node types, used as template parameter
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
-  // Lookup table to check if a Piece is a slider and its access function
-  const bool Slidings[18] = { 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 };
-  inline bool piece_is_slider(Piece p) { return Slidings[p]; }
-
   // Dynamic razoring margin based on depth
   inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
 
@@ -96,15 +92,15 @@ namespace {
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
 
-  template <NodeType NT>
+  template <NodeType NT, bool InCheck>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
 
   void id_loop(Position& pos);
-  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
-  bool connected_moves(const Position& pos, Move m1, Move m2);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
-  bool connected_threat(const Position& pos, Move m, Move threat);
+  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
+  bool yields_to_threat(const Position& pos, Move move, Move threat);
+  bool prevents_threat(const Position& pos, Move move, Move threat);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
@@ -222,7 +218,7 @@ void Search::think() {
   if (Options["Use Search Log"])
   {
       Log log(Options["Search Log Filename"]);
-      log << "\nSearching: "  << RootPos.to_fen()
+      log << "\nSearching: "  << RootPos.fen()
           << "\ninfinite: "   << Limits.infinite
           << " ponder: "      << Limits.ponder
           << " time: "        << Limits.time[RootColor]
@@ -394,8 +390,9 @@ namespace {
             }
 
             // Sort the PV lines searched so far and update the GUI
-            sort<RootMove>(RootMoves.begin(), RootMoves.begin() + PVIdx);
-            sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+            sort<RootMove>(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
+            if (PVIdx + 1 == PVSize || Time::now() - SearchTime > 3000)
+                sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
 
         // Do we need to pick now the sub-optimal best move ?
@@ -626,7 +623,7 @@ namespace {
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
         Value rbeta = beta - razor_margin(depth);
-        Value v = qsearch<NonPV>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
+        Value v = qsearch<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
         if (v < rbeta)
             // Logically we should return (v + razor_margin(depth)), but
             // surprisingly this did slightly weaker in tests.
@@ -665,7 +662,7 @@ namespace {
 
         pos.do_null_move<true>(st);
         (ss+1)->skipNullMove = true;
-        nullValue = depth-R < ONE_PLY ? -qsearch<NonPV>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+        nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                       : - search<NonPV>(pos, ss+1, -beta, -alpha, depth-R);
         (ss+1)->skipNullMove = false;
         pos.do_null_move<false>(st);
@@ -700,7 +697,7 @@ namespace {
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
-                && connected_moves(pos, (ss-1)->currentMove, threatMove))
+                && yields_to_threat(pos, (ss-1)->currentMove, threatMove))
                 return beta - 1;
         }
     }
@@ -797,7 +794,7 @@ split_point_start: // At split points actual search starts from here
       {
           Signals.firstRootMove = (moveCount == 1);
 
-          if (thisThread == Threads.main_thread() && Time::now() - SearchTime > 2000)
+          if (thisThread == Threads.main_thread() && Time::now() - SearchTime > 3000)
               sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
@@ -861,7 +858,7 @@ split_point_start: // At split points actual search starts from here
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
               && moveCount >= FutilityMoveCounts[depth]
-              && (!threatMove || !connected_threat(pos, move, threatMove)))
+              && (!threatMove || !prevents_threat(pos, move, threatMove)))
           {
               if (SpNode)
                   sp->mutex.lock();
@@ -896,7 +893,7 @@ split_point_start: // At split points actual search starts from here
       }
 
       // Check for legality only before to do the move
-      if (!pos.pl_move_is_legal(move, ci.pinned))
+      if (!RootNode && !SpNode && !pos.pl_move_is_legal(move, ci.pinned))
       {
           moveCount--;
           continue;
@@ -935,7 +932,9 @@ split_point_start: // At split points actual search starts from here
       if (doFullDepthSearch)
       {
           alpha = SpNode ? sp->alpha : alpha;
-          value = newDepth < ONE_PLY ? -qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+          value = newDepth < ONE_PLY ?
+                          givesCheck ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                                     : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                                      : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth);
       }
 
@@ -943,9 +942,10 @@ split_point_start: // At split points actual search starts from here
       // high, in the latter case search only if value < beta, otherwise let the
       // parent node to fail low with value <= alpha and to try another move.
       if (PvNode && (pvMove || (value > alpha && (RootNode || value < beta))))
-          value = newDepth < ONE_PLY ? -qsearch<PV>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+          value = newDepth < ONE_PLY ?
+                          givesCheck ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                                     : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                      : - search<PV>(pos, ss+1, -beta, -alpha, newDepth);
-
       // Step 17. Undo move
       pos.undo_move(move);
 
@@ -1004,8 +1004,10 @@ split_point_start: // At split points actual search starts from here
                   alpha = value; // Update alpha here! Always alpha < beta
                   if (SpNode) sp->alpha = value;
               }
-              else // Fail high
+              else
               {
+                  assert(value >= beta); // Fail high
+
                   if (SpNode) sp->cutoff = true;
                   break;
               }
@@ -1020,7 +1022,8 @@ split_point_start: // At split points actual search starts from here
       {
           bestValue = Threads.split<FakeSplit>(pos, ss, alpha, beta, bestValue, &bestMove,
                                                depth, threatMove, moveCount, mp, NT);
-          break;
+          if (bestValue >= beta)
+              break;
       }
     }
 
@@ -1086,12 +1089,13 @@ split_point_start: // At split points actual search starts from here
   // search function when the remaining depth is zero (or, to be more precise,
   // less than ONE_PLY).
 
-  template <NodeType NT>
+  template <NodeType NT, bool InCheck>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
 
     const bool PvNode = (NT == PV);
 
     assert(NT == PV || NT == NonPV);
+    assert(InCheck == pos.in_check());
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= DEPTH_ZERO);
@@ -1100,13 +1104,17 @@ split_point_start: // At split points actual search starts from here
     const TTEntry* tte;
     Key posKey;
     Move ttMove, move, bestMove;
-    Value bestValue, value, ttValue, futilityValue, futilityBase;
-    bool inCheck, givesCheck, enoughMaterial, evasionPrunable;
+    Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
+    bool givesCheck, enoughMaterial, evasionPrunable, fromNull;
     Depth ttDepth;
 
-    inCheck = pos.in_check();
+    // To flag BOUND_EXACT a node with eval above alpha and no available moves
+    if (PvNode)
+        oldAlpha = alpha;
+
     ss->currentMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
+    fromNull = (ss-1)->currentMove == MOVE_NULL;
 
     // Check for an instant draw or maximum ply reached
     if (pos.is_draw<false, false>() || ss->ply > MAX_PLY)
@@ -1122,7 +1130,7 @@ split_point_start: // At split points actual search starts from here
     // Decide whether or not to include checks, this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
     // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-    ttDepth = inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
+    ttDepth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
                                                   : DEPTH_QS_NO_CHECKS;
     if (   tte
         && tte->depth() >= ttDepth
@@ -1136,7 +1144,7 @@ split_point_start: // At split points actual search starts from here
     }
 
     // Evaluate the position statically
-    if (inCheck)
+    if (InCheck)
     {
         ss->staticEval = ss->evalMargin = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
@@ -1144,7 +1152,12 @@ split_point_start: // At split points actual search starts from here
     }
     else
     {
-        if (tte)
+        if (fromNull)
+        {
+            ss->staticEval = bestValue = -(ss-1)->staticEval;
+            ss->evalMargin = VALUE_ZERO;
+        }
+        else if (tte)
         {
             assert(tte->static_value() != VALUE_NONE || Threads.size() > 1);
 
@@ -1190,8 +1203,9 @@ split_point_start: // At split points actual search starts from here
 
       // Futility pruning
       if (   !PvNode
-          && !inCheck
+          && !InCheck
           && !givesCheck
+          && !fromNull
           &&  move != ttMove
           &&  enoughMaterial
           &&  type_of(move) != PROMOTION
@@ -1203,9 +1217,7 @@ split_point_start: // At split points actual search starts from here
 
           if (futilityValue < beta)
           {
-              if (futilityValue > bestValue)
-                  bestValue = futilityValue;
-
+              bestValue = std::max(bestValue, futilityValue);
               continue;
           }
 
@@ -1213,19 +1225,22 @@ split_point_start: // At split points actual search starts from here
           if (   futilityBase < beta
               && depth < DEPTH_ZERO
               && pos.see(move) <= 0)
+          {
+              bestValue = std::max(bestValue, futilityBase);
               continue;
+          }
       }
 
       // Detect non-capture evasions that are candidate to be pruned
       evasionPrunable =   !PvNode
-                       &&  inCheck
+                       &&  InCheck
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.is_capture(move)
                        && !pos.can_castle(pos.side_to_move());
 
       // Don't search moves with negative SEE values
       if (   !PvNode
-          && (!inCheck || evasionPrunable)
+          && (!InCheck || evasionPrunable)
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < 0)
@@ -1233,7 +1248,7 @@ split_point_start: // At split points actual search starts from here
 
       // Don't search useless checks
       if (   !PvNode
-          && !inCheck
+          && !InCheck
           &&  givesCheck
           &&  move != ttMove
           && !pos.is_capture_or_promotion(move)
@@ -1249,7 +1264,8 @@ split_point_start: // At split points actual search starts from here
 
       // Make and search the move
       pos.do_move(move, st, ci, givesCheck);
-      value = -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
+      value = givesCheck ? -qsearch<NT,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
+                         : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
@@ -1279,11 +1295,11 @@ split_point_start: // At split points actual search starts from here
 
     // All legal moves have been searched. A special case: If we're in check
     // and no legal moves were found, it is checkmate.
-    if (inCheck && bestValue == -VALUE_INFINITE)
+    if (InCheck && bestValue == -VALUE_INFINITE)
         return mated_in(ss->ply); // Plies to mate from the root
 
     TT.store(posKey, value_to_tt(bestValue, ss->ply),
-             PvNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
+             PvNode && bestValue > oldAlpha ? BOUND_EXACT : BOUND_UPPER,
              ttDepth, bestMove, ss->staticEval, ss->evalMargin);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
@@ -1353,88 +1369,91 @@ split_point_start: // At split points actual search starts from here
   }
 
 
-  // connected_moves() tests whether two moves are 'connected' in the sense
-  // that the first move somehow made the second move possible (for instance
-  // if the moving piece is the same in both moves). The first move is assumed
-  // to be the move that was made to reach the current position, while the
-  // second move is assumed to be a move from the current position.
+  // yields_to_threat() tests whether the move at previous ply yields to the so
+  // called threat move (the best move returned from a null search that fails
+  // low). Here 'yields to' means that the move somehow made the threat possible
+  // for instance if the moving piece is the same in both moves.
 
-  bool connected_moves(const Position& pos, Move m1, Move m2) {
+  bool yields_to_threat(const Position& pos, Move move, Move threat) {
 
-    Square f1, t1, f2, t2;
-    Piece p1, p2;
-    Square ksq;
+    assert(is_ok(move));
+    assert(is_ok(threat));
+    assert(color_of(pos.piece_on(from_sq(threat))) == ~pos.side_to_move());
 
-    assert(is_ok(m1));
-    assert(is_ok(m2));
+    Square mfrom = from_sq(move);
+    Square mto = to_sq(move);
+    Square tfrom = from_sq(threat);
+    Square tto = to_sq(threat);
 
-    // Case 1: The moving piece is the same in both moves
-    f2 = from_sq(m2);
-    t1 = to_sq(m1);
-    if (f2 == t1)
+    // The piece is the same or threat's destination was vacated by the move
+    if (mto == tfrom || tto == mfrom)
         return true;
 
-    // Case 2: The destination square for m2 was vacated by m1
-    t2 = to_sq(m2);
-    f1 = from_sq(m1);
-    if (t2 == f1)
-        return true;
-
-    // Case 3: Moving through the vacated square
-    p2 = pos.piece_on(f2);
-    if (piece_is_slider(p2) && (between_bb(f2, t2) & f1))
+    // Threat moves through the vacated square
+    if (between_bb(tfrom, tto) & mfrom)
       return true;
 
-    // Case 4: The destination square for m2 is defended by the moving piece in m1
-    p1 = pos.piece_on(t1);
-    if (pos.attacks_from(p1, t1) & t2)
+    // Threat's destination is defended by the move's piece
+    Bitboard matt = pos.attacks_from(pos.piece_on(mto), mto, pos.pieces() ^ tfrom);
+    if (matt & tto)
         return true;
 
-    // Case 5: Discovered check, checking piece is the piece moved in m1
-    ksq = pos.king_square(pos.side_to_move());
-    if (    piece_is_slider(p1)
-        && (between_bb(t1, ksq) & f2)
-        && (pos.attacks_from(p1, t1, pos.pieces() ^ f2) & ksq))
+    // Threat gives a discovered check through the move's checking piece
+    if (matt & pos.king_square(pos.side_to_move()))
+    {
+        assert(between_bb(mto, pos.king_square(pos.side_to_move())) & tfrom);
         return true;
+    }
 
     return false;
   }
 
 
-  // connected_threat() tests whether it is safe to forward prune a move or if
-  // is somehow connected to the threat move returned by null search.
+  // prevents_threat() tests whether a move is able to defend against the so
+  // called threat move (the best move returned from a null search that fails
+  // low). In this case will not be pruned.
 
-  bool connected_threat(const Position& pos, Move m, Move threat) {
+  bool prevents_threat(const Position& pos, Move move, Move threat) {
 
-    assert(is_ok(m));
+    assert(is_ok(move));
     assert(is_ok(threat));
-    assert(!pos.is_capture_or_promotion(m));
-    assert(!pos.is_passed_pawn_push(m));
+    assert(!pos.is_capture_or_promotion(move));
+    assert(!pos.is_passed_pawn_push(move));
 
-    Square mfrom, mto, tfrom, tto;
+    Square mfrom = from_sq(move);
+    Square mto = to_sq(move);
+    Square tfrom = from_sq(threat);
+    Square tto = to_sq(threat);
 
-    mfrom = from_sq(m);
-    mto = to_sq(m);
-    tfrom = from_sq(threat);
-    tto = to_sq(threat);
-
-    // Case 1: Don't prune moves which move the threatened piece
+    // Don't prune moves of the threatened piece
     if (mfrom == tto)
         return true;
 
-    // Case 2: If the threatened piece has value less than or equal to the
-    // value of the threatening piece, don't prune moves which defend it.
-    if (   pos.is_capture(threat)
+    // If the threatened piece has value less than or equal to the value of the
+    // threat piece, don't prune moves which defend it.
+    if (    pos.is_capture(threat)
         && (   PieceValue[MG][pos.piece_on(tfrom)] >= PieceValue[MG][pos.piece_on(tto)]
-            || type_of(pos.piece_on(tfrom)) == KING)
-        && pos.move_attacks_square(m, tto))
-        return true;
+            || type_of(pos.piece_on(tfrom)) == KING))
+    {
+        // Update occupancy as if the piece and the threat are moving
+        Bitboard occ = pos.pieces() ^ mfrom ^ mto ^ tfrom;
+        Piece piece = pos.piece_on(mfrom);
 
-    // Case 3: If the moving piece in the threatened move is a slider, don't
-    // prune safe moves which block its ray.
-    if (    piece_is_slider(pos.piece_on(tfrom))
-        && (between_bb(tfrom, tto) & mto)
-        &&  pos.see_sign(m) >= 0)
+        // The moved piece attacks the square 'tto' ?
+        if (pos.attacks_from(piece, mto, occ) & tto)
+            return true;
+
+        // Scan for possible X-ray attackers behind the moved piece
+        Bitboard xray =  (attacks_bb<  ROOK>(tto, occ) & pos.pieces(color_of(piece), QUEEN, ROOK))
+                       | (attacks_bb<BISHOP>(tto, occ) & pos.pieces(color_of(piece), QUEEN, BISHOP));
+
+        // Verify attackers are triggered by our move and not already existing
+        if (xray && (xray ^ (xray & pos.attacks_from<QUEEN>(tto))))
+            return true;
+    }
+
+    // Don't prune safe moves which block the threat path
+    if ((between_bb(tfrom, tto) & mto) && pos.see_sign(move) >= 0)
         return true;
 
     return false;

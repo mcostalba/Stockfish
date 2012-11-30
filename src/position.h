@@ -21,6 +21,7 @@
 #define POSITION_H_INCLUDED
 
 #include <cassert>
+#include <cstddef>
 
 #include "bitboard.h"
 #include "types.h"
@@ -44,7 +45,7 @@ struct CheckInfo {
 
 /// The StateInfo struct stores information we need to restore a Position
 /// object to its previous state when we retract a move. Whenever a move
-/// is made on the board (by calling Position::do_move), an StateInfo object
+/// is made on the board (by calling Position::do_move), a StateInfo object
 /// must be passed as a parameter.
 
 struct StateInfo {
@@ -60,13 +61,10 @@ struct StateInfo {
   StateInfo* previous;
 };
 
-struct ReducedStateInfo {
-  Key pawnKey, materialKey;
-  Value npMaterial[COLOR_NB];
-  int castleRights, rule50, pliesFromNull;
-  Score psqScore;
-  Square epSquare;
-};
+
+/// When making a move the current StateInfo up to 'key' excluded is copied to
+/// the new one. Here we calculate the quad words (64bits) needed to be copied.
+const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 
 
 /// The position data structure. A position consists of the following data:
@@ -95,13 +93,13 @@ class Position {
 public:
   Position() {}
   Position(const Position& p, Thread* t) { *this = p; thisThread = t; }
-  Position(const std::string& f, bool c960, Thread* t) { from_fen(f, c960, t); }
+  Position(const std::string& f, bool c960, Thread* t) { set(f, c960, t); }
   Position& operator=(const Position&);
 
   // Text input/output
-  void from_fen(const std::string& fen, bool isChess960, Thread* th);
-  const std::string to_fen() const;
-  void print(Move m = MOVE_NONE) const;
+  void set(const std::string& fen, bool isChess960, Thread* th);
+  const std::string fen() const;
+  const std::string pretty(Move m = MOVE_NONE) const;
 
   // Position representation
   Bitboard pieces() const;
@@ -139,7 +137,6 @@ public:
 
   // Properties of moves
   bool move_gives_check(Move m, const CheckInfo& ci) const;
-  bool move_attacks_square(Move m, Square s) const;
   bool move_is_legal(const Move m) const;
   bool pl_move_is_legal(Move m, Bitboard pinned) const;
   bool is_pseudo_legal(const Move m) const;

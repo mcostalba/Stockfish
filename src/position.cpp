@@ -172,11 +172,11 @@ Position& Position::operator=(const Position& pos) {
 }
 
 
-/// Position::from_fen() initializes the position object with the given FEN
-/// string. This function is not very robust - make sure that input FENs are
-/// correct (this is assumed to be the responsibility of the GUI).
+/// Position::set() initializes the position object with the given FEN string.
+/// This function is not very robust - make sure that input FENs are correct,
+/// this is assumed to be the responsibility of the GUI.
 
-void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
+void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -214,13 +214,13 @@ void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
   char col, row, token;
   size_t p;
   Square sq = SQ_A8;
-  std::istringstream fen(fenStr);
+  std::istringstream ss(fenStr);
 
   clear();
-  fen >> std::noskipws;
+  ss >> std::noskipws;
 
   // 1. Piece placement
-  while ((fen >> token) && !isspace(token))
+  while ((ss >> token) && !isspace(token))
   {
       if (isdigit(token))
           sq += Square(token - '0'); // Advance the given number of files
@@ -236,16 +236,16 @@ void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 2. Active color
-  fen >> token;
+  ss >> token;
   sideToMove = (token == 'w' ? WHITE : BLACK);
-  fen >> token;
+  ss >> token;
 
   // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
   // Shredder-FEN that uses the letters of the columns on which the rooks began
   // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
   // if an inner rook is associated with the castling right, the castling tag is
   // replaced by the file letter of the involved rook, as for the Shredder-FEN.
-  while ((fen >> token) && !isspace(token))
+  while ((ss >> token) && !isspace(token))
   {
       Square rsq;
       Color c = islower(token) ? BLACK : WHITE;
@@ -268,8 +268,8 @@ void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 4. En passant square. Ignore if no pawn capture is possible
-  if (   ((fen >> col) && (col >= 'a' && col <= 'h'))
-      && ((fen >> row) && (row == '3' || row == '6')))
+  if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
+      && ((ss >> row) && (row == '3' || row == '6')))
   {
       st->epSquare = File(col - 'a') | Rank(row - '1');
 
@@ -278,7 +278,7 @@ void Position::from_fen(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 5-6. Halfmove clock and fullmove number
-  fen >> std::skipws >> st->rule50 >> startPosPly;
+  ss >> std::skipws >> st->rule50 >> startPosPly;
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
@@ -325,12 +325,12 @@ void Position::set_castle_right(Color c, Square rfrom) {
 }
 
 
-/// Position::to_fen() returns a FEN representation of the position. In case
+/// Position::fen() returns a FEN representation of the position. In case
 /// of Chess960 the Shredder-FEN notation is used. Mainly a debugging function.
 
-const string Position::to_fen() const {
+const string Position::fen() const {
 
-  std::ostringstream fen;
+  std::ostringstream ss;
   Square sq;
   int emptyCnt;
 
@@ -348,48 +348,48 @@ const string Position::to_fen() const {
           {
               if (emptyCnt > 0)
               {
-                  fen << emptyCnt;
+                  ss << emptyCnt;
                   emptyCnt = 0;
               }
-              fen << PieceToChar[piece_on(sq)];
+              ss << PieceToChar[piece_on(sq)];
           }
       }
 
       if (emptyCnt > 0)
-          fen << emptyCnt;
+          ss << emptyCnt;
 
       if (rank > RANK_1)
-          fen << '/';
+          ss << '/';
   }
 
-  fen << (sideToMove == WHITE ? " w " : " b ");
+  ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, KING_SIDE))))) : 'K');
+      ss << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, KING_SIDE))))) : 'K');
 
   if (can_castle(WHITE_OOO))
-      fen << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, QUEEN_SIDE))))) : 'Q');
+      ss << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, QUEEN_SIDE))))) : 'Q');
 
   if (can_castle(BLACK_OO))
-      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, KING_SIDE))) : 'k');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, KING_SIDE))) : 'k');
 
   if (can_castle(BLACK_OOO))
-      fen << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE))) : 'q');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE))) : 'q');
 
   if (st->castleRights == CASTLES_NONE)
-      fen << '-';
+      ss << '-';
 
-  fen << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
+  ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
       << st->rule50 << " " << 1 + (startPosPly - int(sideToMove == BLACK)) / 2;
 
-  return fen.str();
+  return ss.str();
 }
 
 
-/// Position::print() prints an ASCII representation of the position to
-/// the standard output. If a move is given then also the san is printed.
+/// Position::pretty() returns an ASCII representation of the position to be
+/// printed to the standard output together with the move's san notation.
 
-void Position::print(Move move) const {
+const string Position::pretty(Move move) const {
 
   const string dottedLine =            "\n+---+---+---+---+---+---+---+---+";
   const string twoRows =  dottedLine + "\n|   | . |   | . |   | . |   | . |"
@@ -397,17 +397,18 @@ void Position::print(Move move) const {
 
   string brd = twoRows + twoRows + twoRows + twoRows + dottedLine;
 
-  sync_cout;
+  std::ostringstream ss;
 
   if (move)
-      cout << "\nMove is: " << (sideToMove == BLACK ? ".." : "")
-           << move_to_san(*const_cast<Position*>(this), move);
+      ss << "\nMove is: " << (sideToMove == BLACK ? ".." : "")
+         << move_to_san(*const_cast<Position*>(this), move);
 
   for (Square sq = SQ_A1; sq <= SQ_H8; sq++)
       if (piece_on(sq) != NO_PIECE)
           brd[513 - 68*rank_of(sq) + 4*file_of(sq)] = PieceToChar[piece_on(sq)];
 
-  cout << brd << "\nFen is: " << to_fen() << "\nKey is: " << st->key << sync_endl;
+  ss << brd << "\nFen is: " << fen() << "\nKey is: " << st->key;
+  return ss.str();
 }
 
 
@@ -470,37 +471,6 @@ Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
   case QUEEN : return attacks_bb<BISHOP>(s, occ) | attacks_bb<ROOK>(s, occ);
   default    : return StepAttacksBB[p][s];
   }
-}
-
-
-/// Position::move_attacks_square() tests whether a move from the current
-/// position attacks a given square.
-
-bool Position::move_attacks_square(Move m, Square s) const {
-
-  assert(is_ok(m));
-  assert(is_ok(s));
-
-  Bitboard occ, xray;
-  Square from = from_sq(m);
-  Square to = to_sq(m);
-  Piece piece = piece_moved(m);
-
-  assert(!is_empty(from));
-
-  // Update occupancy as if the piece is moving
-  occ = pieces() ^ from ^ to;
-
-  // The piece moved in 'to' attacks the square 's' ?
-  if (attacks_from(piece, to, occ) & s)
-      return true;
-
-  // Scan for possible X-ray attackers behind the moved piece
-  xray =  (attacks_bb<  ROOK>(s, occ) & pieces(color_of(piece), QUEEN, ROOK))
-        | (attacks_bb<BISHOP>(s, occ) & pieces(color_of(piece), QUEEN, BISHOP));
-
-  // Verify attackers are triggered by our move and not already existing
-  return xray && (xray ^ (xray & attacks_from<QUEEN>(s)));
 }
 
 
@@ -718,15 +688,16 @@ bool Position::move_gives_check(Move m, const CheckInfo& ci) const {
   Color us = sideToMove;
   Square ksq = king_square(~us);
 
-  // Promotion with check ?
-  if (type_of(m) == PROMOTION)
+  switch (type_of(m))
+  {
+  case PROMOTION:
       return attacks_from(Piece(promotion_type(m)), to, pieces() ^ from) & ksq;
 
   // En passant capture with check ? We have already handled the case
   // of direct checks and ordinary discovered check, the only case we
   // need to handle is the unusual case of a discovered check through
   // the captured pawn.
-  if (type_of(m) == ENPASSANT)
+  case ENPASSANT:
   {
       Square capsq = file_of(to) | rank_of(from);
       Bitboard b = (pieces() ^ from ^ capsq) | to;
@@ -734,9 +705,7 @@ bool Position::move_gives_check(Move m, const CheckInfo& ci) const {
       return  (attacks_bb<  ROOK>(ksq, b) & pieces(us, QUEEN, ROOK))
             | (attacks_bb<BISHOP>(ksq, b) & pieces(us, QUEEN, BISHOP));
   }
-
-  // Castling with check ?
-  if (type_of(m) == CASTLE)
+  case CASTLE:
   {
       Square kfrom = from;
       Square rfrom = to; // 'King captures the rook' notation
@@ -746,8 +715,10 @@ bool Position::move_gives_check(Move m, const CheckInfo& ci) const {
 
       return attacks_bb<ROOK>(rto, b) & ksq;
   }
-
-  return false;
+  default:
+      assert(false);
+      return false;
+  }
 }
 
 
@@ -770,9 +741,9 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   Key k = st->key;
 
   // Copy some fields of old state to our new StateInfo object except the ones
-  // which are recalculated from scratch anyway, then switch our state pointer
-  // to point to the new, ready to be updated, state.
-  memcpy(&newSt, st, sizeof(ReducedStateInfo));
+  // which are going to be recalculated from scratch anyway, then switch our state
+  // pointer to point to the new, ready to be updated, state.
+  memcpy(&newSt, st, StateCopySize64 * sizeof(uint64_t));
 
   newSt.previous = st;
   st = &newSt;
@@ -1479,13 +1450,13 @@ bool Position::is_draw() const {
 
   if (CheckRepetition)
   {
-      int i = 4, e = std::min(st->rule50, st->pliesFromNull);
+      int i = 4, e = std::min(st->rule50, st->pliesFromNull), cnt;
 
       if (i <= e)
       {
           StateInfo* stp = st->previous->previous;
 
-          for (int cnt = 0; i <= e; i += 2)
+          for (cnt = 0; i <= e; i += 2)
           {
               stp = stp->previous->previous;
 
