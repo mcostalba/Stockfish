@@ -579,7 +579,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (   (Piece == BISHOP || Piece == ROOK || Piece == QUEEN)
             && (PseudoAttacks[Piece][pos.king_square(Them)] & s))
         {
-            b = BetweenBB[s][pos.king_square(Them)] & pos.pieces();
+            b = between_bb(s, pos.king_square(Them)) & pos.pieces();
 
             assert(b);
 

@@ -45,7 +45,7 @@ Bitboard AdjacentFilesBB[FILE_NB];
 Bitboard ThisAndAdjacentFilesBB[FILE_NB];
 Bitboard InFrontBB[COLOR_NB][RANK_NB];
 Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
-Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+Bitboard BetweenBB_88[120];
 Bitboard DistanceRingsBB[SQUARE_NB][8];
 Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
@@ -223,15 +223,17 @@ void Bitboards::init() {
       PseudoAttacks[QUEEN][s] |= PseudoAttacks[  ROOK][s] = attacks_bb<  ROOK>(s, 0);
   }
 
-  for (Square s1 = SQ_A1; s1 <= SQ_H8; s1++)
-      for (Square s2 = SQ_A1; s2 <= SQ_H8; s2++)
-          if (PseudoAttacks[QUEEN][s1] & s2)
-          {
-              Square delta = (s2 - s1) / square_distance(s1, s2);
-
-              for (Square s = s1 + delta; s != s2; s += delta)
-                  BetweenBB[s1][s2] |= s;
-          }
+  for (int delta = 2; delta < 8; ++delta) {
+    for (Rank r = RANK_2; r < delta; r++)
+        BetweenBB_88[delta * 0x10] |= FILE_A | r;
+    for (File f = FILE_B; f < delta; f++)
+        BetweenBB_88[delta] |= f | RANK_1;
+    for (Square s = SQ_A1 + DELTA_NE; s != delta * 8 + delta; s += DELTA_NE)
+        BetweenBB_88[delta * 0x10 + delta] |= s;
+    for (Square s = SQ_A1 + Square(delta) + DELTA_NW; s != delta * 8; s += DELTA_NW)
+        BetweenBB_88[delta * 0x10 - delta] |= s;
+    BetweenBB_88[delta * 0x10 - delta] >>= delta;
+  }
 }
 
 

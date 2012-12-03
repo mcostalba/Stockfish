@@ -56,7 +56,7 @@ extern Bitboard AdjacentFilesBB[FILE_NB];
 extern Bitboard ThisAndAdjacentFilesBB[FILE_NB];
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
 extern Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
-extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+extern Bitboard BetweenBB_88[120];
 extern Bitboard DistanceRingsBB[SQUARE_NB][8];
 extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
@@ -145,6 +145,11 @@ inline Bitboard in_front_bb(Color c, Square s) {
   return InFrontBB[c][rank_of(s)];
 }
 
+// x88_diff returns the difference between two squares in the 0x88 co-ordinate
+// system.
+inline int x88_diff(Square s1, Square s2) {
+  return s1 - s2 + (s1 | 7) - (s2 | 7);
+}
 
 /// between_bb returns a bitboard representing all squares between two squares.
 /// For instance, between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for
@@ -152,7 +157,9 @@ inline Bitboard in_front_bb(Color c, Square s) {
 /// 0 is returned.
 
 inline Bitboard between_bb(Square s1, Square s2) {
-  return BetweenBB[s1][s2];
+  if (s1 < s2)
+    std::swap(s1, s2);
+  return BetweenBB_88[x88_diff(s1, s2)] << s2;
 }
 
 
@@ -190,8 +197,8 @@ inline Bitboard attack_span_mask(Color c, Square s) {
 /// either on a straight or on a diagonal line.
 
 inline bool squares_aligned(Square s1, Square s2, Square s3) {
-  return  (BetweenBB[s1][s2] | BetweenBB[s1][s3] | BetweenBB[s2][s3])
-        & (     SquareBB[s1] |      SquareBB[s2] |      SquareBB[s3]);
+  return  (between_bb(s1, s2) | between_bb(s1, s3) | between_bb(s2, s3))
+        & (      SquareBB[s1] |       SquareBB[s2] |      SquareBB[s3]);
 }
 
 
