@@ -66,7 +66,7 @@ void benchmark(const Position& current, istream& is) {
   vector<string> fens;
 
   // Assign default values to missing arguments
-  string ttSize    = (is >> token) ? token : "128";
+  string ttSize    = (is >> token) ? token : "32";
   string threads   = (is >> token) ? token : "1";
   string limit     = (is >> token) ? token : "12";
   string fenFile   = (is >> token) ? token : "default";
@@ -89,7 +89,7 @@ void benchmark(const Position& current, istream& is) {
       fens.assign(Defaults, Defaults + 16);
 
   else if (fenFile == "current")
-      fens.push_back(current.to_fen());
+      fens.push_back(current.fen());
 
   else
   {
@@ -111,7 +111,7 @@ void benchmark(const Position& current, istream& is) {
 
   int64_t nodes = 0;
   Search::StateStackPtr st;
-  Time::point t = Time::now();
+  Time::point elapsed = Time::now();
 
   for (size_t i = 0; i < fens.size(); i++)
   {
@@ -129,14 +129,14 @@ void benchmark(const Position& current, istream& is) {
       {
           Threads.start_searching(pos, limits, vector<Move>(), st);
           Threads.wait_for_search_finished();
-          nodes += Search::RootPosition.nodes_searched();
+          nodes += Search::RootPos.nodes_searched();
       }
   }
 
-  int e = Time::now() - t + 1; // Assure positive to avoid a 'divide by zero'
+  elapsed = Time::now() - elapsed + 1; // Assure positive to avoid a 'divide by zero'
 
   cerr << "\n==========================="
-       << "\nTotal time (ms) : " << e
+       << "\nTotal time (ms) : " << elapsed
        << "\nNodes searched  : " << nodes
-       << "\nNodes/second    : " << 1000 * nodes / e << endl;
+       << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
 }

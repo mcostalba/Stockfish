@@ -22,13 +22,14 @@
 
 #include <vector>
 
+#include "evaluate.h"
 #include "material.h"
 #include "movepick.h"
 #include "pawns.h"
 #include "position.h"
 #include "search.h"
 
-const int MAX_THREADS = 32;
+const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
 struct Mutex {
@@ -75,6 +76,7 @@ struct SplitPoint {
 
   // Shared data
   Mutex mutex;
+  Position* activePositions[MAX_THREADS];
   volatile uint64_t slavesMask;
   volatile int64_t nodes;
   volatile Value alpha;
@@ -107,6 +109,7 @@ public:
   void wait_for_stop_or_ponderhit();
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
+  Eval::Table evalTable;
   MaterialTable materialTable;
   PawnTable pawnTable;
   size_t idx;
@@ -150,9 +153,10 @@ public:
 
   template <bool Fake>
   Value split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value bestValue, Move* bestMove,
-              Depth depth, Move threatMove, int moveCount, MovePicker* mp, int nodeType);
+              Depth depth, Move threatMove, int moveCount, MovePicker& mp, int nodeType);
 private:
   friend class Thread;
+  friend void check_time();
 
   std::vector<Thread*> threads;
   Thread* timer;

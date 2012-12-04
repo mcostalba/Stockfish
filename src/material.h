@@ -27,13 +27,6 @@
 
 const int MaterialTableSize = 8192;
 
-/// Game phase
-enum Phase {
-  PHASE_ENDGAME = 0,
-  PHASE_MIDGAME = 128
-};
-
-
 /// MaterialEntry is a class which contains various information about a
 /// material configuration. It contains a material balance evaluation,
 /// a function pointer to a special endgame evaluation function (which in
@@ -59,9 +52,9 @@ public:
 private:
   Key key;
   int16_t value;
-  uint8_t factor[2];
+  uint8_t factor[COLOR_NB];
   EndgameBase<Value>* evaluationFunction;
-  EndgameBase<ScaleFactor>* scalingFunction[2];
+  EndgameBase<ScaleFactor>* scalingFunction[COLOR_NB];
   int spaceWeight;
   Phase gamePhase;
 };
@@ -74,7 +67,7 @@ struct MaterialTable {
 
   MaterialEntry* probe(const Position& pos);
   static Phase game_phase(const Position& pos);
-  template<Color Us> static int imbalance(const int pieceCount[][8]);
+  template<Color Us> static int imbalance(const int pieceCount[][PIECE_TYPE_NB]);
 
   HashTable<MaterialEntry, MaterialTableSize> entries;
   Endgames endgames;
