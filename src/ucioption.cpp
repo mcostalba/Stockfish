@@ -57,7 +57,7 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 void init(OptionsMap& o) {
 
   int cpus = std::min(cpu_count(), MAX_THREADS);
-  int msd = cpus < 8 ? 4 : 7;
+  int msd = cpus < 8 ? 7 : 9;
 
   o["Use Debug Log"]               = Option(false, on_logger);
   o["Use Search Log"]              = Option(false);
@@ -72,7 +72,7 @@ void init(OptionsMap& o) {
   o["Space"]                       = Option(100, 0, 200, on_eval);
   o["Aggressiveness"]              = Option(100, 0, 200, on_eval);
   o["Cowardice"]                   = Option(100, 0, 200, on_eval);
-  o["Min Split Depth"]             = Option(msd, 4, 7, on_threads);
+  o["Min Split Depth"]             = Option(msd, 4, 12, on_threads);
   o["Max Threads per Split Point"] = Option(5, 4, 8, on_threads);
   o["Threads"]                     = Option(cpus, 1, MAX_THREADS, on_threads);
   o["Use Sleeping Threads"]        = Option(true, on_threads);
