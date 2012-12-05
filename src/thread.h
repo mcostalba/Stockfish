@@ -84,6 +84,7 @@ struct SplitPoint {
   volatile Move bestMove;
   volatile int moveCount;
   volatile bool cutoff;
+  volatile bool allSlavesRunning;
 };
 
 
