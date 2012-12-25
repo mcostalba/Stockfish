@@ -521,20 +521,6 @@ bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
 }
 
 
-/// Position::move_is_legal() takes a random move and tests whether the move
-/// is legal. This version is not very fast and should be used only in non
-/// time-critical paths.
-
-bool Position::move_is_legal(const Move m) const {
-
-  for (const MoveStack& ms : MoveList<LEGAL>(*this))
-      if (ms.move == m)
-          return true;
-
-  return false;
-}
-
-
 /// Position::is_pseudo_legal() takes a random move and tests whether the move
 /// is pseudo legal. It is used to validate moves from TT that can be corrupted
 /// due to SMP concurrent access or hash position key aliasing.
@@ -542,14 +528,13 @@ bool Position::move_is_legal(const Move m) const {
 bool Position::is_pseudo_legal(const Move m) const {
 
   Color us = sideToMove;
-  Color them = ~sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
   Piece pc = piece_moved(m);
 
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
-      return move_is_legal(m);
+      return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
   if (promotion_type(m) - 2 != NO_PIECE_TYPE)
@@ -561,7 +546,7 @@ bool Position::is_pseudo_legal(const Move m) const {
       return false;
 
   // The destination square cannot be occupied by a friendly piece
-  if (color_of(piece_on(to)) == us)
+  if (piece_on(to) != NO_PIECE && color_of(piece_on(to)) == us)
       return false;
 
   // Handle the special case of a pawn move
@@ -587,7 +572,7 @@ bool Position::is_pseudo_legal(const Move m) const {
       case DELTA_SE:
       // Capture. The destination square must be occupied by an enemy
       // piece (en passant captures was handled earlier).
-      if (color_of(piece_on(to)) != them)
+      if (piece_on(to) == NO_PIECE || color_of(piece_on(to)) != ~us)
           return false;
 
       // From and to files must be one file apart, avoids a7h5
@@ -632,18 +617,16 @@ bool Position::is_pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and pl_move_is_legal() relies on this. So we have to take care that the
   // same kind of moves are filtered out here.
-  if (in_check())
+  if (checkers())
   {
       if (type_of(pc) != KING)
       {
-          Bitboard b = checkers();
-          Square checksq = pop_lsb(&b);
-
-          if (b) // double check ? In this case a king move is required
+          // Double check? In this case a king move is required
+          if (more_than_one(checkers()))
               return false;
 
           // Our move must be a blocking evasion or a capture of the checking piece
-          if (!((between_bb(checksq, king_square(us)) | checkers()) & to))
+          if (!((between_bb(lsb(checkers()), king_square(us)) | checkers()) & to))
               return false;
       }
       // In case of king moves under check we have to remove king so to catch
@@ -772,7 +755,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   PieceType capture = type_of(m) == ENPASSANT ? PAWN : type_of(piece_on(to));
 
   assert(color_of(piece) == us);
-  assert(color_of(piece_on(to)) != us);
+  assert(piece_on(to) == NO_PIECE || color_of(piece_on(to)) == them);
   assert(capture != KING);
 
   if (capture)
@@ -918,8 +901,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   }
 
   // Prefetch pawn and material hash tables
-  prefetch((char*)thisThread->pawnTable.entries[st->pawnKey]);
-  prefetch((char*)thisThread->materialTable.entries[st->materialKey]);
+  prefetch((char*)thisThread->pawnsTable[st->pawnKey]);
+  prefetch((char*)thisThread->materialTable[st->materialKey]);
 
   // Update incremental scores
   st->psqScore += psq_delta(piece, from, to);
@@ -1161,7 +1144,7 @@ void Position::do_castle_move(Move m) {
 template<bool Do>
 void Position::do_null_move(StateInfo& backupSt) {
 
-  assert(!in_check());
+  assert(!checkers());
 
   // Back up the information necessary to undo the null move to the supplied
   // StateInfo object. Note that differently from normal case here backupSt
@@ -1445,7 +1428,7 @@ bool Position::is_draw() const {
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
       return true;
 
-  if (st->rule50 > 99 && (!in_check() || MoveList<LEGAL>(*this).size()))
+  if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
   if (CheckRepetition)

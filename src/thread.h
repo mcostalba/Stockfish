@@ -25,13 +25,14 @@
 #include <thread>
 #include <vector>
 
+#include "evaluate.h"
 #include "material.h"
 #include "movepick.h"
 #include "pawns.h"
 #include "position.h"
 #include "search.h"
 
-const int MAX_THREADS = 32;
+const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
 class Thread;
@@ -86,8 +87,10 @@ public:
   void wait_for_stop_or_ponderhit();
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
-  MaterialTable materialTable;
-  PawnTable pawnTable;
+  Eval::Table evalTable;
+  Material::Table materialTable;
+  Endgames endgames;
+  Pawns::Table pawnsTable;
   size_t idx;
   int maxPly;
   std::thread nativeThread;

@@ -45,6 +45,10 @@ struct MoveList {
   const MoveStack* begin() const { return mlist; }
   const MoveStack* end() const { return last; }
   size_t size() const { return last - mlist; }
+  bool contains(Move m) const {
+    for (const MoveStack& ms : *this) if (ms.move == m) return true;
+    return false;
+  }
 
 private:
   MoveStack mlist[MAX_MOVES], *last;
