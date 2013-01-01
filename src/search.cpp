@@ -99,7 +99,6 @@ namespace {
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
-  bool allows_move(const Position& pos, Move first, Move second);
   bool prevents_move(const Position& pos, Move first, Move second);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
@@ -491,13 +490,12 @@ namespace {
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode;
-    bool captureOrPromotion, dangerous, doFullDepthSearch, threatExtension;
+    bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, playedMoveCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     moveCount = playedMoveCount = 0;
-    threatExtension = false;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -691,20 +689,9 @@ namespace {
                 return nullValue;
         }
         else
-        {
             // The null move failed low, which means that we may be faced with
-            // some kind of threat. If the previous move was reduced, check if
-            // the move that refuted the null move was somehow connected to the
-            // move which was reduced. If a connection is found extend moves that
-            // defend against threat.
+            // some kind of threat.
             threatMove = (ss+1)->currentMove;
-
-            if (   depth < 5 * ONE_PLY
-                && (ss-1)->reduction
-                && threatMove != MOVE_NONE
-                && allows_move(pos, (ss-1)->currentMove, threatMove))
-                threatExtension = true;
-        }
     }
 
     // Step 9. ProbCut (is omitted in PV nodes)
@@ -821,9 +808,6 @@ split_point_start: // At split points actual search starts from here
       if (PvNode && dangerous)
           ext = ONE_PLY;
 
-      else if (threatExtension && prevents_move(pos, move, threatMove))
-          ext = ONE_PLY;
-
       else if (givesCheck && pos.see_sign(move) >= 0)
           ext = ONE_PLY / 2;
 
@@ -855,18 +839,17 @@ split_point_start: // At split points actual search starts from here
       newDepth = depth - ONE_PLY + ext;
 
       // Step 13. Futility pruning (is omitted in PV nodes)
-      if (   !PvNode
-          && !captureOrPromotion
+      if ( !captureOrPromotion
           && !inCheck
           && !dangerous
           &&  move != ttMove
+          && (!threatMove || !prevents_move(pos, move, threatMove))
           && (bestValue > VALUE_MATED_IN_MAX_PLY || (   bestValue == -VALUE_INFINITE
                                                      && alpha > VALUE_MATED_IN_MAX_PLY)))
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[depth]
-              && (!threatMove || !prevents_move(pos, move, threatMove)))
+          if ( !PvNode && depth < 16 * ONE_PLY
+              && moveCount >= FutilityMoveCounts[depth] )
           {
               if (SpNode)
                   sp->mutex.lock();
@@ -881,7 +864,7 @@ split_point_start: // At split points actual search starts from here
           futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
                          + H.gain(pos.piece_moved(move), to_sq(move));
 
-          if (futilityValue < beta)
+          if (!PvNode && futilityValue < beta)
           {
               if (SpNode)
                   sp->mutex.lock();
@@ -1246,8 +1229,7 @@ split_point_start: // At split points actual search starts from here
                        && !pos.can_castle(pos.side_to_move());
 
       // Don't search moves with negative SEE values
-      if (   !PvNode
-          && (!InCheck || evasionPrunable)
+      if ( (!InCheck || evasionPrunable)
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < 0)
@@ -1370,47 +1352,6 @@ split_point_start: // At split points actual search starts from here
         // Note that here we generate illegal "double move"!
         if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
             return true;
-    }
-
-    return false;
-  }
-
-
-  // allows_move() tests whether the move at previous ply (first) somehow makes a
-  // second move possible, for instance if the moving piece is the same in both
-  // moves. Normally the second move is the threat move (the best move returned
-  // from a null search that fails low).
-
-  bool allows_move(const Position& pos, Move first, Move second) {
-
-    assert(is_ok(first));
-    assert(is_ok(second));
-    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // The piece is the same or second's destination was vacated by the first move
-    if (m1to == m2from || m2to == m1from)
-        return true;
-
-    // Second one moves through the square vacated by first one
-    if (between_bb(m2from, m2to) & m1from)
-      return true;
-
-    // Second's destination is defended by the first move's piece
-    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
-    if (m1att & m2to)
-        return true;
-
-    // Second move gives a discovered check through the first's checking piece
-    if (m1att & pos.king_square(pos.side_to_move()))
-    {
-        assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
-        return true;
     }
 
     return false;
