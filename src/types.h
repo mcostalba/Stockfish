@@ -441,8 +441,8 @@ inline int square_distance(Square s1, Square s2) {
   return SquareDistance[s1][s2];
 }
 
-inline char file_to_char(File f) {
-  return char(f - FILE_A + 'a');
+inline char file_to_char(File f, bool tolower = true) {
+  return char(f - FILE_A + (tolower ? 'a' : 'A'));
 }
 
 inline char rank_to_char(Rank r) {
@@ -475,7 +475,7 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
-  return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12)) ;
+  return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12));
 }
 
 inline bool is_ok(Move m) {

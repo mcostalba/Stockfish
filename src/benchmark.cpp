@@ -82,6 +82,9 @@ void benchmark(const Position& current, istream& is) {
   else if (limitType == "nodes")
       limits.nodes = stoi(limit);
 
+  else if (limitType == "mate")
+      limits.mate = stoi(limit);
+
   else
       limits.depth = stoi(limit);
 
@@ -99,7 +102,7 @@ void benchmark(const Position& current, istream& is) {
       if (!file.is_open())
       {
           cerr << "Unable to open file " << fenFile << endl;
-          exit(EXIT_FAILURE);
+          return;
       }
 
       while (getline(file, fen))

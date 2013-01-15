@@ -331,32 +331,25 @@ void Position::set_castle_right(Color c, Square rfrom) {
 const string Position::fen() const {
 
   std::ostringstream ss;
-  Square sq;
-  int emptyCnt;
 
   for (Rank rank = RANK_8; rank >= RANK_1; rank--)
   {
-      emptyCnt = 0;
-
       for (File file = FILE_A; file <= FILE_H; file++)
       {
-          sq = file | rank;
+          Square sq = file | rank;
 
           if (is_empty(sq))
-              emptyCnt++;
-          else
           {
-              if (emptyCnt > 0)
-              {
-                  ss << emptyCnt;
-                  emptyCnt = 0;
-              }
-              ss << PieceToChar[piece_on(sq)];
-          }
-      }
+              int emptyCnt = 1;
 
-      if (emptyCnt > 0)
-          ss << emptyCnt;
+              for ( ; file < FILE_H && is_empty(sq++); file++)
+                  emptyCnt++;
+
+              ss << emptyCnt;
+          }
+          else
+              ss << PieceToChar[piece_on(sq)];
+      }
 
       if (rank > RANK_1)
           ss << '/';
@@ -365,16 +358,16 @@ const string Position::fen() const {
   ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      ss << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, KING_SIDE))))) : 'K');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(WHITE,  KING_SIDE)), false) : 'K');
 
   if (can_castle(WHITE_OOO))
-      ss << (chess960 ? char(toupper(file_to_char(file_of(castle_rook_square(WHITE, QUEEN_SIDE))))) : 'Q');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(WHITE, QUEEN_SIDE)), false) : 'Q');
 
   if (can_castle(BLACK_OO))
-      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, KING_SIDE))) : 'k');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK,  KING_SIDE)),  true) : 'k');
 
   if (can_castle(BLACK_OOO))
-      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE))) : 'q');
+      ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE)),  true) : 'q');
 
   if (st->castleRights == CASTLES_NONE)
       ss << '-';
@@ -400,14 +393,22 @@ const string Position::pretty(Move move) const {
   std::ostringstream ss;
 
   if (move)
-      ss << "\nMove is: " << (sideToMove == BLACK ? ".." : "")
+      ss << "\nMove: " << (sideToMove == BLACK ? ".." : "")
          << move_to_san(*const_cast<Position*>(this), move);
 
   for (Square sq = SQ_A1; sq <= SQ_H8; sq++)
       if (piece_on(sq) != NO_PIECE)
           brd[513 - 68*rank_of(sq) + 4*file_of(sq)] = PieceToChar[piece_on(sq)];
 
-  ss << brd << "\nFen is: " << fen() << "\nKey is: " << st->key;
+  ss << brd << "\nFen: " << fen() << "\nKey: " << st->key << "\nCheckers: ";
+
+  for (Bitboard b = checkers(); b; )
+      ss << square_to_string(pop_lsb(&b)) << " ";
+
+  ss << "\nLegal moves: ";
+  for (const MoveStack& ms : MoveList<LEGAL>(*this))
+      ss << move_to_san(*const_cast<Position*>(this), ms.move) << " ";
+
   return ss.str();
 }
 

@@ -36,9 +36,9 @@ private:
   template<typename T> PolyglotBook& operator>>(T& n);
 
   bool open(const std::string& fName);
-  size_t find_first(uint64_t key);
+  size_t find_first(Key key);
 
-  RKISS RKiss;
+  RKISS rkiss;
   std::string fileName;
 };
 

@@ -75,8 +75,8 @@ namespace {
   const int GrainSize = 8;
 
   // Evaluation weights, initialized from UCI options
-  enum { Mobility, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  Score Weights[6];
+  enum { Mobility, PassedPawns, Space };
+  Score Weights[3];
 
   typedef Value V;
   #define S(mg, eg) make_score(mg, eg)
@@ -88,7 +88,7 @@ namespace {
   //
   // Values modified by Joona Kiiski
   const Score WeightsInternal[] = {
-      S(252, 344), S(216, 266), S(46, 0), S(247, 0), S(259, 0)
+      S(252, 344), S(216, 266), S(46, 0)
   };
 
   // MobilityBonus[PieceType][attacked] contains mobility bonuses for middle and
@@ -195,6 +195,10 @@ namespace {
   // the strength of the enemy attack are added up into an integer, which
   // is used as an index to KingDangerTable[].
   //
+  // King safety evaluation is asymmetrical and different for us (root color)
+  // and for our opponent. These values are used to init KingDangerTable.
+  const int KingDangerWeights[] = { 259, 247 };
+
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
@@ -244,7 +248,7 @@ namespace {
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score& mobility);
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, EvalInfo& ei, int16_t margins[]);
+  Score evaluate_king(const Position& pos, EvalInfo& ei, Value margins[]);
 
   template<Color Us>
   Score evaluate_threats(const Position& pos, EvalInfo& ei);
@@ -281,19 +285,16 @@ namespace Eval {
 
   void init() {
 
-    Weights[Mobility]       = weight_option("Mobility (Middle Game)", "Mobility (Endgame)", WeightsInternal[Mobility]);
-    Weights[PassedPawns]    = weight_option("Passed Pawns (Middle Game)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-    Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    Weights[Mobility]    = weight_option("Mobility (Middle Game)", "Mobility (Endgame)", WeightsInternal[Mobility]);
+    Weights[PassedPawns] = weight_option("Passed Pawns (Middle Game)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
+    Weights[Space]       = weight_option("Space", "Space", WeightsInternal[Space]);
 
-    // King safety is asymmetrical. Our king danger level is weighted by
-    // "Cowardice" UCI parameter, instead the opponent one by "Aggressiveness".
-    // If running in analysis mode, make sure we use symmetrical king safety. We
-    // do this by replacing both Weights[kingDangerUs] and Weights[kingDangerThem]
-    // by their average.
+    int KingDanger[] = { KingDangerWeights[0], KingDangerWeights[1] };
+
+    // If running in analysis mode, make sure we use symmetrical king safety.
+    // We do so by replacing both KingDanger weights by their average.
     if (Options["UCI_AnalyseMode"])
-        Weights[KingDangerUs] = Weights[KingDangerThem] = (Weights[KingDangerUs] + Weights[KingDangerThem]) / 2;
+        KingDanger[0] = KingDanger[1] = (KingDanger[0] + KingDanger[1]) / 2;
 
     const int MaxSlope = 30;
     const int Peak = 1280;
@@ -302,8 +303,8 @@ namespace Eval {
     {
         t = std::min(Peak, std::min(int(0.4 * i * i), t + MaxSlope));
 
-        KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
-        KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
+        KingDangerTable[0][i] = apply_weight(make_score(t, 0), make_score(KingDanger[0], 0));
+        KingDangerTable[1][i] = apply_weight(make_score(t, 0), make_score(KingDanger[1], 0));
     }
   }
 
@@ -364,27 +365,13 @@ Value do_evaluate(const Position& pos, Value& margin) {
   assert(!pos.checkers());
 
   EvalInfo ei;
+  Value margins[COLOR_NB];
   Score score, mobilityWhite, mobilityBlack;
-
-  Key key = pos.key();
   Thread* th = pos.this_thread();
-  Eval::Entry* e = th->evalTable[key];
-
-  // If e->key matches the position's hash key, it means that we have analysed
-  // this node before, and we can simply return the information we found the last
-  // time instead of recomputing it.
-  if (e->key == key)
-  {
-      margin = Value(e->margins[pos.side_to_move()]);
-      return e->value;
-  }
-
-  // Otherwise we overwrite current content with this node info.
-  e->key = key;
 
   // margins[] store the uncertainty estimation of position's evaluation
   // that typically is used by the search for pruning decisions.
-  e->margins[WHITE] = e->margins[BLACK] = VALUE_ZERO;
+  margins[WHITE] = margins[BLACK] = VALUE_ZERO;
 
   // Initialize score by reading the incrementally updated scores included
   // in the position object (material + piece square tables) and adding
@@ -400,8 +387,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   if (ei.mi->specialized_eval_exists())
   {
       margin = VALUE_ZERO;
-      e->value = ei.mi->evaluate(pos);
-      return e->value;
+      return ei.mi->evaluate(pos);
   }
 
   // Probe the pawn hash table
@@ -420,8 +406,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // Evaluate kings after all other pieces because we need complete attack
   // information when computing the king safety evaluation.
-  score +=  evaluate_king<WHITE, Trace>(pos, ei, e->margins)
-          - evaluate_king<BLACK, Trace>(pos, ei, e->margins);
+  score +=  evaluate_king<WHITE, Trace>(pos, ei, margins)
+          - evaluate_king<BLACK, Trace>(pos, ei, margins);
 
   // Evaluate tactical threats, we need full attack information including king
   score +=  evaluate_threats<WHITE>(pos, ei)
@@ -467,7 +453,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
            sf = ScaleFactor(50);
   }
 
-  margin = Value(e->margins[pos.side_to_move()]);
+  margin = margins[pos.side_to_move()];
   Value v = interpolate(score, ei.mi->game_phase(), sf);
 
   // In case of tracing add all single evaluation contributions for both white and black
@@ -484,8 +470,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
       Score b = make_score(ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei), 0);
       trace_add(SPACE, apply_weight(w, Weights[Space]), apply_weight(b, Weights[Space]));
       trace_add(TOTAL, score);
-      TraceStream << "\nUncertainty margin: White: " << to_cp(Value(e->margins[WHITE]))
-                  << ", Black: " << to_cp(Value(e->margins[BLACK]))
+      TraceStream << "\nUncertainty margin: White: " << to_cp(margins[WHITE])
+                  << ", Black: " << to_cp(margins[BLACK])
                   << "\nScaling: " << std::noshowpos
                   << std::setw(6) << 100.0 * ei.mi->game_phase() / 128.0 << "% MG, "
                   << std::setw(6) << 100.0 * (1.0 - ei.mi->game_phase() / 128.0) << "% * "
@@ -493,7 +479,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                   << "Total evaluation: " << to_cp(v);
   }
 
-  return e->value = pos.side_to_move() == WHITE ? v : -v;
+  return pos.side_to_move() == WHITE ? v : -v;
 }
 
 
@@ -768,7 +754,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // evaluate_king<>() assigns bonuses and penalties to a king of a given color
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, EvalInfo& ei, int16_t margins[]) {
+  Score evaluate_king(const Position& pos, EvalInfo& ei, Value margins[]) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -868,7 +854,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // be very big, and so capturing a single attacking piece can therefore
         // result in a score change far bigger than the value of the captured piece.
         score -= KingDangerTable[Us == Search::RootColor][attackUnits];
-        margins[Us] += int16_t(mg_value(KingDangerTable[Us == Search::RootColor][attackUnits]));
+        margins[Us] += mg_value(KingDangerTable[Us == Search::RootColor][attackUnits]);
     }
 
     if (Trace)
@@ -1161,7 +1147,11 @@ Value do_evaluate(const Position& pos, Value& margin) {
     behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
     behind |= (Us == WHITE ? behind >> 16 : behind << 16);
 
-    return popcount<Max15>(safe) + popcount<Max15>(behind & safe);
+    // Since SpaceMask[Us] is fully on our half of the board
+    assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
+
+    // Count safe + (behind & safe) with a single popcount
+    return popcount<Full>((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
   }
 
 
