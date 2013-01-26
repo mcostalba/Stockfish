@@ -71,7 +71,7 @@ struct SplitPoint {
 
 struct Thread {
 
-  Thread();
+  explicit Thread(int index);
   virtual ~Thread();
 
   virtual void idle_loop();
@@ -100,13 +100,13 @@ struct Thread {
 /// special threads: the main one and the recurring timer.
 
 struct MainThread : public Thread {
-  MainThread() : thinking(true) {} // Avoid a race with start_thinking()
+  MainThread() : Thread(0), thinking(true) {} // Avoid a race with start_thinking()
   virtual void idle_loop();
   volatile bool thinking;
 };
 
 struct TimerThread : public Thread {
-  TimerThread() : msec(0) {}
+  TimerThread() : Thread(0), msec(0) {}
   virtual void idle_loop();
   int msec;
 };
@@ -122,7 +122,7 @@ public:
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
 
-  MainThread* main_thread() { return static_cast<MainThread*>(at(0)); }
+  MainThread* main_thread() { return static_cast<MainThread*>((*this)[0]); }
   TimerThread* timer_thread() { return timer; }
 
   void read_uci_options();
