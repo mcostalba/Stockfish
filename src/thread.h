@@ -116,15 +116,13 @@ struct TimerThread : public Thread {
 /// parking and, the most important, launching a slave thread at a split point.
 /// All the access to shared thread data is done through this class.
 
-class ThreadPool {
+class ThreadPool : public std::vector<Thread*> {
 
 public:
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
 
-  Thread& operator[](size_t id) { return *threads[id]; }
-  size_t size() const { return threads.size(); }
-  MainThread* main_thread() { return static_cast<MainThread*>(threads[0]); }
+  MainThread* main_thread() { return static_cast<MainThread*>(at(0)); }
   TimerThread* timer_thread() { return timer; }
 
   void read_uci_options();
@@ -143,7 +141,6 @@ public:
   std::condition_variable sleepCondition;
 
 private:
-  std::vector<Thread*> threads;
   TimerThread* timer;
   size_t maxThreadsPerSplitPoint;
 };

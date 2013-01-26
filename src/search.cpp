@@ -227,8 +227,8 @@ void Search::think() {
   }
 
   // Reset the threads, still sleeping: will be wake up at split time
-  for (size_t i = 0; i < Threads.size(); i++)
-      Threads[i].maxPly = 0;
+  for (Thread* th : Threads)
+      th->maxPly = 0;
 
   Threads.sleepWhileIdle = Options["Use Sleeping Threads"];
 
@@ -1454,9 +1454,9 @@ split_point_start: // At split points actual search starts from here
     size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
     int selDepth = 0;
 
-    for (size_t i = 0; i < Threads.size(); i++)
-        if (Threads[i].maxPly > selDepth)
-            selDepth = Threads[i].maxPly;
+    for (Thread* th : Threads)
+        if (th->maxPly > selDepth)
+            selDepth = th->maxPly;
 
     for (size_t i = 0; i < uciPVSize; i++)
     {
@@ -1680,10 +1680,10 @@ void check_time() {
 
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active slaves positions.
-      for (size_t i = 0; i < Threads.size(); i++)
-          for (int j = 0; j < Threads[i].splitPointsSize; j++)
+      for (Thread* th : Threads)
+          for (int i = 0; i < th->splitPointsSize; i++)
           {
-              SplitPoint& sp = Threads[i].splitPoints[j];
+              SplitPoint& sp = th->splitPoints[i];
 
               sp.mutex.lock();
 

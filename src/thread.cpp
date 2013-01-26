@@ -168,7 +168,7 @@ void ThreadPool::init() {
 
   sleepWhileIdle = true;
   timer = new TimerThread();
-  threads.push_back(new MainThread());
+  push_back(new MainThread());
   read_uci_options();
 }
 
@@ -179,7 +179,7 @@ void ThreadPool::exit() {
 
   delete timer; // As first because check_time() accesses threads data
 
-  for (Thread* th : threads)
+  for (Thread* th : *this)
       delete th;
 }
 
@@ -197,13 +197,13 @@ void ThreadPool::read_uci_options() {
 
   assert(requested > 0);
 
-  while (threads.size() < requested)
-      threads.push_back(new Thread());
+  while (size() < requested)
+      push_back(new Thread());
 
-  while (threads.size() > requested)
+  while (size() > requested)
   {
-      delete threads.back();
-      threads.pop_back();
+      delete back();
+      pop_back();
   }
 }
 
@@ -213,7 +213,7 @@ void ThreadPool::read_uci_options() {
 
 bool ThreadPool::slave_available(Thread* master) const {
 
-  for (Thread* th : threads)
+  for (Thread* th : *this)
       if (th->is_available_to(master))
           return true;
 
@@ -276,7 +276,7 @@ Value ThreadPool::split(Position& pos, Stack* ss, Value alpha, Value beta,
 
   size_t slavesCnt = 1; // Master is always included
 
-  for (Thread* th : threads)
+  for (Thread* th : *this)
       if (th->is_available_to(master) && ++slavesCnt <= maxThreadsPerSplitPoint && !Fake)
       {
           sp.slavesMask |= 1ULL << th->idx;
