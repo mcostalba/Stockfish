@@ -99,7 +99,6 @@ namespace {
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
-  bool allows_move(const Position& pos, Move first, Move second);
   bool prevents_move(const Position& pos, Move first, Move second);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
@@ -227,22 +226,25 @@ void Search::think() {
           << std::endl;
   }
 
-  Threads.wake_up();
+  // Reset the threads, still sleeping: will be wake up at split time
+  for (size_t i = 0; i < Threads.size(); i++)
+      Threads[i].maxPly = 0;
+
+  Threads.sleepWhileIdle = Options["Use Sleeping Threads"];
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
-  if (Limits.use_time_management())
-      Threads.set_timer(std::min(100, std::max(TimeMgr.available_time() / 16,
-                                               TimerResolution)));
-  else if (Limits.nodes)
-      Threads.set_timer(2 * TimerResolution);
-  else
-      Threads.set_timer(100);
+  Threads.timer_thread()->msec =
+  Limits.use_time_management() ? std::min(100, std::max(TimeMgr.available_time() / 16, TimerResolution)) :
+                  Limits.nodes ? 2 * TimerResolution
+                               : 100;
+
+  Threads.timer_thread()->notify_one(); // Wake up the recurring timer
 
   id_loop(RootPos); // Let's start searching !
 
-  Threads.set_timer(0); // Stop timer
-  Threads.sleep();
+  Threads.timer_thread()->msec = 0; // Stop the timer
+  Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
   if (Options["Use Search Log"])
   {
@@ -262,12 +264,14 @@ void Search::think() {
 finalize:
 
   // When we reach max depth we arrive here even without Signals.stop is raised,
-  // but if we are pondering or in infinite search, we shouldn't print the best
-  // move before we are told to do so.
+  // but if we are pondering or in infinite search, according to UCI protocol,
+  // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit"
+  // command. We simply wait here until GUI sends one of those commands (that
+  // raise Signals.stop).
   if (!Signals.stop && (Limits.ponder || Limits.infinite))
   {
       Signals.stopOnPonderhit = true;
-      RootPos.this_thread()->wait_for_stop();
+      RootPos.this_thread()->wait_for(Signals.stop);
   }
 
   // Best move could be MOVE_NONE when searching on a stalemate position
@@ -494,13 +498,12 @@ namespace {
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode;
-    bool captureOrPromotion, dangerous, doFullDepthSearch, threatExtension;
+    bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, playedMoveCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     moveCount = playedMoveCount = 0;
-    threatExtension = false;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -689,20 +692,9 @@ namespace {
                 return nullValue;
         }
         else
-        {
             // The null move failed low, which means that we may be faced with
-            // some kind of threat. If the previous move was reduced, check if
-            // the move that refuted the null move was somehow connected to the
-            // move which was reduced. If a connection is found extend moves that
-            // defend against threat.
+            // some kind of threat.
             threatMove = (ss+1)->currentMove;
-
-            if (   depth < 5 * ONE_PLY
-                && (ss-1)->reduction
-                && threatMove != MOVE_NONE
-                && allows_move(pos, (ss-1)->currentMove, threatMove))
-                threatExtension = true;
-        }
     }
 
     // Step 9. ProbCut (is omitted in PV nodes)
@@ -819,9 +811,6 @@ split_point_start: // At split points actual search starts from here
       if (PvNode && dangerous)
           ext = ONE_PLY;
 
-      else if (threatExtension && prevents_move(pos, move, threatMove))
-          ext = ONE_PLY;
-
       else if (givesCheck && pos.see_sign(move) >= 0)
           ext = ONE_PLY / 2;
 
@@ -846,7 +835,7 @@ split_point_start: // At split points actual search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < rBeta)
-              ext = rBeta >= beta ? ONE_PLY + ONE_PLY / 2 : ONE_PLY;
+              ext = ONE_PLY;
       }
 
       // Update current move (this must be done after singular extension search)
@@ -858,13 +847,12 @@ split_point_start: // At split points actual search starts from here
           && !inCheck
           && !dangerous
           &&  move != ttMove
+          && (!threatMove || !prevents_move(pos, move, threatMove))
           && (bestValue > VALUE_MATED_IN_MAX_PLY || (   bestValue == -VALUE_INFINITE
                                                      && alpha > VALUE_MATED_IN_MAX_PLY)))
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[depth]
-              && (!threatMove || !prevents_move(pos, move, threatMove)))
+          if (depth < 16 * ONE_PLY && moveCount >= FutilityMoveCounts[depth])
           {
               if (SpNode)
                   sp->mutex.lock();
@@ -1019,8 +1007,9 @@ split_point_start: // At split points actual search starts from here
 
       // Step 19. Check for splitting the search
       if (   !SpNode
-          &&  depth >= Threads.min_split_depth()
-          &&  Threads.available_slave_exists(thisThread))
+          &&  depth >= Threads.minimumSplitDepth
+          &&  Threads.slave_available(thisThread)
+          &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
       {
           assert(bestValue < beta);
 
@@ -1354,50 +1343,8 @@ split_point_start: // At split points actual search starts from here
     Bitboard b = (enemies ^ ksq) & newAtt & ~oldAtt;
     while (b)
     {
-        // Note that here we generate illegal "double move"!
         if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
             return true;
-    }
-
-    return false;
-  }
-
-
-  // allows_move() tests whether the move at previous ply (first) somehow makes a
-  // second move possible, for instance if the moving piece is the same in both
-  // moves. Normally the second move is the threat move (the best move returned
-  // from a null search that fails low).
-
-  bool allows_move(const Position& pos, Move first, Move second) {
-
-    assert(is_ok(first));
-    assert(is_ok(second));
-    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // The piece is the same or second's destination was vacated by the first move
-    if (m1to == m2from || m2to == m1from)
-        return true;
-
-    // Second one moves through the square vacated by first one
-    if (between_bb(m2from, m2to) & m1from)
-      return true;
-
-    // Second's destination is defended by the first move's piece
-    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
-    if (m1att & m2to)
-        return true;
-
-    // Second move gives a discovered check through the first's checking piece
-    if (m1att & pos.king_square(pos.side_to_move()))
-    {
-        assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
-        return true;
     }
 
     return false;
@@ -1607,52 +1554,50 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
 void Thread::idle_loop() {
 
-  // Pointer 'sp_master', if non-NULL, points to the active SplitPoint
-  // object for which the thread is the master.
-  const SplitPoint* sp_master = splitPointsCnt ? curSplitPoint : nullptr;
+  // Pointer 'this_sp' is not null only if we are called from split(), and not
+  // at the thread creation. So it means we are the split point's master.
+  const SplitPoint* this_sp = splitPointsSize ? activeSplitPoint : nullptr;
 
-  assert(!sp_master || (sp_master->master == this && is_searching));
+  assert(!this_sp || (this_sp->master == this && searching));
 
-  // If this thread is the master of a split point and all slaves have
-  // finished their work at this split point, return from the idle loop.
-  while (!sp_master || sp_master->slavesMask)
+  // If this thread is the master of a split point and all slaves have finished
+  // their work at this split point, return from the idle loop.
+  while (!this_sp || this_sp->slavesMask)
   {
-      // If we are not searching, wait for a condition to be signaled
-      // instead of wasting CPU time polling for work.
-      while (   do_sleep
-             || do_exit
-             || (!is_searching && Threads.use_sleeping_threads()))
+      // If we are not searching, wait for a condition to be signaled instead of
+      // wasting CPU time polling for work.
+      while ((!searching && Threads.sleepWhileIdle) || exit)
       {
-          if (do_exit)
+          if (exit)
           {
-              assert(!sp_master);
+              assert(!this_sp);
               return;
           }
 
-          // Grab the lock to avoid races with Thread::wake_up()
+          // Grab the lock to avoid races with Thread::notify_one()
           std::unique_lock<std::mutex> lk(mutex);
 
-          // If we are master and all slaves have finished don't go to sleep
-          if (sp_master && !sp_master->slavesMask)
+          // If we are master and all slaves have finished then exit idle_loop
+          if (this_sp && !this_sp->slavesMask)
               break;
 
           // Do sleep after retesting sleep conditions under lock protection, in
           // particular we need to avoid a deadlock in case a master thread has,
-          // in the meanwhile, allocated us and sent the wake_up() call before we
-          // had the chance to grab the lock.
-          if (do_sleep || !is_searching)
+          // in the meanwhile, allocated us and sent the notify_one() call before
+          // we had the chance to grab the lock.
+          if (!searching && !exit)
               sleepCondition.wait(lk);
       }
 
       // If this thread has been assigned work, launch a search
-      if (is_searching)
+      if (searching)
       {
-          assert(!do_sleep && !do_exit);
+          assert(!exit);
 
           Threads.mutex.lock();
 
-          assert(is_searching);
-          SplitPoint* sp = curSplitPoint;
+          assert(searching);
+          SplitPoint* sp = activeSplitPoint;
 
           Threads.mutex.unlock();
 
@@ -1664,34 +1609,39 @@ void Thread::idle_loop() {
 
           sp->mutex.lock();
 
-          assert(sp->activePositions[idx] == NULL);
+          assert(sp->slavesPositions[idx] == NULL);
 
-          sp->activePositions[idx] = &pos;
+          sp->slavesPositions[idx] = &pos;
 
-          if (sp->nodeType == Root)
+          switch (sp->nodeType) {
+          case Root:
               search<SplitPointRoot>(pos, ss+1, sp->alpha, sp->beta, sp->depth);
-          else if (sp->nodeType == PV)
+              break;
+          case PV:
               search<SplitPointPV>(pos, ss+1, sp->alpha, sp->beta, sp->depth);
-          else if (sp->nodeType == NonPV)
+              break;
+          case NonPV:
               search<SplitPointNonPV>(pos, ss+1, sp->alpha, sp->beta, sp->depth);
-          else
+              break;
+          default:
               assert(false);
+          }
 
-          assert(is_searching);
+          assert(searching);
 
-          is_searching = false;
-          sp->activePositions[idx] = NULL;
+          searching = false;
+          sp->slavesPositions[idx] = NULL;
           sp->slavesMask &= ~(1ULL << idx);
           sp->nodes += pos.nodes_searched();
 
-          // Wake up master thread so to allow it to return from the idle loop in
-          // case we are the last slave of the split point.
-          if (    Threads.use_sleeping_threads()
+          // Wake up master thread so to allow it to return from the idle loop
+          // in case we are the last slave of the split point.
+          if (    Threads.sleepWhileIdle
               &&  this != sp->master
               && !sp->slavesMask)
           {
-              assert(!sp->master->is_searching);
-              sp->master->wake_up();
+              assert(!sp->master->searching);
+              sp->master->notify_one();
           }
 
           // After releasing the lock we cannot access anymore any SplitPoint
@@ -1731,7 +1681,7 @@ void check_time() {
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active slaves positions.
       for (size_t i = 0; i < Threads.size(); i++)
-          for (int j = 0; j < Threads[i].splitPointsCnt; j++)
+          for (int j = 0; j < Threads[i].splitPointsSize; j++)
           {
               SplitPoint& sp = Threads[i].splitPoints[j];
 
@@ -1741,7 +1691,7 @@ void check_time() {
               Bitboard sm = sp.slavesMask;
               while (sm)
               {
-                  Position* pos = sp.activePositions[pop_lsb(&sm)];
+                  Position* pos = sp.slavesPositions[pop_lsb(&sm)];
                   nodes += pos ? pos->nodes_searched() : 0;
               }
 

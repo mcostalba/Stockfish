@@ -76,7 +76,7 @@ void UCI::loop(const string& args) {
           if (token != "ponderhit" || Search::Signals.stopOnPonderhit)
           {
               Search::Signals.stop = true;
-              Threads.main_thread()->wake_up(); // Could be sleeping
+              Threads.main_thread()->notify_one(); // Could be sleeping
           }
           else
               Search::Limits.ponder = false;
@@ -113,7 +113,7 @@ void UCI::loop(const string& args) {
 
   } while (token != "quit" && args.empty()); // Args have one-shot behaviour
 
-  Threads.wait_for_search_finished(); // Cannot quit while search is running
+  Threads.wait_for_think_finished(); // Cannot quit while search is running
 }
 
 
@@ -207,6 +207,6 @@ namespace {
         else if (token == "ponder")    limits.ponder = true;
     }
 
-    Threads.start_searching(pos, limits, searchMoves, SetupStates);
+    Threads.start_thinking(pos, limits, searchMoves, SetupStates);
   }
 }
