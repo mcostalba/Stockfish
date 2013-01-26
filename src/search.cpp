@@ -1609,7 +1609,7 @@ void Thread::idle_loop() {
 
           sp->mutex.lock();
 
-          assert(sp->slavesPositions[idx] == NULL);
+          assert(sp->slavesPositions[idx] == nullptr);
 
           sp->slavesPositions[idx] = &pos;
 
@@ -1630,7 +1630,7 @@ void Thread::idle_loop() {
           assert(searching);
 
           searching = false;
-          sp->slavesPositions[idx] = NULL;
+          sp->slavesPositions[idx] = nullptr;
           sp->slavesMask &= ~(1ULL << idx);
           sp->nodes += pos.nodes_searched();
 

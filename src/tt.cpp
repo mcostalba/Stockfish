@@ -115,7 +115,7 @@ void TranspositionTable::store(const Key posKey, Value v, Bound t, Depth d, Move
 
 
 /// TranspositionTable::probe() looks up the current position in the
-/// transposition table. Returns a pointer to the TTEntry or NULL if
+/// transposition table. Returns a pointer to the TTEntry or nullptr if
 /// position is not found.
 
 TTEntry* TranspositionTable::probe(const Key posKey) const {
