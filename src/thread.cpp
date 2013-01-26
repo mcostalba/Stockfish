@@ -110,7 +110,7 @@ void MainThread::idle_loop() {
 
 void Thread::notify_one() {
 
-  std::unique_lock<std::mutex> lk(mutex);
+  std::lock_guard<std::mutex>(this->mutex);
   sleepCondition.notify_one();
 }
 
@@ -282,7 +282,7 @@ Value ThreadPool::split(Position& pos, Stack* ss, Value alpha, Value beta,
           sp.slavesMask |= 1ULL << th->idx;
           th->activeSplitPoint = &sp;
           th->searching = true; // Slave leaves idle_loop()
-          th->notify_one(); // Could be sleepingS
+          th->notify_one(); // Could be sleeping
       }
 
   sp.mutex.unlock();
