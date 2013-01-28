@@ -499,13 +499,12 @@ namespace {
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode;
-    bool captureOrPromotion, dangerous, doFullDepthSearch, threatExtension;
+    bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, playedMoveCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     moveCount = playedMoveCount = 0;
-    threatExtension = false;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -706,7 +705,7 @@ namespace {
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
                 && allows_move(pos, (ss-1)->currentMove, threatMove))
-                threatExtension = true;
+                return beta - 1;
         }
     }
 
@@ -822,9 +821,6 @@ split_point_start: // At split points actual search starts from here
 
       // Step 12. Extend checks and, in PV nodes, also dangerous moves
       if (PvNode && dangerous)
-          ext = ONE_PLY;
-
-      else if (threatExtension && prevents_move(pos, move, threatMove))
           ext = ONE_PLY;
 
       else if (givesCheck && pos.see_sign(move) >= 0)
