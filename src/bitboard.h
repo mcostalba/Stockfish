@@ -292,4 +292,8 @@ extern Square pop_lsb(Bitboard* b);
 
 #endif
 
+inline Square closest_pawn(Color color, Bitboard pawns) {
+  return color == WHITE ? lsb(pawns) : msb(pawns);
+}
+
 #endif // !defined(BITBOARD_H_INCLUDED)

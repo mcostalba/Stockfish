@@ -421,13 +421,7 @@ Value Endgame<KNNK>::operator()(const Position&) const {
   return VALUE_DRAW;
 }
 
-/// K, bishop and one or more pawns vs K. It checks for draws with rook pawns and
-/// a bishop of the wrong color. If such a draw is detected, SCALE_FACTOR_DRAW
-/// is returned. If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling
-/// will be used.
-template<>
-ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
-
+ScaleFactor EvaluateKBPsK(const Position & pos, const Color strongerSide, const Color weakerSide) {
   assert(pos.non_pawn_material(strongerSide) == BishopValueMg);
   assert(pos.piece_count(strongerSide, BISHOP) == 1);
   assert(pos.piece_count(strongerSide, PAWN) >= 1);
@@ -471,7 +465,38 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
               return SCALE_FACTOR_DRAW;
       }
   }
+
+  // B or G file?  Then, draw if rank 7, bishop can't attack the pawn, and king can stop opposing king
+  if (   pos.non_pawn_material(weakerSide) == 0
+      && pos.piece_count(weakerSide, PAWN) != 0
+      && (pawnFile == FILE_B || pawnFile == FILE_G)
+      && !(pos.pieces(PAWN) & ~file_bb(pawnFile))) {
+    // Closest pawn?
+    Square strongerPawnSq = closest_pawn(weakerSide, pawns);
+    Square weakerPawnSq = closest_pawn(weakerSide, pos.pieces(weakerSide, PAWN));
+
+    Square strongerKingSq = pos.king_square(weakerSide);
+    Square weakerKingSq = pos.king_square(weakerSide);
+    Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+    if (   relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerPawnSq)
+        && relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerKingSq)
+        && relative_rank(strongerSide, weakerPawnSq) == RANK_7
+        && opposite_colors(bishopSq, weakerPawnSq)
+        && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq)) {
+      return SCALE_FACTOR_DRAW;
+    }
+  }
+
   return SCALE_FACTOR_NONE;
+}
+
+/// K, bishop and one or more pawns vs K. It checks for draws with rook pawns and
+/// a bishop of the wrong color. If such a draw is detected, SCALE_FACTOR_DRAW
+/// is returned. If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling
+/// will be used.
+template<>
+ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
+  return EvaluateKBPsK(pos, strongerSide, weakerSide);
 }
 
 
@@ -695,6 +720,36 @@ ScaleFactor Endgame<KPsK>::operator()(const Position& pos) const {
   return SCALE_FACTOR_NONE;
 }
 
+/// K, bishop and a pawn vs K and a pawn.
+template<>
+ScaleFactor Endgame<KBPKP>::operator()(const Position& pos) const {
+
+  assert(pos.non_pawn_material(strongerSide) == BishopValueMg);
+  assert(pos.piece_count(strongerSide, BISHOP) == 1);
+  assert(pos.piece_count(strongerSide, PAWN) == 1);
+  assert(pos.non_pawn_material(weakerSide) == 0);
+  assert(pos.piece_count(weakerSide, PAWN) == 1);
+
+  Square strongerPawnSq = pos.piece_list(strongerSide, PAWN)[0];
+  Square strongerBishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+  Square strongerKingSq = pos.piece_list(strongerSide, KING)[0];
+  Square weakerPawnSq = pos.piece_list(weakerSide, PAWN)[0];
+  Square weakerKingSq = pos.piece_list(weakerSide, KING)[0];
+  File pawnFile = file_of(strongerPawnSq);
+
+  // B or G file?  Then, draw if rank 7, bishop can't attack the pawn, and king can stop opposing king
+  if (   pawnFile == file_of(weakerPawnSq)
+      && (pawnFile == FILE_B || pawnFile == FILE_G)
+      && relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerPawnSq)
+      && relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerKingSq)
+      && relative_rank(strongerSide, weakerPawnSq) == RANK_7
+      && opposite_colors(strongerBishopSq, weakerPawnSq)
+      && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq)) {
+    return SCALE_FACTOR_DRAW;
+  }
+
+  return EvaluateKBPsK(pos, strongerSide, weakerSide);
+}
 
 /// K, bishop and a pawn vs K and a bishop. There are two rules: If the defending
 /// king is somewhere along the path of the pawn, and the square of the king is
