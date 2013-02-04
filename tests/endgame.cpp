@@ -40,11 +40,17 @@ void Test_KBPKP() {
   // Bishop opposite color from pawn, file G, blocked pawns
   TestEndgame("8/8/5b2/8/8/4k1p1/6P1/5K2 b - - 6 133", 100);
 
+  // Multiple pawns, still blocked, bishop opposite color
+  TestEndgame("8/8/4b3/8/1p3k2/1p6/1P6/1K6 w - - 0 1", 100);
+
   // Bishop opposite color from pawn, file G, defending king far away
   TestEndgame("5k2/1p6/1P6/8/3K1B2/8/8/8 w - - 0 1", 100);
 
   // Same as above, king one square away == mate!
   TestEndgame("6k1/1p6/1P6/8/3K1B2/8/8/8 w - - 0 1", -500);
+
+  // Bishop on same color as pawn == mate!
+  TestEndgame("8/8/5b2/8/1p3k2/1p6/1P6/1K6 w - - 0 1", -500);
 }
 
 void EndgameTests() {
