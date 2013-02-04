@@ -471,20 +471,22 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
       }
   }
 
-  // B or G file?  Then, draw if rank 7, bishop can't attack the pawn, and king can stop opposing king
+  // B or G file?  All pawns on same file?  No pieces for weaker side?  Then potential draw
   if (   pos.non_pawn_material(weakerSide) == 0
       && pos.piece_count(weakerSide, PAWN) != 0
       && (pawnFile == FILE_B || pawnFile == FILE_G)
       && !(pos.pieces(PAWN) & ~file_bb(pawnFile))) {
-    // Closest pawn?
+    // Get pawns closest to enemy home rank 
     Square strongerPawnSq = closest_pawn(weakerSide, pawns);
     Square weakerPawnSq = closest_pawn(weakerSide, pos.pieces(weakerSide, PAWN));
 
     Square strongerKingSq = pos.king_square(strongerSide);
     Square weakerKingSq = pos.king_square(weakerSide);
     Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
-    if (   relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerPawnSq)
-        && relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerKingSq)
+
+    // Draw if weaker pawn on rank 7, bishop can't attack the pawn, and weaker king can stop opposing
+    // king from penetrating. 
+    if (   relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerKingSq)
         && relative_rank(strongerSide, weakerPawnSq) == RANK_7
         && opposite_colors(bishopSq, weakerPawnSq)
         && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq)) {
