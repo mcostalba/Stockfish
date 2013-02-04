@@ -54,7 +54,6 @@ enum EndgameType {
   KRPKR,   // KRP vs KR
   KRPPKRP, // KRPP vs KRP
   KPsK,    // King and pawns vs king
-  KBPKP,   // KBP vs KP
   KBPKB,   // KBP vs KB
   KBPPKB,  // KBPP vs KB
   KBPKN,   // KBP vs KN
