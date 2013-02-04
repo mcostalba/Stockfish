@@ -36,6 +36,17 @@ void TestEndgame(const std::string & fen, int evalLimit) {
   RunCheckEval(pos, evalLimit);
 }
 
+void Test_KBPK() {
+  // Pawn on A file, bishop controls queening square - mate!
+  TestEndgame("8/8/5b2/8/5k2/p7/8/1K6 w - - 0 1", -500);
+
+  // Pawn on A File, king controls queening square - mate!
+  TestEndgame("8/8/8/8/6b1/p7/k7/2K5 w - - 0 1", -500);
+
+  // Pawn on A file, bishop doesn't control queening square - draw
+  TestEndgame("8/8/8/8/5kb1/p7/8/1K6 w - - 0 1", 100);
+}
+
 void Test_KBPKP() {
   // Bishop opposite color from pawn, file G, blocked pawns
   TestEndgame("8/8/5b2/8/8/4k1p1/6P1/5K2 b - - 6 133", 100);
@@ -46,7 +57,7 @@ void Test_KBPKP() {
   // Bishop opposite color from pawn, file G, defending king far away
   TestEndgame("5k2/1p6/1P6/8/3K1B2/8/8/8 w - - 0 1", 100);
 
-  // Same as above, king one square away == mate!
+  // Same as above, king one square away - mate!
   TestEndgame("6k1/1p6/1P6/8/3K1B2/8/8/8 w - - 0 1", -500);
 
   // Bishop on same color as pawn == mate!
@@ -54,5 +65,7 @@ void Test_KBPKP() {
 }
 
 void EndgameTests() {
+  // Verified using chessok endgame tablebases - http://chessok.com/?page_id=361
+  Test_KBPK();
   Test_KBPKP();
 }
