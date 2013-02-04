@@ -475,7 +475,7 @@ ScaleFactor EvaluateKBPsK(const Position & pos, const Color strongerSide, const 
     Square strongerPawnSq = closest_pawn(weakerSide, pawns);
     Square weakerPawnSq = closest_pawn(weakerSide, pos.pieces(weakerSide, PAWN));
 
-    Square strongerKingSq = pos.king_square(weakerSide);
+    Square strongerKingSq = pos.king_square(strongerSide);
     Square weakerKingSq = pos.king_square(weakerSide);
     Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
     if (   relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerPawnSq)
