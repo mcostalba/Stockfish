@@ -71,7 +71,7 @@ struct SplitPoint {
 
 struct Thread {
 
-  explicit Thread(int index);
+  Thread();
   virtual ~Thread();
 
   virtual void idle_loop();
@@ -104,13 +104,13 @@ struct Thread {
 /// special threads: the main one and the recurring timer.
 
 struct MainThread : public Thread {
-  MainThread() : Thread(0), thinking(true) {} // Avoid a race with start_thinking()
+  MainThread() : thinking(true) {} // Avoid a race with start_thinking()
   virtual void idle_loop();
   volatile bool thinking;
 };
 
 struct TimerThread : public Thread {
-  TimerThread() : Thread(0), msec(0) {}
+  TimerThread() : msec(0) {}
   virtual void idle_loop();
   int msec;
 };
@@ -131,10 +131,6 @@ struct ThreadPool : public std::vector<Thread*> {
   void wait_for_think_finished();
   void start_thinking(const Position&, const Search::LimitsType&,
                       const std::vector<Move>&, Search::StateStackPtr&);
-
-  template <bool Fake>
-  Value split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value bestValue, Move* bestMove,
-              Depth depth, Move threatMove, int moveCount, MovePicker& mp, int nodeType);
 
   bool sleepWhileIdle;
   Depth minimumSplitDepth;

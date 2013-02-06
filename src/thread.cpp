@@ -33,12 +33,12 @@ ThreadPool Threads; // Global object
 // Thread c'tor starts a newly-created thread of execution that will call
 // the the virtual function idle_loop(), going immediately to sleep.
 
-Thread::Thread(int index) : splitPoints() {
+Thread::Thread() : splitPoints() {
 
   searching = exit = false;
   maxPly = splitPointsSize = 0;
   activeSplitPoint = nullptr;
-  idx = index;
+  idx = Threads.size();
   nativeThread = std::thread(&Thread::idle_loop, this);
 }
 
@@ -199,7 +199,7 @@ void ThreadPool::read_uci_options() {
   assert(requested > 0);
 
   while (size() < requested)
-      push_back(new Thread(size()));
+      push_back(new Thread());
 
   while (size() > requested)
   {
