@@ -26,7 +26,6 @@
 
 #include "book.h"
 #include "evaluate.h"
-#include "history.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "notation.h"
@@ -87,7 +86,8 @@ namespace {
   TimeManager TimeMgr;
   int BestMoveChanges;
   Value DrawValue[COLOR_NB];
-  History H;
+  History Hist;
+  Gains Gain;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
@@ -98,8 +98,9 @@ namespace {
   void id_loop(Position& pos);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
-  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta);
-  bool prevents_move(const Position& pos, Move first, Move second);
+  bool check_is_dangerous(const Position& pos, Move move, Value futilityBase, Value beta);
+  bool allows(const Position& pos, Move first, Move second);
+  bool refutes(const Position& pos, Move first, Move second);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
@@ -234,16 +235,16 @@ void Search::think() {
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
-  Threads.timer_thread()->msec =
+  Threads.timer->msec =
   Limits.use_time_management() ? std::min(100, std::max(TimeMgr.available_time() / 16, TimerResolution)) :
                   Limits.nodes ? 2 * TimerResolution
                                : 100;
 
-  Threads.timer_thread()->notify_one(); // Wake up the recurring timer
+  Threads.timer->notify_one(); // Wake up the recurring timer
 
   id_loop(RootPos); // Let's start searching !
 
-  Threads.timer_thread()->msec = 0; // Stop the timer
+  Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
   if (Options["Use Search Log"])
@@ -299,7 +300,8 @@ namespace {
     bestValue = delta = -VALUE_INFINITE;
     ss->currentMove = MOVE_NULL; // Hack to skip update gains
     TT.new_search();
-    H.clear();
+    Hist.clear();
+    Gain.clear();
 
     PVSize = Options["MultiPV"];
     Skill skill(Options["Skill Level"]);
@@ -398,6 +400,7 @@ namespace {
 
             // Sort the PV lines searched so far and update the GUI
             sort<RootMove>(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
+
             if (PVIdx + 1 == PVSize || Time::now() - SearchTime > 3000)
                 sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
@@ -534,7 +537,7 @@ namespace {
     if (!RootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (Signals.stop || pos.is_draw<true, PvNode>() || ss->ply > MAX_PLY)
+        if (Signals.stop || pos.is_draw<false>() || ss->ply > MAX_PLY)
             return DrawValue[pos.side_to_move()];
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -617,7 +620,7 @@ namespace {
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
-        H.update_gain(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
+        Gain.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
     // Step 6. Razoring (is omitted in PV nodes)
@@ -667,12 +670,12 @@ namespace {
         if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
-        pos.do_null_move<true>(st);
+        pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
         nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                       : - search<NonPV>(pos, ss+1, -beta, -alpha, depth-R);
         (ss+1)->skipNullMove = false;
-        pos.do_null_move<false>(st);
+        pos.undo_null_move();
 
         if (nullValue >= beta)
         {
@@ -692,9 +695,21 @@ namespace {
                 return nullValue;
         }
         else
+        {
             // The null move failed low, which means that we may be faced with
-            // some kind of threat.
+            // some kind of threat. If the previous move was reduced, check if
+            // the move that refuted the null move was somehow connected to the
+            // move which was reduced. If a connection is found, return a fail
+            // low score (which will cause the reduced move to fail high in the
+            // parent node, which will trigger a re-search with full depth).
             threatMove = (ss+1)->currentMove;
+
+            if (   depth < 5 * ONE_PLY
+                && (ss-1)->reduction
+                && threatMove != MOVE_NONE
+                && allows(pos, (ss-1)->currentMove, threatMove))
+                return beta - 1;
+        }
     }
 
     // Step 9. ProbCut (is omitted in PV nodes)
@@ -715,7 +730,7 @@ namespace {
         assert((ss-1)->currentMove != MOVE_NONE);
         assert((ss-1)->currentMove != MOVE_NULL);
 
-        MovePicker mp(pos, ttMove, H, pos.captured_piece_type());
+        MovePicker mp(pos, ttMove, Hist, pos.captured_piece_type());
         CheckInfo ci(pos);
 
         while ((move = mp.next_move<false>()) != MOVE_NONE)
@@ -747,7 +762,7 @@ namespace {
 
 split_point_start: // At split points actual search starts from here
 
-    MovePicker mp(pos, ttMove, depth, H, ss, PvNode ? -VALUE_INFINITE : beta);
+    MovePicker mp(pos, ttMove, depth, Hist, ss, PvNode ? -VALUE_INFINITE : beta);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     singularExtensionNode =   !RootNode
@@ -847,12 +862,13 @@ split_point_start: // At split points actual search starts from here
           && !inCheck
           && !dangerous
           &&  move != ttMove
-          && (!threatMove || !prevents_move(pos, move, threatMove))
           && (bestValue > VALUE_MATED_IN_MAX_PLY || (   bestValue == -VALUE_INFINITE
                                                      && alpha > VALUE_MATED_IN_MAX_PLY)))
       {
           // Move count based pruning
-          if (depth < 16 * ONE_PLY && moveCount >= FutilityMoveCounts[depth])
+          if (   depth < 16 * ONE_PLY
+              && moveCount >= FutilityMoveCounts[depth]
+              && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
                   sp->mutex.lock();
@@ -865,7 +881,7 @@ split_point_start: // At split points actual search starts from here
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(depth, moveCount);
           futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
-                         + H.gain(pos.piece_moved(move), to_sq(move));
+                         + Gain[pos.piece_moved(move)][to_sq(move)];
 
           if (futilityValue < beta)
           {
@@ -907,8 +923,9 @@ split_point_start: // At split points actual search starts from here
           && !pvMove
           && !captureOrPromotion
           && !dangerous
-          &&  ss->killers[0] != move
-          &&  ss->killers[1] != move)
+          &&  move != ttMove
+          &&  move != ss->killers[0]
+          &&  move != ss->killers[1])
       {
           ss->reduction = reduction<PvNode>(depth, moveCount);
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
@@ -1008,13 +1025,13 @@ split_point_start: // At split points actual search starts from here
       // Step 19. Check for splitting the search
       if (   !SpNode
           &&  depth >= Threads.minimumSplitDepth
-          &&  Threads.slave_available(thisThread)
+          &&  Threads.available_slave(thisThread)
           &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
       {
           assert(bestValue < beta);
 
-          bestValue = Threads.split<FakeSplit>(pos, ss, alpha, beta, bestValue, &bestMove,
-                                               depth, threatMove, moveCount, mp, NT);
+          thisThread->split<FakeSplit>(pos, ss, alpha, beta, &bestValue, &bestMove,
+                                       depth, threatMove, moveCount, &mp, NT);
           if (bestValue >= beta)
               break;
       }
@@ -1057,13 +1074,13 @@ split_point_start: // At split points actual search starts from here
 
             // Increase history value of the cut-off move
             Value bonus = Value(int(depth) * int(depth));
-            H.add(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
+            Hist.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
 
             // Decrease history of all the other played non-capture moves
             for (int i = 0; i < playedMoveCount - 1; i++)
             {
                 Move m = movesSearched[i];
-                H.add(pos.piece_moved(m), to_sq(m), -bonus);
+                Hist.update(pos.piece_moved(m), to_sq(m), -bonus);
             }
         }
     }
@@ -1109,7 +1126,7 @@ split_point_start: // At split points actual search starts from here
     ss->ply = (ss-1)->ply + 1;
 
     // Check for an instant draw or maximum ply reached
-    if (pos.is_draw<false, false>() || ss->ply > MAX_PLY)
+    if (pos.is_draw<true>() || ss->ply > MAX_PLY)
         return DrawValue[pos.side_to_move()];
 
     // Transposition table lookup. At PV nodes, we don't use the TT for
@@ -1175,7 +1192,7 @@ split_point_start: // At split points actual search starts from here
     // to search the moves. Because the depth is <= 0 here, only captures,
     // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
     // be generated.
-    MovePicker mp(pos, ttMove, depth, H, to_sq((ss-1)->currentMove));
+    MovePicker mp(pos, ttMove, depth, Hist, to_sq((ss-1)->currentMove));
     CheckInfo ci(pos);
 
     // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -1318,7 +1335,7 @@ split_point_start: // At split points actual search starts from here
 
   // check_is_dangerous() tests if a checking move can be pruned in qsearch()
 
-  bool check_is_dangerous(Position& pos, Move move, Value futilityBase, Value beta)
+  bool check_is_dangerous(const Position& pos, Move move, Value futilityBase, Value beta)
   {
     Piece pc = pos.piece_moved(move);
     Square from = from_sq(move);
@@ -1343,6 +1360,7 @@ split_point_start: // At split points actual search starts from here
     Bitboard b = (enemies ^ ksq) & newAtt & ~oldAtt;
     while (b)
     {
+        // Note that here we generate illegal "double move"!
         if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
             return true;
     }
@@ -1351,12 +1369,52 @@ split_point_start: // At split points actual search starts from here
   }
 
 
-  // prevents_move() tests whether a move (first) is able to defend against an
-  // opponent's move (second). In this case will not be pruned. Normally the
-  // second move is the threat move (the best move returned from a null search
-  // that fails low).
+  // allows() tests whether the 'first' move at previous ply somehow makes the
+  // 'second' move possible, for instance if the moving piece is the same in
+  // both moves. Normally the second move is the threat (the best move returned
+  // from a null search that fails low).
 
-  bool prevents_move(const Position& pos, Move first, Move second) {
+  bool allows(const Position& pos, Move first, Move second) {
+
+    assert(is_ok(first));
+    assert(is_ok(second));
+    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
+    assert(color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
+
+    Square m1from = from_sq(first);
+    Square m2from = from_sq(second);
+    Square m1to = to_sq(first);
+    Square m2to = to_sq(second);
+
+    // The piece is the same or second's destination was vacated by the first move
+    if (m1to == m2from || m2to == m1from)
+        return true;
+
+    // Second one moves through the square vacated by first one
+    if (between_bb(m2from, m2to) & m1from)
+      return true;
+
+    // Second's destination is defended by the first move's piece
+    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
+    if (m1att & m2to)
+        return true;
+
+    // Second move gives a discovered check through the first's checking piece
+    if (m1att & pos.king_square(pos.side_to_move()))
+    {
+        assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
+        return true;
+    }
+
+    return false;
+  }
+
+
+  // refutes() tests whether a 'first' move is able to defend against a 'second'
+  // opponent's move. In this case will not be pruned. Normally the second move
+  // is the threat (the best move returned from a null search that fails low).
+
+  bool refutes(const Position& pos, Move first, Move second) {
 
     assert(is_ok(first));
     assert(is_ok(second));
@@ -1516,7 +1574,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
            && pos.is_pseudo_legal(m = tte->move()) // Local copy, TT could change
            && pos.pl_move_is_legal(m, pos.pinned_pieces())
            && ply < MAX_PLY
-           && (!pos.is_draw<true, true>() || ply < 2));
+           && (!pos.is_draw<false>() || ply < 2));
 
   pv.push_back(MOVE_NONE); // Must be zero-terminating
 
@@ -1558,7 +1616,7 @@ void Thread::idle_loop() {
   // at the thread creation. So it means we are the split point's master.
   const SplitPoint* this_sp = splitPointsSize ? activeSplitPoint : nullptr;
 
-  assert(!this_sp || (this_sp->master == this && searching));
+  assert(!this_sp || (this_sp->masterThread == this && searching));
 
   // If this thread is the master of a split point and all slaves have finished
   // their work at this split point, return from the idle loop.
@@ -1637,11 +1695,11 @@ void Thread::idle_loop() {
           // Wake up master thread so to allow it to return from the idle loop
           // in case we are the last slave of the split point.
           if (    Threads.sleepWhileIdle
-              &&  this != sp->master
+              &&  this != sp->masterThread
               && !sp->slavesMask)
           {
-              assert(!sp->master->searching);
-              sp->master->notify_one();
+              assert(!sp->masterThread->searching);
+              sp->masterThread->notify_one();
           }
 
           // After releasing the lock we cannot access anymore any SplitPoint
