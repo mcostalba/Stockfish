@@ -471,27 +471,26 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
       }
   }
 
-  // B or G file?  All pawns on same file?  No pieces for weaker side?  Then potential draw
-  if (   pos.non_pawn_material(weakerSide) == 0
-      && pos.piece_count(weakerSide, PAWN) != 0
-      && (pawnFile == FILE_B || pawnFile == FILE_G)
-      && !(pos.pieces(PAWN) & ~file_bb(pawnFile))) {
-    // Get pawns closest to enemy home rank 
-    Square strongerPawnSq = closest_pawn(weakerSide, pawns);
-    Square weakerPawnSq = closest_pawn(weakerSide, pos.pieces(weakerSide, PAWN));
+  // All pawns on same B or G file? Then potential draw
+  if (    (pawnFile == FILE_B || pawnFile == FILE_G)
+      && !(pos.pieces(PAWN) & ~file_bb(pawnFile))
+      && pos.non_pawn_material(weakerSide) == 0
+      && pos.piece_count(weakerSide, PAWN) >= 1)
+  {
+      // Get weaker pawn closest to opponent's queening square
+      Bitboard wkPawns = pos.pieces(weakerSide, PAWN);
+      Square weakerPawnSq = strongerSide == WHITE ? msb(wkPawns) : lsb(wkPawns);
 
-    Square strongerKingSq = pos.king_square(strongerSide);
-    Square weakerKingSq = pos.king_square(weakerSide);
-    Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+      Square strongerKingSq = pos.king_square(strongerSide);
+      Square weakerKingSq = pos.king_square(weakerSide);
+      Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
 
-    // Draw if weaker pawn on rank 7, bishop can't attack the pawn, and weaker king can stop opposing
-    // king from penetrating. 
-    if (   relative_rank(strongerSide, strongerPawnSq) < relative_rank(strongerSide, weakerKingSq)
-        && relative_rank(strongerSide, weakerPawnSq) == RANK_7
-        && opposite_colors(bishopSq, weakerPawnSq)
-        && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq)) {
-      return SCALE_FACTOR_DRAW;
-    }
+      // Draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
+      // weaker king can stop opposing opponent's king from penetrating.
+      if (   relative_rank(strongerSide, weakerPawnSq) == RANK_7
+          && opposite_colors(bishopSq, weakerPawnSq)
+          && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq))
+          return SCALE_FACTOR_DRAW;
   }
 
   return SCALE_FACTOR_NONE;
