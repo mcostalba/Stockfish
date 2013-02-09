@@ -594,8 +594,8 @@ namespace {
     else if (tte)
     {
         // Never assume anything on values stored in TT
-        if (  (ss->staticEval = eval = tte->static_value()) == VALUE_NONE
-            ||(ss->evalMargin = tte->static_value_margin()) == VALUE_NONE)
+        if (  (ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
+            ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
             eval = ss->staticEval = evaluate(pos, ss->evalMargin);
 
         // Can ttValue be used as a better position evaluation?
@@ -1164,8 +1164,8 @@ split_point_start: // At split points actual search starts from here
         if (tte)
         {
             // Never assume anything on values stored in TT
-            if (  (ss->staticEval = bestValue = tte->static_value()) == VALUE_NONE
-                ||(ss->evalMargin = tte->static_value_margin()) == VALUE_NONE)
+            if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
+                ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
                 ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
         }
         else
@@ -1667,9 +1667,9 @@ void Thread::idle_loop() {
 
           sp->mutex.lock();
 
-          assert(sp->slavesPositions[idx] == nullptr);
+          assert(activePosition == nullptr);
 
-          sp->slavesPositions[idx] = &pos;
+          activePosition = &pos;
 
           switch (sp->nodeType) {
           case Root:
@@ -1688,7 +1688,7 @@ void Thread::idle_loop() {
           assert(searching);
 
           searching = false;
-          sp->slavesPositions[idx] = nullptr;
+          activePosition = nullptr;
           sp->slavesMask &= ~(1ULL << idx);
           sp->nodes += pos.nodes_searched();
 
@@ -1737,7 +1737,7 @@ void check_time() {
       nodes = RootPos.nodes_searched();
 
       // Loop across all split points and sum accumulated SplitPoint nodes plus
-      // all the currently active slaves positions.
+      // all the currently active positions nodes.
       for (Thread* th : Threads)
           for (int i = 0; i < th->splitPointsSize; i++)
           {
@@ -1749,8 +1749,9 @@ void check_time() {
               Bitboard sm = sp.slavesMask;
               while (sm)
               {
-                  Position* pos = sp.slavesPositions[pop_lsb(&sm)];
-                  nodes += pos ? pos->nodes_searched() : 0;
+                  Position* pos = Threads[pop_lsb(&sm)]->activePosition;
+                  if (pos)
+                      nodes += pos->nodes_searched();
               }
 
               sp.mutex.unlock();
