@@ -235,7 +235,7 @@ namespace {
 
   // Function prototypes
   template<bool Trace>
-  Value do_evaluate(const Position& pos, Value& margin, Value beta);
+  Value do_evaluate(const Position& pos, Value& margin, Value alpha, Value beta);
 
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei);
@@ -273,8 +273,8 @@ namespace Eval {
   /// values, an endgame score and a middle game score, and interpolates
   /// between them based on the remaining material.
 
-  Value evaluate(const Position& pos, Value& margin, Value beta) {
-    return do_evaluate<false>(pos, margin, beta);
+  Value evaluate(const Position& pos, Value& margin, Value alpha, Value beta) {
+    return do_evaluate<false>(pos, margin, alpha, beta);
   }
 
 
@@ -325,7 +325,7 @@ namespace Eval {
     TraceStream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
     memset(TracedScores, 0, 2 * 16 * sizeof(Score));
 
-    do_evaluate<true>(pos, margin, VALUE_INFINITE);
+    do_evaluate<true>(pos, margin, -VALUE_INFINITE, VALUE_INFINITE);
 
     totals = TraceStream.str();
     TraceStream.str("");
@@ -361,7 +361,7 @@ namespace Eval {
 namespace {
 
 template<bool Trace>
-Value do_evaluate(const Position& pos, Value& margin, Value beta) {
+Value do_evaluate(const Position& pos, Value& margin, Value alpha, Value beta) {
 
   assert(!pos.in_check());
 
@@ -397,14 +397,21 @@ Value do_evaluate(const Position& pos, Value& margin, Value beta) {
   ei.pi = pos.this_thread()->pawnTable.probe(pos);
   score += ei.pi->pawns_value();
 
-  // Lazy evaluation. If we are at least one piece far from beta then stop here
-  if (beta != VALUE_INFINITE)
+  // Lazy evaluation
+  if (alpha != -VALUE_INFINITE || beta != VALUE_INFINITE)
   {
       ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
                                                     : ei.mi->scale_factor(pos, BLACK);
       Value v = interpolate(score, phase, sf);
       v = (pos.side_to_move() == WHITE ? v : -v);
-      if (abs(v - beta) >= KnightValueMg)
+
+      if (beta != VALUE_INFINITE && v >= beta + KnightValueMg)
+      {
+          margin = VALUE_ZERO;
+          return v;
+      }
+
+      if (beta == VALUE_INFINITE && alpha != -VALUE_INFINITE && v <= alpha - Value(830))
       {
           margin = VALUE_ZERO;
           return v;

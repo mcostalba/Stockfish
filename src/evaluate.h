@@ -29,7 +29,7 @@ namespace Eval {
 extern Color RootColor;
 
 extern void init();
-extern Value evaluate(const Position& pos, Value& margin, Value beta);
+extern Value evaluate(const Position& pos, Value& margin, Value alpha, Value beta);
 extern std::string trace(const Position& pos);
 
 }
