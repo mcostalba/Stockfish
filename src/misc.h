@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,28 +22,48 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 
-#include "lock.h"
 #include "types.h"
 
-extern const std::string engine_name();
-extern const std::string engine_authors();
-extern int get_system_time();
+extern const std::string engine_info(bool to_uci = false);
 extern int cpu_count();
-extern void timed_wait(WaitCondition*, Lock*, int);
+extern void timed_wait(WaitCondition&, Lock&, int);
 extern void prefetch(char* addr);
+extern void start_logger(bool b);
 
 extern void dbg_hit_on(bool b);
 extern void dbg_hit_on_c(bool c, bool b);
-extern void dbg_before();
-extern void dbg_after();
 extern void dbg_mean_of(int v);
-extern void dbg_print_hit_rate();
-extern void dbg_print_mean();
+extern void dbg_print();
+
 
 struct Log : public std::ofstream {
   Log(const std::string& f = "log.txt") : std::ofstream(f.c_str(), std::ios::out | std::ios::app) {}
  ~Log() { if (is_open()) close(); }
 };
+
+
+namespace Time {
+  typedef int64_t point;
+  point now();
+}
+
+
+template<class Entry, int Size>
+struct HashTable {
+  HashTable() : e(Size, Entry()) {}
+  Entry* operator[](Key k) { return &e[(uint32_t)k & (Size - 1)]; }
+
+private:
+  std::vector<Entry> e;
+};
+
+
+enum SyncCout { io_lock, io_unlock };
+std::ostream& operator<<(std::ostream&, SyncCout);
+
+#define sync_cout std::cout << io_lock
+#define sync_endl std::endl << io_unlock
 
 #endif // !defined(MISC_H_INCLUDED)

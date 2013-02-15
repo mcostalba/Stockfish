@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,11 +20,8 @@
 #if !defined(TT_H_INCLUDED)
 #define TT_H_INCLUDED
 
-#include <iostream>
-
-#include "move.h"
+#include "misc.h"
 #include "types.h"
-
 
 /// The TTEntry is the class of transposition table entries
 ///
@@ -47,11 +44,11 @@
 class TTEntry {
 
 public:
-  void save(uint32_t k, Value v, ValueType t, Depth d, Move m, int g, Value statV, Value statM) {
+  void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value statV, Value statM) {
 
     key32        = (uint32_t)k;
     move16       = (uint16_t)m;
-    valueType    = (uint8_t)t;
+    bound        = (uint8_t)b;
     generation8  = (uint8_t)g;
     value16      = (int16_t)v;
     depth16      = (int16_t)d;
@@ -64,7 +61,7 @@ public:
   Depth depth() const               { return (Depth)depth16; }
   Move move() const                 { return (Move)move16; }
   Value value() const               { return (Value)value16; }
-  ValueType type() const            { return (ValueType)valueType; }
+  Bound type() const                { return (Bound)bound; }
   int generation() const            { return (int)generation8; }
   Value static_value() const        { return (Value)staticValue; }
   Value static_value_margin() const { return (Value)staticMargin; }
@@ -72,7 +69,7 @@ public:
 private:
   uint32_t key32;
   uint16_t move16;
-  uint8_t valueType, generation8;
+  uint8_t bound, generation8;
   int16_t value16, depth16, staticValue, staticMargin;
 };
 
@@ -103,7 +100,7 @@ public:
   ~TranspositionTable();
   void set_size(size_t mbSize);
   void clear();
-  void store(const Key posKey, Value v, ValueType type, Depth d, Move m, Value statV, Value kingD);
+  void store(const Key posKey, Value v, Bound type, Depth d, Move m, Value statV, Value kingD);
   TTEntry* probe(const Key posKey) const;
   void new_search();
   TTEntry* first_entry(const Key posKey) const;
@@ -135,39 +132,5 @@ inline void TranspositionTable::refresh(const TTEntry* tte) const {
 
   const_cast<TTEntry*>(tte)->set_generation(generation);
 }
-
-
-/// A simple fixed size hash table used to store pawns and material
-/// configurations. It is basically just an array of Entry objects.
-/// Without cluster concept or overwrite policy.
-
-template<class Entry, int HashSize>
-struct SimpleHash {
-
-  typedef SimpleHash<Entry, HashSize> Base;
-
-  void init() {
-
-    if (entries)
-        return;
-
-    entries = new (std::nothrow) Entry[HashSize];
-    if (!entries)
-    {
-        std::cerr << "Failed to allocate " << HashSize * sizeof(Entry)
-                  << " bytes for hash table." << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    memset(entries, 0, HashSize * sizeof(Entry));
-  }
-
-  virtual ~SimpleHash() { delete [] entries; }
-
-  Entry* probe(Key key) const { return entries + ((uint32_t)key & (HashSize - 1)); }
-  void prefetch(Key key) const { ::prefetch((char*)probe(key)); }
-
-protected:
-  Entry* entries;
-};
 
 #endif // !defined(TT_H_INCLUDED)

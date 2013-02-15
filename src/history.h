@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
 #if !defined(HISTORY_H_INCLUDED)
 #define HISTORY_H_INCLUDED
 
-#include "types.h"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
+
+#include "types.h"
 
 /// The History class stores statistics about how often different moves
 /// have been successful or unsuccessful during the current search. These
@@ -36,7 +37,7 @@ class History {
 public:
   void clear();
   Value value(Piece p, Square to) const;
-  void update(Piece p, Square to, Value bonus);
+  void add(Piece p, Square to, Value bonus);
   Value gain(Piece p, Square to) const;
   void update_gain(Piece p, Square to, Value g);
 
@@ -56,7 +57,7 @@ inline Value History::value(Piece p, Square to) const {
   return history[p][to];
 }
 
-inline void History::update(Piece p, Square to, Value bonus) {
+inline void History::add(Piece p, Square to, Value bonus) {
   if (abs(history[p][to] + bonus) < MaxValue) history[p][to] += bonus;
 }
 

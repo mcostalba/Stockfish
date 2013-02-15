@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 namespace {
 
+  #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
   // Doubled pawn penalty by opposed flag and file
@@ -63,60 +64,66 @@ namespace {
 
   const Score PawnStructureWeight = S(233, 201);
 
-  #undef S
+  // Weakness of our pawn shelter in front of the king indexed by [king pawn][rank]
+  const Value ShelterWeakness[2][8] =
+  { { V(141), V(0), V(38), V(102), V(128), V(141), V(141) },
+    { V( 61), V(0), V(16), V( 44), V( 56), V( 61), V( 61) } };
 
-  inline Score apply_weight(Score v, Score w) {
-    return make_score((int(mg_value(v)) * mg_value(w)) / 0x100,
-                      (int(eg_value(v)) * eg_value(w)) / 0x100);
-  }
+  // Danger of enemy pawns moving toward our king indexed by [pawn blocked][rank]
+  const Value StormDanger[2][8] =
+  { { V(26), V(0), V(128), V(51), V(26) },
+    { V(13), V(0), V( 64), V(25), V(13) } };
+
+  // Max bonus for king safety. Corresponds to start position with all the pawns
+  // in front of the king and no enemy pawn on the horizont.
+  const Value MaxSafetyBonus = V(263);
+
+  #undef S
+  #undef V
 }
 
 
-/// PawnInfoTable::get_pawn_info() takes a position object as input, computes
-/// a PawnInfo object, and returns a pointer to it. The result is also stored
-/// in an hash table, so we don't have to recompute everything when the same
-/// pawn structure occurs again.
+/// PawnTable::probe() takes a position object as input, computes a PawnEntry
+/// object, and returns a pointer to it. The result is also stored in a hash
+/// table, so we don't have to recompute everything when the same pawn structure
+/// occurs again.
 
-PawnInfo* PawnInfoTable::get_pawn_info(const Position& pos) const {
+PawnEntry* PawnTable::probe(const Position& pos) {
 
-  Key key = pos.get_pawn_key();
-  PawnInfo* pi = probe(key);
+  Key key = pos.pawn_key();
+  PawnEntry* e = entries[key];
 
-  // If pi->key matches the position's pawn hash key, it means that we
+  // If e->key matches the position's pawn hash key, it means that we
   // have analysed this pawn structure before, and we can simply return
   // the information we found the last time instead of recomputing it.
-  if (pi->key == key)
-      return pi;
+  if (e->key == key)
+      return e;
 
-  // Initialize PawnInfo entry
-  pi->key = key;
-  pi->passedPawns[WHITE] = pi->passedPawns[BLACK] = 0;
-  pi->kingSquares[WHITE] = pi->kingSquares[BLACK] = SQ_NONE;
-  pi->halfOpenFiles[WHITE] = pi->halfOpenFiles[BLACK] = 0xFF;
+  e->key = key;
+  e->passedPawns[WHITE] = e->passedPawns[BLACK] = 0;
+  e->kingSquares[WHITE] = e->kingSquares[BLACK] = SQ_NONE;
+  e->halfOpenFiles[WHITE] = e->halfOpenFiles[BLACK] = 0xFF;
 
-  // Calculate pawn attacks
-  Bitboard wPawns = pos.pieces(PAWN, WHITE);
-  Bitboard bPawns = pos.pieces(PAWN, BLACK);
-  pi->pawnAttacks[WHITE] = ((wPawns << 9) & ~FileABB) | ((wPawns << 7) & ~FileHBB);
-  pi->pawnAttacks[BLACK] = ((bPawns >> 7) & ~FileABB) | ((bPawns >> 9) & ~FileHBB);
+  Bitboard wPawns = pos.pieces(WHITE, PAWN);
+  Bitboard bPawns = pos.pieces(BLACK, PAWN);
+  e->pawnAttacks[WHITE] = ((wPawns & ~FileHBB) << 9) | ((wPawns & ~FileABB) << 7);
+  e->pawnAttacks[BLACK] = ((bPawns & ~FileHBB) >> 7) | ((bPawns & ~FileABB) >> 9);
 
-  // Evaluate pawns for both colors and weight the result
-  pi->value =  evaluate_pawns<WHITE>(pos, wPawns, bPawns, pi)
-             - evaluate_pawns<BLACK>(pos, bPawns, wPawns, pi);
+  e->value =  evaluate_pawns<WHITE>(pos, wPawns, bPawns, e)
+            - evaluate_pawns<BLACK>(pos, bPawns, wPawns, e);
 
-  pi->value = apply_weight(pi->value, PawnStructureWeight);
+  e->value = apply_weight(e->value, PawnStructureWeight);
 
-  return pi;
+  return e;
 }
 
 
-/// PawnInfoTable::evaluate_pawns() evaluates each pawn of the given color
+/// PawnTable::evaluate_pawns() evaluates each pawn of the given color
 
 template<Color Us>
-Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
-                                    Bitboard theirPawns, PawnInfo* pi) {
+Score PawnTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
+                                Bitboard theirPawns, PawnEntry* e) {
 
-  const BitCountType Max15 = CpuIs64Bit ? CNT64_MAX15 : CNT32_MAX15;
   const Color Them = (Us == WHITE ? BLACK : WHITE);
 
   Bitboard b;
@@ -136,32 +143,32 @@ Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
       r = rank_of(s);
 
       // This file cannot be half open
-      pi->halfOpenFiles[Us] &= ~(1 << f);
+      e->halfOpenFiles[Us] &= ~(1 << f);
 
       // Our rank plus previous one. Used for chain detection
       b = rank_bb(r) | rank_bb(Us == WHITE ? r - Rank(1) : r + Rank(1));
 
       // Flag the pawn as passed, isolated, doubled or member of a pawn
       // chain (but not the backward one).
+      chain    =   ourPawns   & adjacent_files_bb(f) & b;
+      isolated = !(ourPawns   & adjacent_files_bb(f));
+      doubled  =   ourPawns   & forward_bb(Us, s);
+      opposed  =   theirPawns & forward_bb(Us, s);
       passed   = !(theirPawns & passed_pawn_mask(Us, s));
-      doubled  =   ourPawns   & squares_in_front_of(Us, s);
-      opposed  =   theirPawns & squares_in_front_of(Us, s);
-      isolated = !(ourPawns   & neighboring_files_bb(f));
-      chain    =   ourPawns   & neighboring_files_bb(f) & b;
 
       // Test for backward pawn
       backward = false;
 
       // If the pawn is passed, isolated, or member of a pawn chain it cannot
-      // be backward. If there are friendly pawns behind on neighboring files
+      // be backward. If there are friendly pawns behind on adjacent files
       // or if can capture an enemy pawn it cannot be backward either.
       if (   !(passed | isolated | chain)
           && !(ourPawns & attack_span_mask(Them, s))
           && !(pos.attacks_from<PAWN>(s, Us) & theirPawns))
       {
           // We now know that there are no friendly pawns beside or behind this
-          // pawn on neighboring files. We now check whether the pawn is
-          // backward by looking in the forward direction on the neighboring
+          // pawn on adjacent files. We now check whether the pawn is
+          // backward by looking in the forward direction on the adjacent
           // files, and seeing whether we meet a friendly or an enemy pawn first.
           b = pos.attacks_from<PAWN>(s, Us);
 
@@ -179,17 +186,17 @@ Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
 
       // A not passed pawn is a candidate to become passed if it is free to
       // advance and if the number of friendly pawns beside or behind this
-      // pawn on neighboring files is higher or equal than the number of
-      // enemy pawns in the forward direction on the neighboring files.
+      // pawn on adjacent files is higher or equal than the number of
+      // enemy pawns in the forward direction on the adjacent files.
       candidate =   !(opposed | passed | backward | isolated)
-                 && (b = attack_span_mask(Them, s + pawn_push(Us)) & ourPawns) != EmptyBoardBB
-                 &&  count_1s<Max15>(b) >= count_1s<Max15>(attack_span_mask(Us, s) & theirPawns);
+                 && (b = attack_span_mask(Them, s + pawn_push(Us)) & ourPawns) != 0
+                 &&  popcount<Max15>(b) >= popcount<Max15>(attack_span_mask(Us, s) & theirPawns);
 
       // Passed pawns will be properly scored in evaluation because we need
       // full attack info to evaluate passed pawns. Only the frontmost passed
       // pawn on each file is considered a true passed pawn.
       if (passed && !doubled)
-          set_bit(&(pi->passedPawns[Us]), s);
+          e->passedPawns[Us] |= s;
 
       // Score this pawn
       if (isolated)
@@ -207,35 +214,74 @@ Score PawnInfoTable::evaluate_pawns(const Position& pos, Bitboard ourPawns,
       if (candidate)
           value += CandidateBonus[relative_rank(Us, s)];
   }
+
   return value;
 }
 
 
-/// PawnInfo::updateShelter() calculates and caches king shelter. It is called
-/// only when king square changes, about 20% of total king_shelter() calls.
+/// PawnEntry::shelter_storm() calculates shelter and storm penalties for the file
+/// the king is on, as well as the two adjacent files.
+
 template<Color Us>
-Score PawnInfo::updateShelter(const Position& pos, Square ksq) {
+Value PawnEntry::shelter_storm(const Position& pos, Square ksq) {
 
-  const int Shift = (Us == WHITE ? 8 : -8);
+  const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-  Bitboard pawns;
-  int r, shelter = 0;
+  Value safety = MaxSafetyBonus;
+  Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, ksq) | rank_bb(ksq));
+  Bitboard ourPawns = b & pos.pieces(Us) & ~rank_bb(ksq);
+  Bitboard theirPawns = b & pos.pieces(Them);
+  Rank rkUs, rkThem;
+  File kf = file_of(ksq);
 
-  if (relative_rank(Us, ksq) <= RANK_4)
+  kf = (kf == FILE_A) ? kf++ : (kf == FILE_H) ? kf-- : kf;
+
+  for (int f = kf - 1; f <= kf + 1; f++)
   {
-      pawns = pos.pieces(PAWN, Us) & this_and_neighboring_files_bb(ksq);
-      r = ksq & (7 << 3);
-      for (int i = 0; i < 3; i++)
-      {
-          r += Shift;
-          shelter += BitCount8Bit[(pawns >> r) & 0xFF] << (6 - i);
-      }
+      // Shelter penalty is higher for the pawn in front of the king
+      b = ourPawns & FileBB[f];
+      rkUs = b ? rank_of(Us == WHITE ? lsb(b) : ~msb(b)) : RANK_1;
+      safety -= ShelterWeakness[f != kf][rkUs];
+
+      // Storm danger is smaller if enemy pawn is blocked
+      b  = theirPawns & FileBB[f];
+      rkThem = b ? rank_of(Us == WHITE ? lsb(b) : ~msb(b)) : RANK_1;
+      safety -= StormDanger[rkThem == rkUs + 1][rkThem];
   }
+
+  return safety;
+}
+
+
+/// PawnEntry::update_safety() calculates and caches a bonus for king safety. It is
+/// called only when king square changes, about 20% of total king_safety() calls.
+
+template<Color Us>
+Score PawnEntry::update_safety(const Position& pos, Square ksq) {
+
   kingSquares[Us] = ksq;
-  kingShelters[Us] = make_score(shelter, 0);
-  return kingShelters[Us];
+  castleRights[Us] = pos.can_castle(Us);
+  minKPdistance[Us] = 0;
+
+  Bitboard pawns = pos.pieces(Us, PAWN);
+  if (pawns)
+      while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
+
+  if (relative_rank(Us, ksq) > RANK_4)
+      return kingSafety[Us] = make_score(0, -16 * minKPdistance[Us]);
+
+  Value bonus = shelter_storm<Us>(pos, ksq);
+
+  // If we can castle use the bonus after the castle if is bigger
+  if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
+      bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
+
+  if (pos.can_castle(make_castle_right(Us, QUEEN_SIDE)))
+      bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
+
+  return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);
 }
 
 // Explicit template instantiation
-template Score PawnInfo::updateShelter<WHITE>(const Position& pos, Square ksq);
-template Score PawnInfo::updateShelter<BLACK>(const Position& pos, Square ksq);
+template Score PawnEntry::update_safety<WHITE>(const Position& pos, Square ksq);
+template Score PawnEntry::update_safety<BLACK>(const Position& pos, Square ksq);

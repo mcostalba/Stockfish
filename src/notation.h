@@ -17,21 +17,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(EVALUATE_H_INCLUDED)
-#define EVALUATE_H_INCLUDED
+#if !defined(NOTATION_H_INCLUDED)
+#define NOTATION_H_INCLUDED
+
+#include <string>
 
 #include "types.h"
 
 class Position;
 
-namespace Eval {
+std::string score_to_uci(Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
+Move move_from_uci(const Position& pos, std::string& str);
+const std::string move_to_uci(Move m, bool chess960);
+const std::string move_to_san(Position& pos, Move m);
+std::string pretty_pv(Position& pos, int depth, Value score, int64_t msecs, Move pv[]);
 
-extern Color RootColor;
-
-extern void init();
-extern Value evaluate(const Position& pos, Value& margin, Value beta);
-extern std::string trace(const Position& pos);
-
-}
-
-#endif // !defined(EVALUATE_H_INCLUDED)
+#endif // !defined(NOTATION_H_INCLUDED)

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 #if !defined(ENDGAME_H_INCLUDED)
 #define ENDGAME_H_INCLUDED
 
-#include <string>
 #include <map>
+#include <string>
 
 #include "position.h"
 #include "types.h"
@@ -61,11 +61,12 @@ enum EndgameType {
 };
 
 
-/// Some magic to detect family type of endgame from its enum value
+/// Endgame functions can be of two types according if return a Value or a
+/// ScaleFactor. Type eg_fun<int>::type equals to either ScaleFactor or Value
+/// depending if the template parameter is 0 or 1.
 
-template<bool> struct bool_to_type { typedef Value type; };
-template<> struct bool_to_type<true> { typedef ScaleFactor type; };
-template<EndgameType E> struct eg_family : public bool_to_type<(E > SCALE_FUNS)> {};
+template<int> struct eg_fun { typedef Value type; };
+template<> struct eg_fun<1> { typedef ScaleFactor type; };
 
 
 /// Base and derived templates for endgame evaluation and scaling functions
@@ -75,16 +76,16 @@ struct EndgameBase {
 
   virtual ~EndgameBase() {}
   virtual Color color() const = 0;
-  virtual T apply(const Position&) const = 0;
+  virtual T operator()(const Position&) const = 0;
 };
 
 
-template<EndgameType E, typename T = typename eg_family<E>::type>
+template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
 struct Endgame : public EndgameBase<T> {
 
-  explicit Endgame(Color c) : strongerSide(c), weakerSide(flip(c)) {}
+  explicit Endgame(Color c) : strongerSide(c), weakerSide(~c) {}
   Color color() const { return strongerSide; }
-  T apply(const Position&) const;
+  T operator()(const Position&) const;
 
 private:
   Color strongerSide, weakerSide;
@@ -93,33 +94,27 @@ private:
 
 /// Endgames class stores in two std::map the pointers to endgame evaluation
 /// and scaling base objects. Then we use polymorphism to invoke the actual
-/// endgame function calling its apply() method that is virtual.
+/// endgame function calling its operator() that is virtual.
 
-struct Endgames {
+class Endgames {
 
-  template<typename T>
-  struct Map { typedef std::map<Key, EndgameBase<T>*> type; };
-
-  typedef Map<Value>::type M1;
-  typedef Map<ScaleFactor>::type M2;
-
-  Endgames();
-  ~Endgames();
-
-  template<typename T>
-  EndgameBase<T>* get(Key key) const {
-
-    typedef typename Map<T>::type M;
-    typename M::const_iterator it = map<M>().find(key);
-    return it != map<M>().end() ? it->second : NULL;
-  }
-
-private:
-  template<EndgameType E> void add(const std::string& keyCode);
-  template<typename M> const M& map() const;
+  typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
+  typedef std::map<Key, EndgameBase<eg_fun<1>::type>*> M2;
 
   M1 m1;
   M2 m2;
+
+  M1& map(M1::mapped_type) { return m1; }
+  M2& map(M2::mapped_type) { return m2; }
+
+  template<EndgameType E> void add(const std::string& code);
+
+public:
+  Endgames();
+  ~Endgames();
+
+  template<typename T> T probe(Key key, T& eg)
+  { return eg = map(eg).count(key) ? map(eg)[key] : NULL; }
 };
 
 #endif // !defined(ENDGAME_H_INCLUDED)

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,16 +19,19 @@
 
 #include <fstream>
 #include <iostream>
+#include <istream>
 #include <vector>
 
+#include "misc.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
+#include "tt.h"
 #include "ucioption.h"
 
 using namespace std;
 
-static const string Defaults[] = {
+static const char* Defaults[] = {
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
   "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11",
@@ -44,8 +47,7 @@ static const string Defaults[] = {
   "3r1rk1/p5pp/bpp1pp2/8/q1PP1P2/b3P3/P2NQRPP/1R2B1K1 b - - 6 22",
   "r1q2rk1/2p1bppp/2Pp4/p6b/Q1PNp3/4B3/PP1R1PPP/2K4R w - - 2 18",
   "4k2r/1pb2ppp/1p2p3/1R1p4/3P4/2r1PN2/P4PPP/1R4K1 b - - 3 22",
-  "3q2k1/pb3p1p/4pbp1/2r5/PpN2N2/1P2P2P/5PP1/Q2R2K1 b - - 4 26",
-  ""
+  "3q2k1/pb3p1p/4pbp1/2r5/PpN2N2/1P2P2P/5PP1/Q2R2K1 b - - 4 26"
 };
 
 
@@ -57,85 +59,84 @@ static const string Defaults[] = {
 /// format (defaults are the positions defined above) and the type of the
 /// limit value: depth (default), time in secs or number of nodes.
 
-void benchmark(int argc, char* argv[]) {
+void benchmark(const Position& current, istream& is) {
 
-  std::vector<Move> searchMoves(1, MOVE_NONE);
-  vector<string> fenList;
+  string token;
   Search::LimitsType limits;
-  int64_t totalNodes;
-  int time;
+  vector<string> fens;
 
   // Assign default values to missing arguments
-  string ttSize  = argc > 2 ? argv[2] : "128";
-  string threads = argc > 3 ? argv[3] : "1";
-  string valStr  = argc > 4 ? argv[4] : "12";
-  string fenFile = argc > 5 ? argv[5] : "default";
-  string valType = argc > 6 ? argv[6] : "depth";
+  string ttSize    = (is >> token) ? token : "128";
+  string threads   = (is >> token) ? token : "1";
+  string limit     = (is >> token) ? token : "12";
+  string fenFile   = (is >> token) ? token : "default";
+  string limitType = (is >> token) ? token : "depth";
 
-  Options["Hash"].set_value(ttSize);
-  Options["Threads"].set_value(threads);
-  Options["OwnBook"].set_value("false");
+  Options["Hash"]    = ttSize;
+  Options["Threads"] = threads;
+  TT.clear();
 
-  // Search should be limited by nodes, time or depth ?
-  if (valType == "nodes")
-      limits.maxNodes = atoi(valStr.c_str());
-  else if (valType == "time")
-      limits.maxTime = 1000 * atoi(valStr.c_str()); // maxTime is in ms
+  if (limitType == "time")
+      limits.movetime = 1000 * atoi(limit.c_str()); // movetime is in ms
+
+  else if (limitType == "nodes")
+      limits.nodes = atoi(limit.c_str());
+
   else
-      limits.maxDepth = atoi(valStr.c_str());
+      limits.depth = atoi(limit.c_str());
 
-  // Do we need to load positions from a given FEN file?
-  if (fenFile != "default")
+  if (fenFile == "default")
+      fens.assign(Defaults, Defaults + 16);
+
+  else if (fenFile == "current")
+      fens.push_back(current.to_fen());
+
+  else
   {
       string fen;
-      ifstream f(fenFile.c_str());
+      ifstream file(fenFile.c_str());
 
-      if (!f.is_open())
+      if (!file.is_open())
       {
           cerr << "Unable to open file " << fenFile << endl;
           exit(EXIT_FAILURE);
       }
 
-      while (getline(f, fen))
+      while (getline(file, fen))
           if (!fen.empty())
-              fenList.push_back(fen);
+              fens.push_back(fen);
 
-      f.close();
+      file.close();
   }
-  else // Load default positions
-      for (int i = 0; !Defaults[i].empty(); i++)
-          fenList.push_back(Defaults[i]);
 
-  // Ok, let's start the benchmark !
-  totalNodes = 0;
-  time = get_system_time();
+  int64_t nodes = 0;
+  Search::StateStackPtr st;
+  Time::point elapsed = Time::now();
 
-  for (size_t i = 0; i < fenList.size(); i++)
+  for (size_t i = 0; i < fens.size(); i++)
   {
-      Position pos(fenList[i], false, 0);
+      Position pos(fens[i], Options["UCI_Chess960"], Threads.main_thread());
 
-      cerr << "\nBench position: " << i + 1 << '/' << fenList.size() << endl;
+      cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
 
-      if (valType == "perft")
+      if (limitType == "perft")
       {
-          int64_t cnt = Search::perft(pos, limits.maxDepth * ONE_PLY);
-
-          cerr << "\nPerft " << limits.maxDepth
-               << " nodes counted: " << cnt << endl;
-
-          totalNodes += cnt;
+          size_t cnt = Search::perft(pos, limits.depth * ONE_PLY);
+          cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << endl;
+          nodes += cnt;
       }
       else
       {
-          Threads.start_thinking(pos, limits, searchMoves, false);
-          totalNodes += Search::RootPosition.nodes_searched();
+          Threads.start_searching(pos, limits, vector<Move>(), st);
+          Threads.wait_for_search_finished();
+          nodes += Search::RootPosition.nodes_searched();
       }
   }
 
-  time = get_system_time() - time;
+  elapsed = Time::now() - elapsed + 1; // Assure positive to avoid a 'divide by zero'
 
-  cerr << "\n==============================="
-       << "\nTotal time (ms) : " << time
-       << "\nNodes searched  : " << totalNodes
-       << "\nNodes/second    : " << (int)(totalNodes / (time / 1000.0)) << endl;
+  cerr << "\n==========================="
+       << "\nTotal time (ms) : " << elapsed
+       << "\nNodes searched  : " << nodes
+       << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
 }

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,12 +20,12 @@
 #if !defined(TIMEMAN_H_INCLUDED)
 #define TIMEMAN_H_INCLUDED
 
-struct SearchLimits;
+/// The TimeManager class computes the optimal time to think depending on the
+/// maximum available time, the move game number and other parameters.
 
 class TimeManager {
 public:
-
-  void init(const Search::LimitsType& limits, int currentPly);
+  void init(const Search::LimitsType& limits, int currentPly, Color us);
   void pv_instability(int curChanges, int prevChanges);
   int available_time() const { return optimumSearchTime + unstablePVExtraTime; }
   int maximum_time() const { return maximumSearchTime; }

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "bitboard.h"
 #include "tt.h"
 
 TranspositionTable TT; // Our global transposition table
@@ -37,18 +38,13 @@ TranspositionTable::~TranspositionTable() {
 
 
 /// TranspositionTable::set_size() sets the size of the transposition table,
-/// measured in megabytes.
+/// measured in megabytes. Transposition table consists of a power of 2 number of
+/// TTCluster and each cluster consists of ClusterSize number of TTEntries. Each
+/// non-empty entry contains information of exactly one position.
 
 void TranspositionTable::set_size(size_t mbSize) {
 
-  size_t newSize = 1024;
-
-  // Transposition table consists of clusters and each cluster consists
-  // of ClusterSize number of TTEntries. Each non-empty entry contains
-  // information of exactly one position and newSize is the number of
-  // clusters we are going to allocate.
-  while (2ULL * newSize * sizeof(TTCluster) <= (mbSize << 20))
-      newSize *= 2;
+  size_t newSize = 1ULL << msb((mbSize << 20) / sizeof(TTCluster));
 
   if (newSize == size)
       return;
@@ -56,13 +52,15 @@ void TranspositionTable::set_size(size_t mbSize) {
   size = newSize;
   delete [] entries;
   entries = new (std::nothrow) TTCluster[size];
+
   if (!entries)
   {
       std::cerr << "Failed to allocate " << mbSize
                 << "MB for transposition table." << std::endl;
       exit(EXIT_FAILURE);
   }
-  clear();
+
+  clear(); // Operator new is not guaranteed to initialize memory to zero
 }
 
 
@@ -84,7 +82,7 @@ void TranspositionTable::clear() {
 /// more valuable than a TTEntry t2 if t1 is from the current search and t2 is from
 /// a previous search, or if the depth of t1 is bigger than the depth of t2.
 
-void TranspositionTable::store(const Key posKey, Value v, ValueType t, Depth d, Move m, Value statV, Value kingD) {
+void TranspositionTable::store(const Key posKey, Value v, Bound t, Depth d, Move m, Value statV, Value kingD) {
 
   int c1, c2, c3;
   TTEntry *tte, *replace;
@@ -106,7 +104,7 @@ void TranspositionTable::store(const Key posKey, Value v, ValueType t, Depth d, 
 
       // Implement replace strategy
       c1 = (replace->generation() == generation ?  2 : 0);
-      c2 = (tte->generation() == generation || tte->type() == VALUE_TYPE_EXACT ? -2 : 0);
+      c2 = (tte->generation() == generation || tte->type() == BOUND_EXACT ? -2 : 0);
       c3 = (tte->depth() < replace->depth() ?  1 : 0);
 
       if (c1 + c2 + c3 > 0)

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2010 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,156 +17,180 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(_MSC_VER)
-
-#  include <sys/time.h>
-#  include <sys/types.h>
-#  include <unistd.h>
-#  if defined(__hpux)
-#     include <sys/pstat.h>
-#  endif
-
-#else
-
-#define _CRT_SECURE_NO_DEPRECATE
-#define NOMINMAX // disable macros min() and max()
-#include <windows.h>
-#include <sys/timeb.h>
-
-#endif
-
-#if !defined(NO_PREFETCH)
-#  include <xmmintrin.h>
-#endif
-
-#include <cassert>
-#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 
-#include "bitcount.h"
 #include "misc.h"
 #include "thread.h"
 
+#if defined(__hpux)
+#    include <sys/pstat.h>
+#endif
+
 using namespace std;
 
-/// Version number. If EngineVersion is left empty, then AppTag plus
-/// current date (in the format YYMMDD) is used as a version number.
+/// Version number. If Version is left empty, then Tag plus current
+/// date (in the format YYMMDD) is used as a version number.
 
-static const string AppName = "Stockfish";
-static const string EngineVersion = "";
-static const string AppTag  = "";
+static const string Version = "";
+static const string Tag = "";
 
 
-/// engine_name() returns the full name of the current Stockfish version.
+/// engine_info() returns the full name of the current Stockfish version.
 /// This will be either "Stockfish YYMMDD" (where YYMMDD is the date when
 /// the program was compiled) or "Stockfish <version number>", depending
-/// on whether the constant EngineVersion is empty.
+/// on whether Version is empty.
 
-const string engine_name() {
+const string engine_info(bool to_uci) {
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-  const string cpu64(CpuIs64Bit ? " 64bit" : "");
+  const string cpu64(Is64Bit ? " 64bit" : "");
+  const string popcnt(HasPopCnt ? " SSE4.2" : "");
 
-  if (!EngineVersion.empty())
-      return AppName + " " + EngineVersion + cpu64;
-
-  stringstream s, date(__DATE__); // From compiler, format is "Sep 21 2008"
   string month, day, year;
+  stringstream s, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  date >> month >> day >> year;
+  s << "Stockfish " << Version;
 
-  s << setfill('0') << AppName + " " + AppTag + " "
-    << year.substr(2, 2) << setw(2)
-    << (1 + months.find(month) / 4) << setw(2)
-    << day << cpu64;
+  if (Version.empty())
+  {
+      date >> month >> day >> year;
+
+      s << Tag << setfill('0') << " " << year.substr(2)
+        << setw(2) << (1 + months.find(month) / 4) << setw(2) << day;
+  }
+
+  s << cpu64 << popcnt << (to_uci ? "\nid author ": " by ")
+    << "Tord Romstad, Marco Costalba and Joona Kiiski";
 
   return s.str();
 }
 
 
-/// Our brave developers! Required by UCI
+/// Convert system time to milliseconds. That's all we need.
 
-const string engine_authors() {
-
-  return "Tord Romstad, Marco Costalba and Joona Kiiski";
+Time::point Time::now() {
+  sys_time_t t; system_time(&t); return time_to_msec(t);
 }
 
 
-/// Debug stuff. Helper functions used mainly for debugging purposes
+/// Debug functions used mainly to collect run-time statistics
 
-static uint64_t dbg_hit_cnt0;
-static uint64_t dbg_hit_cnt1;
-static uint64_t dbg_mean_cnt0;
-static uint64_t dbg_mean_cnt1;
+static uint64_t hits[2], means[2];
 
-void dbg_print_hit_rate() {
-
-  if (dbg_hit_cnt0)
-      cerr << "Total " << dbg_hit_cnt0 << " Hit " << dbg_hit_cnt1
-           << " hit rate (%) " << 100 * dbg_hit_cnt1 / dbg_hit_cnt0 << endl;
-}
-
-void dbg_print_mean() {
-
-  if (dbg_mean_cnt0)
-      cerr << "Total " << dbg_mean_cnt0 << " Mean "
-           << (float)dbg_mean_cnt1 / dbg_mean_cnt0 << endl;
-}
-
-void dbg_mean_of(int v) {
-
-  dbg_mean_cnt0++;
-  dbg_mean_cnt1 += v;
-}
-
-void dbg_hit_on(bool b) {
-
-  dbg_hit_cnt0++;
-  if (b)
-      dbg_hit_cnt1++;
-}
-
+void dbg_hit_on(bool b) { hits[0]++; if (b) hits[1]++; }
 void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
-void dbg_before() { dbg_hit_on(false); }
-void dbg_after()  { dbg_hit_on(true); dbg_hit_cnt0--; }
+void dbg_mean_of(int v) { means[0]++; means[1] += v; }
 
+void dbg_print() {
 
-/// get_system_time() returns the current system time, measured in milliseconds
+  if (hits[0])
+      cerr << "Total " << hits[0] << " Hits " << hits[1]
+           << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
 
-int get_system_time() {
-
-#if defined(_MSC_VER)
-  struct _timeb t;
-  _ftime(&t);
-  return int(t.time * 1000 + t.millitm);
-#else
-  struct timeval t;
-  gettimeofday(&t, NULL);
-  return t.tv_sec * 1000 + t.tv_usec / 1000;
-#endif
+  if (means[0])
+      cerr << "Total " << means[0] << " Mean "
+           << (float)means[1] / means[0] << endl;
 }
+
+
+/// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
+/// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
+/// can toggle the logging of std::cout and std:cin at runtime while preserving
+/// usual i/o functionality and without changing a single line of code!
+/// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
+
+struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and cout
+
+  Tie(streambuf* b, ofstream* f) : buf(b), file(f) {}
+
+  int sync() { return file->rdbuf()->pubsync(), buf->pubsync(); }
+  int overflow(int c) { return log(buf->sputc((char)c), "<< "); }
+  int underflow() { return buf->sgetc(); }
+  int uflow() { return log(buf->sbumpc(), ">> "); }
+
+  streambuf* buf;
+  ofstream* file;
+
+  int log(int c, const char* prefix) {
+
+    static int last = '\n';
+
+    if (last == '\n')
+        file->rdbuf()->sputn(prefix, 3);
+
+    return last = file->rdbuf()->sputc((char)c);
+  }
+};
+
+class Logger {
+
+  Logger() : in(cin.rdbuf(), &file), out(cout.rdbuf(), &file) {}
+ ~Logger() { start(false); }
+
+  ofstream file;
+  Tie in, out;
+
+public:
+  static void start(bool b) {
+
+    static Logger l;
+
+    if (b && !l.file.is_open())
+    {
+        l.file.open("io_log.txt", ifstream::out | ifstream::app);
+        cin.rdbuf(&l.in);
+        cout.rdbuf(&l.out);
+    }
+    else if (!b && l.file.is_open())
+    {
+        cout.rdbuf(l.out.buf);
+        cin.rdbuf(l.in.buf);
+        l.file.close();
+    }
+  }
+};
+
+
+/// Used to serialize access to std::cout to avoid multiple threads to write at
+/// the same time.
+
+std::ostream& operator<<(std::ostream& os, SyncCout sc) {
+
+  static Mutex m;
+
+  if (sc == io_lock)
+      m.lock();
+
+  if (sc == io_unlock)
+      m.unlock();
+
+  return os;
+}
+
+
+/// Trampoline helper to avoid moving Logger to misc.h
+void start_logger(bool b) { Logger::start(b); }
 
 
 /// cpu_count() tries to detect the number of CPU cores
 
 int cpu_count() {
 
-#if defined(_MSC_VER)
+#if defined(_WIN32) || defined(_WIN64)
   SYSTEM_INFO s;
   GetSystemInfo(&s);
-  return std::min(int(s.dwNumberOfProcessors), MAX_THREADS);
+  return s.dwNumberOfProcessors;
 #else
 
 #  if defined(_SC_NPROCESSORS_ONLN)
-  return std::min((int)sysconf(_SC_NPROCESSORS_ONLN), MAX_THREADS);
+  return sysconf(_SC_NPROCESSORS_ONLN);
 #  elif defined(__hpux)
   struct pst_dynamic psd;
   if (pstat_getdynamic(&psd, sizeof(psd), (size_t)1, 0) == -1)
       return 1;
-  return std::min((int)psd.psd_proc_cnt, MAX_THREADS);
+  return psd.psd_proc_cnt;
 #  else
   return 1;
 #  endif
@@ -178,34 +202,20 @@ int cpu_count() {
 /// timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
 /// conversion from milliseconds to struct timespec, as used by pthreads.
 
-#if defined(_MSC_VER)
+void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 
-void timed_wait(WaitCondition* sleepCond, Lock* sleepLock, int msec) {
-  cond_timedwait(sleepCond, sleepLock, msec);
-}
-
+#if defined(_WIN32) || defined(_WIN64)
+  int tm = msec;
 #else
+  timespec ts, *tm = &ts;
+  uint64_t ms = Time::now() + msec;
 
-void timed_wait(WaitCondition* sleepCond, Lock* sleepLock, int msec) {
-
-  struct timeval t;
-  struct timespec abstime;
-
-  gettimeofday(&t, NULL);
-
-  abstime.tv_sec = t.tv_sec + (msec / 1000);
-  abstime.tv_nsec = (t.tv_usec + (msec % 1000) * 1000) * 1000;
-
-  if (abstime.tv_nsec > 1000000000LL)
-  {
-      abstime.tv_sec += 1;
-      abstime.tv_nsec -= 1000000000LL;
-  }
-
-  cond_timedwait(sleepCond, sleepLock, &abstime);
-}
-
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000LL;
 #endif
+
+  cond_timedwait(sleepCond, sleepLock, tm);
+}
 
 
 /// prefetch() preloads the given address in L1/L2 cache. This is a non
@@ -217,13 +227,15 @@ void prefetch(char*) {}
 
 #else
 
+#   include <xmmintrin.h>
+
 void prefetch(char* addr) {
 
-#if defined(__INTEL_COMPILER) || defined(__ICL)
+#  if defined(__INTEL_COMPILER) || defined(__ICL)
    // This hack prevents prefetches to be optimized away by
    // Intel compiler. Both MSVC and gcc seems not affected.
    __asm__ ("");
-#endif
+#  endif
 
   _mm_prefetch(addr, _MM_HINT_T2);
   _mm_prefetch(addr+64, _MM_HINT_T2); // 64 bytes ahead
