@@ -31,7 +31,7 @@ namespace {
 
   // Table used to drive the defending king towards the edge of the board
   // in KX vs K and KQ vs KR endgames.
-  const int MateTable[64] = {
+  const int MateTable[SQUARE_NB] = {
     100, 90, 80, 70, 70, 80, 90, 100,
      90, 70, 60, 50, 50, 60, 70,  90,
      80, 60, 40, 30, 30, 40, 60,  80,
@@ -44,7 +44,7 @@ namespace {
 
   // Table used to drive the defending king towards a corner square of the
   // right color in KBN vs K endgames.
-  const int KBNKMateTable[64] = {
+  const int KBNKMateTable[SQUARE_NB] = {
     200, 190, 180, 170, 160, 150, 140, 130,
     190, 180, 170, 160, 150, 140, 130, 140,
     180, 170, 155, 140, 140, 125, 140, 150,
@@ -95,6 +95,7 @@ Endgames::Endgames() {
   add<KRKP>("KRKP");
   add<KRKB>("KRKB");
   add<KRKN>("KRKN");
+  add<KQKP>("KQKP");
   add<KQKR>("KQKR");
   add<KBBKN>("KBBKN");
 
@@ -132,7 +133,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 
   // Stalemate detection with lone king
   if (    pos.side_to_move() == weakerSide
-      && !pos.in_check()
+      && !pos.checkers()
       && !MoveList<LEGAL>(pos).size()) {
     return VALUE_DRAW;
   }
@@ -169,12 +170,12 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 
   Square winnerKSq = pos.king_square(strongerSide);
   Square loserKSq = pos.king_square(weakerSide);
-  Square bishopSquare = pos.piece_list(strongerSide, BISHOP)[0];
+  Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
 
   // kbnk_mate_table() tries to drive toward corners A1 or H8,
   // if we have a bishop that cannot reach the above squares we
   // mirror the kings so to drive enemy toward corners A8 or H1.
-  if (opposite_colors(bishopSquare, SQ_A1))
+  if (opposite_colors(bishopSq, SQ_A1))
   {
       winnerKSq = mirror(winnerKSq);
       loserKSq = mirror(loserKSq);
@@ -198,21 +199,21 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
   assert(pos.piece_count(weakerSide, PAWN) == 0);
 
   Square wksq, bksq, wpsq;
-  Color stm;
+  Color us;
 
   if (strongerSide == WHITE)
   {
       wksq = pos.king_square(WHITE);
       bksq = pos.king_square(BLACK);
       wpsq = pos.piece_list(WHITE, PAWN)[0];
-      stm = pos.side_to_move();
+      us   = pos.side_to_move();
   }
   else
   {
       wksq = ~pos.king_square(BLACK);
       bksq = ~pos.king_square(WHITE);
       wpsq = ~pos.piece_list(BLACK, PAWN)[0];
-      stm  = ~pos.side_to_move();
+      us   = ~pos.side_to_move();
   }
 
   if (file_of(wpsq) >= FILE_E)
@@ -222,7 +223,7 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
       wpsq = mirror(wpsq);
   }
 
-  if (!Bitbases::probe_kpk(wksq, wpsq, bksq, stm))
+  if (!Bitbases::probe_kpk(wksq, wpsq, bksq, us))
       return VALUE_DRAW;
 
   Value result = VALUE_KNOWN_WIN + PawnValueEg + Value(rank_of(wpsq));
@@ -322,6 +323,37 @@ Value Endgame<KRKN>::operator()(const Position& pos) const {
   Square bksq = pos.king_square(weakerSide);
   Square bnsq = pos.piece_list(weakerSide, KNIGHT)[0];
   Value result = Value(MateTable[bksq] + penalty[square_distance(bksq, bnsq)]);
+  return strongerSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// KQ vs KP.  In general, a win for the stronger side, however, there are a few
+/// important exceptions.  Pawn on 7th rank, A,C,F or H file, with king next can
+/// be a draw, so we scale down to distance between kings only.
+template<>
+Value Endgame<KQKP>::operator()(const Position& pos) const {
+
+  assert(pos.non_pawn_material(strongerSide) == QueenValueMg);
+  assert(pos.piece_count(strongerSide, PAWN) == 0);
+  assert(pos.non_pawn_material(weakerSide) == 0);
+  assert(pos.piece_count(weakerSide, PAWN) == 1);
+
+  Square winnerKSq = pos.king_square(strongerSide);
+  Square loserKSq = pos.king_square(weakerSide);
+  Square pawnSq = pos.piece_list(weakerSide, PAWN)[0];
+
+  Value result =  QueenValueEg
+                - PawnValueEg
+                + DistanceBonus[square_distance(winnerKSq, loserKSq)];
+
+  if (   square_distance(loserKSq, pawnSq) == 1
+      && relative_rank(weakerSide, pawnSq) == RANK_7)
+  {
+      File f = file_of(pawnSq);
+
+      if (f == FILE_A || f == FILE_C || f == FILE_F || f == FILE_H)
+          result = Value(DistanceBonus[square_distance(winnerKSq, loserKSq)]);
+  }
   return strongerSide == pos.side_to_move() ? result : -result;
 }
 
@@ -439,6 +471,29 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
               return SCALE_FACTOR_DRAW;
       }
   }
+
+  // All pawns on same B or G file? Then potential draw
+  if (    (pawnFile == FILE_B || pawnFile == FILE_G)
+      && !(pos.pieces(PAWN) & ~file_bb(pawnFile))
+      && pos.non_pawn_material(weakerSide) == 0
+      && pos.piece_count(weakerSide, PAWN) >= 1)
+  {
+      // Get weaker pawn closest to opponent's queening square
+      Bitboard wkPawns = pos.pieces(weakerSide, PAWN);
+      Square weakerPawnSq = strongerSide == WHITE ? msb(wkPawns) : lsb(wkPawns);
+
+      Square strongerKingSq = pos.king_square(strongerSide);
+      Square weakerKingSq = pos.king_square(weakerSide);
+      Square bishopSq = pos.piece_list(strongerSide, BISHOP)[0];
+
+      // Draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
+      // weaker king can stop opposing opponent's king from penetrating.
+      if (   relative_rank(strongerSide, weakerPawnSq) == RANK_7
+          && opposite_colors(bishopSq, weakerPawnSq)
+          && square_distance(weakerPawnSq, weakerKingSq) <= square_distance(weakerPawnSq, strongerKingSq))
+          return SCALE_FACTOR_DRAW;
+  }
+
   return SCALE_FACTOR_NONE;
 }
 
@@ -865,14 +920,14 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
   Square wksq = pos.king_square(strongerSide);
   Square bksq = pos.king_square(weakerSide);
   Square wpsq = pos.piece_list(strongerSide, PAWN)[0];
-  Color stm = pos.side_to_move();
+  Color us = pos.side_to_move();
 
   if (strongerSide == BLACK)
   {
       wksq = ~wksq;
       bksq = ~bksq;
       wpsq = ~wpsq;
-      stm  = ~stm;
+      us   = ~us;
   }
 
   if (file_of(wpsq) >= FILE_E)
@@ -890,5 +945,5 @@ ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
 
   // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
   // it's probably at least a draw even with the pawn.
-  return Bitbases::probe_kpk(wksq, wpsq, bksq, stm) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+  return Bitbases::probe_kpk(wksq, wpsq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }

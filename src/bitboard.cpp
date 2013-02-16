@@ -28,45 +28,44 @@
 
 CACHE_LINE_ALIGNMENT
 
-Bitboard RMasks[64];
-Bitboard RMagics[64];
-Bitboard* RAttacks[64];
-unsigned RShifts[64];
+Bitboard RMasks[SQUARE_NB];
+Bitboard RMagics[SQUARE_NB];
+Bitboard* RAttacks[SQUARE_NB];
+unsigned RShifts[SQUARE_NB];
 
-Bitboard BMasks[64];
-Bitboard BMagics[64];
-Bitboard* BAttacks[64];
-unsigned BShifts[64];
+Bitboard BMasks[SQUARE_NB];
+Bitboard BMagics[SQUARE_NB];
+Bitboard* BAttacks[SQUARE_NB];
+unsigned BShifts[SQUARE_NB];
 
-Bitboard SquareBB[64];
-Bitboard FileBB[8];
-Bitboard RankBB[8];
-Bitboard AdjacentFilesBB[8];
-Bitboard ThisAndAdjacentFilesBB[8];
-Bitboard InFrontBB[2][8];
-Bitboard StepAttacksBB[16][64];
-Bitboard BetweenBB[64][64];
-Bitboard DistanceRingsBB[64][8];
-Bitboard ForwardBB[2][64];
-Bitboard PassedPawnMask[2][64];
-Bitboard AttackSpanMask[2][64];
-Bitboard PseudoAttacks[6][64];
+Bitboard SquareBB[SQUARE_NB];
+Bitboard FileBB[FILE_NB];
+Bitboard RankBB[RANK_NB];
+Bitboard AdjacentFilesBB[FILE_NB];
+Bitboard ThisAndAdjacentFilesBB[FILE_NB];
+Bitboard InFrontBB[COLOR_NB][RANK_NB];
+Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
+Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+Bitboard DistanceRingsBB[SQUARE_NB][8];
+Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
+Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
+Bitboard AttackSpanMask[COLOR_NB][SQUARE_NB];
+Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 
-int SquareDistance[64][64];
+int SquareDistance[SQUARE_NB][SQUARE_NB];
 
 namespace {
 
   // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
-  const uint64_t DeBruijn_64 = 0x218A392CD3D5DBFULL;
+  const uint64_t DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
   const uint32_t DeBruijn_32 = 0x783A9B23;
 
   CACHE_LINE_ALIGNMENT
 
   int MS1BTable[256];
-  Square BSFTable[64];
+  Square BSFTable[SQUARE_NB];
   Bitboard RTable[0x19000]; // Storage space for rook attacks
   Bitboard BTable[0x1480];  // Storage space for bishop attacks
-  uint8_t BitCount8Bit[256];
 
   typedef unsigned (Fn)(Square, Bitboard);
 
@@ -75,12 +74,10 @@ namespace {
 
   FORCE_INLINE unsigned bsf_index(Bitboard b) {
 
-    if (Is64Bit)
-        return ((b & -b) * DeBruijn_64) >> 58;
-
-    // Use Matt Taylor's folding trick for 32 bit systems
+    // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
     b ^= (b - 1);
-    return ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn_32) >> 26;
+    return Is64Bit ? (b * DeBruijn_64) >> 58
+                   : ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn_32) >> 26;
   }
 }
 
@@ -160,9 +157,6 @@ void Bitboards::init() {
 
   for (int i = 0; i < 64; i++)
       BSFTable[bsf_index(1ULL << i)] = Square(i);
-
-  for (Bitboard b = 0; b < 256; b++)
-      BitCount8Bit[b] = (uint8_t)popcount<Max15>(b);
 
   for (Square s = SQ_A1; s <= SQ_H8; s++)
       SquareBB[s] = 1ULL << s;
@@ -326,7 +320,7 @@ namespace {
         // until we find the one that passes the verification test.
         do {
             do magics[s] = pick_random(rk, booster);
-            while (BitCount8Bit[(magics[s] * masks[s]) >> 56] < 6);
+            while (popcount<Max15>((magics[s] * masks[s]) >> 56) < 6);
 
             memset(attacks[s], 0, size * sizeof(Bitboard));
 

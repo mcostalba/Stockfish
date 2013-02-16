@@ -66,7 +66,7 @@ void benchmark(const Position& current, istream& is) {
   vector<string> fens;
 
   // Assign default values to missing arguments
-  string ttSize    = (is >> token) ? token : "128";
+  string ttSize    = (is >> token) ? token : "32";
   string threads   = (is >> token) ? token : "1";
   string limit     = (is >> token) ? token : "12";
   string fenFile   = (is >> token) ? token : "default";
@@ -82,6 +82,9 @@ void benchmark(const Position& current, istream& is) {
   else if (limitType == "nodes")
       limits.nodes = atoi(limit.c_str());
 
+  else if (limitType == "mate")
+      limits.mate = atoi(limit.c_str());
+
   else
       limits.depth = atoi(limit.c_str());
 
@@ -89,7 +92,7 @@ void benchmark(const Position& current, istream& is) {
       fens.assign(Defaults, Defaults + 16);
 
   else if (fenFile == "current")
-      fens.push_back(current.to_fen());
+      fens.push_back(current.fen());
 
   else
   {
@@ -99,7 +102,7 @@ void benchmark(const Position& current, istream& is) {
       if (!file.is_open())
       {
           cerr << "Unable to open file " << fenFile << endl;
-          exit(EXIT_FAILURE);
+          return;
       }
 
       while (getline(file, fen))
@@ -127,9 +130,9 @@ void benchmark(const Position& current, istream& is) {
       }
       else
       {
-          Threads.start_searching(pos, limits, vector<Move>(), st);
-          Threads.wait_for_search_finished();
-          nodes += Search::RootPosition.nodes_searched();
+          Threads.start_thinking(pos, limits, vector<Move>(), st);
+          Threads.wait_for_think_finished();
+          nodes += Search::RootPos.nodes_searched();
       }
   }
 

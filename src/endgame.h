@@ -39,6 +39,7 @@ enum EndgameType {
   KRKP,  // KR vs KP
   KRKB,  // KR vs KB
   KRKN,  // KR vs KN
+  KQKP,  // KQ vs KP
   KQKR,  // KQ vs KR
   KBBKN, // KBB vs KN
   KNNK,  // KNN vs K
@@ -111,7 +112,7 @@ class Endgames {
 
 public:
   Endgames();
-  ~Endgames();
+ ~Endgames();
 
   template<typename T> T probe(Key key, T& eg)
   { return eg = map(eg).count(key) ? map(eg)[key] : NULL; }
