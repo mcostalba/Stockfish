@@ -1114,7 +1114,7 @@ split_point_start: // At split points actual search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, enoughMaterial;
+    bool givesCheck, enoughMaterial, evasionPrunable;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1230,8 +1230,15 @@ split_point_start: // At split points actual search starts from here
           }
       }
 
+      // Detect non-capture evasions that are candidate to be pruned
+      evasionPrunable = InCheck
+        && depth < -ONE_PLY
+        && bestValue > VALUE_MATED_IN_MAX_PLY
+        && !pos.is_capture(move)
+        && !pos.can_castle(pos.side_to_move());
+
       // Don't search moves with negative SEE values
-      if ( !InCheck
+      if ( (!InCheck || evasionPrunable)
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < 0)
           continue;
