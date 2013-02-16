@@ -27,9 +27,9 @@ class Position;
 namespace Eval {
 
 extern void init();
-extern Value evaluate(const Position& pos, Value& margin, Value alpha, Value beta);
 extern std::string trace(const Position& pos);
-
+extern Value evaluate(const Position& pos, Value& margin,
+                      Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 }
 
 #endif // !defined(EVALUATE_H_INCLUDED)
