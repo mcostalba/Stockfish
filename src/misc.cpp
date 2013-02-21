@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,16 +31,16 @@
 using namespace std;
 
 /// Version number. If Version is left empty, then Tag plus current
-/// date (in the format YYMMDD) is used as a version number.
+/// date, in the format DD-MM-YY, are used as a version number.
 
 static const string Version = "";
 static const string Tag = "";
 
 
-/// engine_info() returns the full name of the current Stockfish version.
-/// This will be either "Stockfish YYMMDD" (where YYMMDD is the date when
-/// the program was compiled) or "Stockfish <version number>", depending
-/// on whether Version is empty.
+/// engine_info() returns the full name of the current Stockfish version. This
+/// will be either "Stockfish <Tag> DD-MM-YY" (where DD-MM-YY is the date when
+/// the program was compiled) or "Stockfish <Version>", depending on whether
+/// Version is empty.
 
 const string engine_info(bool to_uci) {
 
@@ -57,8 +57,8 @@ const string engine_info(bool to_uci) {
   {
       date >> month >> day >> year;
 
-      s << Tag << setfill('0') << " " << year.substr(2)
-        << setw(2) << (1 + months.find(month) / 4) << setw(2) << day;
+      s << Tag << string(Tag.empty() ? "" : " ") << setfill('0') << setw(2) << day
+        << "-" << setw(2) << (1 + months.find(month) / 4) << "-" << year.substr(2);
   }
 
   s << cpu64 << popcnt << (to_uci ? "\nid author ": " by ")
