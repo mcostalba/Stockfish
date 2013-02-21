@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -149,6 +149,8 @@ namespace {
   };
 
   #undef S
+
+  const Score BishopPinBonus = make_score(66, 11);
 
   // Bonus for having the side to move (modified by Joona Kiiski)
   const Score Tempo = make_score(24, 11);
@@ -549,22 +551,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         mobility += MobilityBonus[Piece][mob];
 
-        // Add a bonus if a slider is pinning an enemy piece
-        if (   (Piece == BISHOP || Piece == ROOK || Piece == QUEEN)
-            && (PseudoAttacks[Piece][pos.king_square(Them)] & s))
-        {
-            b = BetweenBB[s][pos.king_square(Them)] & pos.pieces();
-
-            assert(b);
-
-            if (!more_than_one(b) && (b & pos.pieces(Them)))
-                score += ThreatBonus[Piece][type_of(pos.piece_on(lsb(b)))];
-        }
-
         // Decrease score if we are attacked by an enemy pawn. Remaining part
         // of threat evaluation must be done later when we have full attack info.
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawnPenalty[Piece];
+
+        // Otherwise give a bonus if we are a bishop and can pin a piece or
+        // can give a discovered check through an x-ray attack.
+        else if (    Piece == BISHOP
+                 && (PseudoAttacks[Piece][pos.king_square(Them)] & s)
+                 && !more_than_one(BetweenBB[s][pos.king_square(Them)] & pos.pieces()))
+                 score += BishopPinBonus;
 
         // Bishop and knight outposts squares
         if (    (Piece == BISHOP || Piece == KNIGHT)
@@ -671,8 +668,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                       & ~ei.attackedBy[Them][0];
 
     if (undefendedMinors)
-        score += more_than_one(undefendedMinors) ? UndefendedMinorPenalty * 2
-                                                 : UndefendedMinorPenalty;
+        score += UndefendedMinorPenalty;
 
     // Enemy pieces not defended by a pawn and under our attack
     weakEnemies =  pos.pieces(Them)

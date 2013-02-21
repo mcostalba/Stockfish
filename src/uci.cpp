@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -90,14 +91,17 @@ void UCI::loop(const string& args) {
 
           benchmark(pos, ss);
       }
-      else if (token == "key") sync_cout <<   "position key: " << hex << pos.key()
-                                         << "\nmaterial key: " << pos.material_key()
-                                         << "\npawn key:     " << pos.pawn_key()
-                                         << sync_endl;
+      else if (token == "key")
+          sync_cout << hex << uppercase << setfill('0')
+                    << "position key: "   << setw(16) << pos.key()
+                    << "\nmaterial key: " << setw(16) << pos.material_key()
+                    << "\npawn key:     " << setw(16) << pos.pawn_key()
+                    << dec << sync_endl;
 
-      else if (token == "uci") sync_cout << "id name " << engine_info(true)
-                                         << "\n"       << Options
-                                         << "\nuciok"  << sync_endl;
+      else if (token == "uci")
+          sync_cout << "id name " << engine_info(true)
+                    << "\n"       << Options
+                    << "\nuciok"  << sync_endl;
 
       else if (token == "ucinewgame") TT.clear();
       else if (token == "go")         go(pos, is);
