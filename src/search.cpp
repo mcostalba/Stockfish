@@ -1232,7 +1232,7 @@ split_point_start: // At split points actual search starts from here
 
       // Detect non-capture evasions that are candidate to be pruned
       evasionPrunable = InCheck
-        && depth < -ONE_PLY
+        && depth < DEPTH_QS_CHECKS
         && bestValue > VALUE_MATED_IN_MAX_PLY
         && !pos.is_capture(move)
         && !pos.can_castle(pos.side_to_move());
