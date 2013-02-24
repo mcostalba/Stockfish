@@ -239,15 +239,6 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
       (npm_w == npm_b || npm_b < RookValueMg ? 0 : NoPawnsSF[std::min(pos.piece_count(BLACK, BISHOP), 2)]);
   }
 
-  // Compute the space weight
-  if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
-  {
-      int minorPieceCount =  pos.piece_count(WHITE, KNIGHT) + pos.piece_count(WHITE, BISHOP)
-                           + pos.piece_count(BLACK, KNIGHT) + pos.piece_count(BLACK, BISHOP);
-
-      e->spaceWeight = minorPieceCount * minorPieceCount;
-  }
-
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", this allow us to be more flexible
   // in defining bishop pair bonuses.

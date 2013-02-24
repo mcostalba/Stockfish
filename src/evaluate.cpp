@@ -75,7 +75,7 @@ namespace {
   const int GrainSize = 8;
 
   // Evaluation weights, initialized from UCI options
-  enum { Mobility, PassedPawns, Space };
+  enum { Mobility, PassedPawns };
   Score Weights[3];
 
   typedef Value V;
@@ -179,19 +179,6 @@ namespace {
   // Penalty for an undefended bishop or knight
   const Score UndefendedMinorPenalty = make_score(25, 10);
 
-  // The SpaceMask[Color] contains the area of the board which is considered
-  // by the space evaluation. In the middle game, each side is given a bonus
-  // based on how many squares inside this area are safe and available for
-  // friendly minor pieces.
-  const Bitboard SpaceMask[] = {
-    (1ULL << SQ_C2) | (1ULL << SQ_D2) | (1ULL << SQ_E2) | (1ULL << SQ_F2) |
-    (1ULL << SQ_C3) | (1ULL << SQ_D3) | (1ULL << SQ_E3) | (1ULL << SQ_F3) |
-    (1ULL << SQ_C4) | (1ULL << SQ_D4) | (1ULL << SQ_E4) | (1ULL << SQ_F4),
-    (1ULL << SQ_C7) | (1ULL << SQ_D7) | (1ULL << SQ_E7) | (1ULL << SQ_F7) |
-    (1ULL << SQ_C6) | (1ULL << SQ_D6) | (1ULL << SQ_E6) | (1ULL << SQ_F6) |
-    (1ULL << SQ_C5) | (1ULL << SQ_D5) | (1ULL << SQ_E5) | (1ULL << SQ_F5)
-  };
-
   // King danger constants and variables. The king danger scores are taken
   // from the KingDangerTable[]. Various little "meta-bonuses" measuring
   // the strength of the enemy attack are added up into an integer, which
@@ -236,7 +223,7 @@ namespace {
 
   enum TracedType {
     PST = 8, IMBALANCE = 9, MOBILITY = 10, THREAT = 11,
-    PASSED = 12, UNSTOPPABLE = 13, SPACE = 14, TOTAL = 15
+    PASSED = 12, UNSTOPPABLE = 13, TOTAL = 14
   };
 
   // Function prototypes
@@ -254,9 +241,6 @@ namespace {
 
   template<Color Us>
   Score evaluate_threats(const Position& pos, EvalInfo& ei);
-
-  template<Color Us>
-  int evaluate_space(const Position& pos, EvalInfo& ei);
 
   template<Color Us>
   Score evaluate_passed_pawns(const Position& pos, EvalInfo& ei);
@@ -289,7 +273,6 @@ namespace Eval {
 
     Weights[Mobility]    = weight_option("Mobility (Middle Game)", "Mobility (Endgame)", WeightsInternal[Mobility]);
     Weights[PassedPawns] = weight_option("Passed Pawns (Middle Game)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-    Weights[Space]       = weight_option("Space", "Space", WeightsInternal[Space]);
 
     int KingDanger[] = { KingDangerWeights[0], KingDangerWeights[1] };
 
@@ -347,7 +330,6 @@ namespace Eval {
     trace_row("Threats", THREAT);
     trace_row("Passed pawns", PASSED);
     trace_row("Unstoppable pawns", UNSTOPPABLE);
-    trace_row("Space", SPACE);
 
     TraceStream <<             "---------------------+-------------+-------------+---------------\n";
     trace_row("Total", TOTAL);
@@ -423,13 +405,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
   if (!pos.non_pawn_material(WHITE) || !pos.non_pawn_material(BLACK))
       score += evaluate_unstoppable_pawns(pos, ei);
 
-  // Evaluate space for both sides, only in middle-game.
-  if (ei.mi->space_weight())
-  {
-      int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
-      score += apply_weight(make_score(s * ei.mi->space_weight(), 0), Weights[Space]);
-  }
-
   // Scale winning side if position is more drawish that what it appears
   ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
                                                 : ei.mi->scale_factor(pos, BLACK);
@@ -468,9 +443,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
       trace_add(THREAT, evaluate_threats<WHITE>(pos, ei), evaluate_threats<BLACK>(pos, ei));
       trace_add(PASSED, evaluate_passed_pawns<WHITE>(pos, ei), evaluate_passed_pawns<BLACK>(pos, ei));
       trace_add(UNSTOPPABLE, evaluate_unstoppable_pawns(pos, ei));
-      Score w = make_score(ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei), 0);
-      Score b = make_score(ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei), 0);
-      trace_add(SPACE, apply_weight(w, Weights[Space]), apply_weight(b, Weights[Space]));
       trace_add(TOTAL, score);
       TraceStream << "\nUncertainty margin: White: " << to_cp(margins[WHITE])
                   << ", Black: " << to_cp(margins[BLACK])
@@ -1116,38 +1088,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
     // Winning pawn is unstoppable and will promote as first, return big score
     Score score = make_score(0, (Value) 1280 - 32 * pliesToQueen[winnerSide]);
     return winnerSide == WHITE ? score : -score;
-  }
-
-
-  // evaluate_space() computes the space evaluation for a given side. The
-  // space evaluation is a simple bonus based on the number of safe squares
-  // available for minor pieces on the central four files on ranks 2--4. Safe
-  // squares one, two or three squares behind a friendly pawn are counted
-  // twice. Finally, the space bonus is scaled by a weight taken from the
-  // material hash table. The aim is to improve play on game opening.
-  template<Color Us>
-  int evaluate_space(const Position& pos, EvalInfo& ei) {
-
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
-
-    // Find the safe squares for our pieces inside the area defined by
-    // SpaceMask[]. A square is unsafe if it is attacked by an enemy
-    // pawn, or if it is undefended and attacked by an enemy piece.
-    Bitboard safe =   SpaceMask[Us]
-                   & ~pos.pieces(Us, PAWN)
-                   & ~ei.attackedBy[Them][PAWN]
-                   & (ei.attackedBy[Us][0] | ~ei.attackedBy[Them][0]);
-
-    // Find all squares which are at most three squares behind some friendly pawn
-    Bitboard behind = pos.pieces(Us, PAWN);
-    behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
-    behind |= (Us == WHITE ? behind >> 16 : behind << 16);
-
-    // Since SpaceMask[Us] is fully on our half of the board
-    assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
-
-    // Count safe + (behind & safe) with a single popcount
-    return popcount<Full>((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
   }
 
 
