@@ -303,28 +303,28 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
       slave->notify_one(); // Could be sleeping
   }
 
-  sp.mutex.unlock();
-  Threads.mutex.unlock();
-
   // Everything is set up. The master thread enters the idle loop, from which
   // it will instantly launch a search, because its 'searching' flag is set.
   // The thread will return from the idle loop when all slaves have finished
   // their work at this split point.
   if (slavesCnt > 1 || Fake)
   {
+      sp.mutex.unlock();
+      Threads.mutex.unlock();
+
       Thread::idle_loop(); // Force a call to base class idle_loop()
 
       // In helpful master concept a master can help only a sub-tree of its split
       // point, and because here is all finished is not possible master is booked.
       assert(!searching);
       assert(!activePosition);
-  }
 
-  // We have returned from the idle loop, which means that all threads are
-  // finished. Note that setting 'searching' and decreasing splitPointsSize is
-  // done under lock protection to avoid a race with Thread::is_available_to().
-  Threads.mutex.lock();
-  sp.mutex.lock();
+      // We have returned from the idle loop, which means that all threads are
+      // finished. Note that setting 'searching' and decreasing splitPointsSize is
+      // done under lock protection to avoid a race with Thread::is_available_to().
+      Threads.mutex.lock();
+      sp.mutex.lock();
+  }
 
   searching = true;
   splitPointsSize--;
@@ -357,8 +357,8 @@ void ThreadPool::wait_for_think_finished() {
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
 
-void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
-                                const std::vector<Move>& searchMoves, StateStackPtr& states) {
+void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits, const std::vector<Move>& searchMoves,
+                                StateStackPtr& setupStates, MovesVectPtr& setupMoves) {
   wait_for_think_finished();
 
   SearchTime = Time::now(); // As early as possible
@@ -368,7 +368,8 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
 
   RootPos = pos;
   Limits = limits;
-  SetupStates = states; // Ownership transfer here
+  SetupStates = setupStates; // Ownership transfer here
+  SetupMoves = setupMoves;   // Ownership transfer here
   RootMoves.clear();
 
   for (MoveList<LEGAL> ml(pos); !ml.end(); ++ml)
