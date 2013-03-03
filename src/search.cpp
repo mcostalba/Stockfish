@@ -432,6 +432,10 @@ namespace {
         {
             bool stop = false; // Local variable, not the volatile Signals.stop
 
+            // Stop search if only 1 legal move
+ 	    if (depth == 1 && MoveList<LEGAL>(pos).size() == 1)
+	    stop = true; 
+
             // Take in account some extra time if the best move has changed
             if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges, prevBestMoveChanges);
