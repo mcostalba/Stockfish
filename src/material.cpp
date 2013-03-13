@@ -287,7 +287,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 /// is stored in MaterialEntry.
 
 Phase game_phase(const Position& pos) {
-	
+
   Value npm = pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK);
 
   return  npm >= MidgameLimit ? PHASE_MIDGAME
