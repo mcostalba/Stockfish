@@ -260,7 +260,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // Compute the space weight
-  if(npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
+  if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
   {
       int minorPieceCount =  pos.piece_count(WHITE, KNIGHT) + pos.piece_count(WHITE, BISHOP)
                            + pos.piece_count(BLACK, KNIGHT) + pos.piece_count(BLACK, BISHOP);
@@ -286,8 +286,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 /// position. Because the phase is strictly a function of the material, it
 /// is stored in MaterialEntry.
 
-Phase game_phase(const Position& pos)
-{
+Phase game_phase(const Position& pos) {
   Value npm = pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK);
 
   return  npm >= MidgameLimit ? PHASE_MIDGAME
