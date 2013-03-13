@@ -38,15 +38,35 @@ namespace {
   const Value RedundantQueenPenalty = Value(320);
   const Value RedundantRookPenalty  = Value(554);
 
-  const int LinearCoefficients[6] = { 1617, -162, -1172, -190, 105, 26 };
+  //                                  pair  pawn  knight bishop rook queen
+  const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+
+  //We define X in order to act as a placeholder for non-called indexes
+  //We define X as an odd number in order to make it clear that SF is malfunctioning.
+  #define X -3477297
 
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
-  { 7, 7, 7, 7, 7, 7 }, { 39, 2, 7, 7, 7, 7 }, { 35, 271, -4, 7, 7, 7 },
-  { 7, 25, 4, 7, 7, 7 }, { -27, -2, 46, 100, 56, 7 }, { 58, 29, 83, 148, -3, -25 } };
+    //pair  pawn  knight bishop rook  queen
+	  {  7,     X,    X,     X,     X,    X },   //Pair
+	  { 39,     2,    X,     X,     X,    X },   //Pawn
+	  { 35,   271,   -4,     X,     X,    X },   //Knight
+	  { 7,     25,    4,     7,     X,    X },   //Bishop
+	  { -27,   -2,   46,    100,   56,    X },   //Rook
+	  { 58,    29,   83,    148,   -3,  -25 }    //Queen
+  };
 
   const int QuadraticCoefficientsOppositeColor[][PIECE_TYPE_NB] = {
-  { 41, 41, 41, 41, 41, 41 }, { 37, 41, 41, 41, 41, 41 }, { 10, 62, 41, 41, 41, 41 },
-  { 57, 64, 39, 41, 41, 41 }, { 50, 40, 23, -22, 41, 41 }, { 106, 101, 3, 151, 171, 41 } };
+	  //          THEIR PIECES
+	  //pair  pawn  knight bishop rook  queen
+	  { 41,    X,     X,     X,    X,     X },   //Pair
+	  { 37,    41,    X,     X,    X,     X },   //Pawn
+	  { 10,    62,   41,     X,    X,     X },   //Knight      OUR
+	  { 57,    64,   39,    41,    X,     X },   //Bishop      PIECES
+	  { 50,    40,   23,   -22,    41,    X },   //Rook
+	  { 106,  101,    3,   151,   171,   41 }    //Queen
+  };
+
+#undef X
 
   // Endgame evaluation and scaling functions accessed direcly and not through
   // the function maps because correspond to more then one material hash key.
@@ -240,8 +260,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // Compute the space weight
-  if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
-  {
+  if(npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg){
       int minorPieceCount =  pos.piece_count(WHITE, KNIGHT) + pos.piece_count(WHITE, BISHOP)
                            + pos.piece_count(BLACK, KNIGHT) + pos.piece_count(BLACK, BISHOP);
 
@@ -266,8 +285,8 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 /// position. Because the phase is strictly a function of the material, it
 /// is stored in MaterialEntry.
 
-Phase game_phase(const Position& pos) {
-
+Phase game_phase(const Position& pos)
+{
   Value npm = pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK);
 
   return  npm >= MidgameLimit ? PHASE_MIDGAME
