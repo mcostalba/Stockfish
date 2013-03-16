@@ -1,4 +1,4 @@
-/*
+﻿/*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -38,29 +38,35 @@ namespace {
   const Value RedundantQueenPenalty = Value(320);
   const Value RedundantRookPenalty  = Value(554);
 
-  //                                  pair  pawn knight bishop rook queen
-  const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+  //                                  pair  pawn  knight bishop rook queen
+  const int LinearCoefficients[6] = { 1485, -162, -536, -190,  105,  26 };
 
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
-    // pair pawn knight bishop rook queen
-    {   7                               }, // Bishop pair
-    {  39,    2                         }, // Pawn
-    {  35,  271,  -4                    }, // Knight
-    {   7,   25,   4,    7              }, // Bishop
-    { -27,   -2,  46,   100,   56       }, // Rook
-    {  58,   29,  83,   148,   -3,  -25 }  // Queen
+    // |♗♗|   ♙     ♘   ♗    ♖    ♕
+    {    7                                 }, // ♗♗
+    {   39,     2                          }, // ♙
+    {   35,    128,   -4                   }, // ♘
+    {    7,     25,    4,   7              }, // ♗
+    {  -27,     -2,   46,  100,  56        }, // ♖
+    {   58,     29,   83,  148,  -3,  -25  }  // ♕
+    // |♗♗|   ♙     ♘   ♗    ♖    ♕
   };
 
+  //We define X as the index is called, but will influence
+  //both colors equaly in all situations
+  #define X 0
   const int QuadraticCoefficientsOppositeColor[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
-    // pair pawn knight bishop rook queen
-    {  41                               }, // Bishop pair
-    {  37,   41                         }, // Pawn
-    {  10,   62,  41                    }, // Knight      OUR PIECES
-    {  57,   64,  39,    41             }, // Bishop
-    {  50,   40,  23,   -22,   41       }, // Rook
-    { 106,  101,   3,   151,  171,   41 }  // Queen
+    // |♗♗|   ♙    ♘    ♗    ♖   ♕
+    {     X                              }, // ♗♗
+    {    37,    X                        }, // ♙
+    {    10,   48,    X                  }, // ♘          OUR PIECES
+    {    83,   64,   78,    X            }, // ♗
+    {    50,   40,   23,  -22,    X      }, // ♖
+    {   106,   101,   3,  151,  171,   X }  // ♕
+	// |♗♗|   ♙    ♘    ♗    ♖   ♕
   };
+  #undef X
 
   // Endgame evaluation and scaling functions accessed direcly and not through
   // the function maps because correspond to more then one material hash key.
