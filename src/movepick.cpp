@@ -35,7 +35,7 @@ namespace {
     STOP
   };
 
-  // Our insertion sort, guaranteed to be stable, as is needed
+  /// Our insertion sort, guaranteed to be stable, as is needed
   void insertion_sort(MoveStack* begin, MoveStack* end)
   {
     MoveStack tmp, *p, *q;
@@ -49,13 +49,13 @@ namespace {
     }
   }
 
-  // Unary predicate used by std::partition to split positive scores from remaining
-  // ones so to sort separately the two sets, and with the second sort delayed.
+  /// Unary predicate used by std::partition to split positive scores from remaining
+  /// ones so to sort separately the two sets, and with the second sort delayed.
   inline bool has_positive_score(const MoveStack& ms) { return ms.score > 0; }
 
-  // Picks and moves to the front the best move in the range [begin, end),
-  // it is faster than sorting all the moves in advance when moves are few, as
-  // normally are the possible captures.
+  /// Picks and moves to the front the best move in the range [begin, end),
+  /// it is faster than sorting all the moves in advance when moves are few, as
+  /// normally are the possible captures.
   inline MoveStack* pick_best(MoveStack* begin, MoveStack* end)
   {
       std::swap(*begin, *std::max_element(begin, end));
@@ -71,8 +71,8 @@ namespace {
 /// move ordering is at the current node.
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
-                       Search::Stack* s, Value beta) : pos(p), Hist(h), depth(d) {
-
+                       Search::Stack* s, Value beta) : pos(p), Hist(h), depth(d)
+{
   assert(d > DEPTH_ZERO);
 
   captureThreshold = 0;
@@ -104,8 +104,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
-                       Square sq) : pos(p), Hist(h), cur(moves), end(moves) {
-
+                       Square sq) : pos(p), Hist(h), cur(moves), end(moves)
+{
   assert(d <= DEPTH_ZERO);
 
   if (p.checkers())
@@ -136,8 +136,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, const History& h, PieceType pt)
-                       : pos(p), Hist(h), cur(moves), end(moves) {
-
+                       : pos(p), Hist(h), cur(moves), end(moves)
+{
   assert(!pos.checkers());
 
   phase = PROBCUT;
@@ -187,8 +187,8 @@ void MovePicker::score<CAPTURES>() {
 }
 
 template<>
-void MovePicker::score<QUIETS>() {
-
+void MovePicker::score<QUIETS>()
+{
   Move m;
 
   for (MoveStack* it = moves; it != end; ++it)
@@ -224,8 +224,8 @@ void MovePicker::score<EVASIONS>() {
 /// generate_next() generates, scores and sorts the next bunch of moves, when
 /// there are no more moves to try for the current phase.
 
-void MovePicker::generate_next() {
-
+void MovePicker::generate_next()
+{
   cur = moves;
 
   switch (++phase) {
@@ -287,8 +287,8 @@ void MovePicker::generate_next() {
 /// left. It picks the move with the biggest score from a list of generated moves
 /// taking care not returning the ttMove if has already been searched previously.
 template<>
-Move MovePicker::next_move<false>() {
-
+Move MovePicker::next_move<false>()
+{
   Move move;
 
   while (true)

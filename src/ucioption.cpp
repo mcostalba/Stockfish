@@ -30,10 +30,12 @@
 
 using std::string;
 
+// This file mostly sets up UCI options and stores them.
+
 UCI::OptionsMap Options; // Global object
 
-namespace UCI {
-
+namespace UCI
+{
 /// 'On change' actions, triggered by an option's value change
 void on_logger(const Option& o) { start_logger(o); }
 void on_eval(const Option&) { Eval::init(); }
@@ -53,9 +55,8 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 /// init() initializes the UCI options to their hard coded default values
 /// and initializes the default value of "Threads" and "Min Split Depth"
 /// parameters according to the number of CPU cores detected.
-
-void init(OptionsMap& o) {
-
+void init(OptionsMap& o)
+{
   int cpus = std::min(cpu_count(), MAX_THREADS);
   int msd = cpus < 8 ? 4 : 7;
 
@@ -93,8 +94,8 @@ void init(OptionsMap& o) {
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
 
-std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
-
+std::ostream& operator<<(std::ostream& os, const OptionsMap& om)
+{
   for (size_t idx = 0; idx < om.size(); idx++)
       for (OptionsMap::const_iterator it = om.begin(); it != om.end(); ++it)
           if (it->second.idx == idx)
@@ -114,7 +115,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 }
 
 
-/// Option c'tors and conversion operators
+/// Option constructors and conversion operators
 
 Option::Option(const char* v, Fn* f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = v; }
@@ -144,8 +145,8 @@ Option::operator std::string() const {
 /// the GUI to check for option's limits, but we could receive the new value from
 /// the user by console window, so let's check the bounds anyway.
 
-Option& Option::operator=(const string& v) {
-
+Option& Option::operator=(const string& v)
+{
   assert(!type.empty());
 
   if (   (type != "button" && v.empty())

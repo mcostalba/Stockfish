@@ -35,8 +35,8 @@
 #include "tt.h"
 #include "ucioption.h"
 
-namespace Search {
-
+namespace Search
+{
   volatile SignalsType Signals;
   LimitsType Limits;
   std::vector<RootMove> RootMoves;
@@ -50,8 +50,8 @@ using std::string;
 using Eval::evaluate;
 using namespace Search;
 
-namespace {
-
+namespace
+{
   // Set to true to force running with one thread. Used for debugging
   const bool FakeSplit = false;
 
@@ -124,8 +124,8 @@ namespace {
 
 /// Search::init() is called during startup to initialize various lookup tables
 
-void Search::init() {
-
+void Search::init()
+{
   int d;  // depth (ONE_PLY == 2)
   int hd; // half depth (ONE_PLY == 1)
   int mc; // moveCount
@@ -177,8 +177,8 @@ size_t Search::perft(Position& pos, Depth depth) {
 /// called by the main thread when the program receives the UCI 'go' command. It
 /// searches from RootPos and at the end prints the "bestmove" to output.
 
-void Search::think() {
-
+void Search::think()
+{
   static PolyglotBook book; // Defined static to initialize the PRNG only once
 
   RootColor = RootPos.side_to_move();
@@ -282,8 +282,8 @@ finalize:
 }
 
 
-namespace {
-
+namespace
+{
   // id_loop() is the main iterative deepening loop. It calls search() repeatedly
   // with increasing depth until the allocated thinking time has been consumed,
   // user stops the search, or the maximum search depth is reached.
@@ -479,8 +479,8 @@ namespace {
   // here: This is taken care of after we return from the split point.
 
   template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
-
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth)
+  {
     const bool PvNode   = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
     const bool SpNode   = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
     const bool RootNode = (NT == Root || NT == SplitPointRoot);
@@ -1099,8 +1099,8 @@ split_point_start: // At split points actual search starts from here
   // less than ONE_PLY).
 
   template <NodeType NT, bool InCheck>
-  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
-
+  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth)
+  {
     const bool PvNode = (NT == PV);
 
     assert(NT == PV || NT == NonPV);
@@ -1312,8 +1312,8 @@ split_point_start: // At split points actual search starts from here
   // "plies to mate from the current position". Non-mate scores are unchanged.
   // The function is called before storing a value to the transposition table.
 
-  Value value_to_tt(Value v, int ply) {
-
+  Value value_to_tt(Value v, int ply)
+  {
     assert(v != VALUE_NONE);
 
     return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
@@ -1325,8 +1325,8 @@ split_point_start: // At split points actual search starts from here
   // from the transposition table (where refers to the plies to mate/be mated
   // from current position) to "plies to mate/be mated from the root".
 
-  Value value_from_tt(Value v, int ply) {
-
+  Value value_from_tt(Value v, int ply)
+  {
     return  v == VALUE_NONE             ? VALUE_NONE
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
@@ -1374,8 +1374,8 @@ split_point_start: // At split points actual search starts from here
   // both moves. Normally the second move is the threat (the best move returned
   // from a null search that fails low).
 
-  bool allows(const Position& pos, Move first, Move second) {
-
+  bool allows(const Position& pos, Move first, Move second)
+  {
     assert(is_ok(first));
     assert(is_ok(second));
     assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
@@ -1414,8 +1414,8 @@ split_point_start: // At split points actual search starts from here
   // opponent's move. In this case will not be pruned. Normally the second move
   // is the threat (the best move returned from a null search that fails low).
 
-  bool refutes(const Position& pos, Move first, Move second) {
-
+  bool refutes(const Position& pos, Move first, Move second)
+  {
     assert(is_ok(first));
     assert(is_ok(second));
 
@@ -1462,8 +1462,8 @@ split_point_start: // At split points actual search starts from here
   // When playing with strength handicap choose best move among the MultiPV set
   // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 
-  Move Skill::pick_move() {
-
+  Move Skill::pick_move()
+  {
     static RKISS rk;
 
     // PRNG sequence should be not deterministic
@@ -1505,8 +1505,8 @@ split_point_start: // At split points actual search starts from here
   // to send all the PV lines also if are still to be searched and so refer to
   // the previous search score.
 
-  string uci_pv(const Position& pos, int depth, Value alpha, Value beta) {
-
+  string uci_pv(const Position& pos, int depth, Value alpha, Value beta)
+  {
     std::stringstream s;
     Time::point elaspsed = Time::now() - SearchTime + 1;
     size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
@@ -1553,8 +1553,8 @@ split_point_start: // At split points actual search starts from here
 /// allow to always have a ponder move even when we fail high at root, and a
 /// long PV to print that is important for position analysis.
 
-void RootMove::extract_pv_from_tt(Position& pos) {
-
+void RootMove::extract_pv_from_tt(Position& pos)
+{
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
   TTEntry* tte;
   int ply = 0;
@@ -1586,8 +1586,8 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 /// inserts the PV back into the TT. This makes sure the old PV moves are searched
 /// first, even if the old TT entries have been overwritten.
 
-void RootMove::insert_pv_in_tt(Position& pos) {
-
+void RootMove::insert_pv_in_tt(Position& pos)
+{
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
   TTEntry* tte;
   int ply = 0;
@@ -1610,8 +1610,8 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
 /// Thread::idle_loop() is where the thread is parked when it has no work to do
 
-void Thread::idle_loop() {
-
+void Thread::idle_loop()
+{
   // Pointer 'this_sp' is not null only if we are called from split(), and not
   // at the thread creation. So it means we are the split point's master.
   SplitPoint* this_sp = splitPointsSize ? activeSplitPoint : NULL;
@@ -1730,8 +1730,8 @@ void Thread::idle_loop() {
 /// used to print debug info and, more important, to detect when we are out of
 /// available time and so stop the search.
 
-void check_time() {
-
+void check_time()
+{
   static Time::point lastInfoTime = Time::now();
   int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 

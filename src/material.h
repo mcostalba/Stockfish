@@ -37,12 +37,17 @@ namespace Material {
 /// of 4, which will result in scores of absolute value less than one pawn.
 
 struct Entry {
-
+  // Material score is defined as S(v, v). We do midgame-endgame weighting customly.
   Score material_value() const { return make_score(value, value); }
+  // Space weight is used in parallel with midgame-endgame weighting.
   int space_weight() const { return spaceWeight; }
+  // Game Phase is used to weigh midgame-endgame values
   Phase game_phase() const { return gamePhase; }
+  // Questions existance of special material configurations
   bool specialized_eval_exists() const { return evaluationFunction != NULL; }
+  // Gives a value to a position based off of material tables
   Value evaluate(const Position& p) const { return (*evaluationFunction)(p); }
+  // Finds a scale factor from a material config
   ScaleFactor scale_factor(const Position& pos, Color c) const;
 
   Key key;

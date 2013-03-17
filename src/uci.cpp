@@ -54,8 +54,8 @@ namespace {
 /// that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
 /// commands, the function also supports a few debug commands.
 
-void UCI::loop(const string& args) {
-
+void UCI::loop(const string& args)
+{
   Position pos(StartFEN, false, Threads.main_thread()); // The root position
   string token, cmd = args;
 
@@ -128,8 +128,8 @@ namespace {
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
 
-  void set_position(Position& pos, istringstream& is) {
-
+  void set_position(Position& pos, istringstream& is)
+  {
     Move m;
     string token, fen;
 
@@ -161,8 +161,8 @@ namespace {
   // set_option() is called when engine receives the "setoption" UCI command. The
   // function updates the UCI option ("name") to the given value ("value").
 
-  void set_option(istringstream& is) {
-
+  void set_option(istringstream& is)
+  {
     string token, name, value;
 
     is >> token; // Consume "name" token
@@ -186,8 +186,8 @@ namespace {
   // the thinking time and other parameters from the input string, and starts
   // the search.
 
-  void go(const Position& pos, istringstream& is) {
-
+  void go(const Position& pos, istringstream& is)
+  {
     Search::LimitsType limits;
     vector<Move> searchMoves;
     string token;

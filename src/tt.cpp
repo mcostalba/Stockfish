@@ -25,13 +25,12 @@
 
 TranspositionTable TT; // Our global transposition table
 
-
 /// TranspositionTable::set_size() sets the size of the transposition table,
 /// measured in megabytes. Transposition table consists of a power of 2 number
 /// of clusters and each cluster consists of ClusterSize number of TTEntry.
 
-void TranspositionTable::set_size(size_t mbSize) {
-
+void TranspositionTable::set_size(size_t mbSize)
+{
   assert(msb((mbSize << 20) / sizeof(TTEntry)) < 32);
 
   uint32_t size = ClusterSize << msb((mbSize << 20) / sizeof(TTEntry[ClusterSize]));
@@ -58,8 +57,8 @@ void TranspositionTable::set_size(size_t mbSize) {
 /// with zeroes. It is called whenever the table is resized, or when the
 /// user asks the program to clear the table (from the UCI interface).
 
-void TranspositionTable::clear() {
-
+void TranspositionTable::clear()
+{
   memset(table, 0, (hashMask + ClusterSize) * sizeof(TTEntry));
 }
 
@@ -72,8 +71,8 @@ void TranspositionTable::clear() {
 /// more valuable than a TTEntry t2 if t1 is from the current search and t2 is from
 /// a previous search, or if the depth of t1 is bigger than the depth of t2.
 
-void TranspositionTable::store(const Key key, Value v, Bound t, Depth d, Move m, Value statV, Value kingD) {
-
+void TranspositionTable::store(const Key key, Value v, Bound t, Depth d, Move m, Value statV, Value kingD)
+{
   int c1, c2, c3;
   TTEntry *tte, *replace;
   uint32_t key32 = key >> 32; // Use the high 32 bits as key inside the cluster
@@ -108,8 +107,8 @@ void TranspositionTable::store(const Key key, Value v, Bound t, Depth d, Move m,
 /// transposition table. Returns a pointer to the TTEntry or NULL if
 /// position is not found.
 
-TTEntry* TranspositionTable::probe(const Key key) const {
-
+TTEntry* TranspositionTable::probe(const Key key) const
+{
   TTEntry* tte = first_entry(key);
   uint32_t key32 = key >> 32;
 

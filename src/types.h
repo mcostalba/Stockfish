@@ -89,6 +89,7 @@ const int MAX_MOVES      = 192;
 const int MAX_PLY        = 100;
 const int MAX_PLY_PLUS_2 = MAX_PLY + 2;
 
+// File BB constants. Prefer Bitboard::FileBB[FILE]
 const Bitboard FileABB = 0x0101010101010101ULL;
 const Bitboard FileBBB = FileABB << 1;
 const Bitboard FileCBB = FileABB << 2;
@@ -98,6 +99,7 @@ const Bitboard FileFBB = FileABB << 5;
 const Bitboard FileGBB = FileABB << 6;
 const Bitboard FileHBB = FileABB << 7;
 
+// Rank BB constants. Prefer Bitboard::RankBB[RANK]
 const Bitboard Rank1BB = 0xFF;
 const Bitboard Rank2BB = Rank1BB << (8 * 1);
 const Bitboard Rank3BB = Rank1BB << (8 * 2);
@@ -132,12 +134,12 @@ enum MoveType {
 };
 
 enum CastleRight {  // Defined as in PolyGlot book hash key
-  CASTLES_NONE = 0,
-  WHITE_OO     = 1,
-  WHITE_OOO    = 2,
-  BLACK_OO     = 4,
-  BLACK_OOO    = 8,
-  ALL_CASTLES  = 15,
+  CASTLES_NONE = 0,  // Defines null castle rights
+  WHITE_OO     = 1,  // White kingside
+  WHITE_OOO    = 2,  // White queenside
+  BLACK_OO     = 4,  // Black kingside
+  BLACK_OOO    = 8,  // Black queenside
+  ALL_CASTLES  = 15, // Includes all castling types
   CASTLE_RIGHT_NB = 16
 };
 
@@ -148,8 +150,8 @@ enum CastlingSide {
 };
 
 enum Phase {
-  PHASE_ENDGAME = 0,
-  PHASE_MIDGAME = 128,
+  PHASE_ENDGAME = 0,   // Declared as EG phase (0% mg 100% eg)
+  PHASE_MIDGAME = 128, // Declared as MG phase (100% mg 0% eg)
   MG = 0, EG = 1, PHASE_NB = 2
 };
 
@@ -181,6 +183,8 @@ enum Value {
   VALUE_ENSURE_INTEGER_SIZE_P = INT_MAX,
   VALUE_ENSURE_INTEGER_SIZE_N = INT_MIN,
 
+  // These values are largely used by SF, but are modified.
+  // They are used as a PSQ base and phase weighting module among others.
   PawnValueMg   = 198,   PawnValueEg   = 258,
   KnightValueMg = 817,   KnightValueEg = 846,
   BishopValueMg = 836,   BishopValueEg = 857,
@@ -188,20 +192,20 @@ enum Value {
   QueenValueMg  = 2521,  QueenValueEg  = 2558
 };
 
-enum PieceType {
+enum PieceType { //Type of piece idependent from color
   NO_PIECE_TYPE = 0, ALL_PIECES = 0,
   PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6,
   PIECE_TYPE_NB = 8
 };
 
-enum Piece {
+enum Piece { // Piece including color
   NO_PIECE = 0,
   W_PAWN = 1, W_KNIGHT =  2, W_BISHOP =  3, W_ROOK =  4, W_QUEEN =  5, W_KING =  6,
   B_PAWN = 9, B_KNIGHT = 10, B_BISHOP = 11, B_ROOK = 12, B_QUEEN = 13, B_KING = 14,
   PIECE_NB = 16
 };
 
-enum Color {
+enum Color { // Color of a piece, side, or possibly square
   WHITE, BLACK, NO_COLOR, COLOR_NB = 2
 };
 

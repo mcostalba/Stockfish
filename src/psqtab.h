@@ -22,8 +22,12 @@
 
 #include "types.h"
 
-#define S(mg, eg) make_score(mg, eg)
+// The Piece-Square Table is a naive by quick way to evaluate the utility
+// of a piece.
+// It uses the position of a piece to evaluate its utility.
+// This table should be lowered in weight over time to increase knowledge.
 
+#define S(mg, eg) make_score(mg, eg)
 
 /// PSQT[PieceType][Square] contains Piece-Square scores. For each piece type on
 /// a given square a (midgame, endgame) score pair is assigned. PSQT is defined

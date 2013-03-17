@@ -192,7 +192,7 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 /// KP vs K. This endgame is evaluated with the help of a bitbase.
 template<>
 Value Endgame<KPK>::operator()(const Position& pos) const {
-
+  // Ensure it's just a pawn vs nothing
   assert(pos.non_pawn_material(strongerSide) == VALUE_ZERO);
   assert(pos.non_pawn_material(weakerSide) == VALUE_ZERO);
   assert(pos.piece_count(strongerSide, PAWN) == 1);

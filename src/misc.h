@@ -26,10 +26,16 @@
 
 #include "types.h"
 
+// This file contains various methods that allow us to do various things.
+// These utilities are used across multiple files.
+
+// Gives all of the engine's information
 extern const std::string engine_info(bool to_uci = false);
+// Gives the amount of virtual processors
 extern int cpu_count();
 extern void timed_wait(WaitCondition&, Lock&, int);
 extern void prefetch(char* addr);
+// Enables or disables logging
 extern void start_logger(bool b);
 
 extern void dbg_hit_on(bool b);

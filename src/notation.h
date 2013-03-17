@@ -24,6 +24,8 @@
 
 #include "types.h"
 
+// We use elements of this file to convert internals to UCI
+
 class Position;
 
 std::string score_to_uci(Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);

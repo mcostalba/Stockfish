@@ -33,24 +33,30 @@ namespace Pawns {
 /// returns a pointer to an Entry object.
 
 struct Entry {
-
+  // Gives the score based on pawns
   Score pawns_value() const { return value; }
+  // Gives attacks from pawns in bitboard format
   Bitboard pawn_attacks(Color c) const { return pawnAttacks[c]; }
+  // Gives bitboard with all passed pawns
   Bitboard passed_pawns(Color c) const { return passedPawns[c]; }
+  // Sees if said color has a pawn on said file
   int file_is_half_open(Color c, File f) const { return halfOpenFiles[c] & (1 << int(f)); }
+  // Utilities that checks for open files to different directions
   int has_open_file_to_left(Color c, File f) const { return halfOpenFiles[c] & ((1 << int(f)) - 1); }
   int has_open_file_to_right(Color c, File f) const { return halfOpenFiles[c] & ~((1 << int(f+1)) - 1); }
 
+  // Gives a score based off of precalculated king safety
   template<Color Us>
   Score king_safety(const Position& pos, Square ksq)  {
-
     return kingSquares[Us] == ksq && castleRights[Us] == pos.can_castle(Us)
          ? kingSafety[Us] : update_safety<Us>(pos, ksq);
   }
 
+  // Recalculates the king safety
   template<Color Us>
   Score update_safety(const Position& pos, Square ksq);
 
+  // Calculates value based off of incoming pawns
   template<Color Us>
   Value shelter_storm(const Position& pos, Square ksq);
 

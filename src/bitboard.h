@@ -23,18 +23,17 @@
 
 #include "types.h"
 
-namespace Bitboards {
-
+namespace Bitboards
+{
 void init();
 void print(Bitboard b);
 
 }
 
-namespace Bitbases {
-
+namespace Bitbases
+{
 void init_kpk();
 bool probe_kpk(Square wksq, Square wpsq, Square bksq, Color us);
-
 }
 
 CACHE_LINE_ALIGNMENT
@@ -95,20 +94,27 @@ inline bool more_than_one(Bitboard b) {
 }
 
 
-/// rank_bb() and file_bb() take a file or a square as input and return
-/// a bitboard representing all squares on the given file or rank.
+/// rank_bb(Rank r) yields a bit for all squares on the inputed rank
 
 inline Bitboard rank_bb(Rank r) {
   return RankBB[r];
 }
 
+/// rank_bb(Square s) yields a bit for all squares on the same rank as
+///   the inputed square
+
 inline Bitboard rank_bb(Square s) {
   return RankBB[rank_of(s)];
 }
 
+/// file_bb(File f) yields a bit for all squares on the inputed file
+
 inline Bitboard file_bb(File f) {
   return FileBB[f];
 }
+
+/// file_bb(Square s) yields a bit for all squares on the same file
+///   as the inputed square.
 
 inline Bitboard file_bb(Square s) {
   return FileBB[file_of(s)];
@@ -222,6 +228,8 @@ FORCE_INLINE unsigned magic_index(Square s, Bitboard occ) {
   return (lo * unsigned(Magics[s]) ^ hi * unsigned(Magics[s] >> 32)) >> Shifts[s];
 }
 
+// Calculates the attacks of a piece of a certain piece
+// on a certain square.
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occ) {
   return (Pt == ROOK ? RAttacks : BAttacks)[s][magic_index<Pt>(s, occ)];

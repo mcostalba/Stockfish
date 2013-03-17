@@ -24,7 +24,10 @@
 #include <cassert>
 #include "types.h"
 
-enum BitCountType {
+// All of the methods in this file count the population of a bitboard.
+// The method is called using a BitCountType
+
+enum BitCountType { //Types of BitCount based off size and platform
   CNT_64,
   CNT_64_MAX15,
   CNT_32,

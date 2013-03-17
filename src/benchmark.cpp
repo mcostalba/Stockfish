@@ -29,8 +29,15 @@
 #include "tt.h"
 #include "ucioption.h"
 
+// Benchmark exculsively contains methods and entires for checking changes
+// The benchmark method yields the following:
+//   Time:    Total run time for benchmark
+//   Nodes:   Total nodes searched (good for checking for functional changes)
+//   Nodes/S: Gives the speed per node searched
+
 using namespace std;
 
+// All positions used for the benchmark method
 static const char* Defaults[] = {
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",

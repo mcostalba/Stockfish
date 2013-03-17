@@ -81,6 +81,7 @@ namespace {
   #undef S
   #undef V
 
+  /// evaluate_pawns() gives a score to a pawn skeleton
   template<Color Us>
   Score evaluate_pawns(const Position& pos, Bitboard ourPawns,
                        Bitboard theirPawns, Pawns::Entry* e) {
@@ -220,8 +221,8 @@ Entry* probe(const Position& pos, Table& entries) {
 /// the king is on, as well as the two adjacent files.
 
 template<Color Us>
-Value Entry::shelter_storm(const Position& pos, Square ksq) {
-
+Value Entry::shelter_storm(const Position& pos, Square ksq)
+{
   const Color Them = (Us == WHITE ? BLACK : WHITE);
 
   Value safety = MaxSafetyBonus;
@@ -254,8 +255,8 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 /// called only when king square changes, about 20% of total king_safety() calls.
 
 template<Color Us>
-Score Entry::update_safety(const Position& pos, Square ksq) {
-
+Score Entry::update_safety(const Position& pos, Square ksq)
+{
   kingSquares[Us] = ksq;
   castleRights[Us] = pos.can_castle(Us);
   minKPdistance[Us] = 0;

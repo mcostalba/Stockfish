@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-enum GenType {
+enum GenType { // Types of move
   CAPTURES,
   QUIETS,
   QUIET_CHECKS,

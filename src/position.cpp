@@ -46,8 +46,9 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 
-namespace Zobrist {
-
+// Zobrist represents a position for the hashtable
+namespace Zobrist
+{
 Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Key enpassant[FILE_NB];
 Key castle[CASTLE_RIGHT_NB];
@@ -137,7 +138,7 @@ PieceType next_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, B
 } // namespace
 
 
-/// CheckInfo c'tor
+/// CheckInfo constructor
 
 CheckInfo::CheckInfo(const Position& pos) {
 
