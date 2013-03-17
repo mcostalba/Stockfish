@@ -18,9 +18,6 @@
 */
 
 #include <algorithm>
-#include <cassert>
-#include <cmath>
-#include <cstring>
 #include <iostream>
 #include <sstream>
 

@@ -18,8 +18,6 @@
 */
 
 #include <algorithm>
-#include <cassert>
-#include <cstdlib>
 #include <sstream>
 
 #include "evaluate.h"

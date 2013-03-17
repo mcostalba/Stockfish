@@ -18,7 +18,6 @@
 */
 
 #include <iostream>
-#include <string>
 
 #include "bitboard.h"
 #include "evaluate.h"

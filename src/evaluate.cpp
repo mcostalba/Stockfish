@@ -72,7 +72,7 @@ namespace {
   };
 
   // Evaluation grain size, must be a power of 2
-  const int GrainSize = 8;
+  const int GrainSize = 8; // 2 ^3
 
   // Evaluation weights, initialized from UCI options
   enum { Mobility, PassedPawns, Space };
@@ -88,14 +88,15 @@ namespace {
   //
   // Values modified by Joona Kiiski
   const Score WeightsInternal[] = {
-      S(252, 344), S(216, 266), S(46, 0)
+	  // Mobility   PassedPawns    Space
+      S(252, 344),  S(216, 266),  S(46, 0)
   };
 
   // MobilityBonus[PieceType][attacked] contains mobility bonuses for middle and
   // end game, indexed by piece type and number of attacked squares not occupied
   // by friendly pieces.
   const Score MobilityBonus[][32] = {
-     {}, {},
+     {}, {}, // Null and pawn
      { S(-38,-33), S(-25,-23), S(-12,-13), S( 0, -3), S(12,  7), S(25, 17), // Knights
        S( 31, 22), S( 38, 27), S( 38, 27) },
      { S(-25,-30), S(-11,-16), S(  3, -2), S(17, 12), S(31, 26), S(45, 40), // Bishops
@@ -202,7 +203,8 @@ namespace {
   //
   // King safety evaluation is asymmetrical and different for us (root color)
   // and for our opponent. These values are used to init KingDangerTable.
-  const int KingDangerWeights[] = { 259, 247 };
+  //                               theirs  ours
+  const int KingDangerWeights[] = { 259,   247 };
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   //                                   ♙ ♘ ♗ ♖ ♕
@@ -239,6 +241,7 @@ namespace {
   Score TracedScores[COLOR_NB][16];
   std::stringstream TraceStream;
 
+  // Used in trace method to represent elements of eval
   enum TracedType {
     PST = 8, IMBALANCE = 9, MOBILITY = 10, THREAT = 11,
     PASSED = 12, UNSTOPPABLE = 13, SPACE = 14, TOTAL = 15
@@ -493,8 +496,8 @@ Value do_evaluate(const Position& pos, Value& margin)
   /// pawn attacks. To be done at the beginning of the evaluation.
 
   template<Color Us>
-  void init_eval_info(const Position& pos, EvalInfo& ei) {
-
+  void init_eval_info(const Position& pos, EvalInfo& ei)
+  {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.king_square(Them));

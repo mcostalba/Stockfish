@@ -147,16 +147,16 @@ namespace {
 // These methods finds the bit closest to bit A1 within the BB
 Square lsb(Bitboard b) { return BSFTable[bsf_index(b)]; }
 
-Square pop_lsb(Bitboard* b) {
-
+Square pop_lsb(Bitboard* b)
+{
   Bitboard bb = *b;
   *b = bb & (bb - 1);
   return BSFTable[bsf_index(bb)];
 }
 
 // This method finds the square closest to bit H8 within the BB
-Square msb(Bitboard b) {
-
+Square msb(Bitboard b)
+{
   unsigned b32;
   int result = 0;
 
@@ -189,8 +189,8 @@ Square msb(Bitboard b) {
 /// Bitboards::print() prints a bitboard in an easily readable format to the
 /// standard output. This is sometimes useful for debugging.
 
-void Bitboards::print(Bitboard b) {
-
+void Bitboards::print(Bitboard b)
+{
   sync_cout;
 
   for (Rank rank = RANK_8; rank >= RANK_1; rank--)
@@ -209,8 +209,8 @@ void Bitboards::print(Bitboard b) {
 /// Bitboards::init() initializes various bitboard arrays. It is called during
 /// program initialization.
 
-void Bitboards::init() {
-
+void Bitboards::init()
+{
   for (int k = 0, i = 0; i < 8; i++)
       while (k < (2 << i))
           MS1BTable[k++] = i;
@@ -257,7 +257,7 @@ void Bitboards::init() {
               if (SquareDistance[s1][s2] == d)
                   DistanceRingsBB[s1][d - 1] |= s2;
 
-  int steps[][9] = { {},      // Null piece
+  int steps[][9] = { {},      // Null
 					{ 7, 9 }, // Pawn
 					{ 17, 15, 10, 6, -6, -10, -15, -17 }, //Knight
                     {}, {}, {}, // Bishop, Rook, and Queen
@@ -302,8 +302,8 @@ void Bitboards::init() {
 namespace {
   // Please_Double_Check
   // Yields a BB containing all attacks of a piece using different values
-  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied) {
-
+  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied)
+  {
     Bitboard attack = 0;
 
     for (int i = 0; i < 4; i++)
@@ -321,8 +321,8 @@ namespace {
   }
 
   // Creates a sudo_random magic using a booster and seed
-  Bitboard pick_random(RKISS& rk, int booster) {
-
+  Bitboard pick_random(RKISS& rk, int booster)
+  {
     // Values s1 and s2 are used to rotate the candidate magic of a
     // quantity known to be the optimal to quickly find the magics.
     int s1 = booster & 63, s2 = (booster >> 6) & 63;
@@ -341,8 +341,8 @@ namespace {
   // use the so called "fancy" approach.
 
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
-                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
-
+                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index)
+  {
     int MagicBoosters[][8] = { { 3191, 2184, 1310, 3618, 2091, 1308, 2452, 3996 },
                                { 1059, 3608,  605, 3234, 3326,   38, 2029, 3043 } };
     RKISS rk;

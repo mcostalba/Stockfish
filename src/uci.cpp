@@ -20,7 +20,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 #include "evaluate.h"
 #include "notation.h"

@@ -44,17 +44,16 @@ namespace {
     return wksq + (bksq << 6) + (us << 12) + (file_of(psq) << 13) + ((6 - rank_of(psq)) << 15);
   }
 
+  // Represents the result of a bitbase entry
   enum Result {
-    INVALID = 0,
-    UNKNOWN = 1,
-    DRAW    = 2,
-    WIN     = 4
+    INVALID = 0, UNKNOWN = 1,
+    DRAW    = 2, WIN     = 4
   };
 
   inline Result& operator|=(Result& r, Result v) { return r = Result(r | v); }
 
-  struct KPKPosition {
-
+  struct KPKPosition
+  {
     operator Result() const { return res; }
     Result classify_leaf(unsigned idx);
     Result classify(const std::vector<KPKPosition>& db)
@@ -71,8 +70,8 @@ namespace {
 } // namespace
 
 
-bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
-
+bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us)
+{
   assert(file_of(wpsq) <= FILE_D);
 
   unsigned idx = index(us, bksq, wksq, wpsq);
@@ -80,8 +79,8 @@ bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
 }
 
 
-void Bitbases::init_kpk() {
-
+void Bitbases::init_kpk()
+{
   unsigned idx, repeat = 1;
   std::vector<KPKPosition> db(IndexMax);
 
@@ -102,10 +101,10 @@ void Bitbases::init_kpk() {
 }
 
 
-namespace {
-
-  Result KPKPosition::classify_leaf(unsigned idx) {
-
+namespace
+{
+  Result KPKPosition::classify_leaf(unsigned idx)
+  {
     wksq = Square((idx >> 0) & 0x3F);
     bksq = Square((idx >> 6) & 0x3F);
     us   = Color((idx >> 12) & 0x01);
@@ -135,8 +134,8 @@ namespace {
   }
 
   template<Color Us>
-  Result KPKPosition::classify(const std::vector<KPKPosition>& db) {
-
+  Result KPKPosition::classify(const std::vector<KPKPosition>& db)
+  {
     // White to Move: If one move leads to a position classified as WIN, the result
     // of the current position is WIN. If all moves lead to positions classified
     // as DRAW, the current position is classified DRAW otherwise the current

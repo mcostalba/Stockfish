@@ -17,8 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm> // For std::count
-#include <cassert>
+#include <algorithm>
 #include <iostream>
 
 #include "movegen.h"

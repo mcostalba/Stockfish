@@ -38,6 +38,8 @@ bool probe_kpk(Square wksq, Square wpsq, Square bksq, Color us);
 
 CACHE_LINE_ALIGNMENT
 
+//See implementation in bitboard.cpp
+
 extern Bitboard RMasks[SQUARE_NB];
 extern Bitboard RMagics[SQUARE_NB];
 extern Bitboard* RAttacks[SQUARE_NB];

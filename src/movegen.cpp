@@ -32,8 +32,8 @@
 namespace
 {
   template<CastlingSide Side, bool Checks, bool Chess960>
-  MoveStack* generate_castle(const Position& pos, MoveStack* mlist, Color us) {
-
+  MoveStack* generate_castle(const Position& pos, MoveStack* mlist, Color us)
+  {
     if (pos.castle_impeded(us, Side) || !pos.can_castle(make_castle_right(us, Side)))
         return mlist;
 
@@ -301,8 +301,8 @@ namespace
 /// non-captures. Returns a pointer to the end of the move list.
 
 template<GenType Type>
-MoveStack* generate(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate(const Position& pos, MoveStack* mlist)
+{
   assert(Type == CAPTURES || Type == QUIETS || Type == NON_EVASIONS);
   assert(!pos.checkers());
 
@@ -324,8 +324,8 @@ template MoveStack* generate<NON_EVASIONS>(const Position&, MoveStack*);
 /// generate<QUIET_CHECKS> generates all pseudo-legal non-captures and knight
 /// underpromotions that give check. Returns a pointer to the end of the move list.
 template<>
-MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist)
+{
   assert(!pos.checkers());
 
   CheckInfo ci(pos);
@@ -354,8 +354,8 @@ MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist) {
 /// generate<EVASIONS> generates all pseudo-legal check evasions when the side
 /// to move is in check. Returns a pointer to the end of the move list.
 template<>
-MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist)
+{
   assert(pos.checkers());
 
   Square from, checksq;
@@ -416,8 +416,8 @@ MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist) {
 /// generate<LEGAL> generates all the legal moves in the given position
 
 template<>
-MoveStack* generate<LEGAL>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<LEGAL>(const Position& pos, MoveStack* mlist)
+{
   MoveStack *end, *cur = mlist;
   Bitboard pinned = pos.pinned_pieces();
   Square ksq = pos.king_square(pos.side_to_move());

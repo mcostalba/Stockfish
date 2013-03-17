@@ -24,41 +24,63 @@
 #include "pawns.h"
 #include "position.h"
 
-namespace {
-
+namespace
+{
   #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
   // Doubled pawn penalty by opposed flag and file
   const Score DoubledPawnPenalty[2][FILE_NB] = {
+  //Unopposed
+  //    a          b          c          d
   { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+  //    e          f          g          h
     S(23, 48), S(23, 48), S(20, 48), S(13, 43) },
+  //Opposed
+  //    a          b          c          d
   { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+  //    e          f          g          h
     S(23, 48), S(23, 48), S(20, 48), S(13, 43) }};
 
   // Isolated pawn penalty by opposed flag and file
   const Score IsolatedPawnPenalty[2][FILE_NB] = {
+  //Unopposed
+  //    a          b          c          d
   { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
+  //    e          f          g           h
     S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
+  //Opposed
+  //    a          b          c           d
   { S(25, 30), S(36, 35), S(40, 35), S(40, 35),
+  //    e          f           g          h
     S(40, 35), S(40, 35), S(36, 35), S(25, 30) }};
 
   // Backward pawn penalty by opposed flag and file
   const Score BackwardPawnPenalty[2][FILE_NB] = {
+  //Unopposed
+  //    a          b          c           d
   { S(30, 42), S(43, 46), S(49, 46), S(49, 46),
+  //    e          f          g           h
     S(49, 46), S(49, 46), S(43, 46), S(30, 42) },
+  //Opposed
+  //    a          b          c          d
   { S(20, 28), S(29, 31), S(33, 31), S(33, 31),
+  //    e          f          g           h
     S(33, 31), S(33, 31), S(29, 31), S(20, 28) }};
 
   // Pawn chain membership bonus by file
   const Score ChainBonus[FILE_NB] = {
+	//  a         b         c         d
     S(11,-1), S(13,-1), S(13,-1), S(14,-1),
+	//  e         f         g         h
     S(14,-1), S(13,-1), S(13,-1), S(11,-1)
   };
 
   // Candidate passed pawn bonus by rank
   const Score CandidateBonus[RANK_NB] = {
+  //    r1        r2        r3       r4
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
+	//  r5        r6        r7       r8
     S(34,68), S(83,166), S(0, 0), S( 0, 0)
   };
 
@@ -84,8 +106,8 @@ namespace {
   /// evaluate_pawns() gives a score to a pawn skeleton
   template<Color Us>
   Score evaluate_pawns(const Position& pos, Bitboard ourPawns,
-                       Bitboard theirPawns, Pawns::Entry* e) {
-
+                       Bitboard theirPawns, Pawns::Entry* e)
+  {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
     Bitboard b;
@@ -187,8 +209,8 @@ namespace Pawns {
 /// a pointer to it. The result is also stored in a hash table, so we don't have
 /// to recompute everything when the same pawn structure occurs again.
 
-Entry* probe(const Position& pos, Table& entries) {
-
+Entry* probe(const Position& pos, Table& entries)
+{
   Key key = pos.pawn_key();
   Entry* e = entries[key];
 

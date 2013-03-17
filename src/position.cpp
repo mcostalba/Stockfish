@@ -18,7 +18,6 @@
 */
 
 #include <cassert>
-#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -60,9 +59,8 @@ Key exclusion;
 /// white halves of the tables are copied from PSQT[] tables. Second, the black
 /// halves of the tables are initialized by flipping and changing the sign of
 /// the white scores.
-
-void init() {
-
+void init()
+{
   RKISS rk;
 
   for (Color c = WHITE; c <= BLACK; c++)
@@ -112,8 +110,8 @@ namespace {
 
 template<int Pt> FORCE_INLINE
 PieceType next_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
-                        Bitboard& occupied, Bitboard& attackers) {
-
+                        Bitboard& occupied, Bitboard& attackers)
+{
   if (stmAttackers & bb[Pt])
   {
       Bitboard b = stmAttackers & bb[Pt];
@@ -140,8 +138,8 @@ PieceType next_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, B
 
 /// CheckInfo constructor
 
-CheckInfo::CheckInfo(const Position& pos) {
-
+CheckInfo::CheckInfo(const Position& pos)
+{
   Color them = ~pos.side_to_move();
   ksq = pos.king_square(them);
 
@@ -161,8 +159,8 @@ CheckInfo::CheckInfo(const Position& pos) {
 /// object do not depend on any external data so we detach state pointer from
 /// the source one.
 
-Position& Position::operator=(const Position& pos) {
-
+Position& Position::operator=(const Position& pos)
+{
   memcpy(this, &pos, sizeof(Position));
   startState = *st;
   st = &startState;
@@ -303,8 +301,8 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 /// Position::set_castle_right() is an helper function used to set castling
 /// rights given the corresponding color and the rook starting square.
 
-void Position::set_castle_right(Color c, Square rfrom) {
-
+void Position::set_castle_right(Color c, Square rfrom)
+{
   Square kfrom = king_square(c);
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastleRight cr = make_castle_right(c, cs);
@@ -330,8 +328,8 @@ void Position::set_castle_right(Color c, Square rfrom) {
 /// Position::fen() returns a FEN representation of the position. In case
 /// of Chess960 the Shredder-FEN notation is used. Mainly a debugging function.
 
-const string Position::fen() const {
-
+const string Position::fen() const
+{
   std::ostringstream ss;
 
   for (Rank rank = RANK_8; rank >= RANK_1; rank--)
@@ -384,8 +382,8 @@ const string Position::fen() const {
 /// Position::pretty() returns an ASCII representation of the position to be
 /// printed to the standard output together with the move's san notation.
 
-const string Position::pretty(Move move) const {
-
+const string Position::pretty(Move move) const
+{
   const string dottedLine =            "\n+---+---+---+---+---+---+---+---+";
   const string twoRows =  dottedLine + "\n|   | . |   | . |   | . |   | . |"
                         + dottedLine + "\n| . |   | . |   | . |   | . |   |";
@@ -421,8 +419,8 @@ const string Position::pretty(Move move) const {
 /// false, the function return the pieces of the given color candidate for a
 /// discovery check against the enemy king.
 template<bool FindPinned>
-Bitboard Position::hidden_checkers() const {
-
+Bitboard Position::hidden_checkers() const
+{
   // Pinned pieces protect our king, dicovery checks attack the enemy king
   Bitboard b, result = 0;
   Bitboard pinners = pieces(FindPinned ? ~sideToMove : sideToMove);
@@ -450,8 +448,8 @@ template Bitboard Position::hidden_checkers<false>() const;
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
 /// given square. Slider attacks use occ bitboard as occupancy.
 
-Bitboard Position::attackers_to(Square s, Bitboard occ) const {
-
+Bitboard Position::attackers_to(Square s, Bitboard occ) const
+{
   return  (attacks_from<PAWN>(s, BLACK) & pieces(WHITE, PAWN))
         | (attacks_from<PAWN>(s, WHITE) & pieces(BLACK, PAWN))
         | (attacks_from<KNIGHT>(s)      & pieces(KNIGHT))
@@ -464,8 +462,8 @@ Bitboard Position::attackers_to(Square s, Bitboard occ) const {
 /// Position::attacks_from() computes a bitboard of all attacks of a given piece
 /// put in a given square. Slider attacks use occ bitboard as occupancy.
 
-Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
-
+Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ)
+{
   assert(is_ok(s));
 
   switch (type_of(p))
@@ -480,8 +478,8 @@ Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
 
 /// Position::pl_move_is_legal() tests whether a pseudo-legal move is legal
 
-bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
-
+bool Position::pl_move_is_legal(Move m, Bitboard pinned) const
+{
   assert(is_ok(m));
   assert(pinned == pinned_pieces());
 
@@ -529,8 +527,8 @@ bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
 /// is pseudo legal. It is used to validate moves from TT that can be corrupted
 /// due to SMP concurrent access or hash position key aliasing.
 
-bool Position::is_pseudo_legal(const Move m) const {
-
+bool Position::is_pseudo_legal(const Move m) const
+{
   Color us = sideToMove;
   Square from = from_sq(m);
   Square to = to_sq(m);
@@ -645,8 +643,8 @@ bool Position::is_pseudo_legal(const Move m) const {
 
 /// Position::move_gives_check() tests whether a pseudo-legal move gives a check
 
-bool Position::move_gives_check(Move m, const CheckInfo& ci) const {
-
+bool Position::move_gives_check(Move m, const CheckInfo& ci) const
+{
   assert(is_ok(m));
   assert(ci.dcCandidates == discovered_check_candidates());
   assert(color_of(piece_moved(m)) == sideToMove);
@@ -713,14 +711,14 @@ bool Position::move_gives_check(Move m, const CheckInfo& ci) const {
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
 /// moves should be filtered out before this function is called.
 
-void Position::do_move(Move m, StateInfo& newSt) {
-
+void Position::do_move(Move m, StateInfo& newSt)
+{
   CheckInfo ci(*this);
   do_move(m, newSt, ci, move_gives_check(m, ci));
 }
 
-void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) {
-
+void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck)
+{
   assert(is_ok(m));
   assert(&newSt != st);
 
@@ -962,8 +960,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 /// Position::undo_move() unmakes a move. When it returns, the position should
 /// be restored to exactly the same state as before the move was made.
 
-void Position::undo_move(Move m) {
-
+void Position::undo_move(Move m)
+{
   assert(is_ok(m));
 
   sideToMove = ~sideToMove;
@@ -1237,8 +1235,8 @@ int Position::see(Move m) const {
 /// Position::clear() erases the position object to a pristine state, with an
 /// empty board, white to move, and no castling rights.
 
-void Position::clear() {
-
+void Position::clear()
+{
   memset(this, 0, sizeof(Position));
   startState.epSquare = SQ_NONE;
   st = &startState;
@@ -1252,8 +1250,8 @@ void Position::clear() {
 /// Position::put_piece() puts a piece on the given square of the board,
 /// updating the board array, pieces list, bitboards, and piece counts.
 
-void Position::put_piece(Piece p, Square s) {
-
+void Position::put_piece(Piece p, Square s)
+{
   Color c = color_of(p);
   PieceType pt = type_of(p);
 
@@ -1272,8 +1270,8 @@ void Position::put_piece(Piece p, Square s) {
 /// compute_key() function is only used when a new position is set up, and
 /// to verify the correctness of the hash key when running in debug mode.
 
-Key Position::compute_key() const {
-
+Key Position::compute_key() const
+{
   Key k = Zobrist::castle[st->castleRights];
 
   for (Bitboard b = pieces(); b; )
@@ -1298,8 +1296,8 @@ Key Position::compute_key() const {
 /// up, and to verify the correctness of the pawn hash key when running in
 /// debug mode.
 
-Key Position::compute_pawn_key() const {
-
+Key Position::compute_pawn_key() const
+{
   Key k = 0;
 
   for (Bitboard b = pieces(PAWN); b; )
@@ -1318,8 +1316,8 @@ Key Position::compute_pawn_key() const {
 /// up, and to verify the correctness of the material hash key when running in
 /// debug mode.
 
-Key Position::compute_material_key() const {
-
+Key Position::compute_material_key() const
+{
   Key k = 0;
 
   for (Color c = WHITE; c <= BLACK; c++)
@@ -1335,8 +1333,8 @@ Key Position::compute_material_key() const {
 /// game and the endgame. These functions are used to initialize the incremental
 /// scores when a new position is set up, and to verify that the scores are correctly
 /// updated by do_move and undo_move when the program is running in debug mode.
-Score Position::compute_psq_score() const {
-
+Score Position::compute_psq_score() const
+{
   Score score = SCORE_ZERO;
 
   for (Bitboard b = pieces(); b; )
@@ -1354,8 +1352,8 @@ Score Position::compute_psq_score() const {
 /// incrementally during the search, this function is only used while
 /// initializing a new Position object.
 
-Value Position::compute_non_pawn_material(Color c) const {
-
+Value Position::compute_non_pawn_material(Color c) const
+{
   Value value = VALUE_ZERO;
 
   for (PieceType pt = KNIGHT; pt <= QUEEN; pt++)
@@ -1369,8 +1367,8 @@ Value Position::compute_non_pawn_material(Color c) const {
 /// repetition, or the 50 moves rule. It does not detect stalemates, this
 /// must be done by the search.
 template<bool SkipRepetition>
-bool Position::is_draw() const {
-
+bool Position::is_draw() const
+{
   // Draw by material?
   if (   !pieces(PAWN)
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
@@ -1412,8 +1410,8 @@ template bool Position::is_draw<true>() const;
 /// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging especially for finding evaluation symmetry bugs.
 
-void Position::flip() {
-
+void Position::flip()
+{
   const Position pos(*this);
 
   clear();
@@ -1456,8 +1454,8 @@ void Position::flip() {
 /// Position::pos_is_ok() performs some consitency checks for the position object.
 /// This is meant to be helpful when debugging.
 
-bool Position::pos_is_ok(int* failedStep) const {
-
+bool Position::pos_is_ok(int* failedStep) const
+{
   int dummy, *step = failedStep ? failedStep : &dummy;
 
   // What features of the position should be verified?
