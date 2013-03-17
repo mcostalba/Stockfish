@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-#include <cstring>
 #include <iostream>
 
 #include "bitboard.h"

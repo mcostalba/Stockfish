@@ -17,8 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
-
 #include "bitboard.h"
 #include "bitcount.h"
 #include "pawns.h"

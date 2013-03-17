@@ -21,7 +21,6 @@
 #define MISC_H_INCLUDED
 
 #include <fstream>
-#include <string>
 #include <vector>
 
 #include "types.h"

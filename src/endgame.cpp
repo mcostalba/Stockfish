@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-#include <cassert>
 
 #include "bitboard.h"
 #include "bitcount.h"
@@ -28,7 +27,6 @@
 using std::string;
 
 namespace {
-
   // Table used to drive the defending king towards the edge of the board
   // in KX vs K and KQ vs KR endgames.
   const int MateTable[SQUARE_NB] = {

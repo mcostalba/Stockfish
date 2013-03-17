@@ -17,15 +17,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
-
 #include "search.h"
 #include "timeman.h"
 #include "ucioption.h"
 
 namespace {
 
-  /// Constants
+  // Constants
 
   const int MoveHorizon  = 50;    // Plan time management at most this many moves ahead
   const float MaxRatio   = 7.0f;  // When in trouble, we can step over reserved time with this ratio
@@ -168,8 +166,8 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 }
 
 
-namespace {
-
+namespace
+{
   template<TimeType T>
   int remaining(int myTime, int movesToGo, int currentPly, int slowMover)
   {

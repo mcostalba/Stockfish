@@ -36,8 +36,6 @@
 ///               | popcnt support.
 
 #include <cassert>
-#include <cctype>
-#include <climits>
 #include <cstdlib>
 
 #include "platform.h"

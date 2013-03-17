@@ -23,10 +23,6 @@
   Public License, and can be downloaded from http://wbec-ridderkerk.nl
 */
 
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-
 #include "book.h"
 #include "misc.h"
 #include "movegen.h"

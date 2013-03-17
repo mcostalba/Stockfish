@@ -21,7 +21,6 @@
 #define MOVEPICK_H_INCLUDED
 
 #include <algorithm> // For std::max
-#include <cstring>   // For memset
 
 #include "movegen.h"
 #include "position.h"

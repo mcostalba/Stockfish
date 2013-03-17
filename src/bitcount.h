@@ -21,7 +21,6 @@
 #if !defined(BITCOUNT_H_INCLUDED)
 #define BITCOUNT_H_INCLUDED
 
-#include <cassert>
 #include "types.h"
 
 // All of the methods in this file count the population of a bitboard.

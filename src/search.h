@@ -20,10 +20,7 @@
 #if !defined(SEARCH_H_INCLUDED)
 #define SEARCH_H_INCLUDED
 
-#include <cstring>
-#include <memory>
 #include <stack>
-#include <vector>
 
 #include "misc.h"
 #include "position.h"

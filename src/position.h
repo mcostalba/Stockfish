@@ -20,9 +20,6 @@
 #if !defined(POSITION_H_INCLUDED)
 #define POSITION_H_INCLUDED
 
-#include <cassert>
-#include <cstddef>
-
 #include "bitboard.h"
 #include "types.h"
 

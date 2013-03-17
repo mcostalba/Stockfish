@@ -20,8 +20,6 @@
 #if !defined(THREAD_H_INCLUDED)
 #define THREAD_H_INCLUDED
 
-#include <vector>
-
 #include "material.h"
 #include "movepick.h"
 #include "pawns.h"

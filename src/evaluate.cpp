@@ -17,10 +17,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <iomanip>
 #include <sstream>
-#include <algorithm>
 
 #include "bitcount.h"
 #include "evaluate.h"
@@ -1111,11 +1109,11 @@ Value do_evaluate(const Position& pos, Value& margin)
             kingptg = (minKingDist + blockersCount) * 2;
         }
 
-        // Check if pawn sacrifice plan _may_ save the day
+        // Check if pawn sacrifice plan *might* save the day
         if (pliesToQueen[winnerSide] + 3 > pliesToGo + sacptg)
             return SCORE_ZERO;
 
-        // Check if king capture plan _may_ save the day (contains some false positives)
+        // Check if king capture plan *might* save the day (contains some false positives)
         if (pliesToQueen[winnerSide] + 3 > pliesToGo + kingptg)
             return SCORE_ZERO;
     }
