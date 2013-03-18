@@ -100,6 +100,7 @@ Endgames::Endgames() {
   add<KBBKN>("KBBKN");
 
   add<KNPK>("KNPK");
+  add<KNPKB>("KNPKB");
   add<KRPKR>("KRPKR");
   add<KBPKB>("KBPKB");
   add<KBPKN>("KBPKN");
@@ -427,7 +428,6 @@ Value Endgame<KNNK>::operator()(const Position&) const {
 /// will be used.
 template<>
 ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
-
   assert(pos.non_pawn_material(strongerSide) == BishopValueMg);
   assert(pos.piece_count(strongerSide, BISHOP) == 1);
   assert(pos.piece_count(strongerSide, PAWN) >= 1);
@@ -903,6 +903,24 @@ ScaleFactor Endgame<KNPK>::operator()(const Position& pos) const {
   return SCALE_FACTOR_NONE;
 }
 
+
+/// K, knight and a pawn vs K, bishop.  If knight can block bishop from
+/// taking pawn, it's a win.  Otherwise, drawn.
+template<>
+ScaleFactor Endgame<KNPKB>::operator()(const Position& pos) const {
+  Square pawnSq = pos.piece_list(strongerSide, PAWN)[0];
+  Square weakerKingSq = pos.king_square(weakerSide);
+  Square weakerBishopSq = pos.piece_list(weakerSide, BISHOP)[0];
+
+  Bitboard attacks = pos.attacks_from<BISHOP>(weakerBishopSq);
+  if (attacks & forward_bb(strongerSide, pawnSq)) {
+    // King needs to get close to promoting pawn to prevent knight from blocking.  Rules
+    // for this are very tricky, so just approximate.
+    return ScaleFactor(square_distance(weakerKingSq, pawnSq));
+  }
+
+  return SCALE_FACTOR_NONE;
+}
 
 /// K and a pawn vs K and a pawn. This is done by removing the weakest side's
 /// pawn and probing the KP vs K bitbase: If the weakest side has a draw without
