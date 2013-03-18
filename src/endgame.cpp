@@ -427,7 +427,6 @@ Value Endgame<KNNK>::operator()(const Position&) const {
 /// will be used.
 template<>
 ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
-
   assert(pos.non_pawn_material(strongerSide) == BishopValueMg);
   assert(pos.piece_count(strongerSide, BISHOP) == 1);
   assert(pos.piece_count(strongerSide, PAWN) >= 1);
