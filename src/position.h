@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -174,7 +174,7 @@ public:
 
   // Other properties of the position
   Color side_to_move() const;
-  int startpos_ply_counter() const;
+  int game_ply() const;
   bool is_chess960() const;
   Thread* this_thread() const;
   int64_t nodes_searched() const;
@@ -218,7 +218,7 @@ private:
   Bitboard castlePath[COLOR_NB][CASTLING_SIDE_NB];
   StateInfo startState;
   int64_t nodes;
-  int startPosPly;
+  int gamePly;
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
@@ -376,8 +376,8 @@ inline bool Position::is_passed_pawn_push(Move m) const {
         && pawn_is_passed(sideToMove, to_sq(m));
 }
 
-inline int Position::startpos_ply_counter() const {
-  return startPosPly + st->pliesFromNull; // HACK
+inline int Position::game_ply() const {
+  return gamePly;
 }
 
 inline bool Position::opposite_bishops() const {

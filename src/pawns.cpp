@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -231,7 +231,7 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
   Rank rkUs, rkThem;
   File kf = file_of(ksq);
 
-  kf = (kf == FILE_A) ? kf++ : (kf == FILE_H) ? kf-- : kf;
+  kf = (kf == FILE_A) ? FILE_B : (kf == FILE_H) ? FILE_G : kf;
 
   for (int f = kf - 1; f <= kf + 1; f++)
   {

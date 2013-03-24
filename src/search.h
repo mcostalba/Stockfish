@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ namespace Search {
 /// has its own array of Stack objects, indexed by the current ply.
 
 struct Stack {
-  SplitPoint* sp;
+  SplitPoint* splitPoint;
   int ply;
   Move currentMove;
   Move excludedMove;
@@ -56,12 +56,11 @@ struct Stack {
 /// all non-pv moves.
 struct RootMove {
 
-  RootMove(){} // Needed by sort()
   RootMove(Move m) : score(-VALUE_INFINITE), prevScore(-VALUE_INFINITE) {
     pv.push_back(m); pv.push_back(MOVE_NONE);
   }
 
-  bool operator<(const RootMove& m) const { return score < m.score; }
+  bool operator<(const RootMove& m) const { return score > m.score; } // Ascending sort
   bool operator==(const Move& m) const { return pv[0] == m; }
 
   void extract_pv_from_tt(Position& pos);

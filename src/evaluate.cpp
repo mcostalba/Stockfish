@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2012 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,8 +40,8 @@ namespace {
     Pawns::Entry* pi;
 
     // attackedBy[color][piece type] is a bitboard representing all squares
-    // attacked by a given color and piece type, attackedBy[color][0] contains
-    // all squares attacked by the given color.
+    // attacked by a given color and piece type, attackedBy[color][ALL_PIECES]
+    // contains all squares attacked by the given color.
     Bitboard attackedBy[COLOR_NB][PIECE_TYPE_NB];
 
     // kingRing[color] is the zone around the king which is considered
@@ -149,6 +149,8 @@ namespace {
   };
 
   #undef S
+
+  const Score BishopPinBonus = make_score(66, 11);
 
   // Bonus for having the side to move (modified by Joona Kiiski)
   const Score Tempo = make_score(24, 11);
@@ -496,7 +498,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     // Init king safety tables only if we are going to use them
     if (   pos.piece_count(Us, QUEEN)
-        && pos.non_pawn_material(Us) >= QueenValueMg + RookValueMg)
+        && pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
     {
         ei.kingRing[Them] = (b | (Us == WHITE ? b >> 8 : b << 8));
         b &= ei.attackedBy[Us][PAWN];
@@ -577,22 +579,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         mobility += MobilityBonus[Piece][mob];
 
-        // Add a bonus if a slider is pinning an enemy piece
-        if (   (Piece == BISHOP || Piece == ROOK || Piece == QUEEN)
-            && (PseudoAttacks[Piece][pos.king_square(Them)] & s))
-        {
-            b = BetweenBB[s][pos.king_square(Them)] & pos.pieces();
-
-            assert(b);
-
-            if (!more_than_one(b) && (b & pos.pieces(Them)))
-                score += ThreatBonus[Piece][type_of(pos.piece_on(lsb(b)))];
-        }
-
         // Decrease score if we are attacked by an enemy pawn. Remaining part
         // of threat evaluation must be done later when we have full attack info.
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawnPenalty[Piece];
+
+        // Otherwise give a bonus if we are a bishop and can pin a piece or
+        // can give a discovered check through an x-ray attack.
+        else if (    Piece == BISHOP
+                 && (PseudoAttacks[Piece][pos.king_square(Them)] & s)
+                 && !more_than_one(BetweenBB[s][pos.king_square(Them)] & pos.pieces()))
+                 score += BishopPinBonus;
 
         // Bishop and knight outposts squares
         if (    (Piece == BISHOP || Piece == KNIGHT)
@@ -696,16 +693,15 @@ Value do_evaluate(const Position& pos, Value& margin) {
     // Undefended minors get penalized even if not under attack
     undefendedMinors =  pos.pieces(Them)
                       & (pos.pieces(BISHOP) | pos.pieces(KNIGHT))
-                      & ~ei.attackedBy[Them][0];
+                      & ~ei.attackedBy[Them][ALL_PIECES];
 
     if (undefendedMinors)
-        score += more_than_one(undefendedMinors) ? UndefendedMinorPenalty * 2
-                                                 : UndefendedMinorPenalty;
+        score += UndefendedMinorPenalty;
 
     // Enemy pieces not defended by a pawn and under our attack
     weakEnemies =  pos.pieces(Them)
                  & ~ei.attackedBy[Them][PAWN]
-                 & ei.attackedBy[Us][0];
+                 & ei.attackedBy[Us][ALL_PIECES];
 
     if (!weakEnemies)
         return score;
@@ -744,9 +740,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
     score += evaluate_pieces<QUEEN,  Us, Trace>(pos, ei, mobility, mobilityArea);
 
     // Sum up all attacked squares
-    ei.attackedBy[Us][0] =   ei.attackedBy[Us][PAWN]   | ei.attackedBy[Us][KNIGHT]
-                           | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
-                           | ei.attackedBy[Us][QUEEN]  | ei.attackedBy[Us][KING];
+    ei.attackedBy[Us][ALL_PIECES] =   ei.attackedBy[Us][PAWN]   | ei.attackedBy[Us][KNIGHT]
+                                    | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                                    | ei.attackedBy[Us][QUEEN]  | ei.attackedBy[Us][KING];
     return score;
   }
 
@@ -772,7 +768,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     {
         // Find the attacked squares around the king which has no defenders
         // apart from the king itself
-        undefended = ei.attackedBy[Them][0] & ei.attackedBy[Us][KING];
+        undefended = ei.attackedBy[Them][ALL_PIECES] & ei.attackedBy[Us][KING];
         undefended &= ~(  ei.attackedBy[Us][PAWN]   | ei.attackedBy[Us][KNIGHT]
                         | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
                         | ei.attackedBy[Us][QUEEN]);
@@ -820,7 +816,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         }
 
         // Analyse enemy's safe distance checks for sliders and knights
-        safe = ~(pos.pieces(Them) | ei.attackedBy[Us][0]);
+        safe = ~(pos.pieces(Them) | ei.attackedBy[Us][ALL_PIECES]);
 
         b1 = pos.attacks_from<ROOK>(ksq) & safe;
         b2 = pos.attacks_from<BISHOP>(ksq) & safe;
@@ -907,7 +903,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (pos.is_empty(blockSq))
             {
                 squaresToQueen = forward_bb(Us, s);
-                defendedSquares = squaresToQueen & ei.attackedBy[Us][0];
+                defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
 
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
@@ -916,7 +912,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                     && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
                     unsafeSquares = squaresToQueen;
                 else
-                    unsafeSquares = squaresToQueen & (ei.attackedBy[Them][0] | pos.pieces(Them));
+                    unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
 
                 // If there aren't enemy attacks or pieces along the path to queen give
                 // huge bonus. Even bigger if we protect the pawn's path.
@@ -993,7 +989,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             // Compute plies to queening and check direct advancement
             movesToGo = rank_distance(s, queeningSquare) - int(relative_rank(c, s) == RANK_2);
             oppMovesToGo = square_distance(pos.king_square(~c), queeningSquare) - int(c != pos.side_to_move());
-            pathDefended = ((ei.attackedBy[c][0] & queeningPath) == queeningPath);
+            pathDefended = ((ei.attackedBy[c][ALL_PIECES] & queeningPath) == queeningPath);
 
             if (movesToGo >= oppMovesToGo && !pathDefended)
                 continue;
@@ -1140,7 +1136,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Bitboard safe =   SpaceMask[Us]
                    & ~pos.pieces(Us, PAWN)
                    & ~ei.attackedBy[Them][PAWN]
-                   & (ei.attackedBy[Us][0] | ~ei.attackedBy[Them][0]);
+                   & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
 
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN);
