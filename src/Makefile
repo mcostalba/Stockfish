@@ -257,7 +257,7 @@ endif
 LDFLAGS = $(EXTRALDFLAGS)
 
 ifeq ($(comp),mingw)
-	LDFLAGS += -static-libstdc++ -static-libgcc
+	LDFLAGS += -static-libstdc++ -static-libgcc -lpthread
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
