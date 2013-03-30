@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-#include <cstring>
 #include <iostream>
 
 #include "bitboard.h"
@@ -26,8 +25,13 @@
 #include "misc.h"
 #include "rkiss.h"
 
+// Bitboard is a number used to represent a board.
+// This is known by using '1' bits to declare occupency.
+// The internal rep. uses one BB per piece per color
+
 CACHE_LINE_ALIGNMENT
 
+// These constants contain calculated magics per square
 Bitboard RMasks[SQUARE_NB];
 Bitboard RMagics[SQUARE_NB];
 Bitboard* RAttacks[SQUARE_NB];
@@ -38,20 +42,73 @@ Bitboard BMagics[SQUARE_NB];
 Bitboard* BAttacks[SQUARE_NB];
 unsigned BShifts[SQUARE_NB];
 
+// Bitboard with '1' on said square
 Bitboard SquareBB[SQUARE_NB];
+
+// BB containing bits of said file
+// *use file_bb() instead*
 Bitboard FileBB[FILE_NB];
+
+// BB containing bits of said rank
+// *Use rank_bb() instead*
 Bitboard RankBB[RANK_NB];
+
+// BB containing bits of the file adjacent to said file
+// *Use adjacent_files_bb() instead*
 Bitboard AdjacentFilesBB[FILE_NB];
+
+// BB containing bits of this file and the adjacent ones.
+// *Use this_and_adjacent_files_bb() instead*
 Bitboard ThisAndAdjacentFilesBB[FILE_NB];
+
+// BB containing bits of all squares in front of said rank
+// Note that this is declared relavent to said color.
+// *Use in_front_bb() instead*
 Bitboard InFrontBB[COLOR_NB][RANK_NB];
+
+// Lists the destination squares of
+//   a jumping piece from a certain piece and square.
 Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
+
+// BB containing all bits between two squares.
+// The resulting BB's are straight lines
+// Note that when a straight line cannot be draw
+//   between the two squares, the result is undeclared.
+// *Use between_bb() instead*
 Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+
+// BB constaining the bits surrounding a square a certain distance.
+// This field does not include the inner bits, just the ring.
+// Example: Ring[x][0] == SquareBB[x]
+//          Ring[x][1] == PseudoAttacks[KING][x]
 Bitboard DistanceRingsBB[SQUARE_NB][8];
+
+// This BB constains a bit in front of this square
+// relevent to said color.
+// *Use forward_bb() instead*
 Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
+
+// This is a Bitboard that represents a passed pawn mask.
+// Usualy used to detect passed pawns depending on color and sqr.
+// The mask itself constains bits that can block or attack
+// the pawn on this square as it advances.
+// *Use passed_pawn_mask() instead*
 Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
+
+// This is a Bitboard that constains all bits that might
+//   be able to attack this pawn as it advances.
+// *Use attack_span_mask() instead*
 Bitboard AttackSpanMask[COLOR_NB][SQUARE_NB];
+
+// This BB contains the possible attacks from
+// a certain square and piece
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 
+
+// This contains the distance between two squares.
+// The value is derived by the larges change in cord.
+// We define it this way as geometric principles
+// are largly ignored due to the inner square units.
 int SquareDistance[SQUARE_NB][SQUARE_NB];
 
 namespace {
@@ -86,17 +143,19 @@ namespace {
 
 #if !defined(USE_BSFQ)
 
+// These methods finds the bit closest to bit A1 within the BB
 Square lsb(Bitboard b) { return BSFTable[bsf_index(b)]; }
 
-Square pop_lsb(Bitboard* b) {
-
+Square pop_lsb(Bitboard* b)
+{
   Bitboard bb = *b;
   *b = bb & (bb - 1);
   return BSFTable[bsf_index(bb)];
 }
 
-Square msb(Bitboard b) {
-
+// This method finds the square closest to bit H8 within the BB
+Square msb(Bitboard b)
+{
   unsigned b32;
   int result = 0;
 
@@ -129,8 +188,8 @@ Square msb(Bitboard b) {
 /// Bitboards::print() prints a bitboard in an easily readable format to the
 /// standard output. This is sometimes useful for debugging.
 
-void Bitboards::print(Bitboard b) {
-
+void Bitboards::print(Bitboard b)
+{
   sync_cout;
 
   for (Rank rank = RANK_8; rank >= RANK_1; rank--)
@@ -149,8 +208,8 @@ void Bitboards::print(Bitboard b) {
 /// Bitboards::init() initializes various bitboard arrays. It is called during
 /// program initialization.
 
-void Bitboards::init() {
-
+void Bitboards::init()
+{
   for (int k = 0, i = 0; i < 8; i++)
       while (k < (2 << i))
           MS1BTable[k++] = i;
@@ -197,12 +256,16 @@ void Bitboards::init() {
               if (SquareDistance[s1][s2] == d)
                   DistanceRingsBB[s1][d - 1] |= s2;
 
-  int steps[][9] = { {}, { 7, 9 }, { 17, 15, 10, 6, -6, -10, -15, -17 },
-                     {}, {}, {}, { 9, 7, -7, -9, 8, 1, -1, -8 } };
+  int steps[][9] = { {},      // Null
+					{ 7, 9 }, // Pawn
+					{ 17, 15, 10, 6, -6, -10, -15, -17 }, //Knight
+                    {}, {}, {}, // Bishop, Rook, and Queen
+					{ 9, 7, -7, -9, 8, 1, -1, -8 } }; // King
 
   for (Color c = WHITE; c <= BLACK; c++)
       for (PieceType pt = PAWN; pt <= KING; pt++)
           for (Square s = SQ_A1; s <= SQ_H8; s++)
+			  // Per color[c], piece type[pt], and square[s]
               for (int k = 0; steps[pt][k]; k++)
               {
                   Square to = s + Square(c == WHITE ? steps[pt][k] : -steps[pt][k]);
@@ -236,9 +299,10 @@ void Bitboards::init() {
 
 
 namespace {
-
-  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied) {
-
+  // Please_Double_Check
+  // Yields a BB containing all attacks of a piece using different values
+  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied)
+  {
     Bitboard attack = 0;
 
     for (int i = 0; i < 4; i++)
@@ -255,9 +319,9 @@ namespace {
     return attack;
   }
 
-
-  Bitboard pick_random(RKISS& rk, int booster) {
-
+  // Creates a sudo_random magic using a booster and seed
+  Bitboard pick_random(RKISS& rk, int booster)
+  {
     // Values s1 and s2 are used to rotate the candidate magic of a
     // quantity known to be the optimal to quickly find the magics.
     int s1 = booster & 63, s2 = (booster >> 6) & 63;
@@ -276,8 +340,8 @@ namespace {
   // use the so called "fancy" approach.
 
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
-                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
-
+                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index)
+  {
     int MagicBoosters[][8] = { { 3191, 2184, 1310, 3618, 2091, 1308, 2452, 3996 },
                                { 1059, 3608,  605, 3234, 3326,   38, 2029, 3043 } };
     RKISS rk;

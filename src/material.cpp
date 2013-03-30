@@ -1,4 +1,4 @@
-/*
+﻿/*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -17,10 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>  // For std::min
-#include <cassert>
-#include <cstring>
-
 #include "material.h"
 
 using namespace std;
@@ -38,29 +34,35 @@ namespace {
   const Value RedundantQueenPenalty = Value(320);
   const Value RedundantRookPenalty  = Value(554);
 
-  //                                  pair  pawn knight bishop rook queen
-  const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+  //                                  pair  pawn  knight bishop rook queen
+  const int LinearCoefficients[6] = { 1485, -162, -1172, -190,  105,  26 };
 
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
-    // pair pawn knight bishop rook queen
-    {   7                               }, // Bishop pair
-    {  39,    2                         }, // Pawn
-    {  35,  271,  -4                    }, // Knight
-    {   7,   25,   4,    7              }, // Bishop
-    { -27,   -2,  46,   100,   56       }, // Rook
-    {  58,   29,  83,   148,   -3,  -25 }  // Queen
+    // |♗♗|   ♙     ♘   ♗    ♖    ♕
+    {    7                                 }, // ♗♗
+    {   39,     2                          }, // ♙
+    {   35,    271,   -4                   }, // ♘
+    {    7,     25,    4,   7              }, // ♗
+    {  -27,     -2,   46,  100,  56        }, // ♖
+    {   58,     29,   83,  148,  -3,  -25  }  // ♕
+    // |♗♗|   ♙     ♘   ♗    ♖    ♕
   };
 
+  //We define X as the index is called, but will influence
+  //both colors equaly in all situations
+  #define X 0
   const int QuadraticCoefficientsOppositeColor[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
-    // pair pawn knight bishop rook queen
-    {  41                               }, // Bishop pair
-    {  37,   41                         }, // Pawn
-    {  10,   62,  41                    }, // Knight      OUR PIECES
-    {  57,   64,  39,    41             }, // Bishop
-    {  50,   40,  23,   -22,   41       }, // Rook
-    { 106,  101,   3,   151,  171,   41 }  // Queen
+    // |♗♗|   ♙    ♘    ♗    ♖   ♕
+    {     X                              }, // ♗♗
+    {    37,    X                        }, // ♙
+    {    10,   62,    X                  }, // ♘          OUR PIECES
+    {    57,   64,   39,    X            }, // ♗
+    {    50,   40,   23,  -22,    X      }, // ♖
+    {   106,   101,   3,  151,  171,   X }  // ♕
+	// |♗♗|   ♙    ♘    ♗    ♖   ♕
   };
+  #undef X
 
   // Endgame evaluation and scaling functions accessed direcly and not through
   // the function maps because correspond to more then one material hash key.
@@ -73,6 +75,8 @@ namespace {
   Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
 
   // Helper templates used to detect a given material distribution
+  
+  /// Any material against just a king
   template<Color Us> bool is_KXK(const Position& pos) {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return   pos.non_pawn_material(Them) == VALUE_ZERO
@@ -80,12 +84,15 @@ namespace {
           && pos.non_pawn_material(Us)   >= RookValueMg;
   }
 
+  /// Only a bishop and at least one pawn against anything
   template<Color Us> bool is_KBPsKs(const Position& pos) {
     return   pos.non_pawn_material(Us)   == BishopValueMg
           && pos.piece_count(Us, BISHOP) == 1
           && pos.piece_count(Us, PAWN)   >= 1;
   }
 
+  /// Just a queen (and king)
+  ///   against any config containing a rook, and at least one pawn
   template<Color Us> bool is_KQKRPs(const Position& pos) {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return   pos.piece_count(Us, PAWN)    == 0
@@ -100,32 +107,39 @@ namespace {
 
   template<Color Us>
   int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
-
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = (Us == WHITE ? BLACK : WHITE); //'Them' is the enemy
 
     int pt1, pt2, pc, v;
     int value = 0;
 
     // Redundancy of major pieces, formula based on Kaufman's paper
     // "The Evaluation of Material Imbalances in Chess"
+	// The module punishes having more than one rook
+	//   or having queens along with at least one rook
+
+	// While Rook redundancy may be removed using quadratic
+	//   but the Queen redundency cannot be exactly replicated
     if (pieceCount[Us][ROOK] > 0)
         value -=  RedundantRookPenalty * (pieceCount[Us][ROOK] - 1)
                 + RedundantQueenPenalty * pieceCount[Us][QUEEN];
 
     // Second-degree polynomial material imbalance by Tord Romstad
-    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; pt1++)
+	// This module allows us to reward or punish pieces
+	//   based on our friendly and enemy pieces.
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; pt1++) //Per piece (and bishop pair)
     {
         pc = pieceCount[Us][pt1];
-        if (!pc)
-            continue;
+		if (!pc) {continue;} //No need to examine relations where no pieces are present
 
-        v = LinearCoefficients[pt1];
+        v = LinearCoefficients[pt1]; //We start with a value based off piece type
 
+		// We go through all piece types up to and including this one
+		// By ignoring ones past our type we avoid redundency
         for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; pt2++)
-            v +=  QuadraticCoefficientsSameColor[pt1][pt2] * pieceCount[Us][pt2]
-                + QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[Them][pt2];
+            v +=  QuadraticCoefficientsSameColor[pt1][pt2] * pieceCount[Us][pt2] //Bonus based off friendlies
+                + QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[Them][pt2]; //Bonus based off enemies
 
-        value += pc * v;
+        value += pc * v; //We reward based on piece count
     }
     return value;
   }
@@ -161,13 +175,13 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   if (endgames.probe(key, e->evaluationFunction))
       return e;
 
-  if (is_KXK<WHITE>(pos))
+  if (is_KXK<WHITE>(pos)) //Check for KxK patern relevent to white
   {
       e->evaluationFunction = &EvaluateKXK[WHITE];
       return e;
   }
 
-  if (is_KXK<BLACK>(pos))
+  if (is_KXK<BLACK>(pos)) //Check for KxK patern relevent to black
   {
       e->evaluationFunction = &EvaluateKXK[BLACK];
       return e;
@@ -219,18 +233,19 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
 
-  if (npm_w + npm_b == VALUE_ZERO)
+  if (npm_w + npm_b == VALUE_ZERO) // No non-pawn pieces
   {
-      if (pos.piece_count(BLACK, PAWN) == 0)
+      if (pos.piece_count(BLACK, PAWN) == 0) //No black pawns
       {
           assert(pos.piece_count(WHITE, PAWN) >= 2);
           e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
       }
-      else if (pos.piece_count(WHITE, PAWN) == 0)
+      else if (pos.piece_count(WHITE, PAWN) == 0) //No white pawns
       {
           assert(pos.piece_count(BLACK, PAWN) >= 2);
           e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
       }
+	  // One pawn a piece
       else if (pos.piece_count(WHITE, PAWN) == 1 && pos.piece_count(BLACK, PAWN) == 1)
       {
           // This is a special case because we set scaling functions

@@ -20,13 +20,13 @@
 #if !defined(THREAD_H_INCLUDED)
 #define THREAD_H_INCLUDED
 
-#include <vector>
-
 #include "material.h"
 #include "movepick.h"
 #include "pawns.h"
 #include "position.h"
 #include "search.h"
+
+// Thread represents a search worker
 
 const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
 const int MAX_SPLITPOINTS_PER_THREAD = 8;

@@ -23,18 +23,14 @@
   Public License, and can be downloaded from http://wbec-ridderkerk.nl
 */
 
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-
 #include "book.h"
 #include "misc.h"
 #include "movegen.h"
 
 using namespace std;
 
-namespace {
-
+namespace
+{
   // A Polyglot book is a series of "entries" of 16 bytes. All integers are
   // stored in big-endian format, with highest byte first (regardless of size).
   // The entries are ordered according to the key in ascending order.
@@ -319,8 +315,8 @@ namespace {
   }};
 
   // polyglot_key() returns the PolyGlot hash key of the given position
-  Key polyglot_key(const Position& pos) {
-
+  Key polyglot_key(const Position& pos)
+  {
     Key key = 0;
     Bitboard b = pos.pieces();
 
@@ -358,8 +354,8 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 /// converts them in a number of type T. A Polyglot book stores numbers in
 /// big-endian format.
 
-template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
-
+template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n)
+{
   n = 0;
   for (size_t i = 0; i < sizeof(T); i++)
       n = T((n << 8) + ifstream::get());
@@ -375,8 +371,8 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 /// open() tries to open a book file with the given name after closing any
 /// exsisting one.
 
-bool PolyglotBook::open(const char* fName) {
-
+bool PolyglotBook::open(const char* fName)
+{
   if (is_open()) // Cannot close an already closed file
       close();
 
@@ -392,8 +388,8 @@ bool PolyglotBook::open(const char* fName) {
 /// found returns MOVE_NONE. If pickBest is true returns always the highest
 /// rated move, otherwise randomly chooses one, based on the move score.
 
-Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) {
-
+Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest)
+{
   if (fileName != fName && !open(fName.c_str()))
       return MOVE_NONE;
 
@@ -448,8 +444,8 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
 /// the book file for the given key. Returns the index of the leftmost book
 /// entry with the same key as the input.
 
-size_t PolyglotBook::find_first(Key key) {
-
+size_t PolyglotBook::find_first(Key key)
+{
   seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size
 
   size_t low = 0, mid, high = (size_t)tellg() / sizeof(Entry) - 1;

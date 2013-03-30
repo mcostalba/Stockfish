@@ -17,10 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <fstream>
 #include <iostream>
-#include <istream>
-#include <vector>
 
 #include "misc.h"
 #include "position.h"
@@ -29,8 +26,17 @@
 #include "tt.h"
 #include "ucioption.h"
 
+// Benchmark exculsively contains methods and entires for checking changes
+// The benchmark method yields the following:
+//   Time:    Total run time for benchmark
+//   Nodes:   Total nodes searched (good for checking for functional changes)
+//   Nodes/S: Gives the speed per node searched
+
+// These functions are better described as above evaluate()
+
 using namespace std;
 
+// All positions used for the benchmark method
 static const char* Defaults[] = {
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -58,9 +64,8 @@ static const char* Defaults[] = {
 /// depth 12), an optional file name where to look for positions in fen
 /// format (defaults are the positions defined above) and the type of the
 /// limit value: depth (default), time in secs or number of nodes.
-
-void benchmark(const Position& current, istream& is) {
-
+void benchmark(const Position& current, istream& is)
+{
   string token;
   Search::LimitsType limits;
   vector<string> fens;
@@ -99,17 +104,16 @@ void benchmark(const Position& current, istream& is) {
       string fen;
       ifstream file(fenFile.c_str());
 
-      if (!file.is_open())
-      {
+      if (!file.is_open()) { // If the file wasn't opened
           cerr << "Unable to open file " << fenFile << endl;
           return;
       }
 
       while (getline(file, fen))
           if (!fen.empty())
-              fens.push_back(fen);
+              fens.push_back(fen); // Load up every line of the FEN
 
-      file.close();
+      file.close(); // Close the file after we have loaded the fen's
   }
 
   int64_t nodes = 0;

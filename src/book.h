@@ -21,7 +21,6 @@
 #define BOOK_H_INCLUDED
 
 #include <fstream>
-#include <string>
 
 #include "position.h"
 #include "rkiss.h"

@@ -20,9 +20,9 @@
 #if !defined(NOTATION_H_INCLUDED)
 #define NOTATION_H_INCLUDED
 
-#include <string>
-
 #include "types.h"
+
+// We use elements of this file to convert internals to UCI
 
 class Position;
 

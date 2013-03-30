@@ -17,8 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
-
 #include "movegen.h"
 #include "position.h"
 
@@ -29,11 +27,11 @@
 /// Version used for pawns, where the 'from' square is given as a delta from the 'to' square
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
                                          (*mlist++).move = make_move(to - (d), to); }
-namespace {
-
+namespace
+{
   template<CastlingSide Side, bool Checks, bool Chess960>
-  MoveStack* generate_castle(const Position& pos, MoveStack* mlist, Color us) {
-
+  MoveStack* generate_castle(const Position& pos, MoveStack* mlist, Color us)
+  {
     if (pos.castle_impeded(us, Side) || !pos.can_castle(make_castle_right(us, Side)))
         return mlist;
 
@@ -69,8 +67,8 @@ namespace {
 
 
   template<Square Delta>
-  inline Bitboard move_pawns(Bitboard p) {
-
+  inline Bitboard move_pawns(Bitboard p)
+  {
     return  Delta == DELTA_N  ?  p << 8
           : Delta == DELTA_S  ?  p >> 8
           : Delta == DELTA_NE ? (p & ~FileHBB) << 9
@@ -82,8 +80,8 @@ namespace {
 
   template<GenType Type, Square Delta>
   inline MoveStack* generate_promotions(MoveStack* mlist, Bitboard pawnsOn7,
-                                        Bitboard target, const CheckInfo* ci) {
-
+                                        Bitboard target, const CheckInfo* ci)
+  {
     Bitboard b = move_pawns<Delta>(pawnsOn7) & target;
 
     while (b)
@@ -114,8 +112,8 @@ namespace {
 
   template<Color Us, GenType Type>
   MoveStack* generate_pawn_moves(const Position& pos, MoveStack* mlist,
-                                 Bitboard target, const CheckInfo* ci) {
-
+                                 Bitboard target, const CheckInfo* ci)
+  {
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
     const Color    Them     = (Us == WHITE ? BLACK    : WHITE);
@@ -219,8 +217,8 @@ namespace {
 
   template<PieceType Pt, bool Checks> FORCE_INLINE
   MoveStack* generate_moves(const Position& pos, MoveStack* mlist, Color us,
-                            Bitboard target, const CheckInfo* ci) {
-
+                            Bitboard target, const CheckInfo* ci)
+  {
     assert(Pt != KING && Pt != PAWN);
 
     const Square* pl = pos.piece_list(us, Pt);
@@ -251,8 +249,8 @@ namespace {
 
   template<GenType Type> FORCE_INLINE
   MoveStack* generate_all(const Position& pos, MoveStack* mlist, Color us,
-                          Bitboard target, const CheckInfo* ci = NULL) {
-
+                          Bitboard target, const CheckInfo* ci = NULL)
+  {
     const bool Checks = Type == QUIET_CHECKS;
 
     mlist = (us == WHITE ? generate_pawn_moves<WHITE, Type>(pos, mlist, target, ci)
@@ -301,8 +299,8 @@ namespace {
 /// non-captures. Returns a pointer to the end of the move list.
 
 template<GenType Type>
-MoveStack* generate(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate(const Position& pos, MoveStack* mlist)
+{
   assert(Type == CAPTURES || Type == QUIETS || Type == NON_EVASIONS);
   assert(!pos.checkers());
 
@@ -324,8 +322,8 @@ template MoveStack* generate<NON_EVASIONS>(const Position&, MoveStack*);
 /// generate<QUIET_CHECKS> generates all pseudo-legal non-captures and knight
 /// underpromotions that give check. Returns a pointer to the end of the move list.
 template<>
-MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist)
+{
   assert(!pos.checkers());
 
   CheckInfo ci(pos);
@@ -354,8 +352,8 @@ MoveStack* generate<QUIET_CHECKS>(const Position& pos, MoveStack* mlist) {
 /// generate<EVASIONS> generates all pseudo-legal check evasions when the side
 /// to move is in check. Returns a pointer to the end of the move list.
 template<>
-MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist)
+{
   assert(pos.checkers());
 
   Square from, checksq;
@@ -416,8 +414,8 @@ MoveStack* generate<EVASIONS>(const Position& pos, MoveStack* mlist) {
 /// generate<LEGAL> generates all the legal moves in the given position
 
 template<>
-MoveStack* generate<LEGAL>(const Position& pos, MoveStack* mlist) {
-
+MoveStack* generate<LEGAL>(const Position& pos, MoveStack* mlist)
+{
   MoveStack *end, *cur = mlist;
   Bitboard pinned = pos.pinned_pieces();
   Square ksq = pos.king_square(pos.side_to_move());

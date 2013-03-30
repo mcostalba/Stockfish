@@ -30,9 +30,8 @@
 
 using namespace std;
 
-/// Version number. If Version is left empty, then Tag plus current
-/// date, in the format DD-MM-YY, are used as a version number.
-
+// Version number. If Version is left empty, then Tag plus current
+//   date, in the format DD-MM-YY, are used as a version number.
 static const string Version = "";
 static const string Tag = "";
 
@@ -42,8 +41,8 @@ static const string Tag = "";
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci) {
-
+const string engine_info(bool to_uci)
+{
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   const string cpu64(Is64Bit ? " 64bit" : "");
   const string popcnt(HasPopCnt ? " SSE4.2" : "");
@@ -68,8 +67,7 @@ const string engine_info(bool to_uci) {
 }
 
 
-/// Convert system time to milliseconds. That's all we need.
-
+/// Returns system time in milliseconds.
 Time::point Time::now() {
   sys_time_t t; system_time(&t); return time_to_msec(t);
 }
@@ -83,8 +81,8 @@ void dbg_hit_on(bool b) { hits[0]++; if (b) hits[1]++; }
 void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
 void dbg_mean_of(int v) { means[0]++; means[1] += v; }
 
-void dbg_print() {
-
+void dbg_print()
+{
   if (hits[0])
       cerr << "Total " << hits[0] << " Hits " << hits[1]
            << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
@@ -113,8 +111,8 @@ struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and c
   streambuf* buf;
   ofstream* file;
 
-  int log(int c, const char* prefix) {
-
+  int log(int c, const char* prefix)
+  {
     static int last = '\n';
 
     if (last == '\n')
@@ -124,8 +122,8 @@ struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and c
   }
 };
 
-class Logger {
-
+class Logger
+{
   Logger() : in(cin.rdbuf(), &file), out(cout.rdbuf(), &file) {}
  ~Logger() { start(false); }
 
@@ -133,8 +131,8 @@ class Logger {
   Tie in, out;
 
 public:
-  static void start(bool b) {
-
+  static void start(bool b)
+  {
     static Logger l;
 
     if (b && !l.file.is_open())
@@ -156,8 +154,8 @@ public:
 /// Used to serialize access to std::cout to avoid multiple threads to write at
 /// the same time.
 
-std::ostream& operator<<(std::ostream& os, SyncCout sc) {
-
+std::ostream& operator<<(std::ostream& os, SyncCout sc)
+{
   static Mutex m;
 
   if (sc == io_lock)

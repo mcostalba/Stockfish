@@ -21,7 +21,8 @@
 #define UCIOPTION_H_INCLUDED
 
 #include <map>
-#include <string>
+
+//UCI contains classes and methods for communicating with UCI
 
 namespace UCI {
 

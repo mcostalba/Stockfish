@@ -17,8 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm> // For std::count
-#include <cassert>
 #include <iostream>
 
 #include "movegen.h"
@@ -40,7 +38,7 @@ namespace { extern "C" {
 } }
 
 
-// Thread c'tor starts a newly-created thread of execution that will call
+// Thread constructor starts a newly-created thread of execution that will call
 // the the virtual function idle_loop(), going immediately to sleep.
 
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
@@ -59,7 +57,7 @@ Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 }
 
 
-// Thread d'tor waits for thread termination before to return
+// Thread deconstructor waits for thread termination before to return
 
 Thread::~Thread() {
 

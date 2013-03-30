@@ -20,9 +20,6 @@
 #if !defined(POSITION_H_INCLUDED)
 #define POSITION_H_INCLUDED
 
-#include <cassert>
-#include <cstddef>
-
 #include "bitboard.h"
 #include "types.h"
 
@@ -108,23 +105,26 @@ public:
   Bitboard pieces(Color c) const;
   Bitboard pieces(Color c, PieceType pt) const;
   Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
+  // Gives the piece (including color and type) from square.
+  // Note that it is fairly slow compared to bitboard ops.
   Piece piece_on(Square s) const;
   Square king_square(Color c) const;
   Square ep_square() const;
   bool is_empty(Square s) const;
+  // Lists all squares based off color and type
   const Square* piece_list(Color c, PieceType pt) const;
   int piece_count(Color c, PieceType pt) const;
 
   // Castling
-  int can_castle(CastleRight f) const;
-  int can_castle(Color c) const;
-  bool castle_impeded(Color c, CastlingSide s) const;
+  int can_castle(CastleRight f) const; //Looks at castling right of side and color
+  int can_castle(Color c) const;       //Looks at castling right of color
+  bool castle_impeded(Color c, CastlingSide s) const; // Checks if enemy blocks the castle
   Square castle_rook_square(Color c, CastlingSide s) const;
 
   // Checking
-  Bitboard checkers() const;
-  Bitboard discovered_check_candidates() const;
-  Bitboard pinned_pieces() const;
+  Bitboard checkers() const; //Bitboard of pieces that check its enemy
+  Bitboard discovered_check_candidates() const; //BB of pieces that might give discovery
+  Bitboard pinned_pieces() const; //Bitboard of pieces that are pinned
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -226,19 +226,19 @@ private:
 };
 
 inline int64_t Position::nodes_searched() const {
-  return nodes;
+  return nodes; //Gives nodes searched so far.
 }
 
 inline void Position::set_nodes_searched(int64_t n) {
-  nodes = n;
+  nodes = n; //Sets nodes searched amount
 }
 
 inline Piece Position::piece_on(Square s) const {
-  return board[s];
+  return board[s]; //Piece type on certain square
 }
 
 inline Piece Position::piece_moved(Move m) const {
-  return board[from_sq(m)];
+  return board[from_sq(m)]; //Type of piece that was moved
 }
 
 inline bool Position::is_empty(Square s) const {

@@ -18,7 +18,6 @@
 */
 
 #include <iostream>
-#include <string>
 
 #include "bitboard.h"
 #include "evaluate.h"
@@ -28,10 +27,12 @@
 #include "tt.h"
 #include "ucioption.h"
 
-int main(int argc, char* argv[]) {
+// Runs the main stockfish program
+int main(int argc, char* argv[])
+{
+  std::cout << engine_info() << std::endl; // Prints engine information
 
-  std::cout << engine_info() << std::endl;
-
+  //Initialsizes all of SF's inner workings
   UCI::init(Options);
   Bitboards::init();
   Zobrist::init();
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
 
   std::string args;
 
+  // Converts arguments to UCI arguments
   for (int i = 1; i < argc; i++)
       args += std::string(argv[i]) + " ";
 

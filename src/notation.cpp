@@ -17,7 +17,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <iomanip>
 #include <sstream>
 #include <stack>
@@ -196,8 +195,10 @@ static string time_to_string(int64_t msecs) {
   return s.str();
 }
 
-static string score_to_string(Value v) {
-
+/// score_to_string() converts a value into a string usable in UCI
+///   and converts mate values into mate values
+static string score_to_string(Value v)
+{
   stringstream s;
 
   if (v >= VALUE_MATE_IN_MAX_PLY)
@@ -212,8 +213,8 @@ static string score_to_string(Value v) {
   return s.str();
 }
 
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
-
+string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[])
+{
   const int64_t K = 1000;
   const int64_t M = 1000000;
 

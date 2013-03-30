@@ -25,11 +25,12 @@
 class Position;
 
 namespace Eval {
-
+//Initialize the values used by Evaluate.cpp
 extern void init();
+//Gives a value based off of the position
 extern Value evaluate(const Position& pos, Value& margin);
+//This method demonstrates how a value is derived by eval
 extern std::string trace(const Position& pos);
-
 }
 
 #endif // !defined(EVALUATE_H_INCLUDED)
