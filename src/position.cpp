@@ -495,6 +495,8 @@ bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
   // the move is made.
   if (type_of(m) == ENPASSANT)
   {
+    if(pinned & from)
+    {
       Color them = ~us;
       Square to = to_sq(m);
       Square capsq = to + pawn_push(them);
@@ -508,6 +510,8 @@ bool Position::pl_move_is_legal(Move m, Bitboard pinned) const {
 
       return   !(attacks_bb<  ROOK>(ksq, b) & pieces(them, QUEEN, ROOK))
             && !(attacks_bb<BISHOP>(ksq, b) & pieces(them, QUEEN, BISHOP));
+    }
+    return true;
   }
 
   // If the moving piece is a king, check whether the destination
