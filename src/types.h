@@ -181,11 +181,11 @@ enum Value {
   VALUE_ENSURE_INTEGER_SIZE_P = INT_MAX,
   VALUE_ENSURE_INTEGER_SIZE_N = INT_MIN,
 
-  PawnValueMg   = 198,   PawnValueEg   = 258,
+  PawnValueMg   = 198,   PawnValueEg   = 250,
   KnightValueMg = 817,   KnightValueEg = 846,
   BishopValueMg = 836,   BishopValueEg = 857,
-  RookValueMg   = 1270,  RookValueEg   = 1278,
-  QueenValueMg  = 2521,  QueenValueEg  = 2558
+  RookValueMg   = 1270,  RookValueEg   = 1241,
+  QueenValueMg  = 2529,  QueenValueEg  = 2558
 };
 
 enum PieceType {
