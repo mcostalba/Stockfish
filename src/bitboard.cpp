@@ -47,6 +47,7 @@ Bitboard InFrontBB[COLOR_NB][RANK_NB];
 Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
 Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 Bitboard DistanceRingsBB[SQUARE_NB][8];
+Bitboard CenterRingsBB[4];
 Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 Bitboard AttackSpanMask[COLOR_NB][SQUARE_NB];
@@ -196,6 +197,10 @@ void Bitboards::init() {
           for (Square s2 = SQ_A1; s2 <= SQ_H8; s2++)
               if (SquareDistance[s1][s2] == d)
                   DistanceRingsBB[s1][d - 1] |= s2;
+
+  for (int d = 0; d < 4; d++)
+	  CenterRingsBB[d] = DistanceRingsBB[SQ_D4][d] | DistanceRingsBB[SQ_E4][d] |
+						 DistanceRingsBB[SQ_D5][d] | DistanceRingsBB[SQ_E5][d];
 
   int steps[][9] = { {}, { 7, 9 }, { 17, 15, 10, 6, -6, -10, -15, -17 },
                      {}, {}, {}, { 9, 7, -7, -9, 8, 1, -1, -8 } };
