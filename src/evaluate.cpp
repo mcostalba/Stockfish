@@ -411,8 +411,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
           - evaluate_passed_pawns<BLACK>(pos, ei);
 
   // If one side has only a king, check whether exists any unstoppable passed pawn
-  if (!pos.non_pawn_material(WHITE) || !pos.non_pawn_material(BLACK))
-      score += evaluate_unstoppable_pawns(pos, ei);
+//  if (!pos.non_pawn_material(WHITE) || !pos.non_pawn_material(BLACK))
+//      score += evaluate_unstoppable_pawns(pos, ei);
 
   // Evaluate space for both sides, only in middle-game.
   if (ei.mi->space_weight())
