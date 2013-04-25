@@ -449,6 +449,7 @@ Value do_evaluate(const Position& pos, Value& margin, Info& ei) {
 
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.king_square(Them));
     ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
+    ei.weak[Us] = 0;
 
     // Init king safety tables only if we are going to use them
     if (   pos.piece_count(Us, QUEEN)
@@ -663,6 +664,8 @@ Value do_evaluate(const Position& pos, Value& margin, Info& ei) {
 
     if (!weakEnemies)
         return score;
+
+    ei.weak[Them] = weakEnemies;
 
     // Add bonus according to type of attacked enemy piece and to the
     // type of attacking piece, from knights to queens. Kings are not

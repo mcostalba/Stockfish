@@ -41,6 +41,10 @@ struct Info {
   // contains all squares attacked by the given color.
   Bitboard attackedBy[COLOR_NB][PIECE_TYPE_NB];
 
+  // weak[color] is a bitboard representing all pieces by a given
+  // color not defended by a pawn and under enemy attack.
+  Bitboard weak[COLOR_NB];
+
   // kingRing[color] is the zone around the king which is considered
   // by the king safety evaluation. This consists of the squares directly
   // adjacent to the king, and the three (or two, for a king on an edge file)
