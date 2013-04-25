@@ -188,7 +188,7 @@ void MovePicker::score<CAPTURES>() {
 template<>
 void MovePicker::score<QUIETS>() {
 
-  const Bitboard weaks = ss->ei->weak[pos.side_to_move()];
+  const Bitboard weaks = ss->ei.weak[pos.side_to_move()];
   Move m;
 
   for (MoveStack* it = moves; it != end; ++it)
