@@ -196,7 +196,7 @@ void MovePicker::score<QUIETS>() {
       m = it->move;
       it->score = Hist[pos.piece_moved(m)][to_sq(m)];
       if (weaks && (weaks & from_sq(m)))
-          it->score += History::Max;
+          it->score += History::Max / 2;
   }
 }
 
