@@ -591,6 +591,8 @@ namespace {
 
     else if (tte)
     {
+        ei.weak[WHITE] = ei.weak[BLACK] = 0;
+
         // Never assume anything on values stored in TT
         if (  (ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
             ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)

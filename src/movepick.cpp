@@ -71,14 +71,13 @@ namespace {
 /// move ordering is at the current node.
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
-                       Search::Stack* s, Value beta) : pos(p), Hist(h), depth(d) {
+                       Search::Stack* s, Value beta) : pos(p), Hist(h), ss(s), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
   captureThreshold = 0;
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
-  ss = s;
 
   if (p.checkers())
       phase = EVASION;
@@ -189,12 +188,15 @@ void MovePicker::score<CAPTURES>() {
 template<>
 void MovePicker::score<QUIETS>() {
 
+  const Bitboard weaks = ss->ei->weak[pos.side_to_move()];
   Move m;
 
   for (MoveStack* it = moves; it != end; ++it)
   {
       m = it->move;
       it->score = Hist[pos.piece_moved(m)][to_sq(m)];
+      if (weaks && (weaks & from_sq(m)))
+          it->score += History::Max;
   }
 }
 
