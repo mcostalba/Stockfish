@@ -21,7 +21,6 @@
 #define TT_H_INCLUDED
 
 #include <cstdlib>
-#include <iostream> 
 #include "misc.h"
 #include "types.h"
 
