@@ -80,22 +80,17 @@ private:
 
 inline void *TTEntry::operator new[](size_t size, const std::nothrow_t t)
 {
-  std::cout << "Using overload new[].\n";
-  //static const int align=64;
-  //#define align 64
+  (void)t; // Diasble unused parameter waring
   void *mem = malloc( size + (64-1) + sizeof(void*) );
-
   char *amem = ((char*)mem) + sizeof(void*);
   amem += 64 - ((long)amem & (64 - 1));
-
   ((void**)amem)[-1] = mem;
   return amem;
 }
 
-inline void TTEntry::operator delete[](void *p)
+inline void TTEntry::operator delete[](void *mem)
 {
-  std::cout << "Free array using overloaded delete[]\n";
-  //free( ((void**)mem)[-1] );
+  free( ((void**)mem)[-1] );
 }
 
 /// A TranspositionTable consists of a power of 2 number of clusters and each

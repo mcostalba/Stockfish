@@ -41,8 +41,6 @@ void TranspositionTable::set_size(size_t mbSize) {
 
   hashMask = size - ClusterSize;
   delete [] table;
-  
-
   table = new (std::nothrow) TTEntry[size];
 
   if (!table)
