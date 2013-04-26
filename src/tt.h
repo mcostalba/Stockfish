@@ -81,6 +81,7 @@ inline void *TTEntry::operator new[](size_t size, const std::nothrow_t t)
 {
   (void)t; // Diasble unused parameter waring
   void *mem = malloc( size + (64-1) + sizeof(void*) );
+  if(!mem) return mem;
   char *amem = ((char*)mem) + sizeof(void*);
   amem += 64 - ((long)amem & (64 - 1));
   ((void**)amem)[-1] = mem;
@@ -89,7 +90,7 @@ inline void *TTEntry::operator new[](size_t size, const std::nothrow_t t)
 
 inline void TTEntry::operator delete[](void *mem)
 {
-  free( ((void**)mem)[-1] );
+  if(mem) free( ((void**)mem)[-1] );
 }
 
 /// A TranspositionTable consists of a power of 2 number of clusters and each
