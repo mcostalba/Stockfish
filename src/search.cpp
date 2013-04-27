@@ -523,6 +523,7 @@ namespace {
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
+    ss->futilityMoveCount = 0;
     (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
@@ -592,7 +593,7 @@ namespace {
         // Never assume anything on values stored in TT
         if (  (ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
             ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-            eval = ss->staticEval = evaluate(pos, ss->evalMargin);
+            eval = ss->staticEval = evaluate(pos, ss->evalMargin, &ss->ei);
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
@@ -602,7 +603,7 @@ namespace {
     }
     else
     {
-        eval = ss->staticEval = evaluate(pos, ss->evalMargin);
+        eval = ss->staticEval = evaluate(pos, ss->evalMargin, &ss->ei);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                  ss->staticEval, ss->evalMargin);
     }
@@ -643,10 +644,11 @@ namespace {
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
         && !inCheck
-        &&  eval - FutilityMargins[depth][0] >= beta
+        &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
+        &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return eval - FutilityMargins[depth][0];
+        return eval - futility_margin(depth, (ss-1)->futilityMoveCount);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
@@ -900,7 +902,13 @@ split_point_start: // At split points actual search starts from here
 
               continue;
           }
+
+          // We have not pruned the move that will be searched, but remember how
+          // far in the move list we are to be more aggressive in the child node.
+          ss->futilityMoveCount = moveCount;
       }
+      else
+          ss->futilityMoveCount = 0;
 
       // Check for legality only before to do the move
       if (!RootNode && !SpNode && !pos.pl_move_is_legal(move, ci.pinned))
@@ -1170,10 +1178,10 @@ split_point_start: // At split points actual search starts from here
             // Never assume anything on values stored in TT
             if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
                 ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
+                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin, &ss->ei);
         }
         else
-            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
+            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin, &ss->ei);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
