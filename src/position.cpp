@@ -1129,10 +1129,10 @@ void Position::undo_null_move() {
 
 
 /// Position::see() is a static exchange evaluator: It tries to estimate the
-/// material gain or loss resulting from a move. There are three versions of
-/// this function: One which takes a destination square as input, one takes a
-/// move, and one which takes a 'from' and a 'to' square. The function does
-/// not yet understand promotions captures.
+/// material gain or loss resulting from a move. Parameter 'asymmThreshold' takes
+/// tempi into account. If the side who initiated the capturing sequence does the
+/// last capture, he loses a tempo and if the result is below 'asymmThreshold'
+/// the capturing sequence is considered bad.
 
 int Position::see_sign(Move m) const {
 
@@ -1147,7 +1147,7 @@ int Position::see_sign(Move m) const {
   return see(m);
 }
 
-int Position::see(Move m) const {
+int Position::see(Move m, int asymmThreshold) const {
 
   Square from, to;
   Bitboard occupied, attackers, stmAttackers;
@@ -1223,6 +1223,15 @@ int Position::see(Move m) const {
       }
 
   } while (stmAttackers);
+
+  // If we are doing asymmetric SEE evaluation and the same side does the first
+  // and the last capture, he loses a tempo and gain must be at least worth
+  // 'asymmThreshold', otherwise we replace the score with a very low value,
+  // before negamaxing.
+  if (asymmThreshold)
+      for (int i = 0; i < slIndex; i += 2)
+          if (swapList[i] < asymmThreshold)
+              swapList[i] = - QueenValueMg * 16;
 
   // Having built the swap list, we negamax through it to find the best
   // achievable score from the point of view of the side to move.
@@ -1367,7 +1376,6 @@ Value Position::compute_non_pawn_material(Color c) const {
 /// Position::is_draw() tests whether the position is drawn by material,
 /// repetition, or the 50 moves rule. It does not detect stalemates, this
 /// must be done by the search.
-template<bool SkipRepetition>
 bool Position::is_draw() const {
 
   // Draw by material?
@@ -1380,32 +1388,25 @@ bool Position::is_draw() const {
       return true;
 
   // Draw by repetition?
-  if (!SkipRepetition)
+  int i = 4, e = std::min(st->rule50, st->pliesFromNull);
+
+  if (i <= e)
   {
-      int i = 4, e = std::min(st->rule50, st->pliesFromNull);
+      StateInfo* stp = st->previous->previous;
 
-      if (i <= e)
-      {
-          StateInfo* stp = st->previous->previous;
+      do {
+          stp = stp->previous->previous;
 
-          do {
-              stp = stp->previous->previous;
+          if (stp->key == st->key)
+              return true;
 
-              if (stp->key == st->key)
-                  return true;
+          i += 2;
 
-              i += 2;
-
-          } while (i <= e);
-      }
+      } while (i <= e);
   }
 
   return false;
 }
-
-// Explicit template instantiations
-template bool Position::is_draw<false>() const;
-template bool Position::is_draw<true>() const;
 
 
 /// Position::flip() flips position with the white and black sides reversed. This

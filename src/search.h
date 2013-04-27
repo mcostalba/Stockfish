@@ -25,6 +25,7 @@
 #include <stack>
 #include <vector>
 
+#include "evaluate.h"
 #include "misc.h"
 #include "position.h"
 #include "types.h"
@@ -47,6 +48,8 @@ struct Stack {
   Value staticEval;
   Value evalMargin;
   int skipNullMove;
+  int futilityMoveCount;
+  Eval::Info ei;
 };
 
 
