@@ -20,6 +20,7 @@
 #if !defined(TT_H_INCLUDED)
 #define TT_H_INCLUDED
 
+#include <cstdlib>
 #include "misc.h"
 #include "types.h"
 
@@ -65,6 +66,9 @@ public:
   int generation() const    { return (int)generation8; }
   Value eval_value() const  { return (Value)evalValue; }
   Value eval_margin() const { return (Value)evalMargin; }
+  
+  void* operator new[](size_t size,const std::nothrow_t);
+  void operator delete[](void *p);
 
 private:
   uint32_t key32;
@@ -73,6 +77,21 @@ private:
   int16_t value16, depth16, evalValue, evalMargin;
 };
 
+inline void *TTEntry::operator new[](size_t size, const std::nothrow_t t)
+{
+  (void)t; // Diasble unused parameter waring
+  void *mem = malloc( size + (64-1) + sizeof(void*) );
+  if(!mem) return mem;
+  char *amem = ((char*)mem) + sizeof(void*);
+  amem += 64 - ((long)amem & (64 - 1));
+  ((void**)amem)[-1] = mem;
+  return amem;
+}
+
+inline void TTEntry::operator delete[](void *mem)
+{
+  if(mem) free( ((void**)mem)[-1] );
+}
 
 /// A TranspositionTable consists of a power of 2 number of clusters and each
 /// cluster consists of ClusterSize number of TTEntry. Each non-empty entry
