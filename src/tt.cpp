@@ -119,3 +119,13 @@ TTEntry* TranspositionTable::probe(const Key key) const {
 
   return NULL;
 }
+
+/// Returns an approximation of the hashtable occupation during a search
+/// (the hash is x permill full)
+
+uint16_t TranspositionTable::full() const {
+  uint16_t full_count = 0;
+  for (unsigned i = 0; i < 1000; i++)
+    if ( table[i].generation() == generation ) full_count++;
+  return full_count;
+}

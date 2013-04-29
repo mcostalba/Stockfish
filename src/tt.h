@@ -94,6 +94,7 @@ public:
   void set_size(size_t mbSize);
   void clear();
   void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV, Value kingD);
+  uint16_t full() const;
 
 private:
   uint32_t hashMask;

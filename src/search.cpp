@@ -1547,6 +1547,7 @@ split_point_start: // At split points actual search starts from here
           << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
           << " nodes "     << pos.nodes_searched()
           << " nps "       << pos.nodes_searched() * 1000 / elaspsed
+          << " hashfull "  << TT.full()
           << " time "      << elaspsed
           << " multipv "   << i + 1
           << " pv";
