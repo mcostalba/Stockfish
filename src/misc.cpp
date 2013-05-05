@@ -178,7 +178,7 @@ void start_logger(bool b) { Logger::start(b); }
 
 int cpu_count() {
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   SYSTEM_INFO s;
   GetSystemInfo(&s);
   return s.dwNumberOfProcessors;
@@ -204,7 +204,7 @@ int cpu_count() {
 
 void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   int tm = msec;
 #else
   timespec ts, *tm = &ts;
@@ -237,10 +237,8 @@ void prefetch(char* addr) {
 
 #  if defined(__INTEL_COMPILER) || defined(_MSC_VER)
   _mm_prefetch(addr, _MM_HINT_T0);
-  _mm_prefetch(addr+64, _MM_HINT_T0); // 64 bytes ahead
 #  else
   __builtin_prefetch(addr);
-  __builtin_prefetch(addr+64);
 #  endif
 }
 
