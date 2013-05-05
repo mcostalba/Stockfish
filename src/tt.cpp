@@ -39,8 +39,10 @@ void TranspositionTable::set_size(size_t mbSize) {
   if (hashMask == size - ClusterSize)
       return;
 
+  hashMask = size - ClusterSize;
   free(mem);
-  mem = malloc(size * sizeof(TTEntry) + (CACHE_LINE_SIZE - 1));
+  mem = malloc(size * sizeof(TTEntry) + CACHE_LINE_SIZE - 1);
+
   if (!mem)
   {
       std::cerr << "Failed to allocate " << mbSize
@@ -48,9 +50,8 @@ void TranspositionTable::set_size(size_t mbSize) {
       exit(EXIT_FAILURE);
   }
 
-  table = (TTEntry*)((size_t(mem) + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1));
-  hashMask = size - ClusterSize;
-  clear(); // Newly allocated block of memory is not initialized
+  table = (TTEntry*)((uintptr_t(mem) + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1));
+  clear(); // Operator new is not guaranteed to initialize memory to zero
 }
 
 

@@ -145,7 +145,7 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.25 * pow(double(d), 2.0));
+      FutilityMoveCounts[d] = int(3.001 + 0.3 * pow(double(d), 1.8));
 }
 
 
@@ -263,6 +263,10 @@ void Search::think() {
   }
 
 finalize:
+
+  // When search is stopped this info is not printed
+  sync_cout << "info nodes " << RootPos.nodes_searched()
+            << " time " << Time::now() - SearchTime + 1 << sync_endl;
 
   // When we reach max depth we arrive here even without Signals.stop is raised,
   // but if we are pondering or in infinite search, according to UCI protocol,
@@ -593,7 +597,7 @@ namespace {
         // Never assume anything on values stored in TT
         if (  (ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
             ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-            eval = ss->staticEval = evaluate(pos, ss->evalMargin, &ss->ei);
+            eval = ss->staticEval = evaluate(pos, ss->evalMargin);
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
@@ -603,7 +607,7 @@ namespace {
     }
     else
     {
-        eval = ss->staticEval = evaluate(pos, ss->evalMargin, &ss->ei);
+        eval = ss->staticEval = evaluate(pos, ss->evalMargin);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                  ss->staticEval, ss->evalMargin);
     }
@@ -1178,10 +1182,10 @@ split_point_start: // At split points actual search starts from here
             // Never assume anything on values stored in TT
             if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
                 ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin, &ss->ei);
+                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
         }
         else
-            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin, &ss->ei);
+            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
