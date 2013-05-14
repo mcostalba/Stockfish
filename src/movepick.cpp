@@ -90,7 +90,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h, c
       killers[0].move = ss->killers[0];
       killers[1].move = ss->killers[1];
       Square prevSq = to_sq((ss-1)->currentMove);
-      killers[2].move = r[pos.piece_on(prevSq)][prevSq];
+      killers[2].move = r[pos.piece_on(prevSq)][prevSq].move;
 
       // Consider sligtly negative captures as good if at low depth and far from beta
       if (ss && ss->staticEval < beta - PawnValueMg && d < 3 * ONE_PLY)

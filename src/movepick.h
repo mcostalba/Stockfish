@@ -28,6 +28,12 @@
 #include "search.h"
 #include "types.h"
 
+struct refutInfo {
+
+    Move move;
+    int age;
+};
+
 
 /// The Stats struct stores moves statistics. According to the template parameter
 /// the class can store History, Gains and Refutations statistics. History records
@@ -46,7 +52,21 @@ struct Stats {
   const T* operator[](Piece p) const { return &table[p][0]; }
   void clear() { memset(table, 0, sizeof(table)); }
 
-  void update(Piece p, Square to, Move m) { table[p][to] = m; }
+  void update(Piece p, Square to, Move m, bool success) {
+ 
+      if (success)
+      {
+          table[p][to].move = m;
+          table[p][to].age = 16;
+      }
+      else
+      {
+          table[p][to].age--;
+          
+          if (table[p][to].age == 0)
+              table[p][to].move = MOVE_NONE;
+      }
+  }
   void update(Piece p, Square to, Value v) {
 
     if (Gain)
@@ -62,7 +82,7 @@ private:
 
 typedef Stats<true, Value> Gains;
 typedef Stats<false, Value> History;
-typedef Stats<false, Move> Refutations;
+typedef Stats<false, refutInfo> Refutations;
 
 
 /// MovePicker class is used to pick one pseudo legal move at a time from the

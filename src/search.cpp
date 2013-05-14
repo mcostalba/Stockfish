@@ -1039,6 +1039,10 @@ split_point_start: // At split points actual search starts from here
           }
       }
 
+      Square prevSq = to_sq((ss-1)->currentMove);
+      if (value <= alpha && Refutation[pos.piece_on(prevSq)][prevSq].move == move)
+          Refutation.update(pos.piece_on(prevSq), prevSq, MOVE_NONE, false);
+
       // Step 19. Check for splitting the search
       if (   !SpNode
           &&  depth >= Threads.minimumSplitDepth
@@ -1093,7 +1097,7 @@ split_point_start: // At split points actual search starts from here
             Value bonus = Value(int(depth) * int(depth));
             Hist.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
             Square prevSq = to_sq((ss-1)->currentMove);
-            Refutation.update(pos.piece_on(prevSq), prevSq, bestMove);
+            Refutation.update(pos.piece_on(prevSq), prevSq, bestMove, true);
 
             // Decrease history of all the other played non-capture moves
             for (int i = 0; i < playedMoveCount - 1; i++)
