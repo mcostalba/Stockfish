@@ -1096,8 +1096,11 @@ split_point_start: // At split points actual search starts from here
             // Increase history value of the cut-off move
             Value bonus = Value(int(depth) * int(depth));
             Hist.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
-            Square prevSq = to_sq((ss-1)->currentMove);
-            Refutation.update(pos.piece_on(prevSq), prevSq, bestMove, true);
+            if (is_ok((ss-1)->currentMove))
+            {
+                Square prevSq = to_sq((ss-1)->currentMove);
+                Refutation.update(pos.piece_on(prevSq), prevSq, bestMove, true);
+            }
 
             // Decrease history of all the other played non-capture moves
             for (int i = 0; i < playedMoveCount - 1; i++)
