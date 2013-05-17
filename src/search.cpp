@@ -947,7 +947,9 @@ split_point_start: // At split points actual search starts from here
           && !dangerous
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          &&  move != countermoves[0]
+          &&  move != countermoves[1])
       {
           ss->reduction = reduction<PvNode>(depth, moveCount);
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
