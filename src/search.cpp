@@ -498,7 +498,7 @@ namespace {
     const TTEntry *tte;
     SplitPoint* splitPoint;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove, threatMove;
+    Move ttMove, move, excludedMove, bestMove, threatMove, countermoves[2];
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
@@ -508,6 +508,7 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
+    countermoves[0] = countermoves[1] = MOVE_NONE;
     moveCount = playedMoveCount = 0;
     inCheck = pos.checkers();
 
@@ -766,7 +767,14 @@ namespace {
 
 split_point_start: // At split points actual search starts from here
 
-    MovePicker mp(pos, ttMove, depth, History, Countermoves, ss, PvNode ? -VALUE_INFINITE : beta);
+    if (is_ok((ss-1)->currentMove))
+    {
+        Square prevSq = to_sq((ss-1)->currentMove);
+        countermoves[0] = Countermoves[pos.piece_on(prevSq)][prevSq].first;
+        countermoves[1] = Countermoves[pos.piece_on(prevSq)][prevSq].second;
+    }
+
+    MovePicker mp(pos, ttMove, depth, History, countermoves, ss, PvNode ? -VALUE_INFINITE : beta);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     singularExtensionNode =   !RootNode
