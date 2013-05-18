@@ -498,7 +498,7 @@ namespace {
     const TTEntry *tte;
     SplitPoint* splitPoint;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove, threatMove, countermoves[2];
+    Move ttMove, move, excludedMove, bestMove, threatMove;
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
@@ -508,7 +508,6 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
-    countermoves[0] = countermoves[1] = MOVE_NONE;
     moveCount = playedMoveCount = 0;
     inCheck = pos.checkers();
 
@@ -767,12 +766,9 @@ namespace {
 
 split_point_start: // At split points actual search starts from here
 
-    if (is_ok((ss-1)->currentMove))
-    {
-        Square prevSq = to_sq((ss-1)->currentMove);
-        countermoves[0] = Countermoves[pos.piece_on(prevSq)][prevSq].first;
-        countermoves[1] = Countermoves[pos.piece_on(prevSq)][prevSq].second;
-    }
+    Square prevMoveSq = to_sq((ss-1)->currentMove);
+    Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
+                            Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss, PvNode ? -VALUE_INFINITE : beta);
     CheckInfo ci(pos);
@@ -947,11 +943,12 @@ split_point_start: // At split points actual search starts from here
           && !dangerous
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1]
-          &&  move != countermoves[0]
-          &&  move != countermoves[1])
+          &&  move != ss->killers[1])
       {
           ss->reduction = reduction<PvNode>(depth, moveCount);
+          if (move == countermoves[0] || move == countermoves[1])
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction-ONE_PLY);
+
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
           if (SpNode)
               alpha = splitPoint->alpha;
@@ -1103,10 +1100,7 @@ split_point_start: // At split points actual search starts from here
             Value bonus = Value(int(depth) * int(depth));
             History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
             if (is_ok((ss-1)->currentMove))
-            {
-                Square prevSq = to_sq((ss-1)->currentMove);
-                Countermoves.update(pos.piece_on(prevSq), prevSq, bestMove);
-            }
+                Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
 
             // Decrease history of all the other played non-capture moves
             for (int i = 0; i < playedMoveCount - 1; i++)
