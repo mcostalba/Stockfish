@@ -62,10 +62,11 @@
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 #  endif
 
+#define CACHE_LINE_SIZE 64
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#  define CACHE_LINE_ALIGNMENT __declspec(align(64))
+#  define CACHE_LINE_ALIGNMENT __declspec(align(CACHE_LINE_SIZE))
 #else
-#  define CACHE_LINE_ALIGNMENT  __attribute__ ((aligned(64)))
+#  define CACHE_LINE_ALIGNMENT  __attribute__ ((aligned(CACHE_LINE_SIZE)))
 #endif
 
 #if defined(_MSC_VER)
@@ -267,7 +268,7 @@ inline Score make_score(int mg, int eg) { return Score((mg << 16) + eg); }
 /// Extracting the signed lower and upper 16 bits it not so trivial because
 /// according to the standard a simple cast to short is implementation defined
 /// and so is a right shift of a signed integer.
-inline Value mg_value(Score s) { return Value(((s + 32768) & ~0xffff) / 0x10000); }
+inline Value mg_value(Score s) { return Value(((s + 0x8000) & ~0xffff) / 0x10000); }
 
 /// On Intel 64 bit we have a small speed regression with the standard conforming
 /// version, so use a faster code in this case that, although not 100% standard

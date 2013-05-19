@@ -30,20 +30,29 @@
 
 
 /// The Stats struct stores moves statistics. According to the template parameter
-/// the class can store both History and Gains type statistics. History records
-/// how often different moves have been successful or unsuccessful during the
-/// current search and is used for reduction and move ordering decisions. Gains
-/// records the move's best evaluation gain from one ply to the next and is used
-/// for pruning decisions. Entries are stored according only to moving piece and
-/// destination square, in particular two moves with different origin but same
-/// destination and same piece will be considered identical.
-template<bool Gain>
+/// the class can store History, Gains and Countermoves. History records how often
+/// different moves have been successful or unsuccessful during the current search
+/// and is used for reduction and move ordering decisions. Gains records the move's
+/// best evaluation gain from one ply to the next and is used for pruning decisions.
+/// Countermoves store the move that refute a previous one. Entries are stored
+/// according only to moving piece and destination square, hence two moves with
+/// different origin but same destination and piece will be considered identical.
+template<bool Gain, typename T>
 struct Stats {
 
   static const Value Max = Value(2000);
 
-  const Value* operator[](Piece p) const { return &table[p][0]; }
+  const T* operator[](Piece p) const { return table[p]; }
   void clear() { memset(table, 0, sizeof(table)); }
+
+  void update(Piece p, Square to, Move m) {
+
+    if (m == table[p][to].first)
+        return;
+
+    table[p][to].second = table[p][to].first;
+    table[p][to].first = m;
+  }
 
   void update(Piece p, Square to, Value v) {
 
@@ -55,11 +64,12 @@ struct Stats {
   }
 
 private:
-  Value table[PIECE_NB][SQUARE_NB];
+  T table[PIECE_NB][SQUARE_NB];
 };
 
-typedef Stats<false> History;
-typedef Stats<true> Gains;
+typedef Stats< true, Value> GainsStats;
+typedef Stats<false, Value> HistoryStats;
+typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
 
 
 /// MovePicker class is used to pick one pseudo legal move at a time from the
@@ -74,9 +84,11 @@ class MovePicker {
   MovePicker& operator=(const MovePicker&); // Silence a warning under MSVC
 
 public:
-  MovePicker(const Position&, Move, Depth, const History&, Search::Stack*, Value);
-  MovePicker(const Position&, Move, Depth, const History&, Square);
-  MovePicker(const Position&, Move, const History&, PieceType);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
+  MovePicker(const Position&, Move, const HistoryStats&, PieceType);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&,
+             const CountermovesStats&, Search::Stack*, Value);
+
   template<bool SpNode> Move next_move();
 
 private:
@@ -84,11 +96,11 @@ private:
   void generate_next();
 
   const Position& pos;
-  const History& Hist;
+  const HistoryStats& history;
   Search::Stack* ss;
   Depth depth;
   Move ttMove;
-  MoveStack killers[2];
+  MoveStack killers[4];
   Square recaptureSquare;
   int captureThreshold, phase;
   MoveStack *cur, *end, *endQuiets, *endBadCaptures;

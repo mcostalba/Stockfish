@@ -96,20 +96,20 @@ namespace {
   // by friendly pieces.
   const Score MobilityBonus[][32] = {
      {}, {},
-     { S(-38,-33), S(-25,-23), S(-12,-13), S( 0, -3), S(12,  7), S(25, 17), // Knights
-       S( 31, 22), S( 38, 27), S( 38, 27) },
-     { S(-25,-30), S(-11,-16), S(  3, -2), S(17, 12), S(31, 26), S(45, 40), // Bishops
-       S( 57, 52), S( 65, 60), S( 71, 65), S(74, 69), S(76, 71), S(78, 73),
-       S( 79, 74), S( 80, 75), S( 81, 76), S(81, 76) },
-     { S(-20,-36), S(-14,-19), S( -8, -3), S(-2, 13), S( 4, 29), S(10, 46), // Rooks
-       S( 14, 62), S( 19, 79), S( 23, 95), S(26,106), S(27,111), S(28,114),
-       S( 29,116), S( 30,117), S( 31,118), S(32,118) },
-     { S(-10,-18), S( -8,-13), S( -6, -7), S(-3, -2), S(-1,  3), S( 1,  8), // Queens
-       S(  3, 13), S(  5, 19), S(  8, 23), S(10, 27), S(12, 32), S(15, 34),
-       S( 16, 35), S( 17, 35), S( 18, 35), S(20, 35), S(20, 35), S(20, 35),
-       S( 20, 35), S( 20, 35), S( 20, 35), S(20, 35), S(20, 35), S(20, 35),
-       S( 20, 35), S( 20, 35), S( 20, 35), S(20, 35), S(20, 35), S(20, 35),
-       S( 20, 35), S( 20, 35) }
+     { S(-35,-30), S(-22,-20), S(-9,-10), S( 3,  0), S(15, 10), S(27, 20), // Knights
+       S( 37, 28), S( 42, 31), S(44, 33) },
+     { S(-22,-27), S( -8,-13), S( 6,  1), S(20, 15), S(34, 29), S(48, 43), // Bishops
+       S( 60, 55), S( 68, 63), S(74, 68), S(77, 72), S(80, 75), S(82, 77),
+       S( 84, 79), S( 86, 81), S(87, 82), S(87, 82) },
+     { S(-17,-33), S(-11,-16), S(-5,  0), S( 1, 16), S( 7, 32), S(13, 48), // Rooks
+       S( 18, 64), S( 22, 80), S(26, 96), S(29,109), S(31,115), S(33,119),
+       S( 35,122), S( 36,123), S(37,124), S(38,124) },
+     { S(-12,-20), S( -8,-13), S(-5, -7), S(-2, -1), S( 1,  5), S( 4, 11), // Queens
+       S(  7, 17), S( 10, 23), S(13, 29), S(16, 34), S(18, 38), S(20, 40),
+       S( 22, 41), S( 23, 41), S(24, 41), S(25, 41), S(25, 41), S(25, 41),
+       S( 25, 41), S( 25, 41), S(25, 41), S(25, 41), S(25, 41), S(25, 41),
+       S( 25, 41), S( 25, 41), S(25, 41), S(25, 41), S(25, 41), S(25, 41),
+       S( 25, 41), S( 25, 41) }
   };
 
   // OutpostBonus[PieceType][Square] contains outpost bonuses of knights and
@@ -150,37 +150,23 @@ namespace {
 
   #undef S
 
-  const Score BishopPinBonus = make_score(66, 11);
-
-  // Bonus for having the side to move (modified by Joona Kiiski)
   const Score Tempo = make_score(24, 11);
 
-  // Rooks and queens on the 7th rank
-  const Score RookOn7thBonus  = make_score(11, 20);
-  const Score QueenOn7thBonus = make_score( 3,  8);
-
-  // Rooks and queens attacking pawns on the same rank
-  const Score RookOnPawnBonus  = make_score(10, 28);
-  const Score QueenOnPawnBonus = make_score( 4, 20);
-
-  // Rooks on open files (modified by Joona Kiiski)
-  const Score RookOpenFileBonus     = make_score(43, 21);
-  const Score RookHalfOpenFileBonus = make_score(19, 10);
-
-  // Penalty for rooks trapped inside a friendly king which has lost the
-  // right to castle.
-  const Value TrappedRookPenalty = Value(180);
-
-  // Penalty for bishop with pawns on the same coloured squares
-  const Score BishopPawnsPenalty = make_score(8, 12);
+  const Score BishopPinBonus         = make_score(66, 11);
+  const Score RookOn7thBonus         = make_score(11, 20);
+  const Score QueenOn7thBonus        = make_score( 3,  8);
+  const Score RookOnPawnBonus        = make_score(10, 28);
+  const Score QueenOnPawnBonus       = make_score( 4, 20);
+  const Score RookOpenFileBonus      = make_score(43, 21);
+  const Score RookHalfOpenFileBonus  = make_score(19, 10);
+  const Score BishopPawnsPenalty     = make_score( 8, 12);
+  const Score UndefendedMinorPenalty = make_score(25, 10);
+  const Score TrappedRookPenalty     = make_score(90,  0);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
-  const Score TrappedBishopA1H1Penalty = make_score(100, 100);
-
-  // Penalty for an undefended bishop or knight
-  const Score UndefendedMinorPenalty = make_score(25, 10);
+  const Score TrappedBishopA1H1Penalty = make_score(50, 50);
 
   // The SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middle game, each side is given a bonus
@@ -535,9 +521,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score& mobility, Bitboard mobilityArea) {
 
     Bitboard b;
-    Square s, ksq;
-    int mob;
-    File f;
+    Square s;
     Score score = SCORE_ZERO;
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
@@ -548,14 +532,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
     while ((s = *pl++) != SQ_NONE)
     {
         // Find attacked squares, including x-ray attacks for bishops and rooks
-        if (Piece == KNIGHT || Piece == QUEEN)
-            b = pos.attacks_from<Piece>(s);
-        else if (Piece == BISHOP)
-            b = attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN));
-        else if (Piece == ROOK)
-            b = attacks_bb<ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN));
-        else
-            assert(false);
+        b = Piece == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
+          : Piece ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
+                            : pos.attacks_from<Piece>(s);
 
         ei.attackedBy[Us][Piece] |= b;
 
@@ -568,9 +547,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
 
-        mob = (Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
-                              : popcount<Full >(b & mobilityArea));
-
+        int mob = popcount<Piece == QUEEN ? Full : Max15>(b & mobilityArea);
         mobility += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -578,8 +555,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawnPenalty[Piece];
 
-        // Otherwise give a bonus if we are a bishop and can pin a piece or
-        // can give a discovered check through an x-ray attack.
+        // Otherwise give a bonus if we are a bishop and can pin a piece or can
+        // give a discovered check through an x-ray attack.
         else if (    Piece == BISHOP
                  && (PseudoAttacks[Piece][pos.king_square(Them)] & s)
                  && !more_than_one(BetweenBB[s][pos.king_square(Them)] & pos.pieces()))
@@ -594,79 +571,53 @@ Value do_evaluate(const Position& pos, Value& margin) {
             && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
-        if ((Piece == ROOK || Piece == QUEEN) && relative_rank(Us, s) >= RANK_5)
+        if (  (Piece == ROOK || Piece == QUEEN)
+            && relative_rank(Us, s) >= RANK_5)
         {
-            // Major piece on 7th rank
+            // Major piece on 7th rank and enemy king trapped on 8th
             if (   relative_rank(Us, s) == RANK_7
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += (Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus);
+                score += Piece == ROOK ? RookOn7thBonus : QueenOn7thBonus;
 
-            // Major piece attacking pawns on the same rank
+            // Major piece attacking enemy pawns on the same rank
             Bitboard pawns = pos.pieces(Them, PAWN) & rank_bb(s);
             if (pawns)
-                score += (Piece == ROOK ? RookOnPawnBonus
-                                        : QueenOnPawnBonus) * popcount<Max15>(pawns);
-        }
-
-        // Special extra evaluation for bishops
-        if (Piece == BISHOP && pos.is_chess960())
-        {
-            // An important Chess960 pattern: A cornered bishop blocked by
-            // a friendly pawn diagonally in front of it is a very serious
-            // problem, especially when that pawn is also blocked.
-            if (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1))
-            {
-                Square d = pawn_push(Us) + (file_of(s) == FILE_A ? DELTA_E : DELTA_W);
-                if (pos.piece_on(s + d) == make_piece(Us, PAWN))
-                {
-                    if (!pos.is_empty(s + d + pawn_push(Us)))
-                        score -= 2*TrappedBishopA1H1Penalty;
-                    else if (pos.piece_on(s + 2*d) == make_piece(Us, PAWN))
-                        score -= TrappedBishopA1H1Penalty;
-                    else
-                        score -= TrappedBishopA1H1Penalty / 2;
-                }
-            }
+                score += popcount<Max15>(pawns) * (Piece == ROOK ? RookOnPawnBonus : QueenOnPawnBonus);
         }
 
         // Special extra evaluation for rooks
         if (Piece == ROOK)
         {
-            // Open and half-open files
-            f = file_of(s);
-            if (ei.pi->file_is_half_open(Us, f))
-            {
-                if (ei.pi->file_is_half_open(Them, f))
-                    score += RookOpenFileBonus;
-                else
-                    score += RookHalfOpenFileBonus;
-            }
+            // Give a bonus for a rook on a open or half-open file
+            if (ei.pi->half_open(Us, file_of(s)))
+                score += ei.pi->half_open(Them, file_of(s)) ? RookOpenFileBonus
+                                                            : RookHalfOpenFileBonus;
+            if (mob > 6 || ei.pi->half_open(Us, file_of(s)))
+                continue;
+
+            Square ksq = pos.king_square(Us);
 
             // Penalize rooks which are trapped inside a king. Penalize more if
             // king has lost right to castle.
-            if (mob > 6 || ei.pi->file_is_half_open(Us, f))
-                continue;
+            if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
+                && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
+                && !ei.pi->half_open_on_side(Us, file_of(ksq), file_of(ksq) < FILE_E))
+                score -= (TrappedRookPenalty - make_score(mob * 8, 0)) * (pos.can_castle(Us) ? 1 : 2);
+        }
 
-            ksq = pos.king_square(Us);
-
-            if (    file_of(ksq) >= FILE_E
-                &&  file_of(s) > file_of(ksq)
-                && (relative_rank(Us, ksq) == RANK_1 || rank_of(ksq) == rank_of(s)))
-            {
-                // Is there a half-open file between the king and the edge of the board?
-                if (!ei.pi->has_open_file_to_right(Us, file_of(ksq)))
-                    score -= make_score(pos.can_castle(Us) ? (TrappedRookPenalty - mob * 16) / 2
-                                                           : (TrappedRookPenalty - mob * 16), 0);
-            }
-            else if (    file_of(ksq) <= FILE_D
-                     &&  file_of(s) < file_of(ksq)
-                     && (relative_rank(Us, ksq) == RANK_1 || rank_of(ksq) == rank_of(s)))
-            {
-                // Is there a half-open file between the king and the edge of the board?
-                if (!ei.pi->has_open_file_to_left(Us, file_of(ksq)))
-                    score -= make_score(pos.can_castle(Us) ? (TrappedRookPenalty - mob * 16) / 2
-                                                           : (TrappedRookPenalty - mob * 16), 0);
-            }
+        // An important Chess960 pattern: A cornered bishop blocked by a friendly
+        // pawn diagonally in front of it is a very serious problem, especially
+        // when that pawn is also blocked.
+        if (   Piece == BISHOP
+            && pos.is_chess960()
+            && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
+        {
+            const enum Piece P = make_piece(Us, PAWN);
+            Square d = pawn_push(Us) + (file_of(s) == FILE_A ? DELTA_E : DELTA_W);
+            if (pos.piece_on(s + d) == P)
+                score -= !pos.is_empty(s + d + pawn_push(Us)) ? TrappedBishopA1H1Penalty * 4
+                        : pos.piece_on(s + d + d) == P        ? TrappedBishopA1H1Penalty * 2
+                                                              : TrappedBishopA1H1Penalty;
         }
     }
 
@@ -689,8 +640,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Score score = SCORE_ZERO;
 
     // Undefended minors get penalized even if not under attack
-    undefendedMinors =  pos.pieces(Them)
-                      & (pos.pieces(BISHOP) | pos.pieces(KNIGHT))
+    undefendedMinors =  pos.pieces(Them, BISHOP, KNIGHT)
                       & ~ei.attackedBy[Them][ALL_PIECES];
 
     if (undefendedMinors)
@@ -730,7 +680,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Score score = mobility = SCORE_ZERO;
 
     // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-    const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us));
+    const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us, PAWN, KING));
 
     score += evaluate_pieces<KNIGHT, Us, Trace>(pos, ei, mobility, mobilityArea);
     score += evaluate_pieces<BISHOP, Us, Trace>(pos, ei, mobility, mobilityArea);
@@ -912,16 +862,19 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 else
                     unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
 
-                // If there aren't enemy attacks or pieces along the path to queen give
-                // huge bonus. Even bigger if we protect the pawn's path.
-                if (!unsafeSquares)
-                    ebonus += Value(rr * (squaresToQueen == defendedSquares ? 17 : 15));
-                else
-                    // OK, there are enemy attacks or pieces (but not pawns). Are those
-                    // squares which are attacked by the enemy also attacked by us ?
-                    // If yes, big bonus (but smaller than when there are no enemy attacks),
-                    // if no, somewhat smaller bonus.
-                    ebonus += Value(rr * ((unsafeSquares & defendedSquares) == unsafeSquares ? 13 : 8));
+                // If there aren't enemy attacks huge bonus, a bit smaller if at
+                // least block square is not attacked, otherwise smallest bonus.
+                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
+
+                // Big bonus if the path to queen is fully defended, a bit less
+                // if at least block square is defended.
+                if (defendedSquares == squaresToQueen)
+                    k += 6;
+
+                else if (defendedSquares & blockSq)
+                    k += (unsafeSquares & defendedSquares) == unsafeSquares ? 4 : 2;
+
+                mbonus += Value(k * rr), ebonus += Value(k * rr);
             }
         } // rr != 0
 
