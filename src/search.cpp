@@ -1106,7 +1106,7 @@ split_point_start: // At split points actual search starts from here
             for (int i = 0; i < playedMoveCount - 1; i++)
             {
                 Move m = movesSearched[i];
-                History.update(pos.piece_moved(m), to_sq(m), -bonus);
+                History.update(pos.piece_moved(m), to_sq(m), -bonus / 2);
             }
         }
     }
