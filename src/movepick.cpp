@@ -70,14 +70,15 @@ namespace {
 /// search captures, promotions and some checks) and about how important good
 /// move ordering is at the current node.
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
-                       Search::Stack* s, Value beta) : pos(p), Hist(h), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move* cm,
+                       Search::Stack* s, Value beta) : pos(p), history(h), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
   captureThreshold = 0;
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
+  countermoves = cm;
   ss = s;
 
   if (p.checkers())
@@ -87,15 +88,12 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
   {
       phase = MAIN_SEARCH;
 
-      killers[0].move = ss->killers[0];
-      killers[1].move = ss->killers[1];
-
       // Consider sligtly negative captures as good if at low depth and far from beta
-      if (ss && ss->staticEval < beta - PawnValueMg && d < 3 * ONE_PLY)
+      if (ss->staticEval < beta - PawnValueMg && d < 3 * ONE_PLY)
           captureThreshold = -PawnValueMg;
 
       // Consider negative captures as good if still enough to reach beta
-      else if (ss && ss->staticEval > beta)
+      else if (ss->staticEval > beta)
           captureThreshold = beta - ss->staticEval;
   }
 
@@ -103,8 +101,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
   end += (ttMove != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
-                       Square sq) : pos(p), Hist(h), cur(moves), end(moves) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
+                       Square sq) : pos(p), history(h), cur(moves), end(moves) {
 
   assert(d <= DEPTH_ZERO);
 
@@ -135,8 +133,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const History& h,
   end += (ttMove != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position& p, Move ttm, const History& h, PieceType pt)
-                       : pos(p), Hist(h), cur(moves), end(moves) {
+MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, PieceType pt)
+                       : pos(p), history(h), cur(moves), end(moves) {
 
   assert(!pos.checkers());
 
@@ -194,7 +192,7 @@ void MovePicker::score<QUIETS>() {
   for (MoveStack* it = moves; it != end; ++it)
   {
       m = it->move;
-      it->score = Hist[pos.piece_moved(m)][to_sq(m)];
+      it->score = history[pos.piece_moved(m)][to_sq(m)];
   }
 }
 
@@ -210,13 +208,13 @@ void MovePicker::score<EVASIONS>() {
   {
       m = it->move;
       if ((seeScore = pos.see_sign(m)) < 0)
-          it->score = seeScore - History::Max; // At the bottom
+          it->score = seeScore - HistoryStats::Max; // At the bottom
 
       else if (pos.is_capture(m))
           it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                     - type_of(pos.piece_moved(m)) + History::Max;
+                     - type_of(pos.piece_moved(m)) + HistoryStats::Max;
       else
-          it->score = Hist[pos.piece_moved(m)][to_sq(m)];
+          it->score = history[pos.piece_moved(m)][to_sq(m)];
   }
 }
 
@@ -238,6 +236,19 @@ void MovePicker::generate_next() {
   case KILLERS_S1:
       cur = killers;
       end = cur + 2;
+
+      killers[0].move = ss->killers[0];
+      killers[1].move = ss->killers[1];
+      killers[2].move = killers[3].move = MOVE_NONE;
+
+      // Be sure countermoves are different from killers
+      for (int i = 0; i < 2; i++)
+          if (countermoves[i] != cur->move && countermoves[i] != (cur+1)->move)
+              (end++)->move = countermoves[i];
+
+      if (countermoves[1] && countermoves[1] == countermoves[0]) // Due to SMP races
+          killers[3].move = MOVE_NONE;
+
       return;
 
   case QUIETS_1_S1:
@@ -329,7 +340,9 @@ Move MovePicker::next_move<false>() {
           move = (cur++)->move;
           if (   move != ttMove
               && move != killers[0].move
-              && move != killers[1].move)
+              && move != killers[1].move
+              && move != killers[2].move
+              && move != killers[3].move)
               return move;
           break;
 

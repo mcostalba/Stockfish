@@ -89,7 +89,8 @@ void Bitbases::init_kpk() {
   for (idx = 0; idx < IndexMax; idx++)
       db[idx].classify_leaf(idx);
 
-  // Iterate until all positions are classified (15 cycles needed)
+  // Iterate through the positions until no more of the unknown positions can be
+  // changed to either wins or draws (15 cycles needed).
   while (repeat)
       for (repeat = idx = 0; idx < IndexMax; idx++)
           if (db[idx] == UNKNOWN && db[idx].classify(db) != UNKNOWN)
@@ -147,12 +148,14 @@ namespace {
     // as WIN, the position is classified WIN otherwise the current position is
     // classified UNKNOWN.
 
+    const Color Them = (Us == WHITE ? BLACK : WHITE);
+
     Result r = INVALID;
     Bitboard b = StepAttacksBB[KING][Us == WHITE ? wksq : bksq];
 
     while (b)
-        r |= Us == WHITE ? db[index(~Us, bksq, pop_lsb(&b), psq)]
-                         : db[index(~Us, pop_lsb(&b), wksq, psq)];
+        r |= Us == WHITE ? db[index(Them, bksq, pop_lsb(&b), psq)]
+                         : db[index(Them, pop_lsb(&b), wksq, psq)];
 
     if (Us == WHITE && rank_of(psq) < RANK_7)
     {

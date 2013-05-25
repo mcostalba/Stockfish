@@ -41,10 +41,9 @@ MoveStack* generate(const Position& pos, MoveStack* mlist);
 template<GenType T>
 struct MoveList {
 
-  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) {}
+  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) { last->move = MOVE_NONE; }
   void operator++() { cur++; }
-  bool end() const { return cur == last; }
-  Move move() const { return cur->move; }
+  Move operator*() const { return cur->move; }
   size_t size() const { return last - mlist; }
   bool contains(Move m) const {
     for (const MoveStack* it(mlist); it != last; ++it) if (it->move == m) return true;
