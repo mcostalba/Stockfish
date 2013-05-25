@@ -446,10 +446,7 @@ namespace {
             if (    depth >= 12
                 && !stop
                 &&  PVSize == 1
-<<<<<<< HEAD
-=======
                 &&  bestValue > VALUE_MATED_IN_MAX_PLY
->>>>>>> upstream/master
                 && (   RootMoves.size() == 1
                     || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
             {
@@ -872,12 +869,8 @@ split_point_start: // At split points actual search starts from here
           && !captureOrPromotion
           && !inCheck
           && !dangerous
-<<<<<<< HEAD
-          &&  move != ttMove)
-=======
        /* &&  move != ttMove Already implicit in the next condition */
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
->>>>>>> upstream/master
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
@@ -899,12 +892,9 @@ split_point_start: // At split points actual search starts from here
 
           if (futilityValue < beta)
           {
-<<<<<<< HEAD
               if (SpNode)
                   splitPoint->mutex.lock();
-=======
               bestValue = std::max(bestValue, futilityValue);
->>>>>>> upstream/master
 
               if (SpNode)
               {
@@ -916,11 +906,7 @@ split_point_start: // At split points actual search starts from here
           }
 
           // Prune moves with negative SEE at low depths
-<<<<<<< HEAD
-          if (   predictedDepth < 3 * ONE_PLY
-=======
           if (   predictedDepth < 4 * ONE_PLY
->>>>>>> upstream/master
               && pos.see_sign(move) < 0)
           {
               if (SpNode)
