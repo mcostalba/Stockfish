@@ -76,7 +76,7 @@ namespace {
 
   // Evaluation weights, initialized from UCI options
   enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  Score Weights[6];
+  Score Weights[2][6];
 
   typedef Value V;
   #define S(mg, eg) make_score(mg, eg)
@@ -86,9 +86,10 @@ namespace {
   // the evaluation weights while keeping the default values of the UCI
   // parameters at 100, which looks prettier.
   //
-  // Values modified by Joona Kiiski
-  const Score WeightsInternal[] = {
-      S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
+  // There are two weight vectors: for when we are the side to move or not
+  const Score WeightsInternal[][6] = {
+     { S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0) },
+     { S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0) }
   };
 
   // MobilityBonus[PieceType][attacked] contains mobility bonuses for middle and
@@ -273,12 +274,15 @@ namespace Eval {
 
   void init() {
 
-    Weights[Mobility]       = weight_option("Mobility (Midgame)", "Mobility (Endgame)", WeightsInternal[Mobility]);
-    Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-    Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-    Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    for (Color c = WHITE; c <= BLACK; c++)
+    {
+        Weights[c][Mobility]       = weight_option("Mobility (Midgame)", "Mobility (Endgame)", WeightsInternal[c][Mobility]);
+        Weights[c][PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[c][PawnStructure]);
+        Weights[c][PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[c][PassedPawns]);
+        Weights[c][Space]          = weight_option("Space", "Space", WeightsInternal[c][Space]);
+        Weights[c][KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[c][KingDangerUs]);
+        Weights[c][KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[c][KingDangerThem]);
+    }
 
     const int MaxSlope = 30;
     const int Peak = 1280;
@@ -287,8 +291,8 @@ namespace Eval {
     {
         t = std::min(Peak, std::min(int(0.4 * i * i), t + MaxSlope));
 
-        KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
-        KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
+        KingDangerTable[1][i] = apply_weight(make_score(t, 0), Weights[0][KingDangerUs]);
+        KingDangerTable[0][i] = apply_weight(make_score(t, 0), Weights[0][KingDangerThem]);
     }
   }
 
@@ -352,6 +356,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   Value margins[COLOR_NB];
   Score score, mobilityWhite, mobilityBlack;
   Thread* th = pos.this_thread();
+  Score* weights = Weights[pos.side_to_move() == Search::RootColor];
 
   // margins[] store the uncertainty estimation of position's evaluation
   // that typically is used by the search for pruning decisions.
@@ -376,7 +381,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   // Probe the pawn hash table
   ei.pi = Pawns::probe(pos, th->pawnsTable);
-  score += apply_weight(ei.pi->pawns_value(), Weights[PawnStructure]);
+  score += apply_weight(ei.pi->pawns_value(), weights[PawnStructure]);
 
   // Initialize attack and king safety bitboards
   init_eval_info<WHITE>(pos, ei);
@@ -386,7 +391,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   score +=  evaluate_pieces_of_color<WHITE, Trace>(pos, ei, mobilityWhite)
           - evaluate_pieces_of_color<BLACK, Trace>(pos, ei, mobilityBlack);
 
-  score += apply_weight(mobilityWhite - mobilityBlack, Weights[Mobility]);
+  score += apply_weight(mobilityWhite - mobilityBlack, weights[Mobility]);
 
   // Evaluate kings after all other pieces because we need complete attack
   // information when computing the king safety evaluation.
@@ -409,7 +414,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   if (ei.mi->space_weight())
   {
       int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
-      score += apply_weight(make_score(s * ei.mi->space_weight(), 0), Weights[Space]);
+      score += apply_weight(make_score(s * ei.mi->space_weight(), 0), weights[Space]);
   }
 
   // Scale winning side if position is more drawish that what it appears
@@ -449,7 +454,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
       trace_add(UNSTOPPABLE, evaluate_unstoppable_pawns(pos, ei));
       Score w = make_score(ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei), 0);
       Score b = make_score(ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei), 0);
-      trace_add(SPACE, apply_weight(w, Weights[Space]), apply_weight(b, Weights[Space]));
+      trace_add(SPACE, apply_weight(w, weights[Space]), apply_weight(b, weights[Space]));
       trace_add(TOTAL, score);
       TraceStream << "\nUncertainty margin: White: " << to_cp(margins[WHITE])
                   << ", Black: " << to_cp(margins[BLACK])
@@ -693,7 +698,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                                     | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
                                     | ei.attackedBy[Us][QUEEN]  | ei.attackedBy[Us][KING];
     if (Trace)
-        TracedScores[Us][MOBILITY] = apply_weight(mobility, Weights[Mobility]);
+        TracedScores[Us][MOBILITY] = apply_weight(mobility, Weights[Us == Search::RootColor][Mobility]);
 
     return score;
   }
@@ -907,10 +912,10 @@ Value do_evaluate(const Position& pos, Value& margin) {
     }
 
     if (Trace)
-        TracedScores[Us][PASSED] = apply_weight(score, Weights[PassedPawns]);
+        TracedScores[Us][PASSED] = apply_weight(score, Weights[Us == Search::RootColor][PassedPawns]);
 
     // Add the scores to the middle game and endgame eval
-    return apply_weight(score, Weights[PassedPawns]);
+    return apply_weight(score, Weights[Us == Search::RootColor][PassedPawns]);
   }
 
 
