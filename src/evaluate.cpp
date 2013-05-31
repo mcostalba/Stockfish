@@ -88,8 +88,8 @@ namespace {
   //
   // There are two weight vectors: for when we are the side to move or not
   const Score WeightsInternal[][6] = {
-     { S(289, 344), S(233, 201), S(226, 278), S(46, 0), S(271, 0), S(307, 0) },
-     { S(289, 344), S(233, 201), S(216, 268), S(46, 0), S(271, 0), S(307, 0) }
+     { S(289, 344), S(233, 201), S(211, 263), S(46, 0), S(271, 0), S(307, 0) },
+     { S(289, 344), S(233, 201), S(231, 283), S(46, 0), S(271, 0), S(307, 0) }
   };
 
   // MobilityBonus[PieceType][attacked] contains mobility bonuses for middle and
