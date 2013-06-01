@@ -172,6 +172,8 @@ namespace {
   const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
+  const Score RookDoubledOpen     = make_score(23, 10);
+  const Score RookDoubledSemiopen = make_score(12,  6);
   const Score BishopPawns      = make_score( 8, 12);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -552,7 +554,14 @@ Value do_evaluate(const Position& pos, Value& margin) {
         {
             // Give a bonus for a rook on a open or semi-open file
             if (ei.pi->semiopen(Us, file_of(s)))
-                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+            {
+                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile
+                                                           : RookSemiopenFile;
+                // Give more if the rook is doubled
+                if (forward_bb(Them, s) & pos.pieces(Us, ROOK))
+                    score += ei.pi->semiopen(Them, file_of(s)) ? RookDoubledOpen
+                                                               : RookDoubledSemiopen;
+            }
 
             if (mob > 6 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
