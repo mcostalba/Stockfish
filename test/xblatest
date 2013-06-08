@@ -1,1 +1,0 @@
-xboard -fcp "polyglot -pg Book=true -ec /home/tom/src/Stockfish/src/stockfish -en latest"
