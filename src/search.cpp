@@ -146,7 +146,7 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+      FutilityMoveCounts[d] = int(3.001 + 0.25 * pow(double(d), 1.8));
 }
 
 
