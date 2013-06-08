@@ -1,0 +1,16 @@
+8/8/2pp3k/8/1P1P3K/8/8/8 w - - bm d5; id "ENDTEST.001";
+8/ppp5/8/PPP3kp/8/6KP/8/8 w - - bm b6; id "ENDTEST.002";
+8/p7/1p1k1p2/1P2pp1p/1P1P3P/4KPP1/8/8 w - - bm g4; id "ENDTEST.003";
+8/pp5p/8/PP2k3/2P2pp1/3K4/6PP/8 w - - bm c5; id "ENDTEST.004";
+6k1/7p/5P1K/8/8/8/7P/8 w - - bm Kh5; id "ENDTEST.005";
+8/8/3pkp2/8/8/3PK3/5P2/8 w - - bm Ke4; id "ENDTEST.006";
+8/8/2ppk3/8/2PPK3/2P5/8/8 w - - bm d5+; id "ENDTEST.007";
+8/2p5/3k4/1p1p1K2/8/1P1P4/2P5/8 w - - bm b4; id "ENDTEST.008";
+8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - bm Kb1; id "ENDTEST.009";
+8/8/p6p/1p3kp1/1P6/P4PKP/5P2/8 w - - bm f4; id "ENDTEST.010";
+8/2k5/p1P5/P1K5/8/8/8/8 w - - bm Kd5; id "ENDTEST.011";
+8/5p2/8/4K1P1/5Pk1/8/8/8 w - - bm Ke4; id "ENDTEST.012";
+8/7p/2k1Pp2/pp1p2p1/3P2P1/4P3/P3K2P/8 w - - bm e4; id "ENDTEST.013";
+8/7p/3k1p2/2p2Pp1/2P1p1P1/1P4P1/4K3/8 w - - bm Kf2; id "ENDTEST.014";
+4k3/4Pp2/5P2/4K3/8/8/8/8 w - - bm Kf4; id "ENDTEST.015";
+8/1k3ppp/8/3K4/7P/5PP1/8/8 w - - bm Kd6; id "ENDTEST.016";

@@ -1,0 +1,1 @@
+/usr/local/bin/xboard -mg 1000 -sgf games.out -spf pos.out -tc 0:15 -inc 0.05 -matchPause 1000 -fcp "polyglot -pg Book=true -ec /home/tom/bin/testfish -en test" -scp "polyglot -pg Book=true -ec /home/tom/bin/stockfish"
