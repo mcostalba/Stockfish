@@ -948,7 +948,11 @@ split_point_start: // At split points actual search starts from here
           &&  move != ss->killers[1])
       {
           ss->reduction = reduction<PvNode>(depth, moveCount);
-          if (move == countermoves[0] || move == countermoves[1] || (!PvNode && !cutNode))
+
+          if (!PvNode && cutNode)
+              ss->reduction += ONE_PLY;
+
+          if (move == countermoves[0] || move == countermoves[1])
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction-ONE_PLY);
 
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
