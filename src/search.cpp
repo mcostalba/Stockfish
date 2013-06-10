@@ -295,14 +295,14 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    Stack ss[MAX_PLY_PLUS_2];
+    Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
-    memset(ss, 0, 4 * sizeof(Stack));
+    memset(ss-1, 0, 4 * sizeof(Stack));
     depth = BestMoveChanges = 0;
     bestValue = delta = -VALUE_INFINITE;
-    ss->currentMove = MOVE_NULL; // Hack to skip update gains
+    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
     TT.new_search();
     History.clear();
     Gains.clear();
@@ -349,9 +349,7 @@ namespace {
             // research with bigger window until not failing high/low anymore.
             while (true)
             {
-                // Search starts from ss+1 to allow referencing (ss-1). This is
-                // needed by update gains and ss copy when splitting at Root.
-                bestValue = search<Root>(pos, ss+1, alpha, beta, depth * ONE_PLY, false);
+                bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
 
                 // Bring to front the best move. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
@@ -716,7 +714,7 @@ namespace {
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
                 && allows(pos, (ss-1)->currentMove, threatMove))
-                return beta - 1;
+                return alpha;
         }
     }
 
@@ -1467,15 +1465,15 @@ split_point_start: // At split points actual search starts from here
     {
         // Update occupancy as if the piece and the threat are moving
         Bitboard occ = pos.pieces() ^ m1from ^ m1to ^ m2from;
-        Piece piece = pos.piece_on(m1from);
+        Piece pc = pos.piece_on(m1from);
 
         // The moved piece attacks the square 'tto' ?
-        if (pos.attacks_from(piece, m1to, occ) & m2to)
+        if (pos.attacks_from(pc, m1to, occ) & m2to)
             return true;
 
         // Scan for possible X-ray attackers behind the moved piece
-        Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(piece), QUEEN, ROOK))
-                       | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(piece), QUEEN, BISHOP));
+        Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
+                       | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
         // Verify attackers are triggered by our move and not already existing
         if (xray && (xray ^ (xray & pos.attacks_from<QUEEN>(m2to))))
@@ -1693,11 +1691,11 @@ void Thread::idle_loop() {
 
           Threads.mutex.unlock();
 
-          Stack ss[MAX_PLY_PLUS_2];
+          Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
           Position pos(*sp->pos, this);
 
-          memcpy(ss, sp->ss - 1, 4 * sizeof(Stack));
-          (ss+1)->splitPoint = sp;
+          memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
+          ss->splitPoint = sp;
 
           sp->mutex.lock();
 
@@ -1707,13 +1705,13 @@ void Thread::idle_loop() {
 
           switch (sp->nodeType) {
           case Root:
-              search<SplitPointRoot>(pos, ss+1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<SplitPointRoot>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
               break;
           case PV:
-              search<SplitPointPV>(pos, ss+1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<SplitPointPV>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
               break;
           case NonPV:
-              search<SplitPointNonPV>(pos, ss+1, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<SplitPointNonPV>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
               break;
           default:
               assert(false);
