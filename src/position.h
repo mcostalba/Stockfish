@@ -52,7 +52,7 @@ struct StateInfo {
   Key pawnKey, materialKey;
   Value npMaterial[COLOR_NB];
   int castleRights, rule50, pliesFromNull;
-  Score psqScore;
+  Score psq;
   Square epSquare;
 
   Key key;
@@ -95,6 +95,7 @@ public:
   Position(const Position& p, Thread* t) { *this = p; thisThread = t; }
   Position(const std::string& f, bool c960, Thread* t) { set(f, c960, t); }
   Position& operator=(const Position&);
+  static void init();
 
   // Text input/output
   void set(const std::string& fen, bool isChess960, Thread* th);
@@ -169,7 +170,6 @@ public:
 
   // Incremental piece-square evaluation
   Score psq_score() const;
-  Score psq_delta(Piece p, Square from, Square to) const;
   Value non_pawn_material(Color c) const;
 
   // Other properties of the position
@@ -346,10 +346,6 @@ inline Key Position::key() const {
   return st->key;
 }
 
-inline Key Position::exclusion_key() const {
-  return st->key ^ Zobrist::exclusion;
-}
-
 inline Key Position::pawn_key() const {
   return st->pawnKey;
 }
@@ -358,12 +354,8 @@ inline Key Position::material_key() const {
   return st->materialKey;
 }
 
-inline Score Position::psq_delta(Piece p, Square from, Square to) const {
-  return pieceSquareTable[p][to] - pieceSquareTable[p][from];
-}
-
 inline Score Position::psq_score() const {
-  return st->psqScore;
+  return st->psq;
 }
 
 inline Value Position::non_pawn_material(Color c) const {
