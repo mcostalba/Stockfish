@@ -756,10 +756,8 @@ namespace {
         && ttMove == MOVE_NONE
         && (PvNode || (cutNode && !inCheck && ss->staticEval + Value(256) >= beta)))
     {
-        Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
-
         ss->skipNullMove = true;
-        search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
+        search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, depth - 2 * ONE_PLY, true);
         ss->skipNullMove = false;
 
         tte = TT.probe(posKey);
