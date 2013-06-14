@@ -575,8 +575,8 @@ namespace {
         && tte->depth() >= depth
         && ttValue != VALUE_NONE // Only in case of TT access race
         && (           PvNode ?  tte->type() == BOUND_EXACT
-            : ttValue >= beta ? (tte->type() & BOUND_LOWER)
-                              : (tte->type() & BOUND_UPPER)))
+            : ttValue >= beta ? (tte->type() & BOUND_LOWER) && ( cutNode || tte->type() != BOUND_LOWER_ALL)
+                              : (tte->type() & BOUND_UPPER) && (!cutNode || tte->type() != BOUND_UPPER_CUT)))
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
