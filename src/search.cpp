@@ -752,12 +752,14 @@ namespace {
     }
 
     // Step 10. Internal iterative deepening
-    if (   depth >= 5 * ONE_PLY
+    if (   depth >= (PvNode || cutNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
-        && (PvNode || (cutNode && !inCheck && ss->staticEval + Value(256) >= beta)))
+        && (PvNode || (!inCheck && ss->staticEval + Value(256) >= beta)))
     {
+        Depth d = depth - 2 * ONE_PLY - (PvNode || cutNode ? DEPTH_ZERO : depth / 4);
+
         ss->skipNullMove = true;
-        search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, depth - 2 * ONE_PLY, true);
+        search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
         ss->skipNullMove = false;
 
         tte = TT.probe(posKey);
