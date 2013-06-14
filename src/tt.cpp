@@ -65,7 +65,7 @@ void TranspositionTable::clear() {
 }
 
 
-/// TranspositionTable::store() writes a new entry containing position key and
+/// TranspositionTable::save() writes a new entry containing position key and
 /// valuable information of current position. The lowest order bits of position
 /// key are used to decide on which cluster the position will be placed.
 /// When a new entry is written and there are no empty entries available in cluster,
@@ -73,7 +73,7 @@ void TranspositionTable::clear() {
 /// more valuable than a TTEntry t2 if t1 is from the current search and t2 is from
 /// a previous search, or if the depth of t1 is bigger than the depth of t2.
 
-void TranspositionTable::store(const Key key, Value v, Bound t, Depth d, Move m, Value statV, Value kingD) {
+void TranspositionTable::save(const Key key, Value v, Bound t, Depth d, Move m, Value statV, Value kingD) {
 
   int c1, c2, c3;
   TTEntry *tte, *replace;

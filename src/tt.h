@@ -86,7 +86,7 @@ public:
   void refresh(const TTEntry* tte) const;
   void set_size(size_t mbSize);
   void clear();
-  void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV, Value kingD);
+  void save(const Key key, Value v, Bound type, Depth d, Move m, Value statV, Value kingD);
 
 private:
   uint32_t hashMask;
