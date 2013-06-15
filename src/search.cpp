@@ -575,8 +575,8 @@ namespace {
         && tte->depth() >= depth
         && ttValue != VALUE_NONE // Only in case of TT access race
         && (           PvNode ?  tte->type() == BOUND_EXACT
-            : ttValue >= beta ? (tte->type() & BOUND_LOWER) && (cutNode || tte->type() == BOUND_LOWER_ALL)
-                              : (tte->type() & BOUND_UPPER) && (cutNode || tte->type() != BOUND_UPPER_CUT)))
+            : ttValue >= beta ? (tte->type() & BOUND_LOWER) && (cutNode || (tte->type() & BOUND_NODE_ALL))
+                              : (tte->type() & BOUND_UPPER) && (cutNode || (tte->type() & BOUND_NODE_ALL))))
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
@@ -1092,7 +1092,7 @@ split_point_start: // At split points actual search starts from here
     if (bestValue >= beta) // Failed high
     {
         TT.save(posKey, value_to_tt(bestValue, ss->ply),
-               !PvNode && !cutNode ? BOUND_LOWER_ALL : BOUND_LOWER, depth,
+                PvNode || cutNode ? BOUND_LOWER : BOUND_LOWER_ALL, depth,
                 bestMove, ss->staticEval, ss->evalMargin);
 
         if (!pos.is_capture_or_promotion(bestMove) && !inCheck)
@@ -1120,7 +1120,7 @@ split_point_start: // At split points actual search starts from here
     else // Failed low or PV search
         TT.save(posKey, value_to_tt(bestValue, ss->ply),
                 PvNode && bestMove != MOVE_NONE ? BOUND_EXACT :
-               !PvNode && cutNode ? BOUND_UPPER_CUT : BOUND_UPPER,
+                PvNode || cutNode ? BOUND_UPPER : BOUND_UPPER_ALL,
                 depth, bestMove, ss->staticEval, ss->evalMargin);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
