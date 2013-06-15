@@ -500,11 +500,11 @@ static int probe_dtz_no_ep(Position& pos, int *success)
 		|| !pos.pl_move_is_legal(move, ci.pinned))
 	continue;
       pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
-      int v = -Tablebases::probe_dtz(pos, success) + 1;
+      int v = -Tablebases::probe_dtz(pos, success);
       pos.undo_move(move);
       if (*success == 0) return 0;
-      if (v < best)
-	best = v;
+      if (v > 0 && v + 1 < best)
+	best = v + 1;
     }
     return best;
   } else {
