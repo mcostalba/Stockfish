@@ -27,6 +27,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
+#include "tbprobe.h"
 
 int main(int argc, char* argv[]) {
 
@@ -40,6 +41,7 @@ int main(int argc, char* argv[]) {
   Eval::init();
   Threads.init();
   TT.set_size(Options["Hash"]);
+  Tablebases::init();
 
   std::string args;
 

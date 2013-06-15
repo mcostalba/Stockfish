@@ -34,6 +34,8 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
+#include "bitcount.h"
+#include "tbprobe.h"
 
 namespace Search {
 
@@ -44,6 +46,7 @@ namespace Search {
   Color RootColor;
   Time::point SearchTime;
   StateStackPtr SetupStates;
+  int use_tb;
 }
 
 using std::string;
@@ -181,6 +184,7 @@ size_t Search::perft(Position& pos, Depth depth) {
 void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
+  bool tb_position;
 
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
@@ -228,6 +232,26 @@ void Search::think() {
           << std::endl;
   }
 
+  use_tb = 6;
+  tb_position = 0;
+  if (popcount<Full>(RootPos.pieces()) <= 6)
+  {
+      if ((tb_position = Tablebases::root_probe(RootPos))) {
+          // The current root position is in the tablebases.
+          // RootMoves now contains only moves that preserve the draw or win.
+
+          // Do not probe tablebases during the search.
+          use_tb = 0;
+
+          // It might be a good idea to mangle the hash key (xor it
+          // with a fixed value) in order to "clear" the hash table of
+          // the results of previous probes. However, that would have to
+          // be done from within the Position class, so we skip it for now.
+
+          // Optional: decrease target time.
+      }
+  }
+
   // Reset the threads, still sleeping: will be wake up at split time
   for (size_t i = 0; i < Threads.size(); i++)
       Threads[i]->maxPly = 0;
@@ -247,6 +271,10 @@ void Search::think() {
 
   Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
+
+  if (tb_position) {
+      // If we mangled the hash key, unmangle it here.
+  }
 
   if (Options["Use Search Log"])
   {
@@ -590,6 +618,20 @@ namespace {
             ss->killers[0] = ttMove;
         }
         return ttValue;
+    }
+
+    // Step 4a. Tablebase probe
+    if (!RootNode && popcount<Full>(pos.pieces()) <= use_tb) {
+      int success;
+      int v = Tablebases::probe_wdl(pos, &success);
+      if (success) {
+	if (v < -1) value = -VALUE_MATE + MAX_PLY + ss->ply;
+	else if (v > 1) value = VALUE_MATE - MAX_PLY - ss->ply;
+	else value = VALUE_DRAW + v;
+        TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
+                 depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE, VALUE_NONE);
+	return value;
+      }
     }
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
