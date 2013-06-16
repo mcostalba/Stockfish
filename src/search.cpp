@@ -783,6 +783,8 @@ split_point_start: // At split points actual search starts from here
                            && (tte->type() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
 
+    Depth cutReduction = !PvNode && (ss-1)->reduction ? ONE_PLY : DEPTH_ZERO;
+
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move<SpNode>()) != MOVE_NONE)
@@ -864,7 +866,7 @@ split_point_start: // At split points actual search starts from here
       }
 
       // Update current move (this must be done after singular extension search)
-      newDepth = depth - ONE_PLY + ext;
+      newDepth = depth - ONE_PLY + ext - cutReduction;
 
       // Step 13. Futility pruning (is omitted in PV nodes)
       if (   !PvNode
