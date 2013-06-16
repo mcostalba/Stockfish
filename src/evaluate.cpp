@@ -168,10 +168,9 @@ namespace {
   const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
-  const Score RookOnPawn       = make_score(10, 28);
+  const Score RookOnPawn       = make_score(15, 25);
   const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
-  const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -541,8 +540,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
                 score += Piece == ROOK ? RookOn7th : QueenOn7th;
 
-            // Major piece attacking enemy pawns on the same rank
-            Bitboard pawns = pos.pieces(Them, PAWN) & rank_bb(s);
+            // Major piece attacking enemy pawns on the same rank/file
+            Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
             if (pawns)
                 score += popcount<Max15>(pawns) * (Piece == ROOK ? RookOnPawn : QueenOnPawn);
         }
@@ -550,9 +549,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // Special extra evaluation for rooks
         if (Piece == ROOK)
         {
-            // Give a bonus for a rook on a open or semi-open file
-            if (ei.pi->semiopen(Us, file_of(s)))
-                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+            // Give a bonus for a rook on a open file
+            if (ei.pi->semiopen(Us, file_of(s)) && ei.pi->semiopen(Them, file_of(s)))
+                score += RookOpenFile;
 
             if (mob > 6 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
