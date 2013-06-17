@@ -100,7 +100,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
       minThinkingTime     : No matter what, use at least this much thinking before doing the move
   */
 
-  int hypMTG, hypMyTime, t1, t2;
+  int hypMTG;
 
   // Read uci parameters
   int emergencyMoveHorizon = Options["Emergency Move Horizon"];
@@ -118,15 +118,15 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); hypMTG++)
   {
       // Calculate thinking time for hypothetic "moves to go"-value
-      hypMyTime =  limits.time[us]
-                 + limits.inc[us] * (hypMTG - 1)
-                 - emergencyBaseTime
-                 - emergencyMoveTime * std::min(hypMTG, emergencyMoveHorizon);
+      int hypMyTime =  limits.time[us]
+                    + limits.inc[us] * (hypMTG - 1)
+                    - emergencyBaseTime
+                    - emergencyMoveTime * std::min(hypMTG, emergencyMoveHorizon);
 
       hypMyTime = std::max(hypMyTime, 0);
 
-      t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly, slowMover);
-      t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly, slowMover);
+      int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, currentPly, slowMover);
+      int t2 = minThinkingTime + remaining<MaxTime>(hypMyTime, hypMTG, currentPly, slowMover);
 
       optimumSearchTime = std::min(optimumSearchTime, t1);
       maximumSearchTime = std::min(maximumSearchTime, t2);

@@ -296,7 +296,7 @@ namespace {
   void id_loop(Position& pos) {
 
     Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
-    int depth, prevBestMoveChanges;
+    int depth;
     Value bestValue, alpha, beta, delta;
 
     memset(ss-1, 0, 4 * sizeof(Stack));
@@ -326,7 +326,7 @@ namespace {
         for (size_t i = 0; i < RootMoves.size(); i++)
             RootMoves[i].prevScore = RootMoves[i].score;
 
-        prevBestMoveChanges = BestMoveChanges; // Only sensible when PVSize == 1
+        int prevBestMoveChanges = BestMoveChanges; // Only sensible when PVSize == 1
         BestMoveChanges = 0;
 
         // MultiPV loop. We perform a full root search for each PV line
@@ -1621,11 +1621,10 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 void RootMove::insert_pv_in_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
-  TTEntry* tte;
   int ply = 0;
 
   do {
-      tte = TT.probe(pos.key());
+      TTEntry* tte = TT.probe(pos.key());
 
       if (!tte || tte->move() != pv[ply]) // Don't overwrite correct entries
           TT.store(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], VALUE_NONE, VALUE_NONE);

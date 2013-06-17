@@ -214,7 +214,6 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 */
 
   char col, row, token;
-  size_t p;
   Square sq = SQ_A8;
   std::istringstream ss(fenStr);
 
@@ -224,6 +223,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
   {
+	  size_t p;
       if (isdigit(token))
           sq += Square(token - '0'); // Advance the given number of files
 
@@ -424,7 +424,7 @@ template<bool FindPinned>
 Bitboard Position::hidden_checkers() const {
 
   // Pinned pieces protect our king, dicovery checks attack the enemy king
-  Bitboard b, result = 0;
+  Bitboard result = 0;
   Bitboard pinners = pieces(FindPinned ? ~sideToMove : sideToMove);
   Square ksq = king_square(FindPinned ? sideToMove : ~sideToMove);
 
@@ -434,7 +434,7 @@ Bitboard Position::hidden_checkers() const {
 
   while (pinners)
   {
-      b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
+      Bitboard b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
 
       if (b && !more_than_one(b) && (b & pieces(sideToMove)))
           result |= b;

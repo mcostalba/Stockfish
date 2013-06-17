@@ -114,7 +114,7 @@ namespace {
     const Square   Right    = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square   Left     = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
-    Bitboard b1, b2, dc1, dc2, emptySquares;
+    Bitboard b1, b2, emptySquares;
 
     Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
     Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
@@ -147,8 +147,8 @@ namespace {
             // promotion has been already generated among captures.
             if (pawnsNotOn7 & ci->dcCandidates)
             {
-                dc1 = shift_bb<Up>(pawnsNotOn7 & ci->dcCandidates) & emptySquares & ~file_bb(ci->ksq);
-                dc2 = shift_bb<Up>(dc1 & TRank3BB) & emptySquares;
+                Bitboard dc1 = shift_bb<Up>(pawnsNotOn7 & ci->dcCandidates) & emptySquares & ~file_bb(ci->ksq);
+                Bitboard dc2 = shift_bb<Up>(dc1 & TRank3BB) & emptySquares;
 
                 b1 |= dc1;
                 b2 |= dc2;
