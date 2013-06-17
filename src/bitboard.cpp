@@ -281,14 +281,16 @@ namespace {
     int MagicBoosters[][8] = { { 3191, 2184, 1310, 3618, 2091, 1308, 2452, 3996 },
                                { 1059, 3608,  605, 3234, 3326,   38, 2029, 3043 } };
     RKISS rk;
-    Bitboard occupancy[4096], reference[4096], edges, b;
-    int i, size, booster;
+    Bitboard occupancy[4096], reference[4096], b;
+    int i;
 
     // attacks[s] is a pointer to the beginning of the attacks table for square 's'
     attacks[SQ_A1] = table;
 
     for (Square s = SQ_A1; s <= SQ_H8; s++)
     {
+		int size, booster;
+		Bitboard edges;
         // Board edges are not considered in the relevant occupancies
         edges = ((Rank1BB | Rank8BB) & ~rank_bb(s)) | ((FileABB | FileHBB) & ~file_bb(s));
 
