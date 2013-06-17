@@ -882,11 +882,11 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
   Score evaluate_unstoppable_pawns(const Position& pos, EvalInfo& ei) {
 
-    Bitboard b, b2, blockers, supporters, queeningPath, candidates;
+    Bitboard b, b2, blockers, queeningPath, candidates;
     Square s, blockSq, queeningSquare;
     Color c, winnerSide, loserSide;
-    bool pathDefended, opposed;
-    int pliesToGo, movesToGo, oppMovesToGo, sacptg, blockersCount, minKingDist, kingptg, d;
+    bool pathDefended;
+    int pliesToGo, movesToGo, oppMovesToGo, d;
     int pliesToQueen[] = { 256, 256 };
 
     // Step 1. Hunt for unstoppable passed pawns. If we find at least one,
@@ -964,9 +964,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     while (b)
     {
+		
         s = pop_lsb(&b);
-        sacptg = blockersCount = 0;
-        minKingDist = kingptg = 256;
+        int sacptg = 0, blockersCount = 0, minKingDist = 256, kingptg = 256;
 
         // Compute plies from queening
         queeningSquare = relative_square(loserSide, file_of(s) | RANK_8);
@@ -974,8 +974,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
         pliesToGo = 2 * movesToGo - int(loserSide == pos.side_to_move());
 
         // Generate list of blocking pawns and supporters
-        supporters = adjacent_files_bb(file_of(s)) & candidates;
-        opposed = forward_bb(loserSide, s) & pos.pieces(winnerSide, PAWN);
+        Bitboard supporters = adjacent_files_bb(file_of(s)) & candidates;
+        bool opposed = forward_bb(loserSide, s) & pos.pieces(winnerSide, PAWN);
         blockers = passed_pawn_mask(loserSide, s) & pos.pieces(winnerSide, PAWN);
 
         assert(blockers);

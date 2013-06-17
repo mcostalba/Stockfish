@@ -452,14 +452,14 @@ size_t PolyglotBook::find_first(Key key) {
 
   seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size
 
-  size_t low = 0, mid, high = (size_t)tellg() / sizeof(Entry) - 1;
+  size_t low = 0, high = (size_t)tellg() / sizeof(Entry) - 1;
   Entry e;
 
   assert(low <= high);
 
   while (low < high && good())
   {
-      mid = (low + high) / 2;
+      size_t mid = (low + high) / 2;
 
       assert(mid >= low && mid < high);
 
