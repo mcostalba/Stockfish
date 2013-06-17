@@ -196,12 +196,12 @@ void MovePicker::score<EVASIONS>() {
   // Try good captures ordered by MVV/LVA, then non-captures if destination square
   // is not under attack, ordered by history value, then bad-captures and quiet
   // moves with a negative SEE. This last group is ordered by the SEE score.
-  int seeScore;
 
   for (MoveStack* it = moves; it != end; ++it)
   {
       Move m = it->move;
-      if ((seeScore = pos.see_sign(m)) < 0)
+	  int seeScore = pos.see_sign(m);
+      if (seeScore < 0)
           it->score = seeScore - HistoryStats::Max; // At the bottom
 
       else if (pos.is_capture(m))

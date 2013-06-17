@@ -110,7 +110,7 @@ const string move_to_san(Position& pos, Move m) {
 
   assert(MoveList<LEGAL>(pos).contains(m));
 
-  Bitboard others, b;
+  Bitboard b;
   string san;
   Color us = pos.side_to_move();
   Square from = from_sq(m);
@@ -128,7 +128,7 @@ const string move_to_san(Position& pos, Move m) {
 
           // Disambiguation if we have more then one piece of type 'pt' that can
           // reach 'to' with a legal move.
-          others = b = (pos.attacks_from(pc, to) & pos.pieces(us, pt)) ^ from;
+          Bitboard others = b = (pos.attacks_from(pc, to) & pos.pieces(us, pt)) ^ from;
 
           while (b)
           {
