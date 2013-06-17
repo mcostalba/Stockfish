@@ -1574,10 +1574,8 @@ bool Position::pos_is_ok(int* failedStep) const {
               if (!can_castle(cr))
                   continue;
 
-              if ((castleRightsMask[king_square(c)] & cr) != cr)
-                  return false;
-
-              if (   piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
+              if ((  castleRightsMask[king_square(c)] & cr) != cr
+                  || piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
                   || castleRightsMask[castleRookSquare[c][s]] != cr)
                   return false;
           }
