@@ -199,7 +199,7 @@ namespace {
   // is used as an index to KingDanger[].
   //
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
+  const int KingAttackWeights[] = { 0, 0, 3, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
   const int QueenContactCheck = 6;
@@ -207,7 +207,6 @@ namespace {
   const int QueenCheck        = 3;
   const int RookCheck         = 2;
   const int BishopCheck       = 1;
-  const int KnightCheck       = 1;
 
   // KingExposed[Square] contains penalties based on the position of the
   // defending king, indexed by king's square (from white's point of view).
@@ -749,11 +748,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
         b = b2 & ei.attackedBy[Them][BISHOP];
         if (b)
             attackUnits += BishopCheck * popcount<Max15>(b);
-
-        // Enemy knights safe checks
-        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
-        if (b)
-            attackUnits += KnightCheck * popcount<Max15>(b);
 
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(99, std::max(0, attackUnits));
