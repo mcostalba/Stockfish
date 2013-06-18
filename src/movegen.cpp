@@ -215,15 +215,14 @@ namespace {
 
     for (Square from = *pl; from != SQ_NONE; from = *++pl)
     {
-        if (Checks)
-        {
-            if (    (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
-                && !(PseudoAttacks[Pt][from] & target & ci->checkSq[Pt]))
-                continue;
-
-            if (ci->dcCandidates && (ci->dcCandidates & from))
-                continue;
-        }
+        if (Checks
+        && ((   (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
+            && !(PseudoAttacks[Pt][from] & target & ci->checkSq[Pt]))
+            ||
+               ((ci->dcCandidates 
+            && (ci->dcCandidates & from)))))
+            continue;
+ 
 
         Bitboard b = pos.attacks_from<Pt>(from) & target;
 
