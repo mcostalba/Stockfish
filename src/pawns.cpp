@@ -80,10 +80,12 @@ namespace {
   #undef V
 
   template<Color Us>
-  Score evaluate_pawns(const Position& pos, Bitboard ourPawns,
-                       Bitboard theirPawns, Pawns::Entry* e) {
+  Score evaluate(const Position& pos, Pawns::Entry* e) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color  Them  = (Us == WHITE ? BLACK    : WHITE);
+    const Square Up    = (Us == WHITE ? DELTA_N  : DELTA_S);
+    const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
+    const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
     Bitboard b;
     Square s;
@@ -91,7 +93,17 @@ namespace {
     Rank r;
     bool passed, isolated, doubled, opposed, chain, backward, candidate;
     Score value = SCORE_ZERO;
-    const Square* pl = pos.piece_list(Us, PAWN);
+    const Square* pl = pos.list<PAWN>(Us);
+
+    Bitboard ourPawns = pos.pieces(Us, PAWN);
+    Bitboard theirPawns = pos.pieces(Them, PAWN);
+
+    e->passedPawns[Us] = 0;
+    e->kingSquares[Us] = SQ_NONE;
+    e->semiopenFiles[Us] = 0xFF;
+    e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
+    e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & BlackSquares);
+    e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -134,11 +146,11 @@ namespace {
             // Note that we are sure to find something because pawn is not passed
             // nor isolated, so loop is potentially infinite, but it isn't.
             while (!(b & (ourPawns | theirPawns)))
-                Us == WHITE ? b <<= 8 : b >>= 8;
+                b = shift_bb<Up>(b);
 
             // The friendly pawn needs to be at least two ranks closer than the
             // enemy pawn in order to help the potentially backward pawn advance.
-            backward = (b | (Us == WHITE ? b << 8 : b >> 8)) & theirPawns;
+            backward = (b | shift_bb<Up>(b)) & theirPawns;
         }
 
         assert(opposed | passed | (attack_span_mask(Us, s) & theirPawns));
@@ -174,15 +186,10 @@ namespace {
             value += CandidatePassed[relative_rank(Us, s)];
     }
 
-    e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & BlackSquares);
-    e->pawnsOnSquares[Us][WHITE] = pos.piece_count(Us, PAWN) - e->pawnsOnSquares[Us][BLACK];
-
-    e->pawnsOnSquares[Them][BLACK] = popcount<Max15>(theirPawns & BlackSquares);
-    e->pawnsOnSquares[Them][WHITE] = pos.piece_count(Them, PAWN) - e->pawnsOnSquares[Them][BLACK];
-
     return value;
   }
-}
+
+} // namespace
 
 namespace Pawns {
 
@@ -195,24 +202,11 @@ Entry* probe(const Position& pos, Table& entries) {
   Key key = pos.pawn_key();
   Entry* e = entries[key];
 
-  // If e->key matches the position's pawn hash key, it means that we
-  // have analysed this pawn structure before, and we can simply return
-  // the information we found the last time instead of recomputing it.
   if (e->key == key)
       return e;
 
   e->key = key;
-  e->passedPawns[WHITE] = e->passedPawns[BLACK] = 0;
-  e->kingSquares[WHITE] = e->kingSquares[BLACK] = SQ_NONE;
-  e->semiopenFiles[WHITE] = e->semiopenFiles[BLACK] = 0xFF;
-
-  Bitboard wPawns = pos.pieces(WHITE, PAWN);
-  Bitboard bPawns = pos.pieces(BLACK, PAWN);
-  e->pawnAttacks[WHITE] = ((wPawns & ~FileHBB) << 9) | ((wPawns & ~FileABB) << 7);
-  e->pawnAttacks[BLACK] = ((bPawns & ~FileHBB) >> 7) | ((bPawns & ~FileABB) >> 9);
-
-  e->value =  evaluate_pawns<WHITE>(pos, wPawns, bPawns, e)
-            - evaluate_pawns<BLACK>(pos, bPawns, wPawns, e);
+  e->value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
   return e;
 }
 

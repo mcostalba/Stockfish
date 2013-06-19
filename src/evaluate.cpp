@@ -391,7 +391,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
       {
           // Check for KBP vs KB with only a single pawn that is almost
           // certainly a draw or at least two pawns.
-          bool one_pawn = (pos.piece_count(WHITE, PAWN) + pos.piece_count(BLACK, PAWN) == 1);
+          bool one_pawn = (pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) == 1);
           sf = one_pawn ? ScaleFactor(8) : ScaleFactor(32);
       }
       else
@@ -433,16 +433,16 @@ Value do_evaluate(const Position& pos, Value& margin) {
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color  Them = (Us == WHITE ? BLACK : WHITE);
+    const Square Down = (Us == WHITE ? DELTA_S : DELTA_N);
 
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.king_square(Them));
     ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
     // Init king safety tables only if we are going to use them
-    if (   pos.piece_count(Us, QUEEN)
-        && pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
+    if (pos.count<QUEEN>(Us) && pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
     {
-        ei.kingRing[Them] = (b | (Us == WHITE ? b >> 8 : b << 8));
+        ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
         ei.kingAttackersCount[Us] = b ? popcount<Max15>(b) / 2 : 0;
         ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
@@ -487,7 +487,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     Score score = SCORE_ZERO;
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
-    const Square* pl = pos.piece_list(Us, Piece);
+    const Square* pl = pos.list<Piece>(Us);
 
     ei.attackedBy[Us][Piece] = 0;
 
@@ -821,8 +821,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
                 // the squares in the pawn's path attacked or occupied by the enemy.
-                if (   (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN))
-                    && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
+                if (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s))
                     unsafeSquares = squaresToQueen;
                 else
                     unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
