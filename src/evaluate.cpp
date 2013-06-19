@@ -200,7 +200,7 @@ namespace {
   // is used as an index to KingDanger[].
   //
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
+  const int KingAttackWeights[] = { 0, 0, 2, 3, 3, 5 };
 
   // Bonuses for enemy's safe checks
   const int QueenContactCheck = 6;
