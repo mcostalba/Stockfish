@@ -170,8 +170,8 @@ namespace {
   const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
   const Score QueenOnPawn      = make_score( 4, 20);
-  const Score RookOpenFile     = make_score(43, 21);
-  const Score RookSemiopenFile = make_score(19, 10);
+  const Score RookOpenFile     = make_score(43,  7);
+  const Score RookSemiopenFile = make_score(19,  3);
   const Score BishopPawns      = make_score( 8, 12);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -542,7 +542,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 score += Piece == ROOK ? RookOn7th : QueenOn7th;
 
             // Major piece attacking enemy pawns on the same rank/file
-            Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
+            Bitboard pawns = pos.pieces(Them, PAWN) & rank_bb(s);
             if (pawns)
                 score += popcount<Max15>(pawns) * (Piece == ROOK ? RookOnPawn : QueenOnPawn);
         }
