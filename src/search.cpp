@@ -61,9 +61,6 @@ namespace {
   // Different node types, used as template parameter
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
-  // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d) { return Value(112 + 4 * int(d) * int(d)); }
-
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
   int FutilityMoveCounts[32];    // [depth]
@@ -72,6 +69,11 @@ namespace {
 
     return d < 7 * ONE_PLY ? FutilityMargins[std::max(int(d), 1)][std::min(mn, 63)]
                            : 2 * VALUE_INFINITE;
+  }
+
+  // Dynamic razoring margin based on depth
+  inline Value razor_margin(Depth d, bool cutNode) {
+    return Value(112 + 4 * int(d) * int(d)) + (cutNode ? VALUE_ZERO : futility_margin(d, 0));
   }
 
   // Reduction lookup tables (initialized at startup) and their access function
@@ -628,12 +630,12 @@ namespace {
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         && !inCheck
-        &&  eval + razor_margin(depth) < beta
+        &&  eval + razor_margin(depth, cutNode) < beta
         &&  ttMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
-        Value rbeta = beta - razor_margin(depth);
+        Value rbeta = beta - razor_margin(depth, cutNode);
         Value v = qsearch<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
         if (v < rbeta)
             // Logically we should return (v + razor_margin(depth)), but
