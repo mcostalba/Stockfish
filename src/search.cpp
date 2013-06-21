@@ -61,6 +61,11 @@ namespace {
   // Different node types, used as template parameter
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
+  // Dynamic razoring margin based on depth
+  inline Value razor_margin(Depth d, bool cutNode) {
+    return Value((cutNode ? 128 : 384) + (cutNode ? 4 : 12) * int(d) * int(d));
+  }
+
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
   int FutilityMoveCounts[32];    // [depth]
@@ -69,11 +74,6 @@ namespace {
 
     return d < 7 * ONE_PLY ? FutilityMargins[std::max(int(d), 1)][std::min(mn, 63)]
                            : 2 * VALUE_INFINITE;
-  }
-
-  // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d, bool cutNode) {
-    return Value(112 + 4 * int(d) * int(d)) + (cutNode ? VALUE_ZERO : futility_margin(d, 0));
   }
 
   // Reduction lookup tables (initialized at startup) and their access function
