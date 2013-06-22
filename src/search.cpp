@@ -63,7 +63,7 @@ namespace {
 
   // Dynamic razoring margin based on depth
   inline Value razor_margin(Depth d, bool) {
-    return Value((false ? 256 : 384) + (false ? 8 : 12) * int(d) * int(d));
+    return Value((true ? 256 : 384) + (true ? 8 : 12) * int(d) * int(d));
   }
 
   // Futility lookup tables (initialized at startup) and their access functions
