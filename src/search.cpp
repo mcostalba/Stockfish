@@ -62,8 +62,8 @@ namespace {
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
   // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d, bool cutNode) {
-    return Value((cutNode ? 256 : 384) + (cutNode ? 8 : 12) * int(d) * int(d));
+  inline Value razor_margin(Depth d, bool) {
+    return Value((false ? 256 : 384) + (false ? 8 : 12) * int(d) * int(d));
   }
 
   // Futility lookup tables (initialized at startup) and their access functions
