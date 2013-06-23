@@ -672,7 +672,7 @@ namespace {
         if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
-        if (cutNode)
+        if (!cutNode)
             R += ONE_PLY;
 
         pos.do_null_move(st);
