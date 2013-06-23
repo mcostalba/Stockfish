@@ -672,6 +672,9 @@ namespace {
         if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
+        if (cutNode)
+            R += ONE_PLY;
+
         pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
         nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
