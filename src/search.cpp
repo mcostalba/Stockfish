@@ -155,21 +155,17 @@ void Search::init() {
 
 size_t Search::perft(Position& pos, Depth depth) {
 
-  // At the last ply just return the number of legal moves (leaf nodes)
-  if (depth == ONE_PLY)
-      return MoveList<LEGAL>(pos).size();
-
   StateInfo st;
   size_t cnt = 0;
   CheckInfo ci(pos);
+  const bool leaf = depth == 2 * ONE_PLY;
 
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
-      cnt += perft(pos, depth - ONE_PLY);
+      cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - ONE_PLY);
       pos.undo_move(*it);
   }
-
   return cnt;
 }
 
@@ -726,7 +722,6 @@ namespace {
         &&  depth >= 5 * ONE_PLY
         && !inCheck
         && !ss->skipNullMove
-        &&  excludedMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value rbeta = beta + 200;

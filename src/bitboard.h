@@ -37,6 +37,24 @@ bool probe_kpk(Square wksq, Square wpsq, Square bksq, Color us);
 
 }
 
+const Bitboard FileABB = 0x0101010101010101ULL;
+const Bitboard FileBBB = FileABB << 1;
+const Bitboard FileCBB = FileABB << 2;
+const Bitboard FileDBB = FileABB << 3;
+const Bitboard FileEBB = FileABB << 4;
+const Bitboard FileFBB = FileABB << 5;
+const Bitboard FileGBB = FileABB << 6;
+const Bitboard FileHBB = FileABB << 7;
+
+const Bitboard Rank1BB = 0xFF;
+const Bitboard Rank2BB = Rank1BB << (8 * 1);
+const Bitboard Rank3BB = Rank1BB << (8 * 2);
+const Bitboard Rank4BB = Rank1BB << (8 * 3);
+const Bitboard Rank5BB = Rank1BB << (8 * 4);
+const Bitboard Rank6BB = Rank1BB << (8 * 5);
+const Bitboard Rank7BB = Rank1BB << (8 * 6);
+const Bitboard Rank8BB = Rank1BB << (8 * 7);
+
 CACHE_LINE_ALIGNMENT
 
 extern Bitboard RMasks[SQUARE_NB];
@@ -53,15 +71,16 @@ extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard FileBB[FILE_NB];
 extern Bitboard RankBB[RANK_NB];
 extern Bitboard AdjacentFilesBB[FILE_NB];
-extern Bitboard ThisAndAdjacentFilesBB[FILE_NB];
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
 extern Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard DistanceRingsBB[SQUARE_NB][8];
 extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
-extern Bitboard AttackSpanMask[COLOR_NB][SQUARE_NB];
+extern Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
+
+extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
 const Bitboard BlackSquares = 0xAA55AA55AA55AA55ULL;
 
@@ -88,11 +107,20 @@ inline Bitboard operator^(Bitboard b, Square s) {
   return b ^ SquareBB[s];
 }
 
-
-/// more_than_one() returns true if in 'b' there is more than one bit set
-
 inline bool more_than_one(Bitboard b) {
   return b & (b - 1);
+}
+
+inline int square_distance(Square s1, Square s2) {
+  return SquareDistance[s1][s2];
+}
+
+inline int file_distance(Square s1, Square s2) {
+  return abs(file_of(s1) - file_of(s2));
+}
+
+inline int rank_distance(Square s1, Square s2) {
+  return abs(rank_of(s1) - rank_of(s2));
 }
 
 
@@ -128,7 +156,7 @@ inline Bitboard file_bb(Square s) {
 }
 
 
-/// adjacent_files_bb takes a file as input and returns a bitboard representing
+/// adjacent_files_bb() takes a file as input and returns a bitboard representing
 /// all squares on the adjacent files.
 
 inline Bitboard adjacent_files_bb(File f) {
@@ -136,30 +164,17 @@ inline Bitboard adjacent_files_bb(File f) {
 }
 
 
-/// this_and_adjacent_files_bb takes a file as input and returns a bitboard
-/// representing all squares on the given and adjacent files.
-
-inline Bitboard this_and_adjacent_files_bb(File f) {
-  return ThisAndAdjacentFilesBB[f];
-}
-
-
-/// in_front_bb() takes a color and a rank or square as input, and returns a
-/// bitboard representing all the squares on all ranks in front of the rank
-/// (or square), from the given color's point of view.  For instance,
-/// in_front_bb(WHITE, RANK_5) will give all squares on ranks 6, 7 and 8, while
-/// in_front_bb(BLACK, SQ_D3) will give all squares on ranks 1 and 2.
+/// in_front_bb() takes a color and a rank as input, and returns a bitboard
+/// representing all the squares on all ranks in front of the rank, from the
+/// given color's point of view. For instance, in_front_bb(BLACK, RANK_3) will
+/// give all squares on ranks 1 and 2.
 
 inline Bitboard in_front_bb(Color c, Rank r) {
   return InFrontBB[c][r];
 }
 
-inline Bitboard in_front_bb(Color c, Square s) {
-  return InFrontBB[c][rank_of(s)];
-}
 
-
-/// between_bb returns a bitboard representing all squares between two squares.
+/// between_bb() returns a bitboard representing all squares between two squares.
 /// For instance, between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for
 /// square d5 and e6 set.  If s1 and s2 are not on the same line, file or diagonal,
 /// 0 is returned.
@@ -169,7 +184,7 @@ inline Bitboard between_bb(Square s1, Square s2) {
 }
 
 
-/// forward_bb takes a color and a square as input, and returns a bitboard
+/// forward_bb() takes a color and a square as input, and returns a bitboard
 /// representing all squares along the line in front of the square, from the
 /// point of view of the given color. Definition of the table is:
 /// ForwardBB[c][s] = in_front_bb(c, s) & file_bb(s)
@@ -179,27 +194,27 @@ inline Bitboard forward_bb(Color c, Square s) {
 }
 
 
-/// passed_pawn_mask takes a color and a square as input, and returns a
+/// pawn_attack_span() takes a color and a square as input, and returns a bitboard
+/// representing all squares that can be attacked by a pawn of the given color
+/// when it moves along its file starting from the given square. Definition is:
+/// PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
+
+inline Bitboard pawn_attack_span(Color c, Square s) {
+  return PawnAttackSpan[c][s];
+}
+
+
+/// passed_pawn_mask() takes a color and a square as input, and returns a
 /// bitboard mask which can be used to test if a pawn of the given color on
 /// the given square is a passed pawn. Definition of the table is:
-/// PassedPawnMask[c][s] = in_front_bb(c, s) & this_and_adjacent_files_bb(s)
+/// PassedPawnMask[c][s] = pawn_attack_span(c, s) | forward_bb(c, s)
 
 inline Bitboard passed_pawn_mask(Color c, Square s) {
   return PassedPawnMask[c][s];
 }
 
 
-/// attack_span_mask takes a color and a square as input, and returns a bitboard
-/// representing all squares that can be attacked by a pawn of the given color
-/// when it moves along its file starting from the given square. Definition is:
-/// AttackSpanMask[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
-
-inline Bitboard attack_span_mask(Color c, Square s) {
-  return AttackSpanMask[c][s];
-}
-
-
-/// squares_aligned returns true if the squares s1, s2 and s3 are aligned
+/// squares_aligned() returns true if the squares s1, s2 and s3 are aligned
 /// either on a straight or on a diagonal line.
 
 inline bool squares_aligned(Square s1, Square s2, Square s3) {

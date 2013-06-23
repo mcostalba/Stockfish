@@ -530,7 +530,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         // Bishop and knight outposts squares
         if (    (Piece == BISHOP || Piece == KNIGHT)
-            && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
+            && !(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
         if (  (Piece == ROOK || Piece == QUEEN)
@@ -541,8 +541,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
                 score += Piece == ROOK ? RookOn7th : QueenOn7th;
 
-            // Major piece attacking enemy pawns on the same rank
-            Bitboard pawns = pos.pieces(Them, PAWN) & rank_bb(s);
+            // Major piece attacking enemy pawns on the same rank/file
+            Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
             if (pawns)
                 score += popcount<Max15>(pawns) * (Piece == ROOK ? RookOnPawn : QueenOnPawn);
         }
@@ -821,8 +821,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
                 // the squares in the pawn's path attacked or occupied by the enemy.
-                if (   (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN))
-                    && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
+                if (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s))
                     unsafeSquares = squaresToQueen;
                 else
                     unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
@@ -990,7 +989,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             // black pawns: a4, b4 white: b2 then pawn in b4 is giving support.
             if (!opposed)
             {
-                b2 = supporters & in_front_bb(winnerSide, blockSq + pawn_push(winnerSide));
+                b2 = supporters & in_front_bb(winnerSide, rank_of(blockSq + pawn_push(winnerSide)));
 
                 while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
                 {
@@ -1000,7 +999,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             }
 
             // Check pawns that can be sacrificed against the blocking pawn
-            b2 = attack_span_mask(winnerSide, blockSq) & candidates & ~(1ULL << s);
+            b2 = pawn_attack_span(winnerSide, blockSq) & candidates & ~(1ULL << s);
 
             while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
             {

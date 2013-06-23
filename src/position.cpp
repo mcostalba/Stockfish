@@ -416,35 +416,27 @@ const string Position::pretty(Move move) const {
 }
 
 
-/// Position:hidden_checkers<>() returns a bitboard of all pinned (against the
-/// king) pieces for the given color. Or, when template parameter FindPinned is
-/// false, the function return the pieces of the given color candidate for a
-/// discovery check against the enemy king.
-template<bool FindPinned>
-Bitboard Position::hidden_checkers() const {
+/// Position:hidden_checkers() returns a bitboard of all pinned / discovery check
+/// pieces, according to the call parameters. Pinned pieces protect our king,
+/// discovery check pieces attack the enemy king.
 
-  // Pinned pieces protect our king, dicovery checks attack the enemy king
-  Bitboard b, result = 0;
-  Bitboard pinners = pieces(FindPinned ? ~sideToMove : sideToMove);
-  Square ksq = king_square(FindPinned ? sideToMove : ~sideToMove);
+Bitboard Position::hidden_checkers(Square ksq, Color c) const {
 
-  // Pinners are sliders, that give check when candidate pinned is removed
-  pinners &=  (pieces(ROOK, QUEEN) & PseudoAttacks[ROOK][ksq])
-            | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq]);
+  Bitboard b, pinners, result = 0;
+
+  // Pinners are sliders that give check when pinned piece is removed
+  pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
+             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(c);
 
   while (pinners)
   {
       b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
 
-      if (b && !more_than_one(b) && (b & pieces(sideToMove)))
-          result |= b;
+      if (!more_than_one(b))
+          result |= b & pieces(sideToMove);
   }
   return result;
 }
-
-// Explicit template instantiations
-template Bitboard Position::hidden_checkers<true>() const;
-template Bitboard Position::hidden_checkers<false>() const;
 
 
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
@@ -1541,11 +1533,9 @@ bool Position::pos_is_ok(int* failedStep) const {
       return false;
 
   if ((*step)++, debugNonPawnMaterial)
-  {
       if (   st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
           || st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
           return false;
-  }
 
   if ((*step)++, debugPieceCounts)
       for (Color c = WHITE; c <= BLACK; c++)
@@ -1557,13 +1547,9 @@ bool Position::pos_is_ok(int* failedStep) const {
       for (Color c = WHITE; c <= BLACK; c++)
           for (PieceType pt = PAWN; pt <= KING; pt++)
               for (int i = 0; i < pieceCount[c][pt]; i++)
-              {
-                  if (board[pieceList[c][pt][i]] != make_piece(c, pt))
+                  if (   board[pieceList[c][pt][i]] != make_piece(c, pt)
+                      || index[pieceList[c][pt][i]] != i)
                       return false;
-
-                  if (index[pieceList[c][pt][i]] != i)
-                      return false;
-              }
 
   if ((*step)++, debugCastleSquares)
       for (Color c = WHITE; c <= BLACK; c++)
@@ -1574,10 +1560,8 @@ bool Position::pos_is_ok(int* failedStep) const {
               if (!can_castle(cr))
                   continue;
 
-              if ((castleRightsMask[king_square(c)] & cr) != cr)
-                  return false;
-
-              if (   piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
+              if (  (castleRightsMask[king_square(c)] & cr) != cr
+                  || piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
                   || castleRightsMask[castleRookSquare[c][s]] != cr)
                   return false;
           }
