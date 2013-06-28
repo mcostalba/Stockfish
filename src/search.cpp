@@ -871,7 +871,7 @@ split_point_start: // At split points actual search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[cutNode ? std::min(depth + ONE_PLY, 15 * ONE_PLY) : depth]
+              && moveCount >= FutilityMoveCounts[!cutNode ? std::min(depth + ONE_PLY, 15 * ONE_PLY) : depth]
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
