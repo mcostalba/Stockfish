@@ -871,7 +871,7 @@ split_point_start: // At split points actual search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[depth]
+              && moveCount >= FutilityMoveCounts[cutNode ? std::min(depth + ONE_PLY, 15 * ONE_PLY) : depth]
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
@@ -884,9 +884,6 @@ split_point_start: // At split points actual search starts from here
           // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(depth, moveCount);
-
-          if (cutNode)
-              predictedDepth += ONE_PLY;
 
           futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
                          + Gains[pos.piece_moved(move)][to_sq(move)];
