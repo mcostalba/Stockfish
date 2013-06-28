@@ -885,7 +885,7 @@ split_point_start: // At split points actual search starts from here
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(depth, moveCount);
 
-          if (!cutNode)
+          if (cutNode)
               predictedDepth += ONE_PLY;
 
           futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
