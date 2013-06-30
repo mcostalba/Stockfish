@@ -155,21 +155,17 @@ void Search::init() {
 
 size_t Search::perft(Position& pos, Depth depth) {
 
-  // At the last ply just return the number of legal moves (leaf nodes)
-  if (depth == ONE_PLY)
-      return MoveList<LEGAL>(pos).size();
-
   StateInfo st;
   size_t cnt = 0;
   CheckInfo ci(pos);
+  const bool leaf = depth == 2 * ONE_PLY;
 
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
-      cnt += perft(pos, depth - ONE_PLY);
+      cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - ONE_PLY);
       pos.undo_move(*it);
   }
-
   return cnt;
 }
 
@@ -574,9 +570,9 @@ namespace {
         && tte
         && tte->depth() >= depth
         && ttValue != VALUE_NONE // Only in case of TT access race
-        && (           PvNode ?  tte->type() == BOUND_EXACT
-            : ttValue >= beta ? (tte->type() & BOUND_LOWER)
-                              : (tte->type() & BOUND_UPPER)))
+        && (           PvNode ?  tte->bound() == BOUND_EXACT
+            : ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
+                              : (tte->bound() &  BOUND_UPPER)))
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
@@ -605,8 +601,8 @@ namespace {
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
-            if (   ((tte->type() & BOUND_LOWER) && ttValue > eval)
-                || ((tte->type() & BOUND_UPPER) && ttValue < eval))
+            if (   ((tte->bound() & BOUND_LOWER) && ttValue > eval)
+                || ((tte->bound() & BOUND_UPPER) && ttValue < eval))
                 eval = ttValue;
     }
     else
@@ -618,10 +614,10 @@ namespace {
 
     // Update gain for the parent non-capture move given the static position
     // evaluation before and after the move.
-    if (   (move = (ss-1)->currentMove) != MOVE_NULL
-        && (ss-1)->staticEval != VALUE_NONE
+    if (   !pos.captured_piece_type()
         &&  ss->staticEval != VALUE_NONE
-        && !pos.captured_piece_type()
+        && (ss-1)->staticEval != VALUE_NONE
+        && (move = (ss-1)->currentMove) != MOVE_NULL
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
@@ -726,7 +722,6 @@ namespace {
         &&  depth >= 5 * ONE_PLY
         && !inCheck
         && !ss->skipNullMove
-        &&  excludedMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value rbeta = beta + 200;
@@ -780,7 +775,7 @@ split_point_start: // At split points actual search starts from here
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
                            &&  ttMove != MOVE_NONE
                            && !excludedMove // Recursive singular search is not allowed
-                           && (tte->type() & BOUND_LOWER)
+                           && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
 
     // Step 11. Loop through moves
@@ -1177,9 +1172,9 @@ split_point_start: // At split points actual search starts from here
     if (   tte
         && tte->depth() >= ttDepth
         && ttValue != VALUE_NONE // Only in case of TT access race
-        && (           PvNode ?  tte->type() == BOUND_EXACT
-            : ttValue >= beta ? (tte->type() & BOUND_LOWER)
-                              : (tte->type() & BOUND_UPPER)))
+        && (           PvNode ?  tte->bound() == BOUND_EXACT
+            : ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
+                              : (tte->bound() &  BOUND_UPPER)))
     {
         ss->currentMove = ttMove; // Can be MOVE_NONE
         return ttValue;
@@ -1589,7 +1584,7 @@ split_point_start: // At split points actual search starts from here
 void RootMove::extract_pv_from_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
-  TTEntry* tte;
+  const TTEntry* tte;
   int ply = 0;
   Move m = pv[0];
 
@@ -1622,7 +1617,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 void RootMove::insert_pv_in_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_2], *st = state;
-  TTEntry* tte;
+  const TTEntry* tte;
   int ply = 0;
 
   do {
