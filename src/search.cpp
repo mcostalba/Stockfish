@@ -629,6 +629,7 @@ namespace {
         &&  depth < 4 * ONE_PLY
         && !inCheck
         &&  eval + razor_margin(depth) < beta
+        &&  ttMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
@@ -819,12 +820,7 @@ split_point_start: // At split points actual search starts from here
       givesCheck = pos.move_gives_check(move, ci);
       dangerous =   givesCheck
                  || pos.is_passed_pawn_push(move)
-                 || type_of(move) == CASTLE
-                 || (   captureOrPromotion // Entering a pawn endgame?
-                     && type_of(pos.piece_on(to_sq(move))) != PAWN
-                     && type_of(move) == NORMAL
-                     && (  pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK)
-                         - PieceValue[MG][pos.piece_on(to_sq(move))] == VALUE_ZERO));
+                 || type_of(move) == CASTLE;
 
       // Step 12. Extend checks and, in PV nodes, also dangerous moves
       if (PvNode && dangerous)
