@@ -475,7 +475,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         // Increase bonus more if the piece blocking enemy pawn
         if (pos.piece_on(s + pawn_push(Us)) == make_piece(Them, PAWN))
-            bonus += bonus;
+            bonus += bonus / 2;
     }
     return make_score(bonus, bonus);
   }
