@@ -334,7 +334,7 @@ namespace {
             // Reset aspiration window starting size
             if (depth >= 5)
             {
-                delta = Value(12);
+                delta = Value(16);
                 alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
                 beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
             }
@@ -364,22 +364,26 @@ namespace {
                 if (Signals.stop)
                     return;
 
-                delta += delta / 2;
-
                 // In case of failing low/high increase aspiration window and
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
+                    beta  = std::min(beta, bestValue + 2 * delta);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
                 }
                 else if (bestValue >= beta)
+                {
                     beta = std::min(bestValue + delta, VALUE_INFINITE);
+                    alpha = std::max(alpha, bestValue - 2 * delta);
+                }
 
                 else
                     break;
+
+                delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
 
