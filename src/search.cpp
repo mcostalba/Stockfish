@@ -369,7 +369,7 @@ namespace {
                 if (bestValue <= alpha)
                 {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
-                    beta  = std::min(beta, bestValue + 2 * delta);
+                    beta  = std::min(beta, bestValue + 4 * delta);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
@@ -377,7 +377,7 @@ namespace {
                 else if (bestValue >= beta)
                 {
                     beta = std::min(bestValue + delta, VALUE_INFINITE);
-                    alpha = std::max(alpha, bestValue - 2 * delta);
+                    alpha = std::max(alpha, bestValue - 4 * delta);
                 }
 
                 else
