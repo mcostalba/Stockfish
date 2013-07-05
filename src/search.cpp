@@ -291,15 +291,17 @@ namespace {
 
   void id_loop(Position& pos) {
 
+    const Value Delta = Value(16);
+
     Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
     int depth, prevBestMoveChanges;
-    Value bestValue, alpha, beta, delta;
+    Value bestValue, alpha, beta;
 
     memset(ss-1, 0, 4 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = BestMoveChanges = 0;
-    bestValue = delta = alpha = -VALUE_INFINITE;
+    bestValue = alpha = -VALUE_INFINITE;
     beta = VALUE_INFINITE;
 
     TT.new_search();
@@ -334,9 +336,8 @@ namespace {
             // Reset aspiration window starting size
             if (depth >= 5)
             {
-                delta = Value(16);
-                alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
-                beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
+                alpha = std::max(RootMoves[PVIdx].prevScore - Delta,-VALUE_INFINITE);
+                beta  = std::min(RootMoves[PVIdx].prevScore + Delta, VALUE_INFINITE);
             }
 
             // Start with a small aspiration window and, in case of fail high/low,
@@ -368,22 +369,16 @@ namespace {
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    alpha = std::max(bestValue - delta, -VALUE_INFINITE);
-                    beta  = std::min(beta, bestValue + 8 * delta);
+                    alpha = std::max(bestValue - Delta, -VALUE_INFINITE);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
                 }
                 else if (bestValue >= beta)
-                {
-                    beta = std::min(bestValue + delta, VALUE_INFINITE);
-                    alpha = std::max(alpha, bestValue - 8 * delta);
-                }
+                    beta = std::min(bestValue + Delta, VALUE_INFINITE);
 
                 else
                     break;
-
-                delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
 
