@@ -41,73 +41,27 @@ static const string PieceToChar(" PNBRQK  pnbrqk");
 
 CACHE_LINE_ALIGNMENT
 
-Score pieceSquareTable[PIECE_NB][SQUARE_NB];
+Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 
 namespace Zobrist {
 
-Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-Key enpassant[FILE_NB];
-Key castle[CASTLE_RIGHT_NB];
-Key side;
-Key exclusion;
-
-/// init() initializes at startup the various arrays used to compute hash keys
-/// and the piece square tables. The latter is a two-step operation: First, the
-/// white halves of the tables are copied from PSQT[] tables. Second, the black
-/// halves of the tables are initialized by flipping and changing the sign of
-/// the white scores.
-
-void init() {
-
-  RKISS rk;
-
-  for (Color c = WHITE; c <= BLACK; c++)
-      for (PieceType pt = PAWN; pt <= KING; pt++)
-          for (Square s = SQ_A1; s <= SQ_H8; s++)
-              psq[c][pt][s] = rk.rand<Key>();
-
-  for (File f = FILE_A; f <= FILE_H; f++)
-      enpassant[f] = rk.rand<Key>();
-
-  for (int cr = CASTLES_NONE; cr <= ALL_CASTLES; cr++)
-  {
-      Bitboard b = cr;
-      while (b)
-      {
-          Key k = castle[1ULL << pop_lsb(&b)];
-          castle[cr] ^= k ? k : rk.rand<Key>();
-      }
-  }
-
-  side = rk.rand<Key>();
-  exclusion  = rk.rand<Key>();
-
-  for (PieceType pt = PAWN; pt <= KING; pt++)
-  {
-      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
-      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
-
-      Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
-
-      for (Square s = SQ_A1; s <= SQ_H8; s++)
-      {
-          pieceSquareTable[make_piece(WHITE, pt)][ s] =  (v + PSQT[pt][s]);
-          pieceSquareTable[make_piece(BLACK, pt)][~s] = -(v + PSQT[pt][s]);
-      }
-  }
+  Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+  Key enpassant[FILE_NB];
+  Key castle[CASTLE_RIGHT_NB];
+  Key side;
+  Key exclusion;
 }
 
-} // namespace Zobrist
-
+Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion;}
 
 namespace {
 
-/// next_attacker() is an helper function used by see() to locate the least
-/// valuable attacker for the side to move, remove the attacker we just found
-/// from the 'occupied' bitboard and scan for new X-ray attacks behind it.
+// next_attacker() is an helper function used by see() to locate the least
+// valuable attacker for the side to move, remove the attacker we just found
+// from the 'occupied' bitboard and scan for new X-ray attacks behind it.
 
 template<int Pt> FORCE_INLINE
 PieceType next_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
@@ -153,6 +107,53 @@ CheckInfo::CheckInfo(const Position& pos) {
   checkSq[ROOK]   = pos.attacks_from<ROOK>(ksq);
   checkSq[QUEEN]  = checkSq[BISHOP] | checkSq[ROOK];
   checkSq[KING]   = 0;
+}
+
+
+/// Position::init() initializes at startup the various arrays used to compute
+/// hash keys and the piece square tables. The latter is a two-step operation:
+/// First, the white halves of the tables are copied from PSQT[] tables. Second,
+/// the black halves of the tables are initialized by flipping and changing the
+/// sign of the white scores.
+
+void Position::init() {
+
+  RKISS rk;
+
+  for (Color c = WHITE; c <= BLACK; c++)
+      for (PieceType pt = PAWN; pt <= KING; pt++)
+          for (Square s = SQ_A1; s <= SQ_H8; s++)
+              Zobrist::psq[c][pt][s] = rk.rand<Key>();
+
+  for (File f = FILE_A; f <= FILE_H; f++)
+      Zobrist::enpassant[f] = rk.rand<Key>();
+
+  for (int cr = CASTLES_NONE; cr <= ALL_CASTLES; cr++)
+  {
+      Bitboard b = cr;
+      while (b)
+      {
+          Key k = Zobrist::castle[1ULL << pop_lsb(&b)];
+          Zobrist::castle[cr] ^= k ? k : rk.rand<Key>();
+      }
+  }
+
+  Zobrist::side = rk.rand<Key>();
+  Zobrist::exclusion  = rk.rand<Key>();
+
+  for (PieceType pt = PAWN; pt <= KING; pt++)
+  {
+      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
+      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
+
+      Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
+
+      for (Square s = SQ_A1; s <= SQ_H8; s++)
+      {
+         psq[WHITE][pt][ s] =  (v + PSQT[pt][s]);
+         psq[BLACK][pt][~s] = -(v + PSQT[pt][s]);
+      }
+  }
 }
 
 
@@ -288,7 +289,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   st->key = compute_key();
   st->pawnKey = compute_pawn_key();
   st->materialKey = compute_material_key();
-  st->psqScore = compute_psq_score();
+  st->psq = compute_psq_score();
   st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
   st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
   st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
@@ -415,35 +416,27 @@ const string Position::pretty(Move move) const {
 }
 
 
-/// Position:hidden_checkers<>() returns a bitboard of all pinned (against the
-/// king) pieces for the given color. Or, when template parameter FindPinned is
-/// false, the function return the pieces of the given color candidate for a
-/// discovery check against the enemy king.
-template<bool FindPinned>
-Bitboard Position::hidden_checkers() const {
+/// Position:hidden_checkers() returns a bitboard of all pinned / discovery check
+/// pieces, according to the call parameters. Pinned pieces protect our king,
+/// discovery check pieces attack the enemy king.
 
-  // Pinned pieces protect our king, dicovery checks attack the enemy king
-  Bitboard b, result = 0;
-  Bitboard pinners = pieces(FindPinned ? ~sideToMove : sideToMove);
-  Square ksq = king_square(FindPinned ? sideToMove : ~sideToMove);
+Bitboard Position::hidden_checkers(Square ksq, Color c) const {
 
-  // Pinners are sliders, that give check when candidate pinned is removed
-  pinners &=  (pieces(ROOK, QUEEN) & PseudoAttacks[ROOK][ksq])
-            | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq]);
+  Bitboard b, pinners, result = 0;
+
+  // Pinners are sliders that give check when pinned piece is removed
+  pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
+             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(c);
 
   while (pinners)
   {
       b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
 
-      if (b && !more_than_one(b) && (b & pieces(sideToMove)))
-          result |= b;
+      if (!more_than_one(b))
+          result |= b & pieces(sideToMove);
   }
   return result;
 }
-
-// Explicit template instantiations
-template Bitboard Position::hidden_checkers<true>() const;
-template Bitboard Position::hidden_checkers<false>() const;
 
 
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
@@ -747,17 +740,17 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   Color them = ~us;
   Square from = from_sq(m);
   Square to = to_sq(m);
-  Piece piece = piece_on(from);
-  PieceType pt = type_of(piece);
+  Piece pc = piece_on(from);
+  PieceType pt = type_of(pc);
   PieceType capture = type_of(m) == ENPASSANT ? PAWN : type_of(piece_on(to));
 
-  assert(color_of(piece) == us);
+  assert(color_of(pc) == us);
   assert(piece_on(to) == NO_PIECE || color_of(piece_on(to)) == them || type_of(m) == CASTLE);
   assert(capture != KING);
 
   if (type_of(m) == CASTLE)
   {
-      assert(piece == make_piece(us, KING));
+      assert(pc == make_piece(us, KING));
 
       bool kingSide = to > from;
       Square rfrom = to; // Castle is encoded as "king captures friendly rook"
@@ -767,7 +760,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 
       do_castle(from, to, rfrom, rto);
 
-      st->psqScore += psq_delta(make_piece(us, ROOK), rfrom, rto);
+      st->psq += psq[us][ROOK][rto] - psq[us][ROOK][rfrom];
       k ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
   }
 
@@ -820,7 +813,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       prefetch((char*)thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
-      st->psqScore -= pieceSquareTable[make_piece(them, capture)][capsq];
+      st->psq -= psq[them][capture][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -856,7 +849,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       byColorBB[us] ^= from_to_bb;
 
       board[from] = NO_PIECE;
-      board[to] = piece;
+      board[to] = pc;
 
       // Update piece lists, index[from] is not updated and becomes stale. This
       // works as long as index[] is accessed just by known occupied squares.
@@ -903,8 +896,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
-          st->psqScore +=  pieceSquareTable[make_piece(us, promotion)][to]
-                         - pieceSquareTable[make_piece(us, PAWN)][to];
+          st->psq += psq[us][promotion][to] - psq[us][PAWN][to];
 
           // Update material
           st->npMaterial[us] += PieceValue[MG][promotion];
@@ -919,7 +911,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   }
 
   // Update incremental scores
-  st->psqScore += psq_delta(piece, from, to);
+  st->psq += psq[us][pt][to] - psq[us][pt][from];
 
   // Set capture piece
   st->capturedType = capture;
@@ -1332,7 +1324,7 @@ Key Position::compute_material_key() const {
 
   for (Color c = WHITE; c <= BLACK; c++)
       for (PieceType pt = PAWN; pt <= QUEEN; pt++)
-          for (int cnt = 0; cnt < piece_count(c, pt); cnt++)
+          for (int cnt = 0; cnt < pieceCount[c][pt]; cnt++)
               k ^= Zobrist::psq[c][pt][cnt];
 
   return k;
@@ -1350,7 +1342,8 @@ Score Position::compute_psq_score() const {
   for (Bitboard b = pieces(); b; )
   {
       Square s = pop_lsb(&b);
-      score += pieceSquareTable[piece_on(s)][s];
+      Piece pc = piece_on(s);
+      score += psq[color_of(pc)][type_of(pc)][s];
   }
 
   return score;
@@ -1367,7 +1360,7 @@ Value Position::compute_non_pawn_material(Color c) const {
   Value value = VALUE_ZERO;
 
   for (PieceType pt = KNIGHT; pt <= QUEEN; pt++)
-      value += piece_count(c, pt) * PieceValue[MG][pt];
+      value += pieceCount[c][pt] * PieceValue[MG][pt];
 
   return value;
 }
@@ -1445,7 +1438,7 @@ void Position::flip() {
   st->key = compute_key();
   st->pawnKey = compute_pawn_key();
   st->materialKey = compute_material_key();
-  st->psqScore = compute_psq_score();
+  st->psq = compute_psq_score();
   st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
   st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
 
@@ -1536,15 +1529,13 @@ bool Position::pos_is_ok(int* failedStep) const {
   if ((*step)++, debugMaterialKey && st->materialKey != compute_material_key())
       return false;
 
-  if ((*step)++, debugIncrementalEval && st->psqScore != compute_psq_score())
+  if ((*step)++, debugIncrementalEval && st->psq != compute_psq_score())
       return false;
 
   if ((*step)++, debugNonPawnMaterial)
-  {
       if (   st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
           || st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
           return false;
-  }
 
   if ((*step)++, debugPieceCounts)
       for (Color c = WHITE; c <= BLACK; c++)
@@ -1556,13 +1547,9 @@ bool Position::pos_is_ok(int* failedStep) const {
       for (Color c = WHITE; c <= BLACK; c++)
           for (PieceType pt = PAWN; pt <= KING; pt++)
               for (int i = 0; i < pieceCount[c][pt]; i++)
-              {
-                  if (piece_on(piece_list(c, pt)[i]) != make_piece(c, pt))
+                  if (   board[pieceList[c][pt][i]] != make_piece(c, pt)
+                      || index[pieceList[c][pt][i]] != i)
                       return false;
-
-                  if (index[piece_list(c, pt)[i]] != i)
-                      return false;
-              }
 
   if ((*step)++, debugCastleSquares)
       for (Color c = WHITE; c <= BLACK; c++)
@@ -1573,10 +1560,8 @@ bool Position::pos_is_ok(int* failedStep) const {
               if (!can_castle(cr))
                   continue;
 
-              if ((castleRightsMask[king_square(c)] & cr) != cr)
-                  return false;
-
-              if (   piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
+              if (  (castleRightsMask[king_square(c)] & cr) != cr
+                  || piece_on(castleRookSquare[c][s]) != make_piece(c, ROOK)
                   || castleRightsMask[castleRookSquare[c][s]] != cr)
                   return false;
           }

@@ -46,6 +46,7 @@ struct SplitPoint {
   Value beta;
   int nodeType;
   Move threatMove;
+  bool cutNode;
 
   // Const pointers to shared data
   MovePicker* movePicker;
@@ -81,7 +82,7 @@ struct Thread {
 
   template <bool Fake>
   void split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
-             Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType);
+             Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   Material::Table materialTable;

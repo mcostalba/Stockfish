@@ -96,25 +96,6 @@ const int MAX_MOVES      = 192;
 const int MAX_PLY        = 100;
 const int MAX_PLY_PLUS_2 = MAX_PLY + 2;
 
-const Bitboard FileABB = 0x0101010101010101ULL;
-const Bitboard FileBBB = FileABB << 1;
-const Bitboard FileCBB = FileABB << 2;
-const Bitboard FileDBB = FileABB << 3;
-const Bitboard FileEBB = FileABB << 4;
-const Bitboard FileFBB = FileABB << 5;
-const Bitboard FileGBB = FileABB << 6;
-const Bitboard FileHBB = FileABB << 7;
-
-const Bitboard Rank1BB = 0xFF;
-const Bitboard Rank2BB = Rank1BB << (8 * 1);
-const Bitboard Rank3BB = Rank1BB << (8 * 2);
-const Bitboard Rank4BB = Rank1BB << (8 * 3);
-const Bitboard Rank5BB = Rank1BB << (8 * 4);
-const Bitboard Rank6BB = Rank1BB << (8 * 5);
-const Bitboard Rank7BB = Rank1BB << (8 * 6);
-const Bitboard Rank8BB = Rank1BB << (8 * 7);
-
-
 /// A move needs 16 bits to be stored
 ///
 /// bit  0- 5: destination square (from 0 to 63)
@@ -127,24 +108,24 @@ const Bitboard Rank8BB = Rank1BB << (8 * 7);
 /// while MOVE_NONE and MOVE_NULL have the same origin and destination square.
 
 enum Move {
-  MOVE_NONE = 0,
+  MOVE_NONE,
   MOVE_NULL = 65
 };
 
 enum MoveType {
-  NORMAL    = 0,
+  NORMAL,
   PROMOTION = 1 << 14,
   ENPASSANT = 2 << 14,
   CASTLE    = 3 << 14
 };
 
 enum CastleRight {  // Defined as in PolyGlot book hash key
-  CASTLES_NONE = 0,
-  WHITE_OO     = 1,
-  WHITE_OOO    = 2,
-  BLACK_OO     = 4,
-  BLACK_OOO    = 8,
-  ALL_CASTLES  = 15,
+  CASTLES_NONE,
+  WHITE_OO,
+  WHITE_OOO   = WHITE_OO << 1,
+  BLACK_OO    = WHITE_OO << 2,
+  BLACK_OOO   = WHITE_OO << 3,
+  ALL_CASTLES = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO,
   CASTLE_RIGHT_NB = 16
 };
 
@@ -155,7 +136,7 @@ enum CastlingSide {
 };
 
 enum Phase {
-  PHASE_ENDGAME = 0,
+  PHASE_ENDGAME,
   PHASE_MIDGAME = 128,
   MG = 0, EG = 1, PHASE_NB = 2
 };
@@ -168,9 +149,9 @@ enum ScaleFactor {
 };
 
 enum Bound {
-  BOUND_NONE  = 0,
-  BOUND_UPPER = 1,
-  BOUND_LOWER = 2,
+  BOUND_NONE,
+  BOUND_UPPER,
+  BOUND_LOWER,
   BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
 };
 
@@ -195,15 +176,15 @@ enum Value : int {
 };
 
 enum PieceType {
-  NO_PIECE_TYPE = 0, ALL_PIECES = 0,
-  PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6,
+  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+  ALL_PIECES = 0,
   PIECE_TYPE_NB = 8
 };
 
 enum Piece {
-  NO_PIECE = 0,
-  W_PAWN = 1, W_KNIGHT =  2, W_BISHOP =  3, W_ROOK =  4, W_QUEEN =  5, W_KING =  6,
-  B_PAWN = 9, B_KNIGHT = 10, B_BISHOP = 11, B_ROOK = 12, B_QUEEN = 13, B_KING = 14,
+  NO_PIECE,
+  W_PAWN = 1, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+  B_PAWN = 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
   PIECE_NB = 16
 };
 
@@ -218,7 +199,7 @@ enum Depth {
   DEPTH_ZERO          =  0 * ONE_PLY,
   DEPTH_QS_CHECKS     = -1 * ONE_PLY,
   DEPTH_QS_NO_CHECKS  = -2 * ONE_PLY,
-  DEPTH_QS_RECAPTURES = -5 * ONE_PLY,
+  DEPTH_QS_RECAPTURES = -7 * ONE_PLY,
 
   DEPTH_NONE = -127 * ONE_PLY
 };
@@ -250,11 +231,11 @@ enum Square {
 };
 
 enum File {
-  FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB = 8
+  FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB
 };
 
 enum Rank {
-  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB = 8
+  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
 };
 
 
@@ -325,31 +306,10 @@ inline Score operator/(Score s, int i) {
   return make_score(mg_value(s) / i, eg_value(s) / i);
 }
 
-/// Weight score v by score w trying to prevent overflow
-inline Score apply_weight(Score v, Score w) {
-  return make_score((int(mg_value(v)) * mg_value(w)) / 0x100,
-                    (int(eg_value(v)) * eg_value(w)) / 0x100);
-}
-
 #undef ENABLE_OPERATORS_ON
 #undef ENABLE_SAFE_OPERATORS_ON
 
-namespace Zobrist {
-
-  extern Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-  extern Key enpassant[FILE_NB];
-  extern Key castle[CASTLE_RIGHT_NB];
-  extern Key side;
-  extern Key exclusion;
-
-  void init();
-}
-
-CACHE_LINE_ALIGNMENT
-
-extern Score pieceSquareTable[PIECE_NB][SQUARE_NB];
 extern Value PieceValue[PHASE_NB][PIECE_NB];
-extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
 struct MoveStack {
   Move move;
@@ -428,18 +388,6 @@ inline Rank relative_rank(Color c, Square s) {
 inline bool opposite_colors(Square s1, Square s2) {
   int s = int(s1) ^ int(s2);
   return ((s >> 3) ^ s) & 1;
-}
-
-inline int file_distance(Square s1, Square s2) {
-  return abs(file_of(s1) - file_of(s2));
-}
-
-inline int rank_distance(Square s1, Square s2) {
-  return abs(rank_of(s1) - rank_of(s2));
-}
-
-inline int square_distance(Square s1, Square s2) {
-  return SquareDistance[s1][s2];
 }
 
 inline char file_to_char(File f, bool tolower = true) {

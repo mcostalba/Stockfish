@@ -86,8 +86,7 @@ class MovePicker {
 public:
   MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
   MovePicker(const Position&, Move, const HistoryStats&, PieceType);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&,
-             const CountermovesStats&, Search::Stack*, Value);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Move*, Search::Stack*, Value);
 
   template<bool SpNode> Move next_move();
 
@@ -98,6 +97,7 @@ private:
   const Position& pos;
   const HistoryStats& history;
   Search::Stack* ss;
+  Move* countermoves;
   Depth depth;
   Move ttMove;
   MoveStack killers[4];
