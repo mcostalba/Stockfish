@@ -29,6 +29,10 @@
 #include "thread.h"
 #include "ucioption.h"
 
+#define SET_TUNING_1(p, def) Score p = def, *TUNE_1 = &p
+void tuning_init();
+SET_TUNING_1(Dummy, SCORE_ZERO); // A placeholder for the true parameter
+
 namespace {
 
   enum ExtendedPieceType { // Used for tracing
@@ -299,6 +303,8 @@ namespace Eval {
         KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
         KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
+
+    tuning_init();
   }
 
 } // namespace Eval
@@ -1175,3 +1181,5 @@ Value do_evaluate(const Position& pos, Value& margin) {
     return stream.str();
   }
 }
+
+void tuning_init() { *TUNE_1 = make_score(Options["p1"], Options["p2"]); }
