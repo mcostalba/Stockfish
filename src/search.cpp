@@ -291,7 +291,7 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    const Value Delta = Value(16);
+    const Value Delta = Value(20);
 
     Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
     int depth, prevBestMoveChanges;
