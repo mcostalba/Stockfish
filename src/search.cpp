@@ -291,8 +291,6 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    const Value Delta = Value(12);
-
     Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta;
@@ -336,8 +334,8 @@ namespace {
             // Reset aspiration window starting size
             if (depth >= 5)
             {
-                alpha = std::max(RootMoves[PVIdx].prevScore - Delta,-VALUE_INFINITE);
-                beta  = std::min(RootMoves[PVIdx].prevScore + Delta, VALUE_INFINITE);
+                alpha = std::max(RootMoves[PVIdx].prevScore - Value(12),-VALUE_INFINITE);
+                beta  = std::min(RootMoves[PVIdx].prevScore + Value(12), VALUE_INFINITE);
             }
 
             // Start with a small aspiration window and, in case of fail high/low,
@@ -369,13 +367,13 @@ namespace {
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    alpha = std::max(bestValue - Delta, -VALUE_INFINITE);
+                    alpha = std::max(bestValue - Value(20), -VALUE_INFINITE);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
                 }
                 else if (bestValue >= beta)
-                    beta = std::min(bestValue + Delta, VALUE_INFINITE);
+                    beta = std::min(bestValue + Value(20), VALUE_INFINITE);
 
                 else
                     break;
