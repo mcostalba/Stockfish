@@ -31,7 +31,7 @@
 
 #define SET_TUNING_1(p, def) Score p = def, *TUNE_1 = &p
 void tuning_init();
-SET_TUNING_1(Dummy, SCORE_ZERO); // A placeholder for the true parameter
+//SET_TUNING_1(Dummy, SCORE_ZERO); // A placeholder for the true parameter
 
 namespace {
 
@@ -168,7 +168,7 @@ namespace {
 
   #undef S
 
-  const Score Tempo            = make_score(24, 11);
+  SET_TUNING_1(Tempo, make_score(24, 11));
   const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
