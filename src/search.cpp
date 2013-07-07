@@ -697,7 +697,7 @@ namespace {
             // parent node, which will trigger a re-search with full depth).
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
-                && nullValue < beta - Value(128))
+                && nullValue < beta - Value(80))
                 return alpha;
 
             threatMove = (ss+1)->currentMove;
