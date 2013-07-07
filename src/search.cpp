@@ -296,9 +296,12 @@ namespace {
     Value bestValue, alpha, beta, delta;
 
     memset(ss-1, 0, 4 * sizeof(Stack));
-    depth = BestMoveChanges = 0;
-    bestValue = delta = -VALUE_INFINITE;
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
+
+    depth = BestMoveChanges = 0;
+    bestValue = delta = alpha = -VALUE_INFINITE;
+    beta = VALUE_INFINITE;
+
     TT.new_search();
     History.clear();
     Gains.clear();
@@ -328,17 +331,12 @@ namespace {
         // MultiPV loop. We perform a full root search for each PV line
         for (PVIdx = 0; PVIdx < PVSize; PVIdx++)
         {
-            // Set aspiration window default width
-            if (depth >= 5 && abs(RootMoves[PVIdx].prevScore) < VALUE_KNOWN_WIN)
+            // Reset aspiration window starting size
+            if (depth >= 5)
             {
                 delta = Value(16);
-                alpha = RootMoves[PVIdx].prevScore - delta;
-                beta  = RootMoves[PVIdx].prevScore + delta;
-            }
-            else
-            {
-                alpha = -VALUE_INFINITE;
-                beta  =  VALUE_INFINITE;
+                alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
+                beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
             }
 
             // Start with a small aspiration window and, in case of fail high/low,
@@ -366,35 +364,28 @@ namespace {
                 if (Signals.stop)
                     return;
 
-                // In case of failing high/low increase aspiration window and
+                // In case of failing low/high increase aspiration window and
                 // research, otherwise exit the loop.
-                if (bestValue > alpha && bestValue < beta)
+                if (bestValue <= alpha)
+                {
+                    alpha = std::max(bestValue - delta, -VALUE_INFINITE);
+
+                    Signals.failedLowAtRoot = true;
+                    Signals.stopOnPonderhit = false;
+                }
+                else if (bestValue >= beta)
+                    beta = std::min(bestValue + delta, VALUE_INFINITE);
+
+                else
                     break;
+
+                delta += delta / 2;
+
+                assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
 
                 // Give some update (without cluttering the UI) before to research
                 if (Time::now() - SearchTime > 3000)
                     sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
-
-                if (abs(bestValue) >= VALUE_KNOWN_WIN)
-                {
-                    alpha = -VALUE_INFINITE;
-                    beta  =  VALUE_INFINITE;
-                }
-                else if (bestValue >= beta)
-                {
-                    beta += delta;
-                    delta += delta / 2;
-                }
-                else
-                {
-                    Signals.failedLowAtRoot = true;
-                    Signals.stopOnPonderhit = false;
-
-                    alpha -= delta;
-                    delta += delta / 2;
-                }
-
-                assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
 
             // Sort the PV lines searched so far and update the GUI
@@ -590,7 +581,10 @@ namespace {
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
     if (inCheck)
+    {
         ss->staticEval = ss->evalMargin = eval = VALUE_NONE;
+        goto iid_start;
+    }
 
     else if (tte)
     {
@@ -627,7 +621,6 @@ namespace {
     // Step 6. Razoring (is omitted in PV nodes)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-        && !inCheck
         &&  eval + razor_margin(depth) < beta
         &&  ttMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
@@ -647,7 +640,6 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
-        && !inCheck
         &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
@@ -658,7 +650,6 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth > ONE_PLY
-        && !inCheck
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -720,7 +711,6 @@ namespace {
     // prune the previous move.
     if (   !PvNode
         &&  depth >= 5 * ONE_PLY
-        && !inCheck
         && !ss->skipNullMove
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
@@ -745,6 +735,8 @@ namespace {
                     return value;
             }
     }
+
+iid_start: // When in check we skip early cut tests
 
     // Step 10. Internal iterative deepening
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
