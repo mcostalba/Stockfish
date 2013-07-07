@@ -639,11 +639,11 @@ namespace {
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
         && !inCheck
-        &&  eval - futility_margin(depth + ONE_PLY, 0) >= beta
+        &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return eval - futility_margin(depth + ONE_PLY, 0);
+        return eval - futility_margin(depth, (ss-1)->futilityMoveCount);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
@@ -695,13 +695,12 @@ namespace {
             // move which was reduced. If a connection is found, return a fail
             // low score (which will cause the reduced move to fail high in the
             // parent node, which will trigger a re-search with full depth).
-            threatMove = (ss+1)->currentMove;
-
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
-                && threatMove != MOVE_NONE
-                && allows(pos, (ss-1)->currentMove, threatMove))
+                && nullValue < beta - Value(128))
                 return alpha;
+
+            threatMove = (ss+1)->currentMove;
         }
     }
 
