@@ -639,11 +639,11 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
-        &&  eval >= beta + futility_margin(4 * ONE_PLY - depth, (ss-1)->futilityMoveCount)
+        &&  eval >= beta + futility_margin(5 * ONE_PLY - depth, (ss-1)->futilityMoveCount)
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return eval - futility_margin(4 * ONE_PLY - depth, (ss-1)->futilityMoveCount);
+        return eval - futility_margin(5 * ONE_PLY - depth, (ss-1)->futilityMoveCount);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
