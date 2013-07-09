@@ -360,7 +360,7 @@ ifeq ($(comp),gcc)
 		GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
 		GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
 		ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
-			CXXFLAGS += -flto
+			CXXFLAGS += -flto -fuse-linker-plugin -fno-fat-lto-objects -flto-partition=none
 			LDFLAGS += $(CXXFLAGS)
 		endif
 	endif
