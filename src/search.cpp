@@ -520,7 +520,7 @@ namespace {
     ss->ply = (ss-1)->ply + 1;
     ss->futilityMoveCount = 0;
     (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
-    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
+    (ss+2)->captureKiller = (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Used to send selDepth info to GUI
     if (PvNode && thisThread->maxPly < ss->ply)
@@ -1071,28 +1071,31 @@ moves_loop: // When in check and at SpNode search starts from here
              depth, bestMove, ss->staticEval, ss->evalMargin);
 
     // Quiet best move: update killers, history and countermoves
-    if (    bestValue >= beta
-        && !pos.is_capture_or_promotion(bestMove)
-        && !inCheck)
+    if (bestValue >= beta && !inCheck)
     {
-        if (ss->killers[0] != bestMove)
+        if (!pos.is_capture_or_promotion(bestMove))
         {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = bestMove;
-        }
+            if (ss->killers[0] != bestMove)
+            {
+                ss->killers[1] = ss->killers[0];
+                ss->killers[0] = bestMove;
+            }
 
-        // Increase history value of the cut-off move and decrease all the other
-        // played non-capture moves.
-        Value bonus = Value(int(depth) * int(depth));
-        History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
-        for (int i = 0; i < quietCount - 1; i++)
-        {
-            Move m = quietsSearched[i];
-            History.update(pos.piece_moved(m), to_sq(m), -bonus);
-        }
+            // Increase history value of the cut-off move and decrease all the other
+            // played non-capture moves.
+            Value bonus = Value(int(depth) * int(depth));
+            History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
+            for (int i = 0; i < quietCount - 1; i++)
+            {
+                Move m = quietsSearched[i];
+                History.update(pos.piece_moved(m), to_sq(m), -bonus);
+            }
 
-        if (is_ok((ss-1)->currentMove))
-            Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
+            if (is_ok((ss-1)->currentMove))
+                Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
+        }
+        else if (false)
+            ss->captureKiller = bestMove;
     }
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);

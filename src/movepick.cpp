@@ -102,7 +102,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       Square sq) : pos(p), history(h), cur(moves), end(moves) {
+                       Square sq) : pos(p), history(h), ss(NULL), cur(moves), end(moves) {
 
   assert(d <= DEPTH_ZERO);
 
@@ -134,7 +134,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, PieceType pt)
-                       : pos(p), history(h), cur(moves), end(moves) {
+                       : pos(p), history(h), ss(NULL), cur(moves), end(moves) {
 
   assert(!pos.checkers());
 
@@ -168,13 +168,16 @@ void MovePicker::score<CAPTURES>() {
   // badCaptures[] array, but instead of doing it now we delay till when
   // the move has been picked up in pick_move_from_list(), this way we save
   // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
-  Move m;
+  Move m, ck = ss ? ss->captureKiller : MOVE_NONE;
 
   for (MoveStack* it = moves; it != end; ++it)
   {
       m = it->move;
       it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
                  - type_of(pos.piece_moved(m));
+
+      if (m == ck)
+          it->score += QueenValueMg * 10;
 
       if (type_of(m) == PROMOTION)
           it->score += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
@@ -319,7 +322,7 @@ Move MovePicker::next_move<false>() {
           {
               assert(captureThreshold <= 0); // Otherwise we cannot use see_sign()
 
-              if (pos.see_sign(move) >= captureThreshold)
+              if (move == ss->captureKiller || pos.see_sign(move) >= captureThreshold)
                   return move;
 
               // Losing capture, move it to the tail of the array

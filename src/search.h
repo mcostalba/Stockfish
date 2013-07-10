@@ -42,6 +42,7 @@ struct Stack {
   int ply;
   Move currentMove;
   Move excludedMove;
+  Move captureKiller;
   Move killers[2];
   Depth reduction;
   Value staticEval;
