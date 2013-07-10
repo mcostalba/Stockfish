@@ -1094,7 +1094,7 @@ moves_loop: // When in check and at SpNode search starts from here
             if (is_ok((ss-1)->currentMove))
                 Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
         }
-        else if (false)
+        else if (quietCount > 0)
             ss->captureKiller = bestMove;
     }
 
