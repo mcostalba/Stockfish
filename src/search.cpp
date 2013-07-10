@@ -1252,14 +1252,15 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  pos.see_sign(move) < 0)
           continue;
 
-      // Don't search useless checks
+      // Don't search useless checks and quiet discovered checks
       if (   !PvNode
           && !InCheck
           &&  givesCheck
           &&  move != ttMove
           && !pos.is_capture_or_promotion(move)
           &&  ss->staticEval + PawnValueMg / 4 < beta
-          && !check_is_dangerous(pos, move, futilityBase, beta))
+          && (   (ci.dcCandidates & from_sq(move))
+              || !check_is_dangerous(pos, move, futilityBase, beta)))
           continue;
 
       // Check for legality only before to do the move
