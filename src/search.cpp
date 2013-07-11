@@ -1121,7 +1121,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, enoughMaterial, evasionPrunable;
+    bool givesCheck, enoughMaterial, evasionPrunable, captureDc;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1237,6 +1237,11 @@ moves_loop: // When in check and at SpNode search starts from here
           }
       }
 
+      // Detect discovered checks that gain material
+      captureDc =   givesCheck
+                 && (ci.dcCandidates & from_sq(move))
+                 && pos.is_capture(move);
+
       // Detect non-capture evasions that are candidate to be pruned
       evasionPrunable =   !PvNode
                        &&  InCheck
@@ -1248,19 +1253,19 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !PvNode
           && (!InCheck || evasionPrunable)
           &&  move != ttMove
+          && !captureDc
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < 0)
           continue;
 
-      // Don't search useless checks and quiet discovered checks
+      // Don't search useless checks
       if (   !PvNode
           && !InCheck
           &&  givesCheck
           &&  move != ttMove
           && !pos.is_capture_or_promotion(move)
           &&  ss->staticEval + PawnValueMg / 4 < beta
-          && (   (ci.dcCandidates & from_sq(move))
-              || !check_is_dangerous(pos, move, futilityBase, beta)))
+          && !check_is_dangerous(pos, move, futilityBase, beta))
           continue;
 
       // Check for legality only before to do the move
