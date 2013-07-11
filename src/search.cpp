@@ -100,6 +100,7 @@ namespace {
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   bool check_is_dangerous(const Position& pos, Move move, Value futilityBase, Value beta);
+  bool allows(const Position& pos, Move first, Move second);
   bool refutes(const Position& pos, Move first, Move second);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
@@ -152,7 +153,7 @@ void Search::init() {
 /// Search::perft() is our utility to verify move generation. All the leaf nodes
 /// up to the given depth are generated and counted and the sum returned.
 
-size_t Search::perft(Position& pos, Depth depth) {
+static size_t perft(Position& pos, Depth depth) {
 
   StateInfo st;
   size_t cnt = 0;
@@ -162,12 +163,15 @@ size_t Search::perft(Position& pos, Depth depth) {
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
-      cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - ONE_PLY);
+      cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
       pos.undo_move(*it);
   }
   return cnt;
 }
 
+size_t Search::perft(Position& pos, Depth depth) {
+  return depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
+}
 
 /// Search::think() is the external interface to Stockfish's search, and is
 /// called by the main thread when the program receives the UCI 'go' command. It
@@ -211,7 +215,7 @@ void Search::think() {
   else
       DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Log log(Options["Search Log Filename"]);
       log << "\nSearching: "  << RootPos.fen()
@@ -227,7 +231,7 @@ void Search::think() {
   for (size_t i = 0; i < Threads.size(); i++)
       Threads[i]->maxPly = 0;
 
-  Threads.sleepWhileIdle = Options["Use Sleeping Threads"];
+  Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
@@ -243,7 +247,7 @@ void Search::think() {
   Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Time::point elapsed = Time::now() - SearchTime + 1;
 
@@ -398,7 +402,7 @@ namespace {
         if (skill.enabled() && skill.time_to_pick(depth))
             skill.pick_move();
 
-        if (Options["Use Search Log"])
+        if (Options["Write Search Log"])
         {
             RootMove& rm = RootMoves[0];
             if (skill.best != MOVE_NONE)
@@ -511,7 +515,7 @@ namespace {
 
         assert(splitPoint->bestValue > -VALUE_INFINITE && splitPoint->moveCount > 0);
 
-        goto split_point_start;
+        goto moves_loop;
     }
 
     bestValue = -VALUE_INFINITE;
@@ -582,7 +586,7 @@ namespace {
     if (inCheck)
     {
         ss->staticEval = ss->evalMargin = eval = VALUE_NONE;
-        goto iid_start;
+        goto moves_loop;
     }
 
     else if (tte)
@@ -689,15 +693,18 @@ namespace {
         else
         {
             // The null move failed low, which means that we may be faced with
-            // some kind of threat. If the previous move was reduced return a fail
+            // some kind of threat. If the previous move was reduced, check if
+            // the move that refuted the null move was somehow connected to the
+            // move which was reduced. If a connection is found, return a fail
             // low score (which will cause the reduced move to fail high in the
             // parent node, which will trigger a re-search with full depth).
+            threatMove = (ss+1)->currentMove;
+
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
-                && nullValue < beta - Value(128))
+                && threatMove != MOVE_NONE
+                && allows(pos, (ss-1)->currentMove, threatMove))
                 return alpha;
-
-            threatMove = (ss+1)->currentMove;
         }
     }
 
@@ -732,12 +739,10 @@ namespace {
             }
     }
 
-iid_start: // When in check we skip early cut tests
-
     // Step 10. Internal iterative deepening
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
-        && (PvNode || (!inCheck && ss->staticEval + Value(256) >= beta)))
+        && (PvNode || ss->staticEval + Value(256) >= beta))
     {
         Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
 
@@ -749,7 +754,7 @@ iid_start: // When in check we skip early cut tests
         ttMove = tte ? tte->move() : MOVE_NONE;
     }
 
-split_point_start: // At split points actual search starts from here
+moves_loop: // When in check and at SpNode search starts from here
 
     Square prevMoveSq = to_sq((ss-1)->currentMove);
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
@@ -1367,6 +1372,47 @@ split_point_start: // At split points actual search starts from here
         // Note that here we generate illegal "double move"!
         if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
             return true;
+    }
+
+    return false;
+  }
+
+
+  // allows() tests whether the 'first' move at previous ply somehow makes the
+  // 'second' move possible, for instance if the moving piece is the same in
+  // both moves. Normally the second move is the threat (the best move returned
+  // from a null search that fails low).
+
+  bool allows(const Position& pos, Move first, Move second) {
+
+    assert(is_ok(first));
+    assert(is_ok(second));
+    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
+    assert(color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
+
+    Square m1from = from_sq(first);
+    Square m2from = from_sq(second);
+    Square m1to = to_sq(first);
+    Square m2to = to_sq(second);
+
+    // The piece is the same or second's destination was vacated by the first move
+    if (m1to == m2from || m2to == m1from)
+        return true;
+
+    // Second one moves through the square vacated by first one
+    if (between_bb(m2from, m2to) & m1from)
+      return true;
+
+    // Second's destination is defended by the first move's piece
+    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
+    if (m1att & m2to)
+        return true;
+
+    // Second move gives a discovered check through the first's checking piece
+    if (m1att & pos.king_square(pos.side_to_move()))
+    {
+        assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
+        return true;
     }
 
     return false;
