@@ -322,7 +322,7 @@ Move MovePicker::next_move<false>() {
           {
               assert(captureThreshold <= 0); // Otherwise we cannot use see_sign()
 
-              if (move == ss->captureKiller || pos.see_sign(move) >= captureThreshold)
+              if (pos.see_sign(move) >= captureThreshold)
                   return move;
 
               // Losing capture, move it to the tail of the array
