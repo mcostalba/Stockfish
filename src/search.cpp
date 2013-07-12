@@ -153,7 +153,7 @@ void Search::init() {
 /// Search::perft() is our utility to verify move generation. All the leaf nodes
 /// up to the given depth are generated and counted and the sum returned.
 
-size_t Search::perft(Position& pos, Depth depth) {
+static size_t perft(Position& pos, Depth depth) {
 
   StateInfo st;
   size_t cnt = 0;
@@ -163,12 +163,15 @@ size_t Search::perft(Position& pos, Depth depth) {
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
-      cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - ONE_PLY);
+      cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
       pos.undo_move(*it);
   }
   return cnt;
 }
 
+size_t Search::perft(Position& pos, Depth depth) {
+  return depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
+}
 
 /// Search::think() is the external interface to Stockfish's search, and is
 /// called by the main thread when the program receives the UCI 'go' command. It
@@ -212,7 +215,7 @@ void Search::think() {
   else
       DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Log log(Options["Search Log Filename"]);
       log << "\nSearching: "  << RootPos.fen()
@@ -228,7 +231,7 @@ void Search::think() {
   for (size_t i = 0; i < Threads.size(); i++)
       Threads[i]->maxPly = 0;
 
-  Threads.sleepWhileIdle = Options["Use Sleeping Threads"];
+  Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
@@ -244,7 +247,7 @@ void Search::think() {
   Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Time::point elapsed = Time::now() - SearchTime + 1;
 
@@ -399,7 +402,7 @@ namespace {
         if (skill.enabled() && skill.time_to_pick(depth))
             skill.pick_move();
 
-        if (Options["Use Search Log"])
+        if (Options["Write Search Log"])
         {
             RootMove& rm = RootMoves[0];
             if (skill.best != MOVE_NONE)
