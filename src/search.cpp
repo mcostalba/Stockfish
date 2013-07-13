@@ -298,7 +298,7 @@ namespace {
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
-    memset(ss-1, 0, 4 * sizeof(Stack));
+    std::memset(ss-1, 0, 4 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = BestMoveChanges = 0;
@@ -367,6 +367,12 @@ namespace {
                 if (Signals.stop)
                     return;
 
+                // When failing high/low give some update (without cluttering
+                // the UI) before to research.
+                if (  (bestValue <= alpha || bestValue >= beta)
+                    && Time::now() - SearchTime > 3000)
+                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+
                 // In case of failing low/high increase aspiration window and
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
@@ -385,10 +391,6 @@ namespace {
                 delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
-
-                // Give some update (without cluttering the UI) before to research
-                if (Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
             }
 
             // Sort the PV lines searched so far and update the GUI
@@ -500,7 +502,6 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
-    moveCount = quietCount = 0;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -518,6 +519,7 @@ namespace {
         goto moves_loop;
     }
 
+    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -1124,7 +1126,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, enoughMaterial, evasionPrunable;
+    bool givesCheck, evasionPrunable;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1166,7 +1168,6 @@ moves_loop: // When in check and at SpNode search starts from here
     {
         ss->staticEval = ss->evalMargin = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
-        enoughMaterial = false;
     }
     else
     {
@@ -1194,7 +1195,6 @@ moves_loop: // When in check and at SpNode search starts from here
             alpha = bestValue;
 
         futilityBase = ss->staticEval + ss->evalMargin + Value(128);
-        enoughMaterial = pos.non_pawn_material(pos.side_to_move()) > RookValueMg;
     }
 
     // Initialize a MovePicker object for the current position, and prepare
@@ -1216,7 +1216,6 @@ moves_loop: // When in check and at SpNode search starts from here
           && !InCheck
           && !givesCheck
           &&  move != ttMove
-          &&  enoughMaterial
           &&  type_of(move) != PROMOTION
           && !pos.is_passed_pawn_push(move))
       {
@@ -1241,8 +1240,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // Detect non-capture evasions that are candidate to be pruned
-      evasionPrunable =   !PvNode
-                       &&  InCheck
+      evasionPrunable =    InCheck
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.is_capture(move)
                        && !pos.can_castle(pos.side_to_move());
@@ -1667,6 +1665,7 @@ void Thread::idle_loop() {
           Threads.mutex.lock();
 
           assert(searching);
+          assert(activeSplitPoint);
           SplitPoint* sp = activeSplitPoint;
 
           Threads.mutex.unlock();
@@ -1674,7 +1673,7 @@ void Thread::idle_loop() {
           Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
           Position pos(*sp->pos, this);
 
-          memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
+          std::memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
           ss->splitPoint = sp;
 
           sp->mutex.lock();
