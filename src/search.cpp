@@ -153,7 +153,7 @@ void Search::init() {
 /// Search::perft() is our utility to verify move generation. All the leaf nodes
 /// up to the given depth are generated and counted and the sum returned.
 
-size_t Search::perft(Position& pos, Depth depth) {
+static size_t perft(Position& pos, Depth depth) {
 
   StateInfo st;
   size_t cnt = 0;
@@ -163,12 +163,15 @@ size_t Search::perft(Position& pos, Depth depth) {
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
-      cnt += leaf ? MoveList<LEGAL>(pos).size() : perft(pos, depth - ONE_PLY);
+      cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
       pos.undo_move(*it);
   }
   return cnt;
 }
 
+size_t Search::perft(Position& pos, Depth depth) {
+  return depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
+}
 
 /// Search::think() is the external interface to Stockfish's search, and is
 /// called by the main thread when the program receives the UCI 'go' command. It
@@ -212,7 +215,7 @@ void Search::think() {
   else
       DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Log log(Options["Search Log Filename"]);
       log << "\nSearching: "  << RootPos.fen()
@@ -228,7 +231,7 @@ void Search::think() {
   for (size_t i = 0; i < Threads.size(); i++)
       Threads[i]->maxPly = 0;
 
-  Threads.sleepWhileIdle = Options["Use Sleeping Threads"];
+  Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
   // used to check for remaining available thinking time.
@@ -244,7 +247,7 @@ void Search::think() {
   Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
-  if (Options["Use Search Log"])
+  if (Options["Write Search Log"])
   {
       Time::point elapsed = Time::now() - SearchTime + 1;
 
@@ -295,7 +298,7 @@ namespace {
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
-    memset(ss-1, 0, 4 * sizeof(Stack));
+    std::memset(ss-1, 0, 4 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = BestMoveChanges = 0;
@@ -364,6 +367,12 @@ namespace {
                 if (Signals.stop)
                     return;
 
+                // When failing high/low give some update (without cluttering
+                // the UI) before to research.
+                if (  (bestValue <= alpha || bestValue >= beta)
+                    && Time::now() - SearchTime > 3000)
+                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+
                 // In case of failing low/high increase aspiration window and
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
@@ -382,10 +391,6 @@ namespace {
                 delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
-
-                // Give some update (without cluttering the UI) before to research
-                if (Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
             }
 
             // Sort the PV lines searched so far and update the GUI
@@ -399,7 +404,7 @@ namespace {
         if (skill.enabled() && skill.time_to_pick(depth))
             skill.pick_move();
 
-        if (Options["Use Search Log"])
+        if (Options["Write Search Log"])
         {
             RootMove& rm = RootMoves[0];
             if (skill.best != MOVE_NONE)
@@ -497,7 +502,6 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
-    moveCount = quietCount = 0;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -512,9 +516,10 @@ namespace {
 
         assert(splitPoint->bestValue > -VALUE_INFINITE && splitPoint->moveCount > 0);
 
-        goto split_point_start;
+        goto moves_loop;
     }
 
+    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -581,7 +586,10 @@ namespace {
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
     if (inCheck)
+    {
         ss->staticEval = ss->evalMargin = eval = VALUE_NONE;
+        goto moves_loop;
+    }
 
     else if (tte)
     {
@@ -618,7 +626,6 @@ namespace {
     // Step 6. Razoring (is omitted in PV nodes)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-        && !inCheck
         &&  eval + razor_margin(depth) < beta
         &&  ttMove == MOVE_NONE
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
@@ -638,7 +645,6 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth < 4 * ONE_PLY
-        && !inCheck
         &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
@@ -649,7 +655,6 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth > ONE_PLY
-        && !inCheck
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -711,7 +716,6 @@ namespace {
     // prune the previous move.
     if (   !PvNode
         &&  depth >= 5 * ONE_PLY
-        && !inCheck
         && !ss->skipNullMove
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
@@ -740,7 +744,7 @@ namespace {
     // Step 10. Internal iterative deepening
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
-        && (PvNode || (!inCheck && ss->staticEval + Value(256) >= beta)))
+        && (PvNode || ss->staticEval + Value(256) >= beta))
     {
         Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
 
@@ -752,7 +756,7 @@ namespace {
         ttMove = tte ? tte->move() : MOVE_NONE;
     }
 
-split_point_start: // At split points actual search starts from here
+moves_loop: // When in check and at SpNode search starts from here
 
     Square prevMoveSq = to_sq((ss-1)->currentMove);
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
@@ -1122,7 +1126,7 @@ split_point_start: // At split points actual search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, enoughMaterial, evasionPrunable;
+    bool givesCheck, evasionPrunable;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1164,7 +1168,6 @@ split_point_start: // At split points actual search starts from here
     {
         ss->staticEval = ss->evalMargin = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
-        enoughMaterial = false;
     }
     else
     {
@@ -1192,7 +1195,6 @@ split_point_start: // At split points actual search starts from here
             alpha = bestValue;
 
         futilityBase = ss->staticEval + ss->evalMargin + Value(128);
-        enoughMaterial = pos.non_pawn_material(pos.side_to_move()) > RookValueMg;
     }
 
     // Initialize a MovePicker object for the current position, and prepare
@@ -1214,7 +1216,6 @@ split_point_start: // At split points actual search starts from here
           && !InCheck
           && !givesCheck
           &&  move != ttMove
-          &&  enoughMaterial
           &&  type_of(move) != PROMOTION
           && !pos.is_passed_pawn_push(move))
       {
@@ -1239,8 +1240,7 @@ split_point_start: // At split points actual search starts from here
       }
 
       // Detect non-capture evasions that are candidate to be pruned
-      evasionPrunable =   !PvNode
-                       &&  InCheck
+      evasionPrunable =    InCheck
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.is_capture(move)
                        && !pos.can_castle(pos.side_to_move());
@@ -1665,6 +1665,7 @@ void Thread::idle_loop() {
           Threads.mutex.lock();
 
           assert(searching);
+          assert(activeSplitPoint);
           SplitPoint* sp = activeSplitPoint;
 
           Threads.mutex.unlock();
@@ -1672,7 +1673,7 @@ void Thread::idle_loop() {
           Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
           Position pos(*sp->pos, this);
 
-          memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
+          std::memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
           ss->splitPoint = sp;
 
           sp->mutex.lock();

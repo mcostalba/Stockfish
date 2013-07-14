@@ -509,7 +509,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
 
-        int mob = popcount<Piece == QUEEN ? Full : Max15>(b & mobilityArea);
+        int mob = Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
+                                 : popcount<Full >(b & mobilityArea);
+
         mobility += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -554,7 +556,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (ei.pi->semiopen(Us, file_of(s)))
                 score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 6 || ei.pi->semiopen(Us, file_of(s)))
+            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
 
             Square ksq = pos.king_square(Us);
@@ -1142,7 +1144,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
-    memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
+    std::memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
 
     Value margin;
     do_evaluate<true>(pos, margin);
