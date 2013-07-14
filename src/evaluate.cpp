@@ -168,8 +168,8 @@ namespace {
 
   #undef S
 
-  SET_TUNING_1(Tempo, make_score(24, 11));
-  const Score BishopPin        = make_score(66, 11);
+  const Score Tempo            = make_score(24, 11);
+  SET_TUNING_1(BishopPin, make_score(66, 11));
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);

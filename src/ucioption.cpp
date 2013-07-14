@@ -93,8 +93,8 @@ void init(OptionsMap& o) {
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
 
   // Tuning parameters
-  o["p1"] = Option(19, 0, 1000, on_eval);
-  o["p2"] = Option( 6, 0, 1000, on_eval);
+  o["p1"] = Option(76, 0, 1000, on_eval);
+  o["p2"] = Option(11, 0, 1000, on_eval);
 }
 
 
