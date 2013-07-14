@@ -168,7 +168,7 @@ namespace {
   const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
-  const Score RookOnPawn       = make_score(16, 38);
+  const Score RookOnPawn       = make_score( 5, 18);
   const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
