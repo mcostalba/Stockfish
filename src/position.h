@@ -113,8 +113,8 @@ public:
   Square king_square(Color c) const;
   Square ep_square() const;
   bool is_empty(Square s) const;
-  const Square* piece_list(Color c, PieceType pt) const;
-  int piece_count(Color c, PieceType pt) const;
+  template<PieceType Pt> int count(Color c) const;
+  template<PieceType Pt> const Square* list(Color c) const;
 
   // Castling
   int can_castle(CastleRight f) const;
@@ -193,7 +193,7 @@ private:
 
   // Helper functions
   void do_castle(Square kfrom, Square kto, Square rfrom, Square rto);
-  template<bool FindPinned> Bitboard hidden_checkers() const;
+  Bitboard hidden_checkers(Square ksq, Color c) const;
 
   // Computing hash keys from scratch (for initialization and debugging)
   Key compute_key() const;
@@ -273,12 +273,12 @@ inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
   return byColorBB[c] & (byTypeBB[pt1] | byTypeBB[pt2]);
 }
 
-inline int Position::piece_count(Color c, PieceType pt) const {
-  return pieceCount[c][pt];
+template<PieceType Pt> inline int Position::count(Color c) const {
+  return pieceCount[c][Pt];
 }
 
-inline const Square* Position::piece_list(Color c, PieceType pt) const {
-  return pieceList[c][pt];
+template<PieceType Pt> inline const Square* Position::list(Color c) const {
+  return pieceList[c][Pt];
 }
 
 inline Square Position::ep_square() const {
@@ -331,11 +331,11 @@ inline Bitboard Position::checkers() const {
 }
 
 inline Bitboard Position::discovered_check_candidates() const {
-  return hidden_checkers<false>();
+  return hidden_checkers(king_square(~sideToMove), sideToMove);
 }
 
 inline Bitboard Position::pinned_pieces() const {
-  return hidden_checkers<true>();
+  return hidden_checkers(king_square(sideToMove), ~sideToMove);
 }
 
 inline bool Position::pawn_is_passed(Color c, Square s) const {
