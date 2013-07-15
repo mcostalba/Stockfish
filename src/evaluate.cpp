@@ -168,9 +168,10 @@ namespace {
   const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
-  const Score RookOnPawn       = make_score(15, 25);
+  const Score RookOnPawn       = make_score(10, 28);
   const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
+  const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -199,7 +200,7 @@ namespace {
   // is used as an index to KingDanger[].
   //
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[] = { 0, 0, 3, 2, 3, 5 };
+  const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
   const int QueenContactCheck = 6;
@@ -207,6 +208,7 @@ namespace {
   const int QueenCheck        = 3;
   const int RookCheck         = 2;
   const int BishopCheck       = 1;
+  const int KnightCheck       = 1;
 
   // KingExposed[Square] contains penalties based on the position of the
   // defending king, indexed by king's square (from white's point of view).
@@ -507,7 +509,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
 
-        int mob = popcount<Piece == QUEEN ? Full : Max15>(b & mobilityArea);
+        int mob = Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
+                                 : popcount<Full >(b & mobilityArea);
+
         mobility += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -528,7 +532,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
         // Bishop and knight outposts squares
         if (    (Piece == BISHOP || Piece == KNIGHT)
-            && !(pos.pieces(Them, PAWN) & attack_span_mask(Us, s)))
+            && !(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
             score += evaluate_outposts<Piece, Us>(pos, ei, s);
 
         if (  (Piece == ROOK || Piece == QUEEN)
@@ -548,11 +552,11 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // Special extra evaluation for rooks
         if (Piece == ROOK)
         {
-            // Give a bonus for a rook on a open file
-            if (ei.pi->semiopen(Us, file_of(s)) && ei.pi->semiopen(Them, file_of(s)))
-                score += RookOpenFile;
+            // Give a bonus for a rook on a open or semi-open file
+            if (ei.pi->semiopen(Us, file_of(s)))
+                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 6 || ei.pi->semiopen(Us, file_of(s)))
+            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
 
             Square ksq = pos.king_square(Us);
@@ -749,6 +753,11 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (b)
             attackUnits += BishopCheck * popcount<Max15>(b);
 
+        // Enemy knights safe checks
+        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
+        if (b)
+            attackUnits += KnightCheck * popcount<Max15>(b);
+
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(99, std::max(0, attackUnits));
 
@@ -814,7 +823,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
                 // the squares in the pawn's path attacked or occupied by the enemy.
-                if (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s))
+                if (   (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN)) // Unlikely
+                    && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
                     unsafeSquares = squaresToQueen;
                 else
                     unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
@@ -982,7 +992,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             // black pawns: a4, b4 white: b2 then pawn in b4 is giving support.
             if (!opposed)
             {
-                b2 = supporters & in_front_bb(winnerSide, blockSq + pawn_push(winnerSide));
+                b2 = supporters & in_front_bb(winnerSide, rank_of(blockSq + pawn_push(winnerSide)));
 
                 while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
                 {
@@ -992,7 +1002,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             }
 
             // Check pawns that can be sacrificed against the blocking pawn
-            b2 = attack_span_mask(winnerSide, blockSq) & candidates & ~(1ULL << s);
+            b2 = pawn_attack_span(winnerSide, blockSq) & candidates & ~(1ULL << s);
 
             while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
             {
@@ -1134,7 +1144,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
-    memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
+    std::memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
 
     Value margin;
     do_evaluate<true>(pos, margin);

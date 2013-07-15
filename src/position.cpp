@@ -163,7 +163,7 @@ void Position::init() {
 
 Position& Position::operator=(const Position& pos) {
 
-  memcpy(this, &pos, sizeof(Position));
+  std::memcpy(this, &pos, sizeof(Position));
   startState = *st;
   st = &startState;
   nodes = 0;
@@ -416,35 +416,27 @@ const string Position::pretty(Move move) const {
 }
 
 
-/// Position:hidden_checkers<>() returns a bitboard of all pinned (against the
-/// king) pieces for the given color. Or, when template parameter FindPinned is
-/// false, the function return the pieces of the given color candidate for a
-/// discovery check against the enemy king.
-template<bool FindPinned>
-Bitboard Position::hidden_checkers() const {
+/// Position:hidden_checkers() returns a bitboard of all pinned / discovery check
+/// pieces, according to the call parameters. Pinned pieces protect our king,
+/// discovery check pieces attack the enemy king.
 
-  // Pinned pieces protect our king, dicovery checks attack the enemy king
-  Bitboard b, result = 0;
-  Bitboard pinners = pieces(FindPinned ? ~sideToMove : sideToMove);
-  Square ksq = king_square(FindPinned ? sideToMove : ~sideToMove);
+Bitboard Position::hidden_checkers(Square ksq, Color c) const {
 
-  // Pinners are sliders, that give check when candidate pinned is removed
-  pinners &=  (pieces(ROOK, QUEEN) & PseudoAttacks[ROOK][ksq])
-            | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq]);
+  Bitboard b, pinners, result = 0;
+
+  // Pinners are sliders that give check when pinned piece is removed
+  pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
+             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(c);
 
   while (pinners)
   {
       b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
 
-      if (b && !more_than_one(b) && (b & pieces(sideToMove)))
-          result |= b;
+      if (!more_than_one(b))
+          result |= b & pieces(sideToMove);
   }
   return result;
 }
-
-// Explicit template instantiations
-template Bitboard Position::hidden_checkers<true>() const;
-template Bitboard Position::hidden_checkers<false>() const;
 
 
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
@@ -730,7 +722,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   // Copy some fields of old state to our new StateInfo object except the ones
   // which are going to be recalculated from scratch anyway, then switch our state
   // pointer to point to the new, ready to be updated, state.
-  memcpy(&newSt, st, StateCopySize64 * sizeof(uint64_t));
+  std::memcpy(&newSt, st, StateCopySize64 * sizeof(uint64_t));
 
   newSt.previous = st;
   st = &newSt;
@@ -1097,7 +1089,7 @@ void Position::do_null_move(StateInfo& newSt) {
 
   assert(!checkers());
 
-  memcpy(&newSt, st, sizeof(StateInfo)); // Fully copy here
+  std::memcpy(&newSt, st, sizeof(StateInfo)); // Fully copy here
 
   newSt.previous = st;
   st = &newSt;
@@ -1247,7 +1239,7 @@ int Position::see(Move m, int asymmThreshold) const {
 
 void Position::clear() {
 
-  memset(this, 0, sizeof(Position));
+  std::memset(this, 0, sizeof(Position));
   startState.epSquare = SQ_NONE;
   st = &startState;
 
