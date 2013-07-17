@@ -165,7 +165,7 @@ namespace {
   #undef S
 
   const Score Tempo            = make_score(24, 11);
-  const Score BishopPin        = make_score( 0,  0);
+  const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
@@ -823,7 +823,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
                 // the squares in the pawn's path attacked or occupied by the enemy.
-                if (   (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN)) // Unlikely
+                if (    unlikely(forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN))
                     && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
                     unsafeSquares = squaresToQueen;
                 else
