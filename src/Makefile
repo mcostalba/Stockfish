@@ -447,8 +447,8 @@ profile-build:
 embed-signature:
 	@echo "Running benchmark for getting the signature ..."
 	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\1/p' > sign.txt
-	@sed -i -e 's,^,/static const string Version/s/"\\(.*\\)"/"sig-,1' -e 's,$$,"/1,1' sign.txt
-	@sed -i -f sign.txt misc.cpp
+	@sed -e 's,^,/static const string Version/s/"\\(.*\\)"/"sig-,1' -e 's,$$,"/1,1' -i sign.txt
+	@sed -f sign.txt -i misc.cpp
 	@rm sign.txt
 
 signature-build: build embed-signature
