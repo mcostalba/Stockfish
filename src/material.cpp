@@ -254,7 +254,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // Compute the space weight
-  if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
+  if (e->gamePhase > PHASE_MIDGAME  - 40)
   {
       int minorPieceCount =  pos.count<KNIGHT>(WHITE) + pos.count<BISHOP>(WHITE)
               + pos.count<KNIGHT>(BLACK) + pos.count<BISHOP>(BLACK);
