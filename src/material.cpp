@@ -255,12 +255,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 
   // Compute the space weight
   if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
-  {
-      int minorPieceCount =  pos.count<KNIGHT>(WHITE) + pos.count<BISHOP>(WHITE)
-                           + pos.count<KNIGHT>(BLACK) + pos.count<BISHOP>(BLACK);
-
-      e->spaceWeight = make_score(minorPieceCount * minorPieceCount, 0);
-  }
+      e->spaceWeight = make_score((npm_w + npm_b) / BishopValueMg, 0);
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", this allow us to be more flexible
