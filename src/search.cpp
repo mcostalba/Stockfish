@@ -623,7 +623,7 @@ namespace {
         Gains.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
-    // Step 6. Razoring (is omitted in PV nodes)
+    // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin(depth) < beta
@@ -639,7 +639,7 @@ namespace {
             return v;
     }
 
-    // Step 7. Static null move pruning (is omitted in PV nodes)
+    // Step 7. Static null move pruning (skipped when in check)
     // We're betting that the opponent doesn't have a move that will reduce
     // the score by more than futility_margin(depth) if we do a null move.
     if (   !PvNode
@@ -710,7 +710,7 @@ namespace {
         }
     }
 
-    // Step 9. ProbCut (is omitted in PV nodes)
+    // Step 9. ProbCut (skipped when in check)
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
@@ -741,7 +741,7 @@ namespace {
             }
     }
 
-    // Step 10. Internal iterative deepening
+    // Step 10. Internal iterative deepening (skipped when in check)
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
         && (PvNode || ss->staticEval + Value(256) >= beta))
@@ -1454,7 +1454,7 @@ moves_loop: // When in check and at SpNode search starts from here
                        | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
         // Verify attackers are triggered by our move and not already existing
-        if (xray && (xray ^ (xray & pos.attacks_from<QUEEN>(m2to))))
+        if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
             return true;
     }
 
