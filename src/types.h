@@ -48,6 +48,8 @@
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
 #endif
 
+#define unlikely(x) (x) // For code annotation purposes
+
 #if defined(_WIN64) && !defined(IS_64BIT)
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
 #  define IS_64BIT
@@ -311,12 +313,12 @@ inline Score operator/(Score s, int i) {
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
-struct MoveStack {
+struct ExtMove {
   Move move;
   int score;
 };
 
-inline bool operator<(const MoveStack& f, const MoveStack& s) {
+inline bool operator<(const ExtMove& f, const ExtMove& s) {
   return f.score < s.score;
 }
 

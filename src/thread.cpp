@@ -357,7 +357,7 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
       assert(!states.get());
   }
 
-  for (const MoveStack& ms : MoveList<LEGAL>(pos))
+  for (const ExtMove& ms : MoveList<LEGAL>(pos))
       if (   searchMoves.empty()
           || std::count(searchMoves.begin(), searchMoves.end(), ms.move))
           RootMoves.push_back(RootMove(ms.move));

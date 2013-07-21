@@ -436,7 +436,7 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
       move = make<PROMOTION>(from_sq(move), to_sq(move), PieceType(pt + 1));
 
   // Add 'special move' flags and verify it is legal
-  for (const MoveStack& ms : MoveList<LEGAL>(pos))
+  for (const ExtMove& ms : MoveList<LEGAL>(pos))
       if (move == (ms.move ^ type_of(ms.move)))
           return ms.move;
 
