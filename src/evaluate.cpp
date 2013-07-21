@@ -372,7 +372,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   if (ei.mi->space_weight())
   {
       int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
-      score += apply_weight(make_score(s * ei.mi->space_weight(), 0), Weights[Space]);
+      score += apply_weight(s * ei.mi->space_weight(), Weights[Space]);
   }
 
   // Scale winning side if position is more drawish that what it appears
@@ -410,8 +410,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
       Tracing::add(IMBALANCE, ei.mi->material_value());
       Tracing::add(PAWN, ei.pi->pawns_value());
       Tracing::add(UNSTOPPABLE, evaluate_unstoppable_pawns(pos, ei));
-      Score w = make_score(ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei), 0);
-      Score b = make_score(ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei), 0);
+      Score w = ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei);
+      Score b = ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei);
       Tracing::add(SPACE, apply_weight(w, Weights[Space]), apply_weight(b, Weights[Space]));
       Tracing::add(TOTAL, score);
       Tracing::stream << "\nUncertainty margin: White: " << to_cp(margins[WHITE])
@@ -767,7 +767,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // be very big, and so capturing a single attacking piece can therefore
         // result in a score change far bigger than the value of the captured piece.
         score -= KingDanger[Us == Search::RootColor][attackUnits];
-        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]);
+        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]) / 2;
     }
 
     if (Trace)
