@@ -372,7 +372,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   if (ei.mi->space_weight())
   {
       int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
-      score += apply_weight(make_score(s * ei.mi->space_weight(), 0), Weights[Space]);
+      score += apply_weight(s * ei.mi->space_weight(), Weights[Space]);
   }
 
   // Scale winning side if position is more drawish that what it appears
@@ -410,8 +410,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
       Tracing::add(IMBALANCE, ei.mi->material_value());
       Tracing::add(PAWN, ei.pi->pawns_value());
       Tracing::add(UNSTOPPABLE, evaluate_unstoppable_pawns(pos, ei));
-      Score w = make_score(ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei), 0);
-      Score b = make_score(ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei), 0);
+      Score w = ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei);
+      Score b = ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei);
       Tracing::add(SPACE, apply_weight(w, Weights[Space]), apply_weight(b, Weights[Space]));
       Tracing::add(TOTAL, score);
       Tracing::stream << "\nUncertainty margin: White: " << to_cp(margins[WHITE])
@@ -509,7 +509,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
 
-        int mob = popcount<Piece == QUEEN ? Full : Max15>(b & mobilityArea);
+        int mob = Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
+                                 : popcount<Full >(b & mobilityArea);
+
         mobility += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -554,7 +556,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (ei.pi->semiopen(Us, file_of(s)))
                 score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 6 || ei.pi->semiopen(Us, file_of(s)))
+            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
 
             Square ksq = pos.king_square(Us);
@@ -765,7 +767,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // be very big, and so capturing a single attacking piece can therefore
         // result in a score change far bigger than the value of the captured piece.
         score -= KingDanger[Us == Search::RootColor][attackUnits];
-        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]);
+        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]) / 2;
     }
 
     if (Trace)
@@ -821,7 +823,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
                 // the squares in the pawn's path attacked or occupied by the enemy.
-                if (   (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN)) // Unlikely
+                if (    unlikely(forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN))
                     && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
                     unsafeSquares = squaresToQueen;
                 else
@@ -1142,7 +1144,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
-    memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
+    std::memset(scores, 0, 2 * (TOTAL + 1) * sizeof(Score));
 
     Value margin;
     do_evaluate<true>(pos, margin);

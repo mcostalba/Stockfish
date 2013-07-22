@@ -298,7 +298,7 @@ namespace {
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
-    memset(ss-1, 0, 4 * sizeof(Stack));
+    std::memset(ss-1, 0, 4 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = BestMoveChanges = 0;
@@ -367,6 +367,12 @@ namespace {
                 if (Signals.stop)
                     return;
 
+                // When failing high/low give some update (without cluttering
+                // the UI) before to research.
+                if (  (bestValue <= alpha || bestValue >= beta)
+                    && Time::now() - SearchTime > 3000)
+                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+
                 // In case of failing low/high increase aspiration window and
                 // research, otherwise exit the loop.
                 if (bestValue <= alpha)
@@ -385,10 +391,6 @@ namespace {
                 delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
-
-                // Give some update (without cluttering the UI) before to research
-                if (Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
             }
 
             // Sort the PV lines searched so far and update the GUI
@@ -500,7 +502,6 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
-    moveCount = quietCount = 0;
     inCheck = pos.checkers();
 
     if (SpNode)
@@ -518,6 +519,7 @@ namespace {
         goto moves_loop;
     }
 
+    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -621,7 +623,7 @@ namespace {
         Gains.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
-    // Step 6. Razoring (is omitted in PV nodes)
+    // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin(depth) < beta
@@ -637,7 +639,7 @@ namespace {
             return v;
     }
 
-    // Step 7. Static null move pruning (is omitted in PV nodes)
+    // Step 7. Static null move pruning (skipped when in check)
     // We're betting that the opponent doesn't have a move that will reduce
     // the score by more than futility_margin(depth) if we do a null move.
     if (   !PvNode
@@ -708,7 +710,7 @@ namespace {
         }
     }
 
-    // Step 9. ProbCut (is omitted in PV nodes)
+    // Step 9. ProbCut (skipped when in check)
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
@@ -739,7 +741,7 @@ namespace {
             }
     }
 
-    // Step 10. Internal iterative deepening
+    // Step 10. Internal iterative deepening (skipped when in check)
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
         && (PvNode || ss->staticEval + Value(256) >= beta))
@@ -1124,7 +1126,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, enoughMaterial, evasionPrunable;
+    bool givesCheck, evasionPrunable;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1166,7 +1168,6 @@ moves_loop: // When in check and at SpNode search starts from here
     {
         ss->staticEval = ss->evalMargin = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
-        enoughMaterial = false;
     }
     else
     {
@@ -1194,7 +1195,6 @@ moves_loop: // When in check and at SpNode search starts from here
             alpha = bestValue;
 
         futilityBase = ss->staticEval + ss->evalMargin + Value(128);
-        enoughMaterial = pos.non_pawn_material(pos.side_to_move()) > RookValueMg;
     }
 
     // Initialize a MovePicker object for the current position, and prepare
@@ -1216,7 +1216,6 @@ moves_loop: // When in check and at SpNode search starts from here
           && !InCheck
           && !givesCheck
           &&  move != ttMove
-          &&  enoughMaterial
           &&  type_of(move) != PROMOTION
           && !pos.is_passed_pawn_push(move))
       {
@@ -1241,8 +1240,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // Detect non-capture evasions that are candidate to be pruned
-      evasionPrunable =   !PvNode
-                       &&  InCheck
+      evasionPrunable =    InCheck
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.is_capture(move)
                        && !pos.can_castle(pos.side_to_move());
@@ -1456,7 +1454,7 @@ moves_loop: // When in check and at SpNode search starts from here
                        | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
         // Verify attackers are triggered by our move and not already existing
-        if (xray && (xray ^ (xray & pos.attacks_from<QUEEN>(m2to))))
+        if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
             return true;
     }
 
@@ -1667,6 +1665,7 @@ void Thread::idle_loop() {
           Threads.mutex.lock();
 
           assert(searching);
+          assert(activeSplitPoint);
           SplitPoint* sp = activeSplitPoint;
 
           Threads.mutex.unlock();
@@ -1674,7 +1673,7 @@ void Thread::idle_loop() {
           Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
           Position pos(*sp->pos, this);
 
-          memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
+          std::memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
           ss->splitPoint = sp;
 
           sp->mutex.lock();
