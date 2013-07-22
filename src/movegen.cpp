@@ -59,7 +59,7 @@ namespace {
     if (Chess960 && (pos.attackers_to(kto, pos.pieces() ^ rfrom) & enemies))
         return mlist;
 
-    (*mlist++).move = make<CASTLE>(kfrom, rfrom);
+    (mlist++)->move = make<CASTLE>(kfrom, rfrom);
 
     if (Checks && !pos.move_gives_check((mlist - 1)->move, CheckInfo(pos)))
         mlist--;
