@@ -18,7 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(BITBOARD_H_INCLUDED)
+#ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
 #include "types.h"
@@ -319,4 +319,4 @@ extern Square pop_lsb(Bitboard* b);
 
 #endif
 
-#endif // !defined(BITBOARD_H_INCLUDED)
+#endif // #ifndef BITBOARD_H_INCLUDED

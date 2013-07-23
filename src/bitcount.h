@@ -18,7 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(BITCOUNT_H_INCLUDED)
+#ifndef BITCOUNT_H_INCLUDED
 #define BITCOUNT_H_INCLUDED
 
 #include <cassert>
@@ -102,4 +102,4 @@ inline int popcount<CNT_HW_POPCNT>(Bitboard b) {
 #endif
 }
 
-#endif // !defined(BITCOUNT_H_INCLUDED)
+#endif // #ifndef BITCOUNT_H_INCLUDED

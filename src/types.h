@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(TYPES_H_INCLUDED)
+#ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
 /// For Linux and OSX configuration is done automatically using Makefile. To get
@@ -440,4 +440,4 @@ inline const std::string square_to_string(Square s) {
   return ch;
 }
 
-#endif // !defined(TYPES_H_INCLUDED)
+#endif // #ifndef TYPES_H_INCLUDED

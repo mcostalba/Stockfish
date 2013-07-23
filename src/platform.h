@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(PLATFORM_H_INCLUDED)
+#ifndef PLATFORM_H_INCLUDED
 #define PLATFORM_H_INCLUDED
 
 #if defined(_MSC_VER)
@@ -110,4 +110,4 @@ inline DWORD* dwWin9xKludge() { static DWORD dw; return &dw; }
 
 #endif
 
-#endif // !defined(PLATFORM_H_INCLUDED)
+#endif // #ifndef PLATFORM_H_INCLUDED
