@@ -862,7 +862,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= (worsening ? FutilityMoveCounts[depth] / 2 : FutilityMoveCounts[depth])
+              && moveCount >= (worsening ? 3 * FutilityMoveCounts[depth] / 4 : FutilityMoveCounts[depth])
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
