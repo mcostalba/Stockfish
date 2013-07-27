@@ -66,7 +66,7 @@ namespace {
 
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
-  int FutilityMoveCounts[2][32]; // [worsening][depth]
+  int FutilityMoveCounts[2][32]; // [improving][depth]
 
   inline Value futility_margin(Depth d, int mn) {
 
@@ -147,9 +147,9 @@ void Search::init() {
   // Init futility move count array
   for (d = 0; d < 32; d++)
   {
-      FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
-      FutilityMoveCounts[1][d] = d < 5 ? FutilityMoveCounts[0][d]
-                                       : 3 * FutilityMoveCounts[0][d] / 4;
+      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+      FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
+                                       : 3 * FutilityMoveCounts[1][d] / 4;
       /*
       if (!(d & 1))
           sync_cout << "d: " << d / 2
@@ -506,7 +506,7 @@ namespace {
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
-    bool inCheck, givesCheck, pvMove, singularExtensionNode, worsening;
+    bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, quietCount;
 
@@ -775,7 +775,7 @@ moves_loop: // When in check and at SpNode search starts from here
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    worsening = !RootNode && ss->staticEval < (ss-2)->staticEval;
+    improving = !RootNode && ss->staticEval >= (ss-2)->staticEval;
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
@@ -872,7 +872,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[worsening][depth]
+              && moveCount >= FutilityMoveCounts[improving][depth]
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
