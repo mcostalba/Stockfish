@@ -503,6 +503,7 @@ namespace {
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
+    moveCount = quietCount = 0;
 
     if (SpNode)
     {
@@ -519,7 +520,6 @@ namespace {
         goto moves_loop;
     }
 
-    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -765,7 +765,7 @@ moves_loop: // When in check and at SpNode search starts from here
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    worsening = ss->staticEval < (ss-2)->staticEval;
+    worsening = !SpNode && ss->staticEval < (ss-2)->staticEval;
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
@@ -862,7 +862,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= (worsening ? 3 * FutilityMoveCounts[depth] / 4 : FutilityMoveCounts[depth])
+              && moveCount >= FutilityMoveCounts[depth] - (worsening ? quietCount : 0)
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
