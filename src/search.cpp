@@ -148,7 +148,14 @@ void Search::init() {
   for (d = 0; d < 32; d++)
   {
       FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
-      FutilityMoveCounts[1][d] = 3 * FutilityMoveCounts[0][d] / 4;
+      FutilityMoveCounts[1][d] = d < 5 ? FutilityMoveCounts[0][d]
+                                       : 3 * FutilityMoveCounts[0][d] / 4;
+      /*
+      if (!(d & 1))
+          sync_cout << "d: " << d / 2
+                    << ", fm0: " << FutilityMoveCounts[0][d]
+                    << ", fm1: " << FutilityMoveCounts[1][d] << sync_endl;
+      */
   }
 }
 
