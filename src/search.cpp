@@ -66,7 +66,7 @@ namespace {
 
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
-  int FutilityMoveCounts[32];    // [depth]
+  int FutilityMoveCounts[2][32]; // [worsening][depth]
 
   inline Value futility_margin(Depth d, int mn) {
 
@@ -146,7 +146,10 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+  {
+      FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+      FutilityMoveCounts[1][d] = 3 * FutilityMoveCounts[0][d] / 4;
+  }
 }
 
 
@@ -503,7 +506,6 @@ namespace {
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
-    moveCount = quietCount = 0;
 
     if (SpNode)
     {
@@ -520,6 +522,7 @@ namespace {
         goto moves_loop;
     }
 
+    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -765,7 +768,7 @@ moves_loop: // When in check and at SpNode search starts from here
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    worsening = !SpNode && ss->staticEval < (ss-2)->staticEval;
+    worsening = !RootNode && ss->staticEval < (ss-2)->staticEval;
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
@@ -862,7 +865,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[depth] - (worsening ? quietCount : 0)
+              && moveCount >= FutilityMoveCounts[worsening][depth]
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
