@@ -150,12 +150,6 @@ void Search::init() {
       FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
       FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
                                        : 3 * FutilityMoveCounts[1][d] / 4;
-      /*
-      if (!(d & 1))
-          sync_cout << "d: " << d / 2
-                    << ", fm0: " << FutilityMoveCounts[0][d]
-                    << ", fm1: " << FutilityMoveCounts[1][d] << sync_endl;
-      */
   }
 }
 
@@ -775,7 +769,7 @@ moves_loop: // When in check and at SpNode search starts from here
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    improving = ss->staticEval > (ss-2)->staticEval;
+    improving = ss->staticEval >= (ss-2)->staticEval;
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
