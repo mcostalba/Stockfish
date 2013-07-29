@@ -165,6 +165,9 @@ void MovePicker::score<CAPTURES>() {
       it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
                  - type_of(pos.piece_moved(m));
 
+      if (type_of(pos.piece_moved(m)) < type_of(pos.piece_on(to_sq(m))))
+          it->score *= 2;
+
       if (type_of(m) == PROMOTION)
           it->score += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
 
