@@ -153,7 +153,8 @@ namespace {
     { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
     { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BISHOP
     { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
-    { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
+    { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }, // QUEEN
+    { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S(15, 39) }  // KING
   };
 
   // ThreatenedByPawn[PieceType] contains a penalty according to which piece
@@ -616,10 +617,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
                  & ei.attackedBy[Us][ALL_PIECES];
 
     // Add bonus according to type of attacked enemy piece and to the
-    // type of attacking piece, from knights to queens. Kings are not
-    // considered because are already handled in king evaluation.
+    // type of attacking piece, from knight to king.
     if (weakEnemies)
-        for (PieceType pt1 = KNIGHT; pt1 < KING; pt1++)
+        for (PieceType pt1 = KNIGHT; pt1 <= KING; pt1++)
         {
             b = ei.attackedBy[Us][pt1] & weakEnemies;
             if (b)
