@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(TYPES_H_INCLUDED)
+#ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
 /// For Linux and OSX configuration is done automatically using Makefile. To get
@@ -71,7 +71,7 @@
 #  define CACHE_LINE_ALIGNMENT  __attribute__ ((aligned(CACHE_LINE_SIZE)))
 #endif
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #  define FORCE_INLINE  __forceinline
 #elif defined(__GNUC__)
 #  define FORCE_INLINE  inline __attribute__((always_inline))
@@ -79,13 +79,13 @@
 #  define FORCE_INLINE  inline
 #endif
 
-#if defined(USE_POPCNT)
+#ifdef USE_POPCNT
 const bool HasPopCnt = true;
 #else
 const bool HasPopCnt = false;
 #endif
 
-#if defined(IS_64BIT)
+#ifdef IS_64BIT
 const bool Is64Bit = true;
 #else
 const bool Is64Bit = false;
@@ -96,7 +96,7 @@ typedef uint64_t Bitboard;
 
 const int MAX_MOVES      = 192;
 const int MAX_PLY        = 100;
-const int MAX_PLY_PLUS_2 = MAX_PLY + 2;
+const int MAX_PLY_PLUS_3 = MAX_PLY + 3;
 
 /// A move needs 16 bits to be stored
 ///
@@ -439,4 +439,4 @@ inline const std::string square_to_string(Square s) {
   return { file_to_char(file_of(s)), rank_to_char(rank_of(s)) };
 }
 
-#endif // !defined(TYPES_H_INCLUDED)
+#endif // #ifndef TYPES_H_INCLUDED

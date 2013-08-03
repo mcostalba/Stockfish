@@ -468,7 +468,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     if (bonus && (ei.attackedBy[Us][PAWN] & s))
     {
         if (   !pos.pieces(Them, KNIGHT)
-            && !(same_color_squares(s) & pos.pieces(Them, BISHOP)))
+            && !(squares_of_color(s) & pos.pieces(Them, BISHOP)))
             bonus += bonus + bonus / 2;
         else
             bonus += bonus / 2;
@@ -767,7 +767,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
         // be very big, and so capturing a single attacking piece can therefore
         // result in a score change far bigger than the value of the captured piece.
         score -= KingDanger[Us == Search::RootColor][attackUnits];
-        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]) / 2;
+        margins[Us] += mg_value(KingDanger[Us == Search::RootColor][attackUnits]);
     }
 
     if (Trace)

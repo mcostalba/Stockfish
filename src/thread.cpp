@@ -29,28 +29,54 @@ using namespace Search;
 
 ThreadPool Threads; // Global object
 
+namespace {
 
-// Thread c'tor starts a newly-created thread of execution that will call
-// the the virtual function idle_loop(), going immediately to sleep.
+ // Helpers to launch a thread after creation and joining before delete. Must be
+ // outside Thread c'tor and d'tor because object shall be fully initialized
+ // when virtual idle_loop() is called and when joining.
+ template<typename T> T* new_thread() {
+   T* th = new T();
+   th->nativeThread = std::thread(&ThreadBase::idle_loop, th); // Will go to sleep
+   return th;
+ }
+
+ void delete_thread(ThreadBase* th) {
+   th->exit = true; // Search must be already finished
+   th->notify_one();
+   th->nativeThread.join(); // Wait for thread termination
+   delete th;
+ }
+
+}
+
+// ThreadBase::notify_one() wakes up the thread when there is some search to do
+
+void ThreadBase::notify_one() {
+
+  std::lock_guard<std::mutex>(this->mutex);
+  sleepCondition.notify_one();
+}
+
+
+// ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
+
+void ThreadBase::wait_for(volatile const bool& b) {
+
+  std::unique_lock<std::mutex> lk(mutex);
+  sleepCondition.wait(lk, [&]{ return b; });
+}
+
+
+// Thread c'tor just inits data but does not launch any thread of execution that
+// instead will be started only upon c'tor returns.
 
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
-  searching = exit = false;
+  searching = false;
   maxPly = splitPointsSize = 0;
   activeSplitPoint = nullptr;
   activePosition = nullptr;
   idx = Threads.size();
-  nativeThread = std::thread(&Thread::idle_loop, this);
-}
-
-
-// Thread d'tor waits for thread termination before to return
-
-Thread::~Thread() {
-
-  exit = true; // Search must be already finished
-  notify_one();
-  nativeThread.join(); // Wait for thread termination
 }
 
 
@@ -65,7 +91,7 @@ void TimerThread::idle_loop() {
       std::unique_lock<std::mutex> lk(mutex);
 
       if (!exit)
-          sleepCondition.wait_for(lk, std::chrono::milliseconds(maxPly ? maxPly : INT_MAX));
+          sleepCondition.wait_for(lk, std::chrono::milliseconds(msec ? msec : INT_MAX));
 
       lk.unlock();
 
@@ -105,24 +131,6 @@ void MainThread::idle_loop() {
 
       searching = false;
   }
-}
-
-
-// Thread::notify_one() wakes up the thread when there is some search to do
-
-void Thread::notify_one() {
-
-  std::lock_guard<std::mutex>(this->mutex);
-  sleepCondition.notify_one();
-}
-
-
-// Thread::wait_for() set the thread to sleep until condition 'b' turns true
-
-void Thread::wait_for(volatile const bool& b) {
-
-  std::unique_lock<std::mutex> lk(mutex);
-  sleepCondition.wait(lk, [&]{ return b; });
 }
 
 
@@ -169,8 +177,8 @@ bool Thread::is_available_to(Thread* master) const {
 void ThreadPool::init() {
 
   sleepWhileIdle = true;
-  timer = new TimerThread();
-  push_back(new MainThread());
+  timer = new_thread<TimerThread>();
+  push_back(new_thread<MainThread>());
   read_uci_options();
 }
 
@@ -179,10 +187,10 @@ void ThreadPool::init() {
 
 void ThreadPool::exit() {
 
-  delete timer; // As first because check_time() accesses threads data
+  delete_thread(timer); // As first because check_time() accesses threads data
 
   for (Thread* th : *this)
-      delete th;
+      delete_thread(th);
 }
 
 
@@ -199,12 +207,19 @@ void ThreadPool::read_uci_options() {
 
   assert(requested > 0);
 
+  // Value 0 has a special meaning: We determine the optimal minimum split depth
+  // automatically. Anyhow the minimumSplitDepth should never be under 4 plies.
+  if (!minimumSplitDepth)
+      minimumSplitDepth = (requested < 8 ? 4 : 7) * ONE_PLY;
+  else
+      minimumSplitDepth = std::max(4 * ONE_PLY, minimumSplitDepth);
+
   while (size() < requested)
-      push_back(new Thread());
+      push_back(new_thread<Thread>());
 
   while (size() > requested)
   {
-      delete back();
+      delete_thread(back());
       pop_back();
   }
 }
@@ -331,8 +346,8 @@ template void Thread::split< true>(Position&, Stack*, Value, Value, Value*, Move
 
 void ThreadPool::wait_for_think_finished() {
 
-  std::unique_lock<std::mutex> lk(main_thread()->mutex);
-  sleepCondition.wait(lk, [&]{ return !main_thread()->thinking; });
+  std::unique_lock<std::mutex> lk(main()->mutex);
+  sleepCondition.wait(lk, [&]{ return !main()->thinking; });
 }
 
 
@@ -362,6 +377,6 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
           || std::count(searchMoves.begin(), searchMoves.end(), ms.move))
           RootMoves.push_back(RootMove(ms.move));
 
-  main_thread()->thinking = true;
-  main_thread()->notify_one(); // Starts main thread
+  main()->thinking = true;
+  main()->notify_one(); // Starts main thread
 }

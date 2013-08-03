@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(PAWNS_H_INCLUDED)
+#ifndef PAWNS_H_INCLUDED
 #define PAWNS_H_INCLUDED
 
 #include "misc.h"
@@ -37,7 +37,7 @@ struct Entry {
   Score pawns_value() const { return value; }
   Bitboard pawn_attacks(Color c) const { return pawnAttacks[c]; }
   Bitboard passed_pawns(Color c) const { return passedPawns[c]; }
-  int pawns_on_same_color_squares(Color c, Square s) const { return pawnsOnSquares[c][!!(BlackSquares & s)]; }
+  int pawns_on_same_color_squares(Color c, Square s) const { return pawnsOnSquares[c][!!(DarkSquares & s)]; }
   int semiopen(Color c, File f) const { return semiopenFiles[c] & (1 << int(f)); }
   int semiopen_on_side(Color c, File f, bool left) const {
 
@@ -75,4 +75,4 @@ Entry* probe(const Position& pos, Table& entries);
 
 }
 
-#endif // !defined(PAWNS_H_INCLUDED)
+#endif // #ifndef PAWNS_H_INCLUDED

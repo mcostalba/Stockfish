@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(ENDGAME_H_INCLUDED)
+#ifndef ENDGAME_H_INCLUDED
 #define ENDGAME_H_INCLUDED
 
 #include <map>
@@ -36,6 +36,10 @@ enum EndgameType {
 
   // Evaluation functions
 
+  KK,    // K vs K
+  KBK,   // KB vs K
+  KNK,   // KN vs K
+  KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
   KPK,   // KP vs K
@@ -45,7 +49,6 @@ enum EndgameType {
   KQKP,  // KQ vs KP
   KQKR,  // KQ vs KR
   KBBKN, // KBB vs KN
-  KNNK,  // KNN vs K
   KmmKm, // K and two minors vs K and one or two minors
 
 
@@ -117,4 +120,4 @@ public:
   { return *eg = map<T>().count(key) ? map<T>()[key].get() : nullptr; }
 };
 
-#endif // !defined(ENDGAME_H_INCLUDED)
+#endif // #ifndef ENDGAME_H_INCLUDED

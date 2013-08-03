@@ -170,7 +170,7 @@ void start_logger(bool b) { Logger::start(b); }
 /// prefetch() preloads the given address in L1/L2 cache. This is a non
 /// blocking function and do not stalls the CPU waiting for data to be
 /// loaded from memory, that can be quite slow.
-#if defined(NO_PREFETCH)
+#ifdef NO_PREFETCH
 
 void prefetch(char*) {}
 
