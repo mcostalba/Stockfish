@@ -53,7 +53,7 @@ namespace {
 
 void ThreadBase::notify_one() {
 
-  std::lock_guard<std::mutex>(this->mutex);
+  std::unique_lock<std::mutex>(this->mutex);
   sleepCondition.notify_one();
 }
 
