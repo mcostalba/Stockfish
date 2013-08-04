@@ -19,7 +19,6 @@
 
 #include <algorithm> // For std::count
 #include <cassert>
-#include <iostream>
 
 #include "movegen.h"
 #include "search.h"
@@ -30,42 +29,64 @@ using namespace Search;
 
 ThreadPool Threads; // Global object
 
-namespace { extern "C" {
+namespace {
 
  // start_routine() is the C function which is called when a new thread
  // is launched. It is a wrapper to the virtual function idle_loop().
 
- long start_routine(Thread* th) { th->idle_loop(); return 0; }
-
-} }
+ extern "C" { long start_routine(ThreadBase* th) { th->idle_loop(); return 0; } }
 
 
-// Thread c'tor starts a newly-created thread of execution that will call
-// the the virtual function idle_loop(), going immediately to sleep.
+ // Helpers to launch a thread after creation and joining before delete. Must be
+ // outside Thread c'tor and d'tor because object shall be fully initialized
+ // when start_routine (and hence virtual idle_loop) is called and when joining.
+
+ template<typename T> T* new_thread() {
+   T* th = new T();
+   thread_create(th->handle, start_routine, th); // Will go to sleep
+   return th;
+ }
+
+ void delete_thread(ThreadBase* th) {
+   th->exit = true; // Search must be already finished
+   th->notify_one();
+   thread_join(th->handle); // Wait for thread termination
+   delete th;
+ }
+
+}
+
+
+// ThreadBase::notify_one() wakes up the thread when there is some work to do
+
+void ThreadBase::notify_one() {
+
+  mutex.lock();
+  sleepCondition.notify_one();
+  mutex.unlock();
+}
+
+
+// ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
+
+void ThreadBase::wait_for(volatile const bool& b) {
+
+  mutex.lock();
+  while (!b) sleepCondition.wait(mutex);
+  mutex.unlock();
+}
+
+
+// Thread c'tor just inits data but does not launch any thread of execution that
+// instead will be started only upon c'tor returns.
 
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
-  searching = exit = false;
+  searching = false;
   maxPly = splitPointsSize = 0;
   activeSplitPoint = NULL;
   activePosition = NULL;
   idx = Threads.size();
-
-  if (!thread_create(handle, start_routine, this))
-  {
-      std::cerr << "Failed to create thread number " << idx << std::endl;
-      ::exit(EXIT_FAILURE);
-  }
-}
-
-
-// Thread d'tor waits for thread termination before to return
-
-Thread::~Thread() {
-
-  exit = true; // Search must be already finished
-  notify_one();
-  thread_join(handle); // Wait for thread termination
 }
 
 
@@ -123,26 +144,6 @@ void MainThread::idle_loop() {
 }
 
 
-// Thread::notify_one() wakes up the thread when there is some search to do
-
-void Thread::notify_one() {
-
-  mutex.lock();
-  sleepCondition.notify_one();
-  mutex.unlock();
-}
-
-
-// Thread::wait_for() set the thread to sleep until condition 'b' turns true
-
-void Thread::wait_for(volatile const bool& b) {
-
-  mutex.lock();
-  while (!b) sleepCondition.wait(mutex);
-  mutex.unlock();
-}
-
-
 // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
 // current active split point, or in some ancestor of the split point.
 
@@ -186,8 +187,8 @@ bool Thread::is_available_to(Thread* master) const {
 void ThreadPool::init() {
 
   sleepWhileIdle = true;
-  timer = new TimerThread();
-  push_back(new MainThread());
+  timer = new_thread<TimerThread>();
+  push_back(new_thread<MainThread>());
   read_uci_options();
 }
 
@@ -196,10 +197,10 @@ void ThreadPool::init() {
 
 void ThreadPool::exit() {
 
-  delete timer; // As first because check_time() accesses threads data
+  delete_thread(timer); // As first because check_time() accesses threads data
 
   for (iterator it = begin(); it != end(); ++it)
-      delete *it;
+      delete_thread(*it);
 }
 
 
@@ -216,12 +217,19 @@ void ThreadPool::read_uci_options() {
 
   assert(requested > 0);
 
+  // Value 0 has a special meaning: We determine the optimal minimum split depth
+  // automatically. Anyhow the minimumSplitDepth should never be under 4 plies.
+  if (!minimumSplitDepth)
+      minimumSplitDepth = (requested < 8 ? 4 : 7) * ONE_PLY;
+  else
+      minimumSplitDepth = std::max(4 * ONE_PLY, minimumSplitDepth);
+
   while (size() < requested)
-      push_back(new Thread());
+      push_back(new_thread<Thread>());
 
   while (size() > requested)
   {
-      delete back();
+      delete_thread(back());
       pop_back();
   }
 }
@@ -348,7 +356,7 @@ template void Thread::split< true>(Position&, Stack*, Value, Value, Value*, Move
 
 void ThreadPool::wait_for_think_finished() {
 
-  MainThread* t = main_thread();
+  MainThread* t = main();
   t->mutex.lock();
   while (t->thinking) sleepCondition.wait(t->mutex);
   t->mutex.unlock();
@@ -381,6 +389,6 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
           || std::count(searchMoves.begin(), searchMoves.end(), *it))
           RootMoves.push_back(RootMove(*it));
 
-  main_thread()->thinking = true;
-  main_thread()->notify_one(); // Starts main thread
+  main()->thinking = true;
+  main()->notify_one(); // Starts main thread
 }

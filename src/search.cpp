@@ -148,8 +148,8 @@ void Search::init() {
   for (d = 0; d < 32; d++)
   {
       FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
-      FutilityMoveCounts[0][d] = d >= 5 ? int(0.85 * FutilityMoveCounts[1][d])
-                                        : FutilityMoveCounts[1][d];
+      FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
+                                       : 3 * FutilityMoveCounts[1][d] / 4;
   }
 }
 
@@ -809,7 +809,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           Signals.firstRootMove = (moveCount == 1);
 
-          if (thisThread == Threads.main_thread() && Time::now() - SearchTime > 3000)
+          if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
               sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;

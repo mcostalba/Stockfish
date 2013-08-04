@@ -232,7 +232,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 
       else if ((p = PieceToChar.find(token)) != string::npos)
       {
-          put_piece(Piece(p), sq);
+          put_piece(sq, color_of(Piece(p)), type_of(Piece(p)));
           sq++;
       }
   }
@@ -392,15 +392,17 @@ const string Position::pretty(Move move) const {
 
   string brd = twoRows + twoRows + twoRows + twoRows + dottedLine;
 
+  for (Bitboard b = pieces(); b; )
+  {
+      Square s = pop_lsb(&b);
+      brd[513 - 68 * rank_of(s) + 4 * file_of(s)] = PieceToChar[piece_on(s)];
+  }
+
   std::ostringstream ss;
 
   if (move)
       ss << "\nMove: " << (sideToMove == BLACK ? ".." : "")
          << move_to_san(*const_cast<Position*>(this), move);
-
-  for (Square sq = SQ_A1; sq <= SQ_H8; sq++)
-      if (piece_on(sq) != NO_PIECE)
-          brd[513 - 68*rank_of(sq) + 4*file_of(sq)] = PieceToChar[piece_on(sq)];
 
   ss << brd << "\nFen: " << fen() << "\nKey: " << std::hex << std::uppercase
      << std::setfill('0') << std::setw(16) << st->key << "\nCheckers: ";
@@ -790,22 +792,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       else
           st->npMaterial[them] -= PieceValue[MG][capture];
 
-      // Remove the captured piece
-      byTypeBB[ALL_PIECES] ^= capsq;
-      byTypeBB[capture] ^= capsq;
-      byColorBB[them] ^= capsq;
-
-      // Update piece list, move the last piece at index[capsq] position and
-      // shrink the list.
-      //
-      // WARNING: This is a not reversible operation. When we will reinsert the
-      // captured piece in undo_move() we will put it at the end of the list and
-      // not in its original place, it means index[] and pieceList[] are not
-      // guaranteed to be invariant to a do_move() + undo_move() sequence.
-      Square lastSquare = pieceList[them][capture][--pieceCount[them][capture]];
-      index[lastSquare] = index[capsq];
-      pieceList[them][capture][index[lastSquare]] = lastSquare;
-      pieceList[them][capture][pieceCount[them][capture]] = SQ_NONE;
+      // Update board and piece lists
+      remove_piece(capsq, them, capture);
 
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[them][capture][capsq];
@@ -842,20 +830,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 
   // Move the piece. The tricky Chess960 castle is handled earlier
   if (type_of(m) != CASTLE)
-  {
-      Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
-      byTypeBB[ALL_PIECES] ^= from_to_bb;
-      byTypeBB[pt] ^= from_to_bb;
-      byColorBB[us] ^= from_to_bb;
-
-      board[from] = NO_PIECE;
-      board[to] = pc;
-
-      // Update piece lists, index[from] is not updated and becomes stale. This
-      // works as long as index[] is accessed just by known occupied squares.
-      index[to] = index[from];
-      pieceList[us][pt][index[to]] = to;
-  }
+      move_piece(from, to, us, pt);
 
   // If the moving piece is a pawn do some special extra work
   if (pt == PAWN)
@@ -875,24 +850,13 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
           assert(relative_rank(us, to) == RANK_8);
           assert(promotion >= KNIGHT && promotion <= QUEEN);
 
-          // Replace the pawn with the promoted piece
-          byTypeBB[PAWN] ^= to;
-          byTypeBB[promotion] |= to;
-          board[to] = make_piece(us, promotion);
-
-          // Update piece lists, move the last pawn at index[to] position
-          // and shrink the list. Add a new promotion piece to the list.
-          Square lastSquare = pieceList[us][PAWN][--pieceCount[us][PAWN]];
-          index[lastSquare] = index[to];
-          pieceList[us][PAWN][index[lastSquare]] = lastSquare;
-          pieceList[us][PAWN][pieceCount[us][PAWN]] = SQ_NONE;
-          index[to] = pieceCount[us][promotion];
-          pieceList[us][promotion][index[to]] = to;
+          remove_piece(to, us, PAWN);
+          put_piece(to, us, promotion);
 
           // Update hash keys
           k ^= Zobrist::psq[us][PAWN][to] ^ Zobrist::psq[us][promotion][to];
           st->pawnKey ^= Zobrist::psq[us][PAWN][to];
-          st->materialKey ^=  Zobrist::psq[us][promotion][pieceCount[us][promotion]++]
+          st->materialKey ^=  Zobrist::psq[us][promotion][pieceCount[us][promotion]-1]
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
@@ -977,20 +941,8 @@ void Position::undo_move(Move m) {
       assert(relative_rank(us, to) == RANK_8);
       assert(promotion >= KNIGHT && promotion <= QUEEN);
 
-      // Replace the promoted piece with the pawn
-      byTypeBB[promotion] ^= to;
-      byTypeBB[PAWN] |= to;
-      board[to] = make_piece(us, PAWN);
-
-      // Update piece lists, move the last promoted piece at index[to] position
-      // and shrink the list. Add a new pawn to the list.
-      Square lastSquare = pieceList[us][promotion][--pieceCount[us][promotion]];
-      index[lastSquare] = index[to];
-      pieceList[us][promotion][index[lastSquare]] = lastSquare;
-      pieceList[us][promotion][pieceCount[us][promotion]] = SQ_NONE;
-      index[to] = pieceCount[us][PAWN]++;
-      pieceList[us][PAWN][index[to]] = to;
-
+      remove_piece(to, us, promotion);
+      put_piece(to, us, PAWN);
       pt = PAWN;
   }
 
@@ -1005,21 +957,7 @@ void Position::undo_move(Move m) {
       do_castle(to, from, rto, rfrom);
   }
   else
-  {
-      // Put the piece back at the source square
-      Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
-      byTypeBB[ALL_PIECES] ^= from_to_bb;
-      byTypeBB[pt] ^= from_to_bb;
-      byColorBB[us] ^= from_to_bb;
-
-      board[to] = NO_PIECE;
-      board[from] = make_piece(us, pt);
-
-      // Update piece lists, index[to] is not updated and becomes stale. This
-      // works as long as index[] is accessed just by known occupied squares.
-      index[from] = index[to];
-      pieceList[us][pt][index[from]] = from;
-  }
+      move_piece(to, from, us, pt); // Put the piece back at the source square
 
   if (capture)
   {
@@ -1035,16 +973,7 @@ void Position::undo_move(Move m) {
           assert(piece_on(capsq) == NO_PIECE);
       }
 
-      // Restore the captured piece
-      byTypeBB[ALL_PIECES] |= capsq;
-      byTypeBB[capture] |= capsq;
-      byColorBB[them] |= capsq;
-
-      board[capsq] = make_piece(them, capture);
-
-      // Update piece list, add a new captured piece in capsq square
-      index[capsq] = pieceCount[them][capture]++;
-      pieceList[them][capture][index[capsq]] = capsq;
+      put_piece(capsq, them, capture); // Restore the captured piece
   }
 
   // Finally point our state pointer back to the previous state
@@ -1060,25 +989,12 @@ void Position::undo_move(Move m) {
 
 void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) {
 
-  Color us = sideToMove;
-  Bitboard k_from_to_bb = SquareBB[kfrom] ^ SquareBB[kto];
-  Bitboard r_from_to_bb = SquareBB[rfrom] ^ SquareBB[rto];
-  byTypeBB[KING] ^= k_from_to_bb;
-  byTypeBB[ROOK] ^= r_from_to_bb;
-  byTypeBB[ALL_PIECES] ^= k_from_to_bb ^ r_from_to_bb;
-  byColorBB[us] ^= k_from_to_bb ^ r_from_to_bb;
-
-  // Could be from == to, so first set NO_PIECE then KING and ROOK
-  board[kfrom] = board[rfrom] = NO_PIECE;
-  board[kto] = make_piece(us, KING);
-  board[rto] = make_piece(us, ROOK);
-
-  // Could be kfrom == rto, so use a 'tmp' variable
-  int tmp = index[kfrom];
-  index[rto] = index[rfrom];
-  index[kto] = tmp;
-  pieceList[us][KING][index[kto]] = kto;
-  pieceList[us][ROOK][index[rto]] = rto;
+  // Remove both pieces first since squares could overlap in Chess960
+  remove_piece(kfrom, sideToMove, KING);
+  remove_piece(rfrom, sideToMove, ROOK);
+  board[kfrom] = board[rfrom] = NO_PIECE; // Since remove_piece doesn't do it for us
+  put_piece(kto, sideToMove, KING);
+  put_piece(rto, sideToMove, ROOK);
 }
 
 
@@ -1239,24 +1155,6 @@ void Position::clear() {
 }
 
 
-/// Position::put_piece() puts a piece on the given square of the board,
-/// updating the board array, pieces list, bitboards, and piece counts.
-
-void Position::put_piece(Piece p, Square s) {
-
-  Color c = color_of(p);
-  PieceType pt = type_of(p);
-
-  board[s] = p;
-  index[s] = pieceCount[c][pt]++;
-  pieceList[c][pt][index[s]] = s;
-
-  byTypeBB[ALL_PIECES] |= s;
-  byTypeBB[pt] |= s;
-  byColorBB[c] |= s;
-}
-
-
 /// Position::compute_key() computes the hash key of the position. The hash
 /// key is usually updated incrementally as moves are made and unmade, the
 /// compute_key() function is only used when a new position is set up, and
@@ -1409,7 +1307,10 @@ void Position::flip() {
 
   for (Square s = SQ_A1; s <= SQ_H8; s++)
       if (!pos.is_empty(s))
-          put_piece(Piece(pos.piece_on(s) ^ 8), ~s);
+      {
+          Piece p = Piece(pos.piece_on(s) ^ 8);
+          put_piece(~s, color_of(p), type_of(p));
+      }
 
   if (pos.can_castle(WHITE_OO))
       set_castle_right(BLACK, ~pos.castle_rook_square(WHITE, KING_SIDE));
