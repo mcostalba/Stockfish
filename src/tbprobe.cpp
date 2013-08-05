@@ -21,6 +21,7 @@
 #include "rkiss.h"
 #include "bitboard.h"
 #include "search.h"
+#include "bitcount.h"
 
 #include "tbprobe.h"
 #include "tbcore.h"
@@ -44,12 +45,12 @@ static void prt_str(Position& pos, char *str, int mirror)
   
   color = !mirror ? WHITE : BLACK;
   for (pt = KING; pt >= PAWN; pt--)
-    for (i = 0; i < pos.piece_count(color, pt); i++)
+    for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
       *str++ = pchr[6 - pt];
   *str++ = 'v';
   color = ~color;
   for (pt = KING; pt >= PAWN; pt--)
-    for (i = 0; i < pos.piece_count(color, pt); i++)
+    for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
       *str++ = pchr[6 - pt];
   *str++ = 0;
 }
@@ -65,12 +66,12 @@ static uint64 calc_key(Position& pos, int mirror)
 
   color = !mirror ? WHITE : BLACK;
   for (pt = PAWN; pt <= QUEEN; pt++)
-    for (i = 0; i < pos.piece_count(color, pt); i++)
-      key ^= Zobrist::psq[WHITE][pt][i];
+    for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
+      key ^= Zobrist::psq[WHITE][pt][i - 1];
   color = ~color;
   for (pt = PAWN; pt <= QUEEN; pt++)
-    for (i = 0; i < pos.piece_count(color, pt); i++)
-      key ^= Zobrist::psq[BLACK][pt][i];
+    for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
+      key ^= Zobrist::psq[BLACK][pt][i - 1];
 
   return key;
 }
@@ -312,9 +313,9 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
 }
 
 // Add underpromotion captures to list of captures.
-static MoveStack *add_underprom_caps(Position& pos, MoveStack *stack, MoveStack *end)
+static ExtMove *add_underprom_caps(Position& pos, ExtMove *stack, ExtMove *end)
 {
-  MoveStack *moves, *extra = end;
+  ExtMove *moves, *extra = end;
 
   for (moves = stack; moves < end; moves++) {
     Move move = moves->move;
@@ -331,8 +332,8 @@ static MoveStack *add_underprom_caps(Position& pos, MoveStack *stack, MoveStack 
 static int probe_ab(Position& pos, int alpha, int beta, int *success)
 {
   int v;
-  MoveStack stack[64];
-  MoveStack *moves, *end;
+  ExtMove stack[64];
+  ExtMove *moves, *end;
   StateInfo st;
 
   // Generate (at least) all legal non-ep captures including (under)promotions.
@@ -398,8 +399,8 @@ int Tablebases::probe_wdl(Position& pos, int *success)
   // Now handle en passant.
   int v1 = -3;
   // Generate (at least) all legal en passant captures.
-  MoveStack stack[192];
-  MoveStack *moves, *end;
+  ExtMove stack[192];
+  ExtMove *moves, *end;
   StateInfo st;
 
   if (!pos.checkers())
@@ -459,8 +460,8 @@ static int probe_dtz_no_ep(Position& pos, int *success)
   if (*success == 2)
     return wdl == 2 ? 1 : 101;
 
-  MoveStack stack[192];
-  MoveStack *moves, *end = NULL;
+  ExtMove stack[192];
+  ExtMove *moves, *end = NULL;
   StateInfo st;
   CheckInfo ci(pos);
 
@@ -579,8 +580,8 @@ int Tablebases::probe_dtz(Position& pos, int *success)
   // Now handle en passant.
   int v1 = -3;
 
-  MoveStack stack[192];
-  MoveStack *moves, *end;
+  ExtMove stack[192];
+  ExtMove *moves, *end;
   StateInfo st;
 
   if (!pos.checkers())
@@ -677,7 +678,7 @@ bool Tablebases::root_probe(Position& pos)
     pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
     int v = 0;
     if (pos.checkers() && wdl == 2) {
-      MoveStack s[192];
+      ExtMove s[192];
       if (generate<LEGAL>(pos, s) == s)
 	v = 1;
     }
