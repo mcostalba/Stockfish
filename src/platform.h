@@ -17,10 +17,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(PLATFORM_H_INCLUDED)
+#ifndef PLATFORM_H_INCLUDED
 #define PLATFORM_H_INCLUDED
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 
 // Disable some silly and noisy warning from MSVC compiler
 #pragma warning(disable: 4127) // Conditional expression is constant
@@ -40,16 +40,17 @@ typedef unsigned __int64 uint64_t;
 
 #else
 #  include <inttypes.h>
-#  include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 #endif
 
-#if !defined(_WIN32) // Linux - Unix
+#ifndef _WIN32 // Linux - Unix
 
 #  include <sys/time.h>
-typedef timeval sys_time_t;
 
-inline void system_time(sys_time_t* t) { gettimeofday(t, NULL); }
-inline int64_t time_to_msec(const sys_time_t& t) { return t.tv_sec * 1000LL + t.tv_usec / 1000; }
+inline int64_t system_time_to_msec() {
+  timeval t;
+  gettimeofday(&t, NULL);
+  return t.tv_sec * 1000LL + t.tv_usec / 1000;
+}
 
 #  include <pthread.h>
 typedef pthread_mutex_t Lock;
@@ -66,18 +67,20 @@ typedef void*(*pt_start_fn)(void*);
 #  define cond_signal(x) pthread_cond_signal(&(x))
 #  define cond_wait(x,y) pthread_cond_wait(&(x),&(y))
 #  define cond_timedwait(x,y,z) pthread_cond_timedwait(&(x),&(y),z)
-#  define thread_create(x,f,t) !pthread_create(&(x),NULL,(pt_start_fn)f,t)
+#  define thread_create(x,f,t) pthread_create(&(x),NULL,(pt_start_fn)f,t)
 #  define thread_join(x) pthread_join(x, NULL)
 
 #else // Windows and MinGW
 
 #  include <sys/timeb.h>
-typedef _timeb sys_time_t;
 
-inline void system_time(sys_time_t* t) { _ftime(t); }
-inline int64_t time_to_msec(const sys_time_t& t) { return t.time * 1000LL + t.millitm; }
+inline int64_t system_time_to_msec() {
+  _timeb t;
+  _ftime(&t);
+  return t.time * 1000LL + t.millitm;
+}
 
-#if !defined(NOMINMAX)
+#ifndef NOMINMAX
 #  define NOMINMAX // disable macros min() and max()
 #endif
 
@@ -105,9 +108,9 @@ inline DWORD* dwWin9xKludge() { static DWORD dw; return &dw; }
 #  define cond_signal(x) SetEvent(x)
 #  define cond_wait(x,y) { lock_release(y); WaitForSingleObject(x, INFINITE); lock_grab(y); }
 #  define cond_timedwait(x,y,z) { lock_release(y); WaitForSingleObject(x,z); lock_grab(y); }
-#  define thread_create(x,f,t) (x = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)f,t,0,dwWin9xKludge()), x != NULL)
+#  define thread_create(x,f,t) (x = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)f,t,0,dwWin9xKludge()))
 #  define thread_join(x) { WaitForSingleObject(x, INFINITE); CloseHandle(x); }
 
 #endif
 
-#endif // !defined(PLATFORM_H_INCLUDED)
+#endif // #ifndef PLATFORM_H_INCLUDED

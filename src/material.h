@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MATERIAL_H_INCLUDED)
+#ifndef MATERIAL_H_INCLUDED
 #define MATERIAL_H_INCLUDED
 
 #include "endgame.h"
@@ -39,7 +39,7 @@ namespace Material {
 struct Entry {
 
   Score material_value() const { return make_score(value, value); }
-  int space_weight() const { return spaceWeight; }
+  Score space_weight() const { return spaceWeight; }
   Phase game_phase() const { return gamePhase; }
   bool specialized_eval_exists() const { return evaluationFunction != NULL; }
   Value evaluate(const Position& p) const { return (*evaluationFunction)(p); }
@@ -50,7 +50,7 @@ struct Entry {
   uint8_t factor[COLOR_NB];
   EndgameBase<Value>* evaluationFunction;
   EndgameBase<ScaleFactor>* scalingFunction[COLOR_NB];
-  int spaceWeight;
+  Score spaceWeight;
   Phase gamePhase;
 };
 
@@ -74,4 +74,4 @@ inline ScaleFactor Entry::scale_factor(const Position& pos, Color c) const {
 
 }
 
-#endif // !defined(MATERIAL_H_INCLUDED)
+#endif // #ifndef MATERIAL_H_INCLUDED

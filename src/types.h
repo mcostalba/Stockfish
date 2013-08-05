@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(TYPES_H_INCLUDED)
+#ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
 /// For Linux and OSX configuration is done automatically using Makefile. To get
@@ -42,6 +42,8 @@
 
 #include "platform.h"
 
+#define unlikely(x) (x) // For code annotation purposes
+
 #if defined(_WIN64) && !defined(IS_64BIT)
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
 #  define IS_64BIT
@@ -63,7 +65,7 @@
 #  define CACHE_LINE_ALIGNMENT  __attribute__ ((aligned(CACHE_LINE_SIZE)))
 #endif
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #  define FORCE_INLINE  __forceinline
 #elif defined(__GNUC__)
 #  define FORCE_INLINE  inline __attribute__((always_inline))
@@ -71,21 +73,13 @@
 #  define FORCE_INLINE  inline
 #endif
 
-#ifdef __GNUC__
-#  define likely(x)   __builtin_expect(!!(x), 1)
-#  define unlikely(x) __builtin_expect(!!(x), 0)
-#else
-#  define likely(x)   (x)
-#  define unlikely(x) (x)
-#endif
-
-#if defined(USE_POPCNT)
+#ifdef USE_POPCNT
 const bool HasPopCnt = true;
 #else
 const bool HasPopCnt = false;
 #endif
 
-#if defined(IS_64BIT)
+#ifdef IS_64BIT
 const bool Is64Bit = true;
 #else
 const bool Is64Bit = false;
@@ -96,7 +90,7 @@ typedef uint64_t Bitboard;
 
 const int MAX_MOVES      = 192;
 const int MAX_PLY        = 100;
-const int MAX_PLY_PLUS_2 = MAX_PLY + 2;
+const int MAX_PLY_PLUS_3 = MAX_PLY + 3;
 
 /// A move needs 16 bits to be stored
 ///
@@ -319,12 +313,12 @@ inline Score operator/(Score s, int i) {
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
-struct MoveStack {
+struct ExtMove {
   Move move;
   int score;
 };
 
-inline bool operator<(const MoveStack& f, const MoveStack& s) {
+inline bool operator<(const ExtMove& f, const ExtMove& s) {
   return f.score < s.score;
 }
 
@@ -446,4 +440,4 @@ inline const std::string square_to_string(Square s) {
   return ch;
 }
 
-#endif // !defined(TYPES_H_INCLUDED)
+#endif // #ifndef TYPES_H_INCLUDED

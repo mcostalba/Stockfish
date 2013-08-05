@@ -25,7 +25,7 @@
 
 namespace {
 
-  enum Sequencer {
+  enum Stages {
     MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
     EVASION,     EVASIONS_S2,
     QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
@@ -36,9 +36,9 @@ namespace {
   };
 
   // Our insertion sort, guaranteed to be stable, as is needed
-  void insertion_sort(MoveStack* begin, MoveStack* end)
+  void insertion_sort(ExtMove* begin, ExtMove* end)
   {
-    MoveStack tmp, *p, *q;
+    ExtMove tmp, *p, *q;
 
     for (p = begin + 1; p < end; ++p)
     {
@@ -51,12 +51,12 @@ namespace {
 
   // Unary predicate used by std::partition to split positive scores from remaining
   // ones so to sort separately the two sets, and with the second sort delayed.
-  inline bool has_positive_score(const MoveStack& ms) { return ms.score > 0; }
+  inline bool has_positive_score(const ExtMove& ms) { return ms.score > 0; }
 
   // Picks and moves to the front the best move in the range [begin, end),
   // it is faster than sorting all the moves in advance when moves are few, as
   // normally are the possible captures.
-  inline MoveStack* pick_best(MoveStack* begin, MoveStack* end)
+  inline ExtMove* pick_best(ExtMove* begin, ExtMove* end)
   {
       std::swap(*begin, *std::max_element(begin, end));
       return begin;
@@ -70,32 +70,21 @@ namespace {
 /// search captures, promotions and some checks) and about how important good
 /// move ordering is at the current node.
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move* cm,
-                       Search::Stack* s, Value beta) : pos(p), history(h), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
+                       Move* cm, Search::Stack* s) : pos(p), history(h), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
-  captureThreshold = 0;
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
   countermoves = cm;
   ss = s;
 
   if (p.checkers())
-      phase = EVASION;
+      stage = EVASION;
 
   else
-  {
-      phase = MAIN_SEARCH;
-
-      // Consider sligtly negative captures as good if at low depth and far from beta
-      if (ss->staticEval < beta - PawnValueMg && d < 3 * ONE_PLY)
-          captureThreshold = -PawnValueMg;
-
-      // Consider negative captures as good if still enough to reach beta
-      else if (ss->staticEval > beta)
-          captureThreshold = beta - ss->staticEval;
-  }
+      stage = MAIN_SEARCH;
 
   ttMove = (ttm && pos.is_pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
@@ -107,14 +96,14 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
   assert(d <= DEPTH_ZERO);
 
   if (p.checkers())
-      phase = EVASION;
+      stage = EVASION;
 
   else if (d > DEPTH_QS_NO_CHECKS)
-      phase = QSEARCH_0;
+      stage = QSEARCH_0;
 
   else if (d > DEPTH_QS_RECAPTURES)
   {
-      phase = QSEARCH_1;
+      stage = QSEARCH_1;
 
       // Skip TT move if is not a capture or a promotion, this avoids qsearch
       // tree explosion due to a possible perpetual check or similar rare cases
@@ -124,7 +113,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
   }
   else
   {
-      phase = RECAPTURE;
+      stage = RECAPTURE;
       recaptureSquare = sq;
       ttm = MOVE_NONE;
   }
@@ -138,7 +127,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Piece
 
   assert(!pos.checkers());
 
-  phase = PROBCUT;
+  stage = PROBCUT;
 
   // In ProbCut we generate only captures better than parent's captured piece
   captureThreshold = PieceValue[MG][pt];
@@ -170,7 +159,7 @@ void MovePicker::score<CAPTURES>() {
   // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
   Move m;
 
-  for (MoveStack* it = moves; it != end; ++it)
+  for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
       it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
@@ -189,7 +178,7 @@ void MovePicker::score<QUIETS>() {
 
   Move m;
 
-  for (MoveStack* it = moves; it != end; ++it)
+  for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
       it->score = history[pos.piece_moved(m)][to_sq(m)];
@@ -204,7 +193,7 @@ void MovePicker::score<EVASIONS>() {
   Move m;
   int seeScore;
 
-  for (MoveStack* it = moves; it != end; ++it)
+  for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
       if ((seeScore = pos.see_sign(m)) < 0)
@@ -226,7 +215,7 @@ void MovePicker::generate_next() {
 
   cur = moves;
 
-  switch (++phase) {
+  switch (++stage) {
 
   case CAPTURES_S1: case CAPTURES_S3: case CAPTURES_S4: case CAPTURES_S5: case CAPTURES_S6:
       end = generate<CAPTURES>(pos, moves);
@@ -282,7 +271,7 @@ void MovePicker::generate_next() {
       return;
 
   case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT: case RECAPTURE:
-      phase = STOP;
+      stage = STOP;
   case STOP:
       end = cur + 1; // Avoid another next_phase() call
       return;
@@ -307,7 +296,7 @@ Move MovePicker::next_move<false>() {
       while (cur == end)
           generate_next();
 
-      switch (phase) {
+      switch (stage) {
 
       case MAIN_SEARCH: case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT:
           cur++;
@@ -317,9 +306,7 @@ Move MovePicker::next_move<false>() {
           move = pick_best(cur++, end)->move;
           if (move != ttMove)
           {
-              assert(captureThreshold <= 0); // Otherwise we cannot use see_sign()
-
-              if (pos.see_sign(move) >= captureThreshold)
+              if (pos.see_sign(move) >= 0)
                   return move;
 
               // Losing capture, move it to the tail of the array

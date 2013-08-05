@@ -24,10 +24,6 @@
 #include "misc.h"
 #include "thread.h"
 
-#if defined(__hpux)
-#    include <sys/pstat.h>
-#endif
-
 using namespace std;
 
 /// Version number. If Version is left empty, then compile date, in the
@@ -60,13 +56,6 @@ const string engine_info(bool to_uci) {
     << "Tord Romstad, Marco Costalba and Joona Kiiski";
 
   return s.str();
-}
-
-
-/// Convert system time to milliseconds. That's all we need.
-
-Time::point Time::now() {
-  sys_time_t t; system_time(&t); return time_to_msec(t);
 }
 
 
@@ -169,37 +158,12 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 void start_logger(bool b) { Logger::start(b); }
 
 
-/// cpu_count() tries to detect the number of CPU cores
-
-int cpu_count() {
-
-#if defined(_WIN32)
-  SYSTEM_INFO s;
-  GetSystemInfo(&s);
-  return s.dwNumberOfProcessors;
-#else
-
-#  if defined(_SC_NPROCESSORS_ONLN)
-  return sysconf(_SC_NPROCESSORS_ONLN);
-#  elif defined(__hpux)
-  struct pst_dynamic psd;
-  if (pstat_getdynamic(&psd, sizeof(psd), (size_t)1, 0) == -1)
-      return 1;
-  return psd.psd_proc_cnt;
-#  else
-  return 1;
-#  endif
-
-#endif
-}
-
-
 /// timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
 /// conversion from milliseconds to struct timespec, as used by pthreads.
 
 void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 
-#if defined(_WIN32)
+#ifdef _WIN32
   int tm = msec;
 #else
   timespec ts, *tm = &ts;
@@ -216,7 +180,7 @@ void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 /// prefetch() preloads the given address in L1/L2 cache. This is a non
 /// blocking function and do not stalls the CPU waiting for data to be
 /// loaded from memory, that can be quite slow.
-#if defined(NO_PREFETCH)
+#ifdef NO_PREFETCH
 
 void prefetch(char*) {}
 

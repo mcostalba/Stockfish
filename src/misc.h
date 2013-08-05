@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MISC_H_INCLUDED)
+#ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
 #include <fstream>
@@ -27,7 +27,6 @@
 #include "types.h"
 
 extern const std::string engine_info(bool to_uci = false);
-extern int cpu_count();
 extern void timed_wait(WaitCondition&, Lock&, int);
 extern void prefetch(char* addr);
 extern void start_logger(bool b);
@@ -46,7 +45,7 @@ struct Log : public std::ofstream {
 
 namespace Time {
   typedef int64_t point;
-  point now();
+  inline point now() { return system_time_to_msec(); }
 }
 
 
@@ -66,4 +65,4 @@ std::ostream& operator<<(std::ostream&, SyncCout);
 #define sync_cout std::cout << io_lock
 #define sync_endl std::endl << io_unlock
 
-#endif // !defined(MISC_H_INCLUDED)
+#endif // #ifndef MISC_H_INCLUDED

@@ -69,7 +69,7 @@ namespace {
 
   // Futility lookup tables (initialized at startup) and their access functions
   Value FutilityMargins[16][64]; // [depth][moveNumber]
-  int FutilityMoveCounts[32];    // [depth]
+  int FutilityMoveCounts[2][32]; // [improving][depth]
 
   inline Value futility_margin(Depth d, int mn) {
 
@@ -149,7 +149,11 @@ void Search::init() {
 
   // Init futility move count array
   for (d = 0; d < 32; d++)
-      FutilityMoveCounts[d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+  {
+      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
+      FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
+                                       : 3 * FutilityMoveCounts[1][d] / 4;
+  }
 }
 
 
@@ -322,11 +326,11 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
+    Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
-    std::memset(ss-1, 0, 4 * sizeof(Stack));
+    std::memset(ss-2, 0, 5 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = BestMoveChanges = 0;
@@ -524,7 +528,7 @@ namespace {
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
     Value eval, nullValue, futilityValue;
-    bool inCheck, givesCheck, pvMove, singularExtensionNode;
+    bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, quietCount;
 
@@ -665,7 +669,7 @@ namespace {
         Gains.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
-    // Step 6. Razoring (is omitted in PV nodes)
+    // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin(depth) < beta
@@ -681,7 +685,7 @@ namespace {
             return v;
     }
 
-    // Step 7. Static null move pruning (is omitted in PV nodes)
+    // Step 7. Static null move pruning (skipped when in check)
     // We're betting that the opponent doesn't have a move that will reduce
     // the score by more than futility_margin(depth) if we do a null move.
     if (   !PvNode
@@ -752,7 +756,7 @@ namespace {
         }
     }
 
-    // Step 9. ProbCut (is omitted in PV nodes)
+    // Step 9. ProbCut (skipped when in check)
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
@@ -783,7 +787,7 @@ namespace {
             }
     }
 
-    // Step 10. Internal iterative deepening
+    // Step 10. Internal iterative deepening (skipped when in check)
     if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
         && (PvNode || ss->staticEval + Value(256) >= beta))
@@ -804,9 +808,10 @@ moves_loop: // When in check and at SpNode search starts from here
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
                             Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 
-    MovePicker mp(pos, ttMove, depth, History, countermoves, ss, PvNode ? -VALUE_INFINITE : beta);
+    MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
+    improving = ss->staticEval >= (ss-2)->staticEval;
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
@@ -846,7 +851,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           Signals.firstRootMove = (moveCount == 1);
 
-          if (thisThread == Threads.main_thread() && Time::now() - SearchTime > 3000)
+          if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
               sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
@@ -903,7 +908,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[depth]
+              && moveCount >= FutilityMoveCounts[improving][depth]
               && (!threatMove || !refutes(pos, move, threatMove)))
           {
               if (SpNode)
@@ -1604,7 +1609,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
 void RootMove::extract_pv_from_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_2], *st = state;
+  StateInfo state[MAX_PLY_PLUS_3], *st = state;
   const TTEntry* tte;
   int ply = 0;
   Move m = pv[0];
@@ -1637,7 +1642,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
 void RootMove::insert_pv_in_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_2], *st = state;
+  StateInfo state[MAX_PLY_PLUS_3], *st = state;
   const TTEntry* tte;
   int ply = 0;
 
@@ -1712,10 +1717,10 @@ void Thread::idle_loop() {
 
           Threads.mutex.unlock();
 
-          Stack stack[MAX_PLY_PLUS_2], *ss = stack+1; // To allow referencing (ss-1)
+          Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
           Position pos(*sp->pos, this);
 
-          std::memcpy(ss-1, sp->ss-1, 4 * sizeof(Stack));
+          std::memcpy(ss-2, sp->ss-2, 5 * sizeof(Stack));
           ss->splitPoint = sp;
 
           sp->mutex.lock();
