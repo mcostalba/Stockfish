@@ -47,6 +47,7 @@ namespace Search {
   Time::point SearchTime;
   StateStackPtr SetupStates;
   int use_tb;
+  uint64_t tbhits;
 }
 
 using std::string;
@@ -241,11 +242,14 @@ void Search::think() {
           << std::endl;
   }
 
-  use_tb = 6;
+  use_tb = Options["Probe Syzygybases"];
   tb_position = 0;
+  tbhits = 0;
   if (popcount<Full>(RootPos.pieces()) <= 6)
   {
       if ((tb_position = Tablebases::root_probe(RootPos))) {
+          tbhits++;
+
           // The current root position is in the tablebases.
           // RootMoves now contains only moves that preserve the draw or win.
 
@@ -304,6 +308,7 @@ finalize:
 
   // When search is stopped this info is not printed
   sync_cout << "info nodes " << RootPos.nodes_searched()
+            << " tbhits " << tbhits
             << " time " << Time::now() - SearchTime + 1 << sync_endl;
 
   // When we reach max depth we arrive here even without Signals.stop is raised,
@@ -627,6 +632,7 @@ namespace {
       int success;
       int v = Tablebases::probe_wdl(pos, &success);
       if (success) {
+        tbhits++;
 	if (v < -1) value = -VALUE_MATE + MAX_PLY + ss->ply;
 	else if (v > 1) value = VALUE_MATE - MAX_PLY - ss->ply;
 	else value = VALUE_DRAW + v;
@@ -1594,6 +1600,7 @@ moves_loop: // When in check and at SpNode search starts from here
           << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
           << " nodes "     << pos.nodes_searched()
           << " nps "       << pos.nodes_searched() * 1000 / elapsed
+          << " tbhits "    << tbhits
           << " time "      << elapsed
           << " multipv "   << i + 1
           << " pv";
