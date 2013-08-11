@@ -13,8 +13,7 @@ number of CPUs on your computer and sets the number of search threads
 accordingly, but please be aware that the detection is not always
 correct. It is therefore recommended to inspect the value of the
 *Threads* UCI parameter, and to make sure it equals the number of CPU
-cores on your computer. If you are using more than eight threads, it is
-recommended to raise the value of the *Min Split Depth* UCI parameter to 7.
+cores on your computer.
 
 
 ### Files
