@@ -530,10 +530,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (Piece == BISHOP)
             score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
-        // Bishop and knight outposts squares
-        if (    (Piece == BISHOP || Piece == KNIGHT)
-            && !(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
-            score += evaluate_outposts<Piece, Us>(pos, ei, s);
+        if (Piece == BISHOP || Piece == KNIGHT)
+        {
+            // Bishop and knight outposts squares
+            if (!(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
+                score += evaluate_outposts<Piece, Us>(pos, ei, s);
+
+            // Pawn in front of knight/bishop
+            if (    relative_rank(Us, s) < RANK_5
+                && (pos.pieces(PAWN) & (s + pawn_push(Us))))
+                score += make_score(16, 0);
+        }
 
         if (  (Piece == ROOK || Piece == QUEEN)
             && relative_rank(Us, s) >= RANK_5)
@@ -1083,7 +1090,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     int ev = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
     int result = (mg_value(v) * int(ph) + ev * int(128 - ph)) / 128;
-    return Value((result + GrainSize / 2) & ~(GrainSize - 1));
+    return Value((result / GrainSize) * GrainSize); // Sign independent
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
@@ -1139,8 +1146,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
   }
 
   std::string Tracing::do_trace(const Position& pos) {
-
-    Search::RootColor = pos.side_to_move();
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);

@@ -17,12 +17,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 
 #include "bitcount.h"
 #include "movegen.h"
@@ -989,25 +989,12 @@ void Position::undo_move(Move m) {
 
 void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) {
 
-  Color us = sideToMove;
-  Bitboard k_from_to_bb = SquareBB[kfrom] ^ SquareBB[kto];
-  Bitboard r_from_to_bb = SquareBB[rfrom] ^ SquareBB[rto];
-  byTypeBB[KING] ^= k_from_to_bb;
-  byTypeBB[ROOK] ^= r_from_to_bb;
-  byTypeBB[ALL_PIECES] ^= k_from_to_bb ^ r_from_to_bb;
-  byColorBB[us] ^= k_from_to_bb ^ r_from_to_bb;
-
-  // Could be from == to, so first set NO_PIECE then KING and ROOK
-  board[kfrom] = board[rfrom] = NO_PIECE;
-  board[kto] = make_piece(us, KING);
-  board[rto] = make_piece(us, ROOK);
-
-  // Could be kfrom == rto, so use a 'tmp' variable
-  int tmp = index[kfrom];
-  index[rto] = index[rfrom];
-  index[kto] = tmp;
-  pieceList[us][KING][index[kto]] = kto;
-  pieceList[us][ROOK][index[rto]] = rto;
+  // Remove both pieces first since squares could overlap in Chess960
+  remove_piece(kfrom, sideToMove, KING);
+  remove_piece(rfrom, sideToMove, ROOK);
+  board[kfrom] = board[rfrom] = NO_PIECE; // Since remove_piece doesn't do it for us
+  put_piece(kto, sideToMove, KING);
+  put_piece(rto, sideToMove, ROOK);
 }
 
 
@@ -1306,45 +1293,36 @@ bool Position::is_draw() const {
 /// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging especially for finding evaluation symmetry bugs.
 
+static char toggle_case(char c) {
+  return char(islower(c) ? toupper(c) : tolower(c));
+}
+
 void Position::flip() {
 
-  const Position pos(*this);
+  string f, token;
+  std::stringstream ss(fen());
 
-  clear();
+  for (Rank rank = RANK_8; rank >= RANK_1; rank--) // Piece placement
+  {
+      std::getline(ss, token, rank > RANK_1 ? '/' : ' ');
+      f.insert(0, token + (f.empty() ? " " : "/"));
+  }
 
-  sideToMove = ~pos.side_to_move();
-  thisThread = pos.this_thread();
-  nodes = pos.nodes_searched();
-  chess960 = pos.is_chess960();
-  gamePly = pos.game_ply();
+  ss >> token; // Active color
+  f += (token == "w" ? "B " : "W "); // Will be lowercased later
 
-  for (Square s = SQ_A1; s <= SQ_H8; s++)
-      if (!pos.is_empty(s))
-      {
-          Piece p = Piece(pos.piece_on(s) ^ 8);
-          put_piece(~s, color_of(p), type_of(p));
-      }
+  ss >> token; // Castling availability
+  f += token + " ";
 
-  if (pos.can_castle(WHITE_OO))
-      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE, KING_SIDE));
-  if (pos.can_castle(WHITE_OOO))
-      set_castle_right(BLACK, ~pos.castle_rook_square(WHITE, QUEEN_SIDE));
-  if (pos.can_castle(BLACK_OO))
-      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK, KING_SIDE));
-  if (pos.can_castle(BLACK_OOO))
-      set_castle_right(WHITE, ~pos.castle_rook_square(BLACK, QUEEN_SIDE));
+  std::transform(f.begin(), f.end(), f.begin(), toggle_case);
 
-  if (pos.st->epSquare != SQ_NONE)
-      st->epSquare = ~pos.st->epSquare;
+  ss >> token; // En passant square
+  f += (token == "-" ? token : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
 
-  st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
+  std::getline(ss, token); // Half and full moves
+  f += token;
 
-  st->key = compute_key();
-  st->pawnKey = compute_pawn_key();
-  st->materialKey = compute_material_key();
-  st->psq = compute_psq_score();
-  st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
-  st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
+  set(f, is_chess960(), this_thread());
 
   assert(pos_is_ok());
 }
