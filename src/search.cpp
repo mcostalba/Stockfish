@@ -146,8 +146,10 @@ void Search::init() {
       {
           Reductions[0][0][hd][mc] += ONE_PLY;
           Reductions[0][1][hd][mc] -= ONE_PLY / 2;
-      }
 
+          if (Reductions[0][1][hd][mc] > 2 * ONE_PLY)
+              Reductions[0][1][hd][mc] -= ONE_PLY / 2;
+      }
   }
 
   // Init futility margins array
