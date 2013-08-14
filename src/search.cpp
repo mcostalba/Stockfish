@@ -1185,15 +1185,10 @@ moves_loop: // When in check and at SpNode search starts from here
     }
     else
     {
-        if (tte)
-        {
-            // Never assume anything on values stored in TT
-            if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
-                ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
+        if (   !tte
+            || (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
+            || (ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
                 ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
-        }
-        else
-            ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
