@@ -100,6 +100,7 @@ extern LimitsType Limits;
 extern std::vector<RootMove> RootMoves;
 extern Position RootPos;
 extern Color RootColor;
+extern bool outOfBook;
 extern Time::point SearchTime;
 extern StateStackPtr SetupStates;
 
