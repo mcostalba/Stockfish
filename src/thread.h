@@ -48,9 +48,9 @@ struct ConditionVariable {
   ConditionVariable() { cond_init(c); }
  ~ConditionVariable() { cond_destroy(c); }
 
-  void wait(Mutex& m) { cond_wait(c, m.l); }
-  void wait_for(Mutex& m, int ms) { timed_wait(c, m.l, ms); }
-  void notify_one() { cond_signal(c); }
+  void wait(Mutex& m) const { cond_wait(c, m.l); }
+  void wait_for(Mutex& m, int ms) const { timed_wait(c, m.l, ms); }
+  void notify_one() const { cond_signal(c); }
 
 private:
   WaitCondition c;
@@ -114,10 +114,10 @@ struct Thread : public ThreadBase {
   Thread();
   virtual void idle_loop();
   bool cutoff_occurred() const;
-  bool is_available_to(Thread* master) const;
+  bool is_available_to(const Thread* master) const;
 
   template <bool Fake>
-  void split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
+  void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
              Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
@@ -158,9 +158,9 @@ struct ThreadPool : public std::vector<Thread*> {
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
 
-  MainThread* main() { return static_cast<MainThread*>((*this)[0]); }
+  MainThread* main() const { return static_cast<MainThread*>((*this)[0]); }
   void read_uci_options();
-  Thread* available_slave(Thread* master) const;
+  Thread* available_slave(const Thread* master) const;
   void wait_for_think_finished();
   void start_thinking(const Position&, const Search::LimitsType&,
                       const std::vector<Move>&, Search::StateStackPtr&);

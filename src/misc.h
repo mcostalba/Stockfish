@@ -27,7 +27,7 @@
 #include "types.h"
 
 extern const std::string engine_info(bool to_uci = false);
-extern void timed_wait(WaitCondition&, Lock&, int);
+extern void timed_wait(const WaitCondition&, Lock&, int);
 extern void prefetch(char* addr);
 extern void start_logger(bool b);
 
