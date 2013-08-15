@@ -190,9 +190,7 @@ size_t Search::perft(Position& pos, Depth depth) {
 void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
-
-  RootColor = RootPos.side_to_move();
-  TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
+  static bool wasBookMove;
 
   if (RootMoves.empty())
   {
@@ -211,9 +209,14 @@ void Search::think() {
       if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
       {
           std::swap(RootMoves[0], *std::find(RootMoves.begin(), RootMoves.end(), bookMove));
+          wasBookMove = true;
           goto finalize;
       }
   }
+
+  RootColor = RootPos.side_to_move();
+  TimeMgr.init(Limits, RootPos.game_ply(), RootColor, wasBookMove);
+  wasBookMove = false;
 
   if (Options["Contempt Factor"] && !Options["UCI_AnalyseMode"])
   {

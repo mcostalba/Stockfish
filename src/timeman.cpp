@@ -83,7 +83,7 @@ void TimeManager::pv_instability(int curChanges, int prevChanges) {
 }
 
 
-void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us)
+void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us, bool outOfTheBook)
 {
   /* We support four different kind of time controls:
 
@@ -134,6 +134,9 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   if (Options["Ponder"])
       optimumSearchTime += optimumSearchTime / 4;
+
+  if (outOfTheBook)
+      optimumSearchTime *= 2;
 
   // Make sure that maxSearchTime is not over absoluteMaxSearchTime
   optimumSearchTime = std::min(optimumSearchTime, maximumSearchTime);
