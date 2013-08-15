@@ -136,7 +136,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
       optimumSearchTime += optimumSearchTime / 4;
 
   if (outOfTheBook)
-      optimumSearchTime *= 2;
+      optimumSearchTime *= 1.5;
 
   // Make sure that maxSearchTime is not over absoluteMaxSearchTime
   optimumSearchTime = std::min(optimumSearchTime, maximumSearchTime);
