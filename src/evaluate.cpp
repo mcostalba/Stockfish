@@ -238,18 +238,18 @@ namespace {
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score& mobility);
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, EvalInfo& ei, Value margins[]);
+  Score evaluate_king(const Position& pos, const EvalInfo& ei, Value margins[]);
 
   template<Color Us, bool Trace>
-  Score evaluate_threats(const Position& pos, EvalInfo& ei);
+  Score evaluate_threats(const Position& pos, const EvalInfo& ei);
 
   template<Color Us, bool Trace>
-  Score evaluate_passed_pawns(const Position& pos, EvalInfo& ei);
+  Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei);
 
   template<Color Us>
-  int evaluate_space(const Position& pos, EvalInfo& ei);
+  int evaluate_space(const Position& pos, const EvalInfo& ei);
 
-  Score evaluate_unstoppable_pawns(const Position& pos, EvalInfo& ei);
+  Score evaluate_unstoppable_pawns(const Position& pos, const EvalInfo& ei);
 
   Value interpolate(const Score& v, Phase ph, ScaleFactor sf);
   Score apply_weight(Score v, Score w);
@@ -530,10 +530,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (Piece == BISHOP)
             score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
-        // Bishop and knight outposts squares
-        if (    (Piece == BISHOP || Piece == KNIGHT)
-            && !(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
-            score += evaluate_outposts<Piece, Us>(pos, ei, s);
+        if (Piece == BISHOP || Piece == KNIGHT)
+        {
+            // Bishop and knight outposts squares
+            if (!(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
+                score += evaluate_outposts<Piece, Us>(pos, ei, s);
+
+            // Pawn in front of knight/bishop
+            if (    relative_rank(Us, s) < RANK_5
+                && (pos.pieces(PAWN) & (s + pawn_push(Us))))
+                score += make_score(16, 0);
+        }
 
         if (  (Piece == ROOK || Piece == QUEEN)
             && relative_rank(Us, s) >= RANK_5)
@@ -596,7 +603,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // and the type of attacked one.
 
   template<Color Us, bool Trace>
-  Score evaluate_threats(const Position& pos, EvalInfo& ei) {
+  Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -667,7 +674,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // evaluate_king<>() assigns bonuses and penalties to a king of a given color
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, EvalInfo& ei, Value margins[]) {
+  Score evaluate_king(const Position& pos, const EvalInfo& ei, Value margins[]) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -780,7 +787,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
 
   template<Color Us, bool Trace>
-  Score evaluate_passed_pawns(const Position& pos, EvalInfo& ei) {
+  Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -882,7 +889,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // evaluate_unstoppable_pawns() evaluates the unstoppable passed pawns for both sides, this is quite
   // conservative and returns a winning score only when we are very sure that the pawn is winning.
 
-  Score evaluate_unstoppable_pawns(const Position& pos, EvalInfo& ei) {
+  Score evaluate_unstoppable_pawns(const Position& pos, const EvalInfo& ei) {
 
     Bitboard b, b2, blockers, supporters, queeningPath, candidates;
     Square s, blockSq, queeningSquare;
@@ -1047,7 +1054,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // twice. Finally, the space bonus is scaled by a weight taken from the
   // material hash table. The aim is to improve play on game opening.
   template<Color Us>
-  int evaluate_space(const Position& pos, EvalInfo& ei) {
+  int evaluate_space(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -1083,7 +1090,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     int ev = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
     int result = (mg_value(v) * int(ph) + ev * int(128 - ph)) / 128;
-    return Value((result + GrainSize / 2) & ~(GrainSize - 1));
+    return Value((result / GrainSize) * GrainSize); // Sign independent
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
@@ -1139,8 +1146,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
   }
 
   std::string Tracing::do_trace(const Position& pos) {
-
-    Search::RootColor = pos.side_to_move();
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
