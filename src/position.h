@@ -58,6 +58,7 @@ struct StateInfo {
   Key key;
   Bitboard checkersBB;
   PieceType capturedType;
+  Move move;
   StateInfo* previous;
 };
 
@@ -154,7 +155,7 @@ public:
   // Doing and undoing moves
   void do_move(Move m, StateInfo& st);
   void do_move(Move m, StateInfo& st, const CheckInfo& ci, bool moveIsCheck);
-  void undo_move(Move m);
+  void undo_move();
   void do_null_move(StateInfo& st);
   void undo_null_move();
 

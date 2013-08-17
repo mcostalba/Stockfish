@@ -166,7 +166,7 @@ const string move_to_san(Position& pos, Move m) {
       StateInfo st;
       pos.do_move(m, st);
       san += MoveList<LEGAL>(pos).size() ? "+" : "#";
-      pos.undo_move(m);
+      pos.undo_move();
   }
 
   return san;
@@ -256,8 +256,8 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
       pos.do_move(*m++, st.top());
   }
 
-  while (m != pv)
-      pos.undo_move(*--m);
+  while (m-- != pv)
+      pos.undo_move();
 
   return s.str();
 }

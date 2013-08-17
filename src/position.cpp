@@ -737,6 +737,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   gamePly++;
   st->rule50++;
   st->pliesFromNull++;
+  st->move = m;
 
   Color us = sideToMove;
   Color them = ~us;
@@ -917,12 +918,13 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 /// Position::undo_move() unmakes a move. When it returns, the position should
 /// be restored to exactly the same state as before the move was made.
 
-void Position::undo_move(Move m) {
+void Position::undo_move() {
 
   assert(is_ok(m));
 
   sideToMove = ~sideToMove;
 
+  Move m = st->move;
   Color us = sideToMove;
   Color them = ~us;
   Square from = from_sq(m);
@@ -1021,6 +1023,7 @@ void Position::do_null_move(StateInfo& newSt) {
 
   st->rule50++;
   st->pliesFromNull = 0;
+  st->move = MOVE_NULL;
 
   sideToMove = ~sideToMove;
 

@@ -173,7 +173,7 @@ static size_t perft(Position& pos, Depth depth) {
   {
       pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
       cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
-      pos.undo_move(*it);
+      pos.undo_move();
   }
   return cnt;
 }
@@ -268,7 +268,7 @@ void Search::think() {
       StateInfo st;
       RootPos.do_move(RootMoves[0].pv[0], st);
       log << "\nPonder move: " << move_to_san(RootPos, RootMoves[0].pv[1]) << std::endl;
-      RootPos.undo_move(RootMoves[0].pv[0]);
+      RootPos.undo_move();
   }
 
 finalize:
@@ -744,7 +744,7 @@ namespace {
                 ss->currentMove = move;
                 pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
                 value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cutNode);
-                pos.undo_move(move);
+                pos.undo_move();
                 if (value >= rbeta)
                     return value;
             }
@@ -986,7 +986,7 @@ moves_loop: // When in check and at SpNode search starts from here
                                      : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                      : - search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
       // Step 17. Undo move
-      pos.undo_move(move);
+      pos.undo_move();
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
@@ -1286,7 +1286,7 @@ moves_loop: // When in check and at SpNode search starts from here
       pos.do_move(move, st, ci, givesCheck);
       value = givesCheck ? -qsearch<NT,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
                          : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
-      pos.undo_move(move);
+      pos.undo_move();
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
@@ -1598,7 +1598,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
   pv.push_back(MOVE_NONE); // Must be zero-terminating
 
-  while (ply) pos.undo_move(pv[--ply]);
+  while (ply--) pos.undo_move();
 }
 
 
@@ -1624,7 +1624,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
   } while (pv[ply] != MOVE_NONE);
 
-  while (ply) pos.undo_move(pv[--ply]);
+  while (ply--) pos.undo_move();
 }
 
 
