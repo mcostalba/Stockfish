@@ -48,9 +48,9 @@ struct ConditionVariable {
   ConditionVariable() { cond_init(c); }
  ~ConditionVariable() { cond_destroy(c); }
 
-  void wait(Mutex& m) { cond_wait(c, m.l); }
-  void wait_for(Mutex& m, int ms) { timed_wait(c, m.l, ms); }
-  void notify_one() { cond_signal(c); }
+  void wait(Mutex& m) const { cond_wait(c, m.l); }
+  void wait_for(Mutex& m, int ms) const { timed_wait(c, m.l, ms); }
+  void notify_one() const { cond_signal(c); }
 
 private:
   WaitCondition c;
@@ -158,7 +158,7 @@ struct ThreadPool : public std::vector<Thread*> {
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
 
-  MainThread* main() { return static_cast<MainThread*>((*this)[0]); }
+  MainThread* main() const { return static_cast<MainThread*>((*this)[0]); }
   void read_uci_options();
   Thread* available_slave(const Thread* master) const;
   void wait_for_think_finished();

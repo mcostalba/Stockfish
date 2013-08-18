@@ -161,7 +161,7 @@ void start_logger(bool b) { Logger::start(b); }
 /// timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
 /// conversion from milliseconds to struct timespec, as used by pthreads.
 
-void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
+void timed_wait(const WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 
 #ifdef _WIN32
   int tm = msec;
