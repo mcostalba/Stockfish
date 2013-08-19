@@ -600,25 +600,22 @@ namespace {
         goto moves_loop;
     }
 
-    else if (tte)
-    {
-        // Never assume anything on values stored in TT
-        if (  (ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
-            ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-            eval = ss->staticEval = evaluate(pos, ss->evalMargin);
-
-        // Can ttValue be used as a better position evaluation?
-        if (ttValue != VALUE_NONE)
-            if (   ((tte->bound() & BOUND_LOWER) && ttValue > eval)
-                || ((tte->bound() & BOUND_UPPER) && ttValue < eval))
-                eval = ttValue;
-    }
-    else
+    else if (!tte)
     {
         eval = ss->staticEval = evaluate(pos, ss->evalMargin);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                  ss->staticEval, ss->evalMargin);
     }
+
+    // Never assume anything on values stored in TT
+    else if ((ss->staticEval = eval = tte->eval_value()) == VALUE_NONE
+            ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
+            eval = ss->staticEval = evaluate(pos, ss->evalMargin);
+
+    // Can ttValue be used as a better position evaluation?
+    else if (((tte->bound() & BOUND_LOWER) && ttValue > eval)
+             || ((tte->bound() & BOUND_UPPER) && ttValue < eval))
+             eval = ttValue;
 
     // Update gain for the parent non-capture move given the static position
     // evaluation before and after the move.
@@ -729,7 +726,7 @@ namespace {
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value rbeta = beta + 200;
-        Depth rdepth = depth - ONE_PLY - 3 * ONE_PLY;
+        Depth rdepth = depth - 4 * ONE_PLY;
 
         assert(rdepth >= ONE_PLY);
         assert((ss-1)->currentMove != MOVE_NONE);
@@ -1184,14 +1181,8 @@ moves_loop: // When in check and at SpNode search starts from here
     }
     else
     {
-        if (tte)
-        {
-            // Never assume anything on values stored in TT
-            if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
-                ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
-        }
-        else
+        // Never assume anything on values stored in TT
+        if (!tte || (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE || (ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
             ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
 
         // Stand pat. Return immediately if static value is at least beta
