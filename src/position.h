@@ -49,13 +49,13 @@ struct CheckInfo {
 /// must be passed as a parameter.
 
 struct StateInfo {
-  StateInfo() : pos(NULL) {}
-  StateInfo(Position& p) : move(MOVE_NONE), pos(&p) {}
+  StateInfo() {}
+  explicit StateInfo(Position& p) : move(MOVE_NONE), pos(&p) {}
 
   void do_move(Move m);
   void do_move(Move m, const CheckInfo& ci, bool moveIsCheck);
-  void undo_move();
   void do_null_move();
+  void undo_move();
   void undo_null_move();
 
   Key pawnKey, materialKey;
@@ -75,7 +75,7 @@ struct StateInfo {
 
 /// When making a move the current StateInfo up to 'key' excluded is copied to
 /// the new one. Here we calculate the quad words (64bits) needed to be copied.
-//const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
+const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 
 
 /// The position data structure. A position consists of the following data:

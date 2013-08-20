@@ -41,7 +41,7 @@ static const string PieceToChar(" PNBRQK  pnbrqk");
 
 CACHE_LINE_ALIGNMENT
 
-Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Score psqt[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
@@ -150,8 +150,8 @@ void Position::init() {
 
       for (Square s = SQ_A1; s <= SQ_H8; s++)
       {
-         psq[WHITE][pt][ s] =  (v + PSQT[pt][s]);
-         psq[BLACK][pt][~s] = -(v + PSQT[pt][s]);
+         psqt[WHITE][pt][ s] =  (v + PSQT[pt][s]);
+         psqt[BLACK][pt][~s] = -(v + PSQT[pt][s]);
       }
   }
 }
@@ -165,6 +165,7 @@ Position& Position::operator=(const Position& pos) {
 
   std::memcpy(this, &pos, sizeof(Position));
   startState = *st;
+  startState.pos = this;
   st = &startState;
   nodes = 0;
 
@@ -293,6 +294,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
   st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
   st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
+  st->pos = this;
   chess960 = isChess960;
   thisThread = th;
 
@@ -722,9 +724,7 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
   // Copy some fields of old state to our new StateInfo object except the ones
   // which are going to be recalculated from scratch anyway, then switch our state
   // pointer to point to the new, ready to be updated, state.
-  Position* pp = pos;
-  std::memcpy(this, pos->st, sizeof(StateInfo)); // FIXME
-  pos = pp;
+  std::memcpy(this, pos->st, StateCopySize64 * sizeof(uint64_t));
 
   previous = pos->st;
   pos->st = this;
@@ -763,7 +763,7 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
 
       pos->do_castle(from, to, rfrom, rto);
 
-      psq += ::psq[us][ROOK][rto] - ::psq[us][ROOK][rfrom];
+      psq += psqt[us][ROOK][rto] - psqt[us][ROOK][rfrom];
       key ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
   }
 
@@ -802,7 +802,7 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
       prefetch((char*)pos->thisThread->materialTable[materialKey]);
 
       // Update incremental scores
-      psq -= ::psq[them][capture][capsq];
+      psq -= psqt[them][capture][capsq];
 
       // Reset rule 50 counter
       rule50 = 0;
@@ -861,7 +861,7 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
                         ^ Zobrist::psq[us][PAWN][pos->pieceCount[us][PAWN]];
 
           // Update incremental score
-          psq += ::psq[us][promotion][to] - ::psq[us][PAWN][to];
+          psq += psqt[us][promotion][to] - psqt[us][PAWN][to];
 
           // Update material
           npMaterial[us] += PieceValue[MG][promotion];
@@ -876,13 +876,10 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
   }
 
   // Update incremental scores
-  psq += ::psq[us][pt][to] - ::psq[us][pt][from];
+  psq += psqt[us][pt][to] - psqt[us][pt][from];
 
   // Set capture piece
   capturedType = capture;
-
-  // Update the key with the final value
-//  st->key = key;
 
   // Update checkers bitboard, piece must be already moved
   checkersBB = 0;
@@ -1005,9 +1002,7 @@ void StateInfo::do_null_move() {
 
   assert(!pos->checkers());
 
-  Position* pp = pos;
   std::memcpy(this, pos->st, sizeof(StateInfo)); // Fully copy here
-  pos = pp;
 
   previous = pos->st;
   pos->st = this;
@@ -1234,7 +1229,7 @@ Score Position::compute_psq_score() const {
   {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
-      score += psq[color_of(pc)][type_of(pc)][s];
+      score += psqt[color_of(pc)][type_of(pc)][s];
   }
 
   return score;
