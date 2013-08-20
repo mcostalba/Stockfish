@@ -49,6 +49,15 @@ struct CheckInfo {
 /// must be passed as a parameter.
 
 struct StateInfo {
+  StateInfo() : pos(NULL) {}
+  StateInfo(Position& p) : move(MOVE_NONE), pos(&p) {}
+
+  void do_move(Move m);
+  void do_move(Move m, const CheckInfo& ci, bool moveIsCheck);
+  void undo_move();
+  void do_null_move();
+  void undo_null_move();
+
   Key pawnKey, materialKey;
   Value npMaterial[COLOR_NB];
   int castleRights, rule50, pliesFromNull;
@@ -60,12 +69,13 @@ struct StateInfo {
   PieceType capturedType;
   Move move;
   StateInfo* previous;
+  Position* pos;
 };
 
 
 /// When making a move the current StateInfo up to 'key' excluded is copied to
 /// the new one. Here we calculate the quad words (64bits) needed to be copied.
-const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
+//const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 
 
 /// The position data structure. A position consists of the following data:
@@ -152,13 +162,6 @@ public:
   bool opposite_bishops() const;
   bool bishop_pair(Color c) const;
 
-  // Doing and undoing moves
-  void do_move(Move m, StateInfo& st);
-  void do_move(Move m, StateInfo& st, const CheckInfo& ci, bool moveIsCheck);
-  void undo_move();
-  void do_null_move(StateInfo& st);
-  void undo_null_move();
-
   // Static exchange evaluation
   int see(Move m, int asymmThreshold = 0) const;
   int see_sign(Move m) const;
@@ -187,6 +190,8 @@ public:
   void flip();
 
 private:
+  friend struct StateInfo;
+
   // Initialization helpers (used while setting up a position)
   void clear();
   void set_castle_right(Color c, Square rfrom);

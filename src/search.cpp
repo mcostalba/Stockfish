@@ -164,16 +164,16 @@ void Search::init() {
 
 static size_t perft(Position& pos, Depth depth) {
 
-  StateInfo st;
+  StateInfo st(pos);
   size_t cnt = 0;
   CheckInfo ci(pos);
   const bool leaf = depth == 2 * ONE_PLY;
 
   for (MoveList<LEGAL> it(pos); *it; ++it)
   {
-      pos.do_move(*it, st, ci, pos.move_gives_check(*it, ci));
+      st.do_move(*it, ci, pos.move_gives_check(*it, ci));
       cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
-      pos.undo_move();
+      st.undo_move();
   }
   return cnt;
 }
@@ -265,10 +265,10 @@ void Search::think() {
           << "\nNodes/second: " << RootPos.nodes_searched() * 1000 / elapsed
           << "\nBest move: "    << move_to_san(RootPos, RootMoves[0].pv[0]);
 
-      StateInfo st;
-      RootPos.do_move(RootMoves[0].pv[0], st);
+      StateInfo st(RootPos);
+      st.do_move(RootMoves[0].pv[0]);
       log << "\nPonder move: " << move_to_san(RootPos, RootMoves[0].pv[1]) << std::endl;
-      RootPos.undo_move();
+      st.undo_move();
   }
 
 finalize:
@@ -497,7 +497,7 @@ namespace {
     assert(depth > DEPTH_ZERO);
 
     Move quietsSearched[64];
-    StateInfo st;
+    StateInfo st(pos);
     const TTEntry *tte;
     SplitPoint* splitPoint;
     Key posKey;
@@ -677,12 +677,12 @@ namespace {
         if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
-        pos.do_null_move(st);
+        st.do_null_move();
         (ss+1)->skipNullMove = true;
         nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                       : - search<NonPV>(pos, ss+1, -beta, -alpha, depth-R, !cutNode);
         (ss+1)->skipNullMove = false;
-        pos.undo_null_move();
+        st.undo_null_move();
 
         if (nullValue >= beta)
         {
@@ -742,9 +742,9 @@ namespace {
             if (pos.pl_move_is_legal(move, ci.pinned))
             {
                 ss->currentMove = move;
-                pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+                st.do_move(move, ci, pos.move_gives_check(move, ci));
                 value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cutNode);
-                pos.undo_move();
+                st.undo_move();
                 if (value >= rbeta)
                     return value;
             }
@@ -933,7 +933,7 @@ moves_loop: // When in check and at SpNode search starts from here
           quietsSearched[quietCount++] = move;
 
       // Step 14. Make the move
-      pos.do_move(move, st, ci, givesCheck);
+      st.do_move(move, ci, givesCheck);
 
       // Step 15. Reduced depth search (LMR). If the move fails high will be
       // re-searched at full depth.
@@ -986,7 +986,7 @@ moves_loop: // When in check and at SpNode search starts from here
                                      : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                      : - search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
       // Step 17. Undo move
-      pos.undo_move();
+      st.undo_move();
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
@@ -1134,7 +1134,7 @@ moves_loop: // When in check and at SpNode search starts from here
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= DEPTH_ZERO);
 
-    StateInfo st;
+    StateInfo st(pos);
     const TTEntry* tte;
     Key posKey;
     Move ttMove, move, bestMove;
@@ -1283,10 +1283,10 @@ moves_loop: // When in check and at SpNode search starts from here
       ss->currentMove = move;
 
       // Make and search the move
-      pos.do_move(move, st, ci, givesCheck);
+      st.do_move(move, ci, givesCheck);
       value = givesCheck ? -qsearch<NT,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
                          : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
-      pos.undo_move();
+      st.undo_move();
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
@@ -1587,7 +1587,9 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
       assert(MoveList<LEGAL>(pos).contains(pv[ply]));
 
-      pos.do_move(pv[ply++], *st++);
+      st->pos = &pos;
+      st->do_move(pv[ply++]);
+      st++;
       tte = TT.probe(pos.key());
 
   } while (   tte
@@ -1598,7 +1600,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
   pv.push_back(MOVE_NONE); // Must be zero-terminating
 
-  while (ply--) pos.undo_move();
+  while (ply--) (--st)->undo_move();
 }
 
 
@@ -1620,11 +1622,13 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
       assert(MoveList<LEGAL>(pos).contains(pv[ply]));
 
-      pos.do_move(pv[ply++], *st++);
+      st->pos = &pos;
+      st->do_move(pv[ply++]);
+      st++;
 
   } while (pv[ply] != MOVE_NONE);
 
-  while (ply--) pos.undo_move();
+  while (ply--) (--st)->undo_move();
 }
 
 

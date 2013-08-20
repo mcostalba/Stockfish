@@ -156,8 +156,8 @@ namespace {
     // Parse move list (if any)
     while (is >> token && (m = move_from_uci(pos, token)) != MOVE_NONE)
     {
-        SetupStates->push(StateInfo());
-        pos.do_move(m, SetupStates->top());
+        SetupStates->push(StateInfo(pos));
+        SetupStates->top().do_move(m);
     }
   }
 

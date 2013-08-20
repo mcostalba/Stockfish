@@ -163,10 +163,10 @@ const string move_to_san(Position& pos, Move m) {
 
   if (pos.move_gives_check(m, CheckInfo(pos)))
   {
-      StateInfo st;
-      pos.do_move(m, st);
+      StateInfo st(pos);
+      st.do_move(m);
       san += MoveList<LEGAL>(pos).size() ? "+" : "#";
-      pos.undo_move();
+      st.undo_move();
   }
 
   return san;
@@ -252,12 +252,15 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
       s << san << ' ';
       length += san.length() + 1;
 
-      st.push(StateInfo());
-      pos.do_move(*m++, st.top());
+      st.push(StateInfo(pos));
+      st.top().do_move(*m++);
   }
 
-  while (m-- != pv)
-      pos.undo_move();
+  while (!st.empty())
+  {
+      st.top().undo_move();
+      st.pop();
+  }
 
   return s.str();
 }
