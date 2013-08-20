@@ -212,13 +212,13 @@ static string score_to_string(Value v) {
   return s.str();
 }
 
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
+string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move* pv) {
 
   const int64_t K = 1000;
   const int64_t M = 1000000;
 
   std::stack<StateInfo> st;
-  Move* m = pv;
+  int curPly = pos.game_ply();
   string san, padding;
   size_t length;
   stringstream s;
@@ -239,9 +239,9 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
   padding = string(s.str().length(), ' ');
   length = padding.length();
 
-  while (*m != MOVE_NONE)
+  while (*pv != MOVE_NONE)
   {
-      san = move_to_san(pos, *m);
+      san = move_to_san(pos, *pv);
 
       if (length + san.length() > 80)
       {
@@ -253,11 +253,9 @@ string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]
       length += san.length() + 1;
 
       st.push(StateInfo());
-      pos.do_move(*m++, st.top());
+      pos.do_move(*pv++, st.top());
   }
 
-  while (m-- != pv)
-      pos.undo_move();
-
+  pos.undo_back_to(curPly);
   return s.str();
 }

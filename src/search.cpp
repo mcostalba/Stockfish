@@ -1577,7 +1577,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
-  int ply = 0;
+  int ply = 0, curPly = pos.game_ply();
   Move m = pv[0];
 
   pv.clear();
@@ -1597,8 +1597,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
            && (!pos.is_draw() || ply < 2));
 
   pv.push_back(MOVE_NONE); // Must be zero-terminating
-
-  while (ply--) pos.undo_move();
+  pos.undo_back_to(curPly);
 }
 
 
@@ -1610,7 +1609,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
   StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
-  int ply = 0;
+  int ply = 0, curPly = pos.game_ply();
 
   do {
       tte = TT.probe(pos.key());
@@ -1624,7 +1623,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
   } while (pv[ply] != MOVE_NONE);
 
-  while (ply--) pos.undo_move();
+  pos.undo_back_to(curPly);
 }
 
 
