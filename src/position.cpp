@@ -976,6 +976,7 @@ void StateInfo::undo_move() {
 
   // Finally point our state pointer back to the previous state
   pos->st = previous;
+  move = MOVE_NONE;
 
   assert(pos->pos_is_ok());
 }
@@ -1031,6 +1032,7 @@ void StateInfo::undo_null_move() {
 
   pos->st = previous;
   pos->sideToMove = ~pos->sideToMove;
+  move = MOVE_NONE;
 }
 
 

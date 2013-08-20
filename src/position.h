@@ -49,8 +49,17 @@ struct CheckInfo {
 /// must be passed as a parameter.
 
 struct StateInfo {
-  StateInfo() {}
+  StateInfo() : move(MOVE_NONE) {}
   explicit StateInfo(Position& p) : move(MOVE_NONE), pos(&p) {}
+ ~StateInfo() {
+    if (move != MOVE_NONE) // In case an exception is raised
+    {
+        if (move == MOVE_NULL)
+            undo_null_move();
+        else
+            undo_move();
+    }
+  }
 
   void do_move(Move m);
   void do_move(Move m, const CheckInfo& ci, bool moveIsCheck);
