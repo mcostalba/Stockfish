@@ -60,7 +60,7 @@ struct StateInfo {
 
   Key pawnKey, materialKey;
   Value npMaterial[COLOR_NB];
-  int castleRights, rule50, pliesFromNull;
+  int castleRights, gamePly, rule50, pliesFromNull;
   Score psq;
   Square epSquare;
 
@@ -226,7 +226,6 @@ private:
   Bitboard castlePath[COLOR_NB][CASTLING_SIDE_NB];
   StateInfo startState;
   int64_t nodes;
-  int gamePly;
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
@@ -377,7 +376,7 @@ inline bool Position::is_passed_pawn_push(Move m) const {
 }
 
 inline int Position::game_ply() const {
-  return gamePly;
+  return st->gamePly;
 }
 
 inline bool Position::opposite_bishops() const {

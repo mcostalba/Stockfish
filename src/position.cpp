@@ -280,11 +280,11 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 5-6. Halfmove clock and fullmove number
-  ss >> std::skipws >> st->rule50 >> gamePly;
+  ss >> std::skipws >> st->rule50 >> st->gamePly;
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
-  gamePly = std::max(2 * (gamePly - 1), 0) + int(sideToMove == BLACK);
+  st->gamePly = std::max(2 * (st->gamePly - 1), 0) + int(sideToMove == BLACK);
 
   st->key = compute_key();
   st->pawnKey = compute_pawn_key();
@@ -375,7 +375,7 @@ const string Position::fen() const {
       ss << '-';
 
   ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
-      << st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
+      << st->rule50 << " " << 1 + (st->gamePly - int(sideToMove == BLACK)) / 2;
 
   return ss.str();
 }
@@ -734,7 +734,7 @@ void StateInfo::do_move(Move m, const CheckInfo& ci, bool moveIsCheck) {
 
   // Increment ply counters.In particular rule50 will be later reset it to zero
   // in case of a capture or a pawn move.
-  pos->gamePly++;
+  gamePly++;
   rule50++;
   pliesFromNull++;
   move = m;
@@ -979,7 +979,6 @@ void StateInfo::undo_move() {
 
   // Finally point our state pointer back to the previous state
   pos->st = previous;
-  pos->gamePly--;
 
   assert(pos->pos_is_ok());
 }
