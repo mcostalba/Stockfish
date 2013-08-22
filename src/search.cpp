@@ -915,7 +915,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
           // We have not pruned the move that will be searched, but remember how
           // far in the move list we are to be more aggressive in the child node.
-          ss->futilityMoveCount = moveCount;
+          ss->futilityMoveCount = moveCount + (improving ? 0 : moveCount / 4);
       }
       else
           ss->futilityMoveCount = 0;
