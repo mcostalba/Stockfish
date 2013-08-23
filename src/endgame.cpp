@@ -433,12 +433,13 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
   if (    (pawnFile == FILE_A || pawnFile == FILE_H)
       && !(pawns & ~file_bb(pawnFile)))
   {
+      File zpawnFile = file_of(pos.list<PAWN>(strongerSide)[0]);
       Square bishopSq = pos.list<BISHOP>(strongerSide)[0];
-      Square queeningSq = relative_square(strongerSide, pawnFile | RANK_8);
+      Square queeningSq = relative_square(strongerSide, zpawnFile | RANK_8);
       Square kingSq = pos.king_square(weakerSide);
 
       if (   opposite_colors(queeningSq, bishopSq)
-          && abs(file_of(kingSq) - pawnFile) <= 1)
+          && abs(file_of(kingSq) - zpawnFile <= 1))
       {
           // The bishop has the wrong color, and the defending king is on the
           // file of the pawn(s) or the adjacent file. Find the rank of the
