@@ -142,8 +142,8 @@ void Search::init() {
       Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
       Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
 
-      if (Reductions[0][0][hd][mc] >= ONE_PLY)
-          Reductions[0][0][hd][mc] += ONE_PLY / 2;
+      if (Reductions[0][0][hd][mc] > 2 * ONE_PLY)
+          Reductions[0][0][hd][mc] += ONE_PLY;
   }
 
   // Init futility margins array
@@ -153,9 +153,8 @@ void Search::init() {
   // Init futility move count array
   for (d = 0; d < 32; d++)
   {
-      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
-      FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
-                                       : 3 * FutilityMoveCounts[1][d] / 4;
+      FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d       ), 1.8)) * (d < 5 ? 4 : 3) / 4;
+      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d + 0.98), 1.8));
   }
 }
 
@@ -304,7 +303,7 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
+    Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
@@ -664,7 +663,7 @@ namespace {
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth > ONE_PLY
+        &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -775,7 +774,10 @@ moves_loop: // When in check and at SpNode search starts from here
     MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    improving = ss->staticEval >= (ss-2)->staticEval;
+    improving =   ss->staticEval >= (ss-2)->staticEval
+               || ss->staticEval == VALUE_NONE
+               ||(ss-2)->staticEval == VALUE_NONE;
+
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
@@ -1228,6 +1230,7 @@ moves_loop: // When in check and at SpNode search starts from here
           && !givesCheck
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
+          &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.is_passed_pawn_push(move))
       {
           futilityValue =  futilityBase
@@ -1573,7 +1576,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
 void RootMove::extract_pv_from_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_3], *st = state;
+  StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
   int ply = 0;
   Move m = pv[0];
@@ -1606,7 +1609,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
 void RootMove::insert_pv_in_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_3], *st = state;
+  StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
   int ply = 0;
 
@@ -1681,7 +1684,7 @@ void Thread::idle_loop() {
 
           Threads.mutex.unlock();
 
-          Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
+          Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
           Position pos(*sp->pos, this);
 
           std::memcpy(ss-2, sp->ss-2, 5 * sizeof(Stack));
