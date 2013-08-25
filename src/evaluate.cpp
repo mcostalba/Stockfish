@@ -839,7 +839,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
                 // If there aren't enemy attacks huge bonus, a bit smaller if at
                 // least block square is not attacked, otherwise smallest bonus.
-                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
+                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 4;
 
                 // Big bonus if the path to queen is fully defended, a bit less
                 // if at least block square is defended.
