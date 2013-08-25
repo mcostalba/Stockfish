@@ -401,13 +401,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
            sf = ScaleFactor(50);
   }
 
-  // Don't trade down material when in advantage, simplify when down in score
-  if (sf == SCALE_FACTOR_NORMAL)
-  {
-      int sgn = (eg_value(score) > VALUE_ZERO) - (eg_value(score) < VALUE_ZERO);
-      sf = ScaleFactor(sf + (sgn * 4 * ei.mi->game_phase()) / PHASE_MIDGAME);
-  }
-
   margin = margins[pos.side_to_move()];
   Value v = interpolate(score, ei.mi->game_phase(), sf);
 
