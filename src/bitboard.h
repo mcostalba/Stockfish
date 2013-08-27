@@ -319,4 +319,9 @@ extern Square pop_lsb(Bitboard* b);
 
 #endif
 
+// The piece closest to that colors home rank
+inline Square closest_piece(Color color, Bitboard pieces) {
+  return color == WHITE ? lsb(pieces) : msb(pieces);
+}
+
 #endif // #ifndef BITBOARD_H_INCLUDED
