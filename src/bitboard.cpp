@@ -194,16 +194,18 @@ void Bitboards::init() {
   int steps[][9] = { {}, { 7, 9 }, { 17, 15, 10, 6, -6, -10, -15, -17 },
                      {}, {}, {}, { 9, 7, -7, -9, 8, 1, -1, -8 } };
 
-  for (Color c = WHITE; c <= BLACK; c++)
-      for (PieceType pt = PAWN; pt <= KING; pt++)
-          for (Square s = SQ_A1; s <= SQ_H8; s++)
-              for (int k = 0; steps[pt][k]; k++)
-              {
-                  Square to = s + Square(c == WHITE ? steps[pt][k] : -steps[pt][k]);
+  for (PieceType pt = PAWN; pt <= KING; pt++)
+      for (Square s = SQ_A1; s <= SQ_H8; s++)
+         for (int k = 0; steps[pt][k]; k++)
+         {
+            Square to = s + Square(steps[pt][k]);
 
-                  if (is_ok(to) && square_distance(s, to) < 3)
-                      StepAttacksBB[make_piece(c, pt)][s] |= to;
-              }
+            if (is_ok(to) && square_distance(s, to) < 3)
+            {
+               StepAttacksBB[make_piece(WHITE, pt)][s] |= to;
+               StepAttacksBB[make_piece(BLACK, pt)][to] |= s;
+            }
+         }
 
   Square RDeltas[] = { DELTA_N,  DELTA_E,  DELTA_S,  DELTA_W  };
   Square BDeltas[] = { DELTA_NE, DELTA_SE, DELTA_SW, DELTA_NW };
