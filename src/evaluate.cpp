@@ -1090,7 +1090,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
     assert(ph >= PHASE_ENDGAME && ph <= PHASE_MIDGAME);
 
     int ev = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
-    int result = (mg_value(v) * int(ph) + ev * int(128 - ph)) / 128;
+    int result = (mg_value(v) * int(ph) + ev * int(PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
     return Value((result / GrainSize) * GrainSize); // Sign independent
   }
 
