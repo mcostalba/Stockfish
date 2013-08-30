@@ -715,7 +715,7 @@ namespace {
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
-                && allows(pos, (ss-1)->currentMove, threatMove))
+                && (!inCheck || allows(pos, (ss-1)->currentMove, threatMove)))
                 return alpha;
         }
     }
