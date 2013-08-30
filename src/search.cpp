@@ -715,7 +715,7 @@ namespace {
             if (   depth < 5 * ONE_PLY
                 && (ss-1)->reduction
                 && threatMove != MOVE_NONE
-                && (!inCheck || allows(pos, (ss-1)->currentMove, threatMove)))
+                && allows(pos, (ss-1)->currentMove, threatMove))
                 return alpha;
         }
     }
@@ -943,7 +943,8 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          && !(type_of(move) == CASTLE))
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
