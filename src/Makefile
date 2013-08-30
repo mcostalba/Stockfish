@@ -66,7 +66,7 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 # at the end of the line for flag values.
 
 ### 2.1. General
-debug = yes
+debug = no
 optimize = yes
 
 ### 2.2 Architecture specific
