@@ -78,7 +78,7 @@ void init(OptionsMap& o) {
   o["Ponder"]                      = Option(true);
   o["OwnBook"]                     = Option(false);
   o["MultiPV"]                     = Option(1, 1, 500);
-  o["Skill Level"]                 = Option(20, 0, 20);
+  o["Skill Level"]                 = Option(1, 0, 20);
   o["Emergency Move Horizon"]      = Option(40, 0, 50);
   o["Emergency Base Time"]         = Option(200, 0, 30000);
   o["Emergency Move Time"]         = Option(70, 0, 5000);
