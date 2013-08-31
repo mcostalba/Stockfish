@@ -92,7 +92,6 @@ namespace {
     Bitboard b;
     Square s;
     File f;
-    Rank r;
     bool passed, isolated, doubled, opposed, chain, backward, candidate;
     Score value = SCORE_ZERO;
     const Square* pl = pos.list<PAWN>(Us);
@@ -113,13 +112,12 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         f = file_of(s);
-        r = rank_of(s);
 
         // This file cannot be semi-open
         e->semiopenFiles[Us] &= ~(1 << f);
 
         // Our rank plus previous one. Used for chain detection
-        b = rank_bb(r) | rank_bb(Us == WHITE ? r - Rank(1) : r + Rank(1));
+        b = rank_bb(s) | rank_bb(s - pawn_push(Us));
 
         // Flag the pawn as passed, isolated, doubled or member of a pawn
         // chain (but not the backward one).
@@ -226,18 +224,16 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
   Rank rkUs, rkThem;
-  File kf = file_of(ksq);
-
-  kf = (kf == FILE_A) ? FILE_B : (kf == FILE_H) ? FILE_G : kf;
+  File kf = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
 
   for (int f = kf - 1; f <= kf + 1; f++)
   {
       b = ourPawns & FileBB[f];
-      rkUs = b ? relative_rank(Us, Us == WHITE ? lsb(b) : msb(b)) : RANK_1;
+      rkUs = b ? relative_rank(Us, backmost_sq(Us, b)) : RANK_1;
       safety -= ShelterWeakness[rkUs];
 
       b  = theirPawns & FileBB[f];
-      rkThem = b ? relative_rank(Us, Us == WHITE ? lsb(b) : msb(b)) : RANK_1;
+      rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
       safety -= StormDanger[rkUs == RANK_1 ? 0 : rkThem == rkUs + 1 ? 2 : 1][rkThem];
   }
 

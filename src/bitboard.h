@@ -319,4 +319,10 @@ extern Square pop_lsb(Bitboard* b);
 
 #endif
 
+/// frontmost_sq() and backmost_sq() find the square corresponding to the
+/// most/least advanced bit relative to the given color.
+
+inline Square frontmost_sq(Color c, Bitboard b) { return c == WHITE ? msb(b) : lsb(b); }
+inline Square  backmost_sq(Color c, Bitboard b) { return c == WHITE ? lsb(b) : msb(b); }
+
 #endif // #ifndef BITBOARD_H_INCLUDED

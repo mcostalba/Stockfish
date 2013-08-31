@@ -826,7 +826,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
             if (pos.is_empty(blockSq))
             {
                 squaresToQueen = forward_bb(Us, s);
-                defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
 
                 // If there is an enemy rook or queen attacking the pawn from behind,
                 // add all X-ray attacks by the rook or queen. Otherwise consider only
@@ -837,9 +836,15 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 else
                     unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
 
+                if (    unlikely(forward_bb(Them, s) & pos.pieces(Us, ROOK, QUEEN))
+                    && (forward_bb(Them, s) & pos.pieces(Us, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
+                    defendedSquares = squaresToQueen;
+                else
+                    defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
+
                 // If there aren't enemy attacks huge bonus, a bit smaller if at
                 // least block square is not attacked, otherwise smallest bonus.
-                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 4;
+                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
 
                 // Big bonus if the path to queen is fully defended, a bit less
                 // if at least block square is defended.
@@ -1089,9 +1094,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
     assert(eg_value(v) > -VALUE_INFINITE && eg_value(v) < VALUE_INFINITE);
     assert(ph >= PHASE_ENDGAME && ph <= PHASE_MIDGAME);
 
-    int ev = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
-    int result = (mg_value(v) * int(ph) + ev * int(128 - ph)) / 128;
-    return Value((result / GrainSize) * GrainSize); // Sign independent
+    int e = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
+    int r = (mg_value(v) * int(ph) + e * int(PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
+    return Value((r / GrainSize) * GrainSize); // Sign independent
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
