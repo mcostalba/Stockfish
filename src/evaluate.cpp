@@ -837,7 +837,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
                 // If there aren't enemy attacks huge bonus, a bit smaller if at
                 // least block square is not attacked, otherwise smallest bonus.
-                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
+                int k = !unsafeSquares ? !pos.non_pawn_material(Them) ? 20 : 15
+                                       : !(unsafeSquares & blockSq) ? 9 : 3;
 
                 // Big bonus if the path to queen is fully defended, a bit less
                 // if at least block square is defended.
@@ -846,10 +847,6 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
                 else if (defendedSquares & blockSq)
                     k += (unsafeSquares & defendedSquares) == unsafeSquares ? 4 : 2;
-
-                // Increase bonus if enemy has only pawns
-                if (!pos.non_pawn_material(Them))
-                    k = (3 * k) / 2;
 
                 mbonus += Value(k * rr), ebonus += Value(k * rr);
             }
