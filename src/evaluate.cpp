@@ -849,7 +849,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
                 // Increase bonus if enemy has only pawns
                 if (!pos.non_pawn_material(Them))
-                    k *= 2;
+                    k = (3 * k) / 2;
 
                 mbonus += Value(k * rr), ebonus += Value(k * rr);
             }
