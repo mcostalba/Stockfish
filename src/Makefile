@@ -263,9 +263,12 @@ endif
 
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
-	# Haiku has pthreads in its libroot, so only link it in on other platforms
-	ifneq ($(UNAME),Haiku)
-		LDFLAGS += -lpthread
+	# On Android Bionic's C library comes with its own pthread implementation bundled in
+	ifneq ($(arch),armv7)
+		# Haiku has pthreads in its libroot, so only link it in on other platforms
+		ifneq ($(UNAME),Haiku)
+			LDFLAGS += -lpthread
+		endif
 	endif
 endif
 
@@ -296,7 +299,7 @@ ifeq ($(optimize),yes)
 		endif
 
 		ifeq ($(arch),armv7)
-			CXXFLAGS += -fno-gcse
+			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
