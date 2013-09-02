@@ -157,9 +157,8 @@ void Search::init() {
   // Init futility move count array
   for (d = 0; d < 32; d++)
   {
-      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d), 1.8));
-      FutilityMoveCounts[0][d] = d < 5 ? FutilityMoveCounts[1][d]
-                                       : 3 * FutilityMoveCounts[1][d] / 4;
+      FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d       ), 1.8)) * (d < 5 ? 4 : 3) / 4;
+      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d + 0.98), 1.8));
   }
 }
 
@@ -337,7 +336,7 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
+    Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
     int depth, prevBestMoveChanges;
     Value bestValue, alpha, beta, delta;
 
@@ -1625,7 +1624,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
 void RootMove::extract_pv_from_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_3], *st = state;
+  StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
   int ply = 0;
   Move m = pv[0];
@@ -1658,7 +1657,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
 void RootMove::insert_pv_in_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_3], *st = state;
+  StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
   int ply = 0;
 
@@ -1733,7 +1732,7 @@ void Thread::idle_loop() {
 
           Threads.mutex.unlock();
 
-          Stack stack[MAX_PLY_PLUS_3], *ss = stack+2; // To allow referencing (ss-2)
+          Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
           Position pos(*sp->pos, this);
 
           std::memcpy(ss-2, sp->ss-2, 5 * sizeof(Stack));
