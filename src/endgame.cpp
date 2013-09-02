@@ -89,6 +89,7 @@ namespace {
 
 Endgames::Endgames() {
 
+  /*
   add<KPK>("KPK");
   add<KNNK>("KNNK");
   add<KBNK>("KBNK");
@@ -98,6 +99,7 @@ Endgames::Endgames() {
   add<KQKP>("KQKP");
   add<KQKR>("KQKR");
   add<KBBKN>("KBBKN");
+  */
 
   add<KNPK>("KNPK");
   add<KNPKB>("KNPKB");
