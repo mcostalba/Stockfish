@@ -84,7 +84,7 @@ namespace {
 
   size_t PVSize, PVIdx;
   TimeManager TimeMgr;
-  int BestMoveChanges;
+  float BestMoveChanges;
   Value DrawValue[COLOR_NB];
   HistoryStats History;
   GainsStats Gains;
@@ -99,7 +99,6 @@ namespace {
   void id_loop(Position& pos);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
-  bool check_is_dangerous(const Position& pos, Move move, Value futilityBase, Value beta);
   bool allows(const Position& pos, Move first, Move second);
   bool refutes(const Position& pos, Move first, Move second);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
@@ -153,8 +152,8 @@ void Search::init() {
   // Init futility move count array
   for (d = 0; d < 32; d++)
   {
-      FutilityMoveCounts[0][d] = int(3.001 + 0.3 * pow(double(d       ), 1.8)) * (d < 5 ? 4 : 3) / 4;
-      FutilityMoveCounts[1][d] = int(3.001 + 0.3 * pow(double(d + 0.98), 1.8));
+      FutilityMoveCounts[0][d] = int(3 + 0.3 * pow(double(d       ), 1.8)) * 3/4 + (2 < d && d < 5);
+      FutilityMoveCounts[1][d] = int(3 + 0.3 * pow(double(d + 0.98), 1.8));
   }
 }
 
@@ -304,13 +303,14 @@ namespace {
   void id_loop(Position& pos) {
 
     Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
-    int depth, prevBestMoveChanges;
+    int depth;
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
     (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
-    depth = BestMoveChanges = 0;
+    depth = 0;
+    BestMoveChanges = 0;
     bestValue = delta = alpha = -VALUE_INFINITE;
     beta = VALUE_INFINITE;
 
@@ -332,13 +332,13 @@ namespace {
     // Iterative deepening loop until requested to stop or target depth reached
     while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
+        // Age out PV variability metric
+        BestMoveChanges *= 0.8;
+
         // Save last iteration's scores before first PV line is searched and all
         // the move scores but the (new) PV are set to -VALUE_INFINITE.
         for (RootMove& rm : RootMoves)
             rm.prevScore = rm.score;
-
-        prevBestMoveChanges = BestMoveChanges; // Only sensible when PVSize == 1
-        BestMoveChanges = 0;
 
         // MultiPV loop. We perform a full root search for each PV line
         for (PVIdx = 0; PVIdx < PVSize; PVIdx++)
@@ -437,7 +437,7 @@ namespace {
 
             // Take in account some extra time if the best move has changed
             if (depth > 4 && depth < 50 &&  PVSize == 1)
-                TimeMgr.pv_instability(BestMoveChanges, prevBestMoveChanges);
+                TimeMgr.pv_instability(BestMoveChanges);
 
             // Stop search if most of available time is already consumed. We
             // probably don't have enough time to search the first move at the
@@ -663,7 +663,7 @@ namespace {
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth > ONE_PLY
+        &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -780,7 +780,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     singularExtensionNode =   !RootNode
                            && !SpNode
-                           &&  depth >= (PvNode ? 6 * ONE_PLY : 8 * ONE_PLY)
+                           &&  depth >= 8 * ONE_PLY
                            &&  ttMove != MOVE_NONE
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
@@ -937,10 +937,9 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high will be
       // re-searched at full depth.
-      if (    depth > 3 * ONE_PLY
+      if (    depth >= 3 * ONE_PLY
           && !pvMove
           && !captureOrPromotion
-          && !dangerous
           &&  move != ttMove
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
@@ -1230,6 +1229,7 @@ moves_loop: // When in check and at SpNode search starts from here
           && !givesCheck
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
+          &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.is_passed_pawn_push(move))
       {
           futilityValue =  futilityBase
@@ -1264,16 +1264,6 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < 0)
-          continue;
-
-      // Don't search useless checks
-      if (   !PvNode
-          && !InCheck
-          &&  givesCheck
-          &&  move != ttMove
-          && !pos.is_capture_or_promotion(move)
-          &&  ss->staticEval + PawnValueMg / 4 < beta
-          && !check_is_dangerous(pos, move, futilityBase, beta))
           continue;
 
       // Check for legality only before to do the move
@@ -1353,42 +1343,6 @@ moves_loop: // When in check and at SpNode search starts from here
   }
 
 
-  // check_is_dangerous() tests if a checking move can be pruned in qsearch()
-
-  bool check_is_dangerous(const Position& pos, Move move, Value futilityBase, Value beta)
-  {
-    Piece pc = pos.piece_moved(move);
-    Square from = from_sq(move);
-    Square to = to_sq(move);
-    Color them = ~pos.side_to_move();
-    Square ksq = pos.king_square(them);
-    Bitboard enemies = pos.pieces(them);
-    Bitboard kingAtt = pos.attacks_from<KING>(ksq);
-    Bitboard occ = pos.pieces() ^ from ^ ksq;
-    Bitboard oldAtt = pos.attacks_from(pc, from, occ);
-    Bitboard newAtt = pos.attacks_from(pc, to, occ);
-
-    // Checks which give opponent's king at most one escape square are dangerous
-    if (!more_than_one(kingAtt & ~(enemies | newAtt | to)))
-        return true;
-
-    // Queen contact check is very dangerous
-    if (type_of(pc) == QUEEN && (kingAtt & to))
-        return true;
-
-    // Creating new double threats with checks is dangerous
-    Bitboard b = (enemies ^ ksq) & newAtt & ~oldAtt;
-    while (b)
-    {
-        // Note that here we generate illegal "double move"!
-        if (futilityBase + PieceValue[EG][pos.piece_on(pop_lsb(&b))] >= beta)
-            return true;
-    }
-
-    return false;
-  }
-
-
   // allows() tests whether the 'first' move at previous ply somehow makes the
   // 'second' move possible, for instance if the moving piece is the same in
   // both moves. Normally the second move is the threat (the best move returned
@@ -1399,7 +1353,7 @@ moves_loop: // When in check and at SpNode search starts from here
     assert(is_ok(first));
     assert(is_ok(second));
     assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
+    assert(type_of(first) == CASTLE || color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
 
     Square m1from = from_sq(first);
     Square m2from = from_sq(second);
@@ -1407,7 +1361,10 @@ moves_loop: // When in check and at SpNode search starts from here
     Square m2to = to_sq(second);
 
     // The piece is the same or second's destination was vacated by the first move
-    if (m1to == m2from || m2to == m1from)
+    // We exclude the trivial case where a sliding piece does in two moves what
+    // it could do in one move: eg. Ra1a2, Ra2a3.
+    if (    m2to == m1from
+        || (m1to == m2from && !squares_aligned(m1from, m2from, m2to)))
         return true;
 
     // Second one moves through the square vacated by first one
