@@ -99,7 +99,6 @@ Endgames::Endgames() {
   add<KQKR>("KQKR");
   add<KBBKN>("KBBKN");
 
-  /*
   add<KNPK>("KNPK");
   add<KNPKB>("KNPKB");
   add<KRPKR>("KRPKR");
@@ -107,7 +106,6 @@ Endgames::Endgames() {
   add<KBPKN>("KBPKN");
   add<KBPPKB>("KBPPKB");
   add<KRPPKRP>("KRPPKRP");
-  */
 }
 
 Endgames::~Endgames() {
