@@ -40,7 +40,7 @@
 template<bool Gain, typename T>
 struct Stats {
 
-  static const Value Max = Value(16000);
+  static const Value Max = Value(2000);
 
   const T* operator[](Piece p) const { return table[p]; }
   void clear() { std::memset(table, 0, sizeof(table)); }
@@ -57,7 +57,7 @@ struct Stats {
   void update(Piece p, Square to, Value v) {
 
     if (Gain)
-        table[p][to] = std::max(v, table[p][to] - 1);
+        table[p][to] = std::max(v, table[p][to] - 2);
 
     else if (abs(table[p][to] + v) < Max)
         table[p][to] +=  v;
