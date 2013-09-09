@@ -57,7 +57,7 @@ struct Stats {
   void update(Piece p, Square to, Value v) {
 
     if (Gain)
-        table[p][to] = std::max(v, table[p][to] - 4);
+        table[p][to] = std::max(v, table[p][to] - 8);
 
     else if (abs(table[p][to] + v) < Max)
         table[p][to] +=  v;
