@@ -175,7 +175,7 @@ namespace {
   const Score MinorBehindPawn  = make_score(16,  0);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
-  const Score Unstoppable      = make_score( 0, 64);
+  const Score Unstoppable      = make_score( 0, 32);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -249,6 +249,8 @@ namespace {
 
   template<Color Us>
   int evaluate_space(const Position& pos, const EvalInfo& ei);
+
+  Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei);
 
   Value interpolate(const Score& v, Phase ph, ScaleFactor sf);
   Score apply_weight(Score v, Score w);
@@ -363,12 +365,10 @@ Value do_evaluate(const Position& pos, Value& margin) {
   score +=  evaluate_passed_pawns<WHITE, Trace>(pos, ei)
           - evaluate_passed_pawns<BLACK, Trace>(pos, ei);
 
-  // In case opponent has only pawns, canidates could become unstoppable passed
-  if (!pos.non_pawn_material(BLACK) && ei.pi->candidate_pawns(WHITE))
-      score += int(relative_rank(WHITE, frontmost_sq(WHITE, ei.pi->candidate_pawns(WHITE)))) * Unstoppable;
-
-  if (!pos.non_pawn_material(WHITE) && ei.pi->candidate_pawns(BLACK))
-      score -= int(relative_rank(WHITE, frontmost_sq(BLACK, ei.pi->candidate_pawns(BLACK)))) * Unstoppable;
+  // If one side has only a king, score for potential unstoppable pawns
+  if (!pos.non_pawn_material(WHITE) || !pos.non_pawn_material(BLACK))
+      score +=  evaluate_unstoppable_pawns(pos, WHITE, ei)
+              - evaluate_unstoppable_pawns(pos, BLACK, ei);
 
   // Evaluate space for both sides, only in middle-game.
   if (ei.mi->space_weight())
@@ -889,6 +889,17 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
     // Add the scores to the middle game and endgame eval
     return apply_weight(score, Weights[PassedPawns]);
+  }
+
+
+  Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei) {
+
+    Bitboard b = ei.pi->passed_pawns(us) | ei.pi->candidate_pawns(us);
+
+    if (!b || pos.non_pawn_material(~us))
+        return SCORE_ZERO;
+
+    return Unstoppable * int(relative_rank(WHITE, frontmost_sq(us, b)));
   }
 
 
