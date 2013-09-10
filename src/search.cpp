@@ -837,8 +837,8 @@ moves_loop: // When in check and at SpNode search starts from here
       else if (givesCheck && pos.see_sign(move) >= 0)
       {
           ext = ONE_PLY / 2;
-          if (ss->staticEval < VALUE_ZERO || inCheck)
-              ext=ONE_PLY;
+//          if (ss->staticEval < VALUE_ZERO || inCheck)
+//              ext=ONE_PLY;
       }
 
       // Singular extension search. If all moves but one fail low on a search of
@@ -946,7 +946,8 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          && ((!givesCheck)||(ext ==0)||(ss-1)->staticEval!=VALUE_NONE))
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
