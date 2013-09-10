@@ -186,12 +186,8 @@ namespace {
   // based on how many squares inside this area are safe and available for
   // friendly minor pieces.
   const Bitboard SpaceMask[] = {
-    (1ULL << SQ_C2) | (1ULL << SQ_D2) | (1ULL << SQ_E2) | (1ULL << SQ_F2) |
-    (1ULL << SQ_C3) | (1ULL << SQ_D3) | (1ULL << SQ_E3) | (1ULL << SQ_F3) |
-    (1ULL << SQ_C4) | (1ULL << SQ_D4) | (1ULL << SQ_E4) | (1ULL << SQ_F4),
-    (1ULL << SQ_C7) | (1ULL << SQ_D7) | (1ULL << SQ_E7) | (1ULL << SQ_F7) |
-    (1ULL << SQ_C6) | (1ULL << SQ_D6) | (1ULL << SQ_E6) | (1ULL << SQ_F6) |
-    (1ULL << SQ_C5) | (1ULL << SQ_D5) | (1ULL << SQ_E5) | (1ULL << SQ_F5)
+    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank2BB | Rank3BB | Rank4BB),
+    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB)
   };
 
   // King danger constants and variables. The king danger scores are taken
@@ -818,7 +814,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             ebonus -= Value(square_distance(pos.king_square(Us), blockSq) * 2 * rr);
 
             // If blockSq is not the queening square then consider also a second push
-            if (rank_of(blockSq) != (Us == WHITE ? RANK_8 : RANK_1))
+            if (relative_rank(Us, blockSq) != RANK_8)
                 ebonus -= Value(square_distance(pos.king_square(Us), blockSq + pawn_push(Us)) * rr);
 
             // If the pawn is free to advance, increase bonus
@@ -1006,19 +1002,19 @@ Value do_evaluate(const Position& pos, Value& margin) {
             {
                 b2 = supporters & in_front_bb(winnerSide, rank_of(blockSq + pawn_push(winnerSide)));
 
-                while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
+                if (b2)
                 {
-                    d = square_distance(blockSq, pop_lsb(&b2)) - 2;
+                    d = square_distance(blockSq, backmost_sq(winnerSide, b2)) - 2;
                     movesToGo = std::min(movesToGo, d);
                 }
             }
 
             // Check pawns that can be sacrificed against the blocking pawn
-            b2 = pawn_attack_span(winnerSide, blockSq) & candidates & ~(1ULL << s);
+            b2 = pawn_attack_span(winnerSide, blockSq) & candidates & ~SquareBB[s];
 
-            while (b2) // This while-loop could be replaced with LSB/MSB (depending on color)
+            if (b2)
             {
-                d = square_distance(blockSq, pop_lsb(&b2)) - 2;
+                d = square_distance(blockSq, backmost_sq(winnerSide, b2)) - 2;
                 movesToGo = std::min(movesToGo, d);
             }
 
@@ -1037,12 +1033,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
             kingptg = (minKingDist + blockersCount) * 2;
         }
 
-        // Check if pawn sacrifice plan _may_ save the day
-        if (pliesToQueen[winnerSide] + 3 > pliesToGo + sacptg)
-            return SCORE_ZERO;
-
-        // Check if king capture plan _may_ save the day (contains some false positives)
-        if (pliesToQueen[winnerSide] + 3 > pliesToGo + kingptg)
+        // Check if pawn sacrifice or king capture plan _may_ save the day
+        if (pliesToQueen[winnerSide] + 3 > pliesToGo + std::min(kingptg, sacptg))
             return SCORE_ZERO;
     }
 
