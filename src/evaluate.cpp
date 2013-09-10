@@ -175,6 +175,7 @@ namespace {
   const Score MinorBehindPawn  = make_score(16,  0);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
+  const Score Unstoppable      = make_score( 0, 64);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -361,6 +362,13 @@ Value do_evaluate(const Position& pos, Value& margin) {
   // Evaluate passed pawns, we need full attack information including king
   score +=  evaluate_passed_pawns<WHITE, Trace>(pos, ei)
           - evaluate_passed_pawns<BLACK, Trace>(pos, ei);
+
+  // In case opponent has only pawns, canidates could become unstoppable passed
+  if (!pos.non_pawn_material(BLACK) && ei.pi->candidate_pawns(WHITE))
+      score += int(relative_rank(WHITE, frontmost_sq(WHITE, ei.pi->candidate_pawns(WHITE)))) * Unstoppable;
+
+  if (!pos.non_pawn_material(WHITE) && ei.pi->candidate_pawns(BLACK))
+      score -= int(relative_rank(WHITE, frontmost_sq(BLACK, ei.pi->candidate_pawns(BLACK)))) * Unstoppable;
 
   // Evaluate space for both sides, only in middle-game.
   if (ei.mi->space_weight())
