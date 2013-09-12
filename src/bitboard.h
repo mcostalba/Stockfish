@@ -263,44 +263,29 @@ inline Bitboard attacks_bb(Square s, Bitboard occ) {
 #  if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 
 FORCE_INLINE Square lsb(Bitboard b) {
-  unsigned long index;
-  _BitScanForward64(&index, b);
-  return (Square) index;
+	assert(b);
+	unsigned long index;
+	_BitScanForward64(&index, b);
+	return (Square) index;
 }
 
 FORCE_INLINE Square msb(Bitboard b) {
-  unsigned long index;
-  _BitScanReverse64(&index, b);
-  return (Square) index;
+	assert(b);
+	unsigned long index;
+	_BitScanReverse64(&index, b);
+	return (Square) index;
 }
 
-#  elif defined(__arm__)
-
-FORCE_INLINE int lsb32(uint32_t v) {
-  __asm__("rbit %0, %1" : "=r"(v) : "r"(v));
-  return __builtin_clz(v);
-}
-
-FORCE_INLINE Square msb(Bitboard b) {
-  return (Square) (63 - __builtin_clzll(b));
-}
+#  else	// Use GCC intrinsics
 
 FORCE_INLINE Square lsb(Bitboard b) {
-  return (Square) (uint32_t(b) ? lsb32(uint32_t(b)) : 32 + lsb32(uint32_t(b >> 32)));
-}
-
-#  else
-
-FORCE_INLINE Square lsb(Bitboard b) { // Assembly code by Heinz van Saanen
-  Bitboard index;
-  __asm__("bsfq %1, %0": "=r"(index): "rm"(b) );
-  return (Square) index;
+	assert(b);
+	return Square(__builtin_ffsll(b) - 1);
 }
 
 FORCE_INLINE Square msb(Bitboard b) {
-  Bitboard index;
-  __asm__("bsrq %1, %0": "=r"(index): "rm"(b) );
-  return (Square) index;
+	assert(b);
+	return Square(63 - __builtin_clzll(b));
 }
 
 #  endif
