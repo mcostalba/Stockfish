@@ -270,11 +270,13 @@ void Search::think() {
   Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
 
   // Set best timer interval to avoid lagging under time pressure. Timer is
-  // used to check for remaining available thinking time. Timer will be started
-  // at the end of first iteration to avoid returning with a random move.
+  // used to check for remaining available thinking time.
   Threads.timer->msec =
   Limits.use_time_management() ? std::min(100, std::max(TimeMgr.available_time() / 16, TimerResolution)) :
-                  Limits.nodes ? 2 * TimerResolution : 100;
+                  Limits.nodes ? 2 * TimerResolution
+                               : 100;
+
+  Threads.timer->notify_one(); // Wake up the recurring timer
 
   id_loop(RootPos); // Let's start searching !
 
@@ -432,10 +434,6 @@ namespace {
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
-
-            // Wake up the recurring timer after first iteration is finished
-            if (depth == 1)
-                Threads.timer->notify_one();
 
             // Sort the PV lines searched so far and update the GUI
             std::stable_sort(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
@@ -885,7 +883,7 @@ moves_loop: // When in check and at SpNode search starts from here
           ext = ONE_PLY;
 
       else if (givesCheck && pos.see_sign(move) >= 0)
-          ext = ONE_PLY / 2;
+          ext = inCheck || ss->staticEval <= alpha ? ONE_PLY : ONE_PLY / 2;
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
