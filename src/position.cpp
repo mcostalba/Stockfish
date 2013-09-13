@@ -128,7 +128,7 @@ void Position::init() {
   for (File f = FILE_A; f <= FILE_H; f++)
       Zobrist::enpassant[f] = rk.rand<Key>();
 
-  for (int cr = CASTLES_NONE; cr <= ALL_CASTLES; cr++)
+  for (int cr = CASTLES_NONE; cr <= ALL_CASTLES; ++cr)
   {
       Bitboard b = cr;
       while (b)
@@ -1149,8 +1149,8 @@ void Position::clear() {
   startState.epSquare = SQ_NONE;
   st = &startState;
 
-  for (int i = 0; i < PIECE_TYPE_NB; i++)
-      for (int j = 0; j < 16; j++)
+  for (int i = 0; i < PIECE_TYPE_NB; ++i)
+      for (int j = 0; j < 16; ++j)
           pieceList[WHITE][i][j] = pieceList[BLACK][i][j] = SQ_NONE;
 }
 
@@ -1212,7 +1212,7 @@ Key Position::compute_material_key() const {
 
   for (Color c = WHITE; c <= BLACK; c++)
       for (PieceType pt = PAWN; pt <= QUEEN; pt++)
-          for (int cnt = 0; cnt < pieceCount[c][pt]; cnt++)
+          for (int cnt = 0; cnt < pieceCount[c][pt]; ++cnt)
               k ^= Zobrist::psq[c][pt][cnt];
 
   return k;
@@ -1428,7 +1428,7 @@ bool Position::pos_is_ok(int* failedStep) const {
   if ((*step)++, debugPieceList)
       for (Color c = WHITE; c <= BLACK; c++)
           for (PieceType pt = PAWN; pt <= KING; pt++)
-              for (int i = 0; i < pieceCount[c][pt]; i++)
+              for (int i = 0; i < pieceCount[c][pt]; ++i)
                   if (   board[pieceList[c][pt][i]] != make_piece(c, pt)
                       || index[pieceList[c][pt][i]] != i)
                       return false;
