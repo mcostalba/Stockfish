@@ -12,6 +12,8 @@ to one search thread it is therefore recommended to inspect the value of
 the *Threads* UCI parameter, and to make sure it equals the number of CPU
 cores on your computer.
 
+This version of Stockfish has support for Syzygybases.
+
 
 ### Files
 
@@ -27,6 +29,63 @@ This distribution of Stockfish consists of the following files:
 
   * polyglot.ini, for using Stockfish with Fabien Letouzey's PolyGlot
     adapter.
+
+
+### Syzygybases
+
+**Configuration**
+
+Syzygybases are configured using the UCI options "Probe Syzygybases" and
+"Syzygybases Path".
+
+The option "Syzygybases Path" should be set to the directory or directories
+where the .rtbw and .rtbz files can be found. Multiple directories should
+be separated by ";" on Windows and by ":" on Unix-based operating systems.
+
+Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
+
+It is recommended to store .rtbw files on an SSD. There is no loss in
+storing the .rtbz files on a regular HD.
+
+**Note:** At the moment, the "Syzygybases Path" option can only be set once. If you want to change it, you need to restart the engine.
+
+If you have the 6-piece tables, set the value of "Probe Syzygybases" to 6.
+If you only have the 5-piece table, set it to 5. Set the value of this option
+to 0 if you want to temporarily disable tablebase probing.
+
+**What to expect**  
+If the engine is searching a position that is not in the tablebases (e.g.
+a position with 7 pieces), it will access the tablebases during the search.
+If the engine reports a large mate score, this means that it has found a
+winning line into a tablebase position. Example: mate in 60 means 10 moves
+into a winning tablebase position.
+
+If the engine is given a position to search that is in the tablebases, it
+will use the tablebases at the beginning of the search to preselect all
+good moves, i.e. all moves that preserve the win or preserve the draw while
+taking into account the 50-move rule.
+It wil then perform a search only on those moves. **The engine will not move
+immediately**, unless there is only a single good move. **The engine might 
+not report a mate score even when the position is won.** Instead, it reports
+the score that is returned by the search.
+
+It is therefore clear that behaviour is not identical to what one might
+be used to with Nalimov tablebases. There are technical reasons for this
+difference, the main technical reason being that Nalimov tablebases use the
+DTM metric (distance-to-mate), while Syzygybases use a variation of the
+DTZ metric (distance-to-zero, zero meaning any move that resets the 50-move
+counter). This special metric is one of the reasons that Syzygybases are
+more compact than Nalimov tablebases, while still storing all information
+needed for optimal play and in addition being able to take into account
+the 50-move rule.
+
+In the near future an option will be added to switch between the current
+behaviour and a mode in which Stockfish will immediately play one of the
+good moves. This new mode will have the problem that it leads to unnatural
+play once the engine has reached a tablebase position. For example, the
+engine will then prefer any winning pawn move (even those that lose material
+and complicate the win) over moves that lead to a quick mate but have a
+higher "distance-to-zero" value.
 
 
 ### Opening books

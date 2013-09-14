@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
   Eval::init();
   Threads.init();
   TT.set_size(Options["Hash"]);
-  Tablebases::init();
+  Tablebases::init(Options["Syzygybases Path"]);
 
   std::string args;
 

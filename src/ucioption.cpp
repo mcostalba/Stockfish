@@ -27,6 +27,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
+#include "tbprobe.h"
 
 using std::string;
 
@@ -40,6 +41,7 @@ void on_eval(const Option&) { Eval::init(); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_hash_size(const Option& o) { TT.set_size(o); }
 void on_clear_hash(const Option&) { TT.clear(); }
+void on_tb_path(const Option& o) { Tablebases::init(o); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
@@ -86,7 +88,8 @@ void init(OptionsMap& o) {
   o["Slow Mover"]                  = Option(50, 10, 1000);
   o["UCI_Chess960"]                = Option(false);
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
-  o["Probe Syzygybases"]           = Option(6, 0, 7);
+  o["Probe Syzygybases"]           = Option(6, 0, 6);
+  o["Syzygybases Path"]            = Option("", on_tb_path);
 }
 
 

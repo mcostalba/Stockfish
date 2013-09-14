@@ -7,8 +7,14 @@
 
 #ifndef __WIN32__
 #include <pthread.h>
+#define SEP_CHAR ':'
+#define FD int
+#define FD_ERR -1
 #else
 #include <windows.h>
+#define SEP_CHAR ';'
+#define FD HANDLE
+#define FD_ERR INVALID_HANDLE_VALUE
 #endif
 
 #ifndef __WIN32__
