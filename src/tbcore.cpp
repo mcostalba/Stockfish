@@ -91,10 +91,8 @@ static void close_tb(FD fd)
 static char *map_file(const char *name, const char *suffix, uint64 *size)
 {
   FD fd = open_tb(name, suffix);
-  if (fd == FD_ERR) {
-    printf("Could not open %s for reading.\n", name);
-    exit(1);
-  }
+  if (fd == FD_ERR)
+    return NULL;
 #ifndef __WIN32__
   struct stat statbuf;
   fstat(fd, &statbuf);
@@ -127,6 +125,7 @@ static char *map_file(const char *name, const char *suffix, uint64 *size)
 
 static void unmap_file(char *data, uint64 size)
 {
+  if (!data) return;
 #ifndef __WIN32__
   munmap(data, size);
 #else
@@ -340,7 +339,7 @@ void Tablebases::init(const std::string& path)
 	  init_tb(str);
 	}
 
-  printf("Found %d tablebases.\n", TBnum_piece + TBnum_pawn);
+  printf("info string Found %d tablebases.\n", TBnum_piece + TBnum_pawn);
 
   init_indices();
 }
@@ -755,7 +754,7 @@ static uint64 encode_piece(struct TBEntry_piece *ptr, ubyte *norm, int *pos, int
     i = 3;
     break;
 
-  case 2: /* K2 */
+  default: /* K2 */
     idx = KK_idx[triangle[pos[0]]][pos[1]];
     i = 2;
     break;
@@ -1243,6 +1242,10 @@ static int init_table_wdl(struct TBEntry *entry, char *str)
 
   uint64 dummy;
   entry->data = map_file(str, WDLSUFFIX, &dummy);
+  if (!entry->data) {
+    printf("Could not find %s" WDLSUFFIX, str);
+    return 0;
+  }
 
   ubyte *data = (ubyte *)entry->data;
   if (((uint32 *)data)[0] != WDL_MAGIC) {
@@ -1349,6 +1352,9 @@ static int init_table_dtz(struct TBEntry *entry)
   int f, s;
   uint64 tb_size[4];
   uint64 size[4 * 3];
+
+  if (!data)
+    return 0;
 
   if (((uint32 *)data)[0] != DTZ_MAGIC) {
     printf("Corrupted table.\n");
@@ -1537,7 +1543,7 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
 				? sizeof(struct DTZEntry_pawn)
 				: sizeof(struct DTZEntry_piece));
 
-  uint64 size;
+  uint64 size = 0ULL;
   ptr3->data = map_file(str, DTZSUFFIX, &size);
   ptr3->key = ptr->key;
   ptr3->num = ptr->num;

@@ -243,7 +243,7 @@ void Search::think() {
   use_tb = Options["Probe Syzygybases"];
   tb_position = 0;
   tbhits = 0;
-  if (popcount<Full>(RootPos.pieces()) <= 6)
+  if (popcount<Full>(RootPos.pieces()) <= use_tb)
   {
       if ((tb_position = Tablebases::root_probe(RootPos))) {
           tbhits++;
@@ -261,6 +261,8 @@ void Search::think() {
 
           // Optional: decrease target time.
       }
+      else
+          use_tb = popcount<Full>(RootPos.pieces()) - 1;
   }
 
   // Reset the threads, still sleeping: will be wake up at split time
