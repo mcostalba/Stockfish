@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 
   std::string args;
 
-  for (int i = 1; i < argc; i++)
+  for (int i = 1; i < argc; ++i)
       args += std::string(argv[i]) + " ";
 
   UCI::loop(args);

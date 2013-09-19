@@ -17,8 +17,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "search.h"
 #include "timeman.h"
@@ -150,7 +150,7 @@ namespace {
     int thisMoveImportance = move_importance(currentPly) * slowMover / 100;
     int otherMovesImportance = 0;
 
-    for (int i = 1; i < movesToGo; i++)
+    for (int i = 1; i < movesToGo; ++i)
         otherMovesImportance += move_importance(currentPly + 2 * i);
 
     float ratio1 = (TMaxRatio * thisMoveImportance) / float(TMaxRatio * thisMoveImportance + otherMovesImportance);
