@@ -827,7 +827,8 @@ moves_loop: // When in check and at SpNode search starts from here
       captureOrPromotion = pos.is_capture_or_promotion(move);
       givesCheck = pos.move_gives_check(move, ci);
       dangerous =   givesCheck
-                 || pos.is_passed_pawn_push(move);
+                 || pos.is_passed_pawn_push(move)
+                 || type_of(move) == CASTLE;
 
       // Step 12. Extend checks and, in PV nodes, also dangerous moves
       if (PvNode && dangerous)
@@ -836,7 +837,7 @@ moves_loop: // When in check and at SpNode search starts from here
       else if (givesCheck && pos.see_sign(move) >= 0)
           ext = inCheck || ss->staticEval <= alpha ? ONE_PLY : ONE_PLY / 2;
 
-      if (PvNode && !ext && (captureOrPromotion || type_of(move) == CASTLE))
+      else if (PvNode && captureOrPromotion)
           ext = ONE_PLY / 2;
 
       // Singular extension search. If all moves but one fail low on a search of
