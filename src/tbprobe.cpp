@@ -742,3 +742,39 @@ bool Tablebases::root_probe(Position& pos)
   return true;
 }
 
+// Use the WDL tables to filter out moves that don't preserve the win or draw.
+// This is a fallback for the case that some or all DTZ tables are missing.
+//
+// A return value of 0 indicates that not all probes were successful and that
+// no moves were filtered out.
+bool Tablebases::root_probe_wdl(Position& pos)
+{
+  int success;
+
+  StateInfo st;
+  CheckInfo ci(pos);
+
+  int best = -2;
+
+  // Probe each move.
+  for (size_t i = 0; i < Search::RootMoves.size(); i++) {
+    Move move = Search::RootMoves[i].pv[0];
+    pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+    int v = -Tablebases::probe_wdl(pos, &success);
+    pos.undo_move(move);
+    if (!success) return false;
+    Search::RootMoves[i].score = (Value)v;
+    if (v > best)
+      best = v;
+  }
+
+  size_t j = 0;
+  for (size_t i = 0; i < Search::RootMoves.size(); i++) {
+    if (Search::RootMoves[i].score == best)
+      Search::RootMoves[j++] = Search::RootMoves[i];
+  }
+  Search::RootMoves.resize(j, Search::RootMove(MOVE_NONE));
+
+  return true;
+}
+

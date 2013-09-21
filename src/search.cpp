@@ -261,8 +261,12 @@ void Search::think() {
 
           // Optional: decrease target time.
       }
-      else
+      else {
+          // If DTZ tables are missing, use WDL tables as a fallback.
           use_tb = popcount<Full>(RootPos.pieces()) - 1;
+          if (Tablebases::root_probe_wdl(RootPos))
+              tbhits++;
+      }
   }
 
   // Reset the threads, still sleeping: will be wake up at split time
