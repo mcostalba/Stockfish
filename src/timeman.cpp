@@ -110,12 +110,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   // Initialize to maximum values but unstablePVExtraTime that is reset
   unstablePVExtraTime = 0;
-  optimumSearchTime = maximumSearchTime = limits.time[us]; // In msec
-
-  // Scale down emergencyBaseTime if we are under very high time pressure to
-  // avoid moving immediately and so blundering.
-  if (maximumSearchTime)
-      emergencyBaseTime /= std::max(emergencyBaseTime * 100 / maximumSearchTime, 1);
+  optimumSearchTime = maximumSearchTime = limits.time[us];
 
   // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
@@ -155,7 +150,7 @@ namespace {
     int thisMoveImportance = move_importance(currentPly) * slowMover / 100;
     int otherMovesImportance = 0;
 
-    for (int i = 1; i < movesToGo; i++)
+    for (int i = 1; i < movesToGo; ++i)
         otherMovesImportance += move_importance(currentPly + 2 * i);
 
     float ratio1 = (TMaxRatio * thisMoveImportance) / float(TMaxRatio * thisMoveImportance + otherMovesImportance);
