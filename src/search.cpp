@@ -949,7 +949,7 @@ moves_loop: // When in check and at SpNode search starts from here
           if (!PvNode && cutNode)
               ss->reduction += ONE_PLY;
 
-          else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
+          else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < -HistoryStats::Max / 2)
               ss->reduction += ONE_PLY / 2;
 
           if (move == countermoves[0] || move == countermoves[1])
