@@ -1103,15 +1103,12 @@ moves_loop: // When in check and at SpNode search starts from here
 
         // Increase history value of the cut-off move and decrease all the other
         // played non-capture moves.
-        if (depth > 4)
+        Value bonus = Value(int(depth) * int(depth));
+        History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
+        for (int i = 0; i < quietCount - 1; ++i)
         {
-            Value bonus = Value(int(depth) * int(depth));
-            History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
-            for (int i = 0; i < quietCount - 1; ++i)
-            {
-                Move m = quietsSearched[i];
-                History.update(pos.piece_moved(m), to_sq(m), -bonus);
-            }
+            Move m = quietsSearched[i];
+            History.update(pos.piece_moved(m), to_sq(m), -bonus);
         }
 
         if (is_ok((ss-1)->currentMove))
