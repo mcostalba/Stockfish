@@ -178,7 +178,7 @@ void MovePicker::score<QUIETS>() {
 
   Move m;
 
-  for (ExtMove* it = cur; it != end; ++it)
+  for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
       it->score = history[pos.piece_moved(m)][to_sq(m)];
@@ -250,11 +250,8 @@ void MovePicker::generate_next() {
   case QUIETS_2_S1:
       cur = end;
       end = endQuiets;
-      if (depth >= 3 * ONE_PLY)
-      {
-          score<QUIETS>(); // History is changed
+      if (depth > 6 * ONE_PLY)
           insertion_sort(cur, end);
-      }
       return;
 
   case BAD_CAPTURES_S1:
