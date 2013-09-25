@@ -250,7 +250,8 @@ void MovePicker::generate_next() {
   case QUIETS_2_S1:
       cur = end;
       end = endQuiets;
-      insertion_sort(cur, end);
+      if (depth > 3 * ONE_PLY)
+          insertion_sort(cur, end);
       return;
 
   case BAD_CAPTURES_S1:
