@@ -333,7 +333,7 @@ namespace {
     while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
         // Age out PV variability metric
-        BestMoveChanges *= 0.8;
+        BestMoveChanges *= 0.8f;
 
         // Save last iteration's scores before first PV line is searched and all
         // the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -367,7 +367,7 @@ namespace {
 
                 // Write PV back to transposition table in case the relevant
                 // entries have been overwritten during the search.
-                for (size_t i = 0; i <= PVIdx; i++)
+                for (size_t i = 0; i <= PVIdx; ++i)
                     RootMoves[i].insert_pv_in_tt(pos);
 
                 // If search has been stopped return immediately. Sorting and
@@ -609,8 +609,7 @@ namespace {
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
-            if (   ((tte->bound() & BOUND_LOWER) && ttValue > eval)
-                || ((tte->bound() & BOUND_UPPER) && ttValue < eval))
+            if (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))
                 eval = ttValue;
     }
     else
@@ -830,12 +829,9 @@ moves_loop: // When in check and at SpNode search starts from here
                  || pos.is_passed_pawn_push(move)
                  || type_of(move) == CASTLE;
 
-      // Step 12. Extend checks and, in PV nodes, also dangerous moves
-      if (PvNode && dangerous)
+      // Step 12. Extend checks
+      if (givesCheck && pos.see_sign(move) >= 0)
           ext = ONE_PLY;
-
-      else if (givesCheck && pos.see_sign(move) >= 0)
-          ext = ONE_PLY / 2;
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
@@ -949,8 +945,11 @@ moves_loop: // When in check and at SpNode search starts from here
           if (!PvNode && cutNode)
               ss->reduction += ONE_PLY;
 
+          else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
+              ss->reduction += ONE_PLY / 2;
+
           if (move == countermoves[0] || move == countermoves[1])
-              ss->reduction = std::max(DEPTH_ZERO, ss->reduction-ONE_PLY);
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
           if (SpNode)
@@ -1102,7 +1101,7 @@ moves_loop: // When in check and at SpNode search starts from here
         // played non-capture moves.
         Value bonus = Value(int(depth) * int(depth));
         History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
-        for (int i = 0; i < quietCount - 1; i++)
+        for (int i = 0; i < quietCount - 1; ++i)
         {
             Move m = quietsSearched[i];
             History.update(pos.piece_moved(m), to_sq(m), -bonus);
@@ -1456,7 +1455,7 @@ moves_loop: // When in check and at SpNode search starts from here
     // Choose best move. For each move score we add two terms both dependent on
     // weakness, one deterministic and bigger for weaker moves, and one random,
     // then we choose the move with the resulting highest score.
-    for (size_t i = 0; i < PVSize; i++)
+    for (size_t i = 0; i < PVSize; ++i)
     {
         int s = RootMoves[i].score;
 
@@ -1493,7 +1492,7 @@ moves_loop: // When in check and at SpNode search starts from here
         if (th->maxPly > selDepth)
             selDepth = th->maxPly;
 
-    for (size_t i = 0; i < uciPVSize; i++)
+    for (size_t i = 0; i < uciPVSize; ++i)
     {
         bool updated = (i <= PVIdx);
 
