@@ -319,7 +319,7 @@ static ExtMove *add_underprom_caps(Position& pos, ExtMove *stack, ExtMove *end)
 
   for (moves = stack; moves < end; moves++) {
     Move move = moves->move;
-    if (type_of(move) == PROMOTION && !pos.is_empty(to_sq(move))) {
+    if (type_of(move) == PROMOTION && !pos.empty(to_sq(move))) {
       (*extra++).move = (Move)(move - (1 << 12));
       (*extra++).move = (Move)(move - (2 << 12));
       (*extra++).move = (Move)(move - (3 << 12));
@@ -349,10 +349,10 @@ static int probe_ab(Position& pos, int alpha, int beta, int *success)
 
   for (moves = stack; moves < end; moves++) {
     Move capture = moves->move;
-    if (!pos.is_capture(capture) || type_of(capture) == ENPASSANT
-			|| !pos.pl_move_is_legal(capture, ci.pinned))
+    if (!pos.capture(capture) || type_of(capture) == ENPASSANT
+			|| !pos.legal(capture, ci.pinned))
       continue;
-    pos.do_move(capture, st, ci, pos.move_gives_check(capture, ci));
+    pos.do_move(capture, st, ci, pos.gives_check(capture, ci));
     v = -probe_ab(pos, -beta, -alpha, success);
     pos.undo_move(capture);
     if (*success == 0) return 0;
@@ -413,9 +413,9 @@ int Tablebases::probe_wdl(Position& pos, int *success)
   for (moves = stack; moves < end; moves++) {
     Move capture = moves->move;
     if (type_of(capture) != ENPASSANT
-	  || !pos.pl_move_is_legal(capture, ci.pinned))
+	  || !pos.legal(capture, ci.pinned))
       continue;
-    pos.do_move(capture, st, ci, pos.move_gives_check(capture, ci));
+    pos.do_move(capture, st, ci, pos.gives_check(capture, ci));
     int v0 = -probe_ab(pos, -2, 2, success);
     pos.undo_move(capture);
     if (*success == 0) return 0;
@@ -428,13 +428,13 @@ int Tablebases::probe_wdl(Position& pos, int *success)
       for (moves = stack; moves < end; moves++) {
 	Move capture = moves->move;
 	if (type_of(capture) == ENPASSANT) continue;
-	if (pos.pl_move_is_legal(capture, ci.pinned)) break;
+	if (pos.legal(capture, ci.pinned)) break;
       }
       if (moves == end && !pos.checkers()) {
 	end = generate<QUIETS>(pos, end);
 	for (; moves < end; moves++) {
 	  Move move = moves->move;
-	  if (pos.pl_move_is_legal(move, ci.pinned))
+	  if (pos.legal(move, ci.pinned))
 	    break;
 	}
       }
@@ -475,10 +475,10 @@ static int probe_dtz_no_ep(Position& pos, int *success)
 
     for (moves = stack; moves < end; moves++) {
       Move move = moves->move;
-      if (type_of(pos.piece_moved(move)) != PAWN || pos.is_capture(move)
-		|| !pos.pl_move_is_legal(move, ci.pinned))
+      if (type_of(pos.moved_piece(move)) != PAWN || pos.capture(move)
+		|| !pos.legal(move, ci.pinned))
 	continue;
-      pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+      pos.do_move(move, st, ci, pos.gives_check(move, ci));
       int v = -probe_ab(pos, -2, -wdl + 1, success);
       pos.undo_move(move);
       if (*success == 0) return 0;
@@ -497,10 +497,10 @@ static int probe_dtz_no_ep(Position& pos, int *success)
     int best = 0xffff;
     for (moves = stack; moves < end; moves++) {
       Move move = moves->move;
-      if (pos.is_capture(move) || type_of(pos.piece_moved(move)) == PAWN
-		|| !pos.pl_move_is_legal(move, ci.pinned))
+      if (pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN
+		|| !pos.legal(move, ci.pinned))
 	continue;
-      pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+      pos.do_move(move, st, ci, pos.gives_check(move, ci));
       int v = -Tablebases::probe_dtz(pos, success);
       pos.undo_move(move);
       if (*success == 0) return 0;
@@ -517,9 +517,9 @@ static int probe_dtz_no_ep(Position& pos, int *success)
     for (moves = stack; moves < end; moves++) {
       int v;
       Move move = moves->move;
-      if (!pos.pl_move_is_legal(move, ci.pinned))
+      if (!pos.legal(move, ci.pinned))
 	continue;
-      pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+      pos.do_move(move, st, ci, pos.gives_check(move, ci));
       if (st.rule50 == 0) {
 	if (wdl == -2) v = -1;
 	else {
@@ -593,9 +593,9 @@ int Tablebases::probe_dtz(Position& pos, int *success)
   for (moves = stack; moves < end; moves++) {
     Move capture = moves->move;
     if (type_of(capture) != ENPASSANT
-		|| !pos.pl_move_is_legal(capture, ci.pinned))
+		|| !pos.legal(capture, ci.pinned))
       continue;
-    pos.do_move(capture, st, ci, pos.move_gives_check(capture, ci));
+    pos.do_move(capture, st, ci, pos.gives_check(capture, ci));
     int v0 = -probe_ab(pos, -2, 2, success);
     pos.undo_move(capture);
     if (*success == 0) return 0;
@@ -621,13 +621,13 @@ int Tablebases::probe_dtz(Position& pos, int *success)
       for (moves = stack; moves < end; moves++) {
 	Move move = moves->move;
 	if (type_of(move) == ENPASSANT) continue;
-	if (pos.pl_move_is_legal(move, ci.pinned)) break;
+	if (pos.legal(move, ci.pinned)) break;
       }
       if (moves == end && !pos.checkers()) {
 	end = generate<QUIETS>(pos, end);
 	for (; moves < end; moves++) {
 	  Move move = moves->move;
-	  if (pos.pl_move_is_legal(move, ci.pinned))
+	  if (pos.legal(move, ci.pinned))
 	    break;
 	}
       }
@@ -675,7 +675,7 @@ bool Tablebases::root_probe(Position& pos)
   // Probe each move.
   for (size_t i = 0; i < Search::RootMoves.size(); i++) {
     Move move = Search::RootMoves[i].pv[0];
-    pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+    pos.do_move(move, st, ci, pos.gives_check(move, ci));
     int v = 0;
     if (pos.checkers() && wdl == 2) {
       ExtMove s[192];
@@ -759,7 +759,7 @@ bool Tablebases::root_probe_wdl(Position& pos)
   // Probe each move.
   for (size_t i = 0; i < Search::RootMoves.size(); i++) {
     Move move = Search::RootMoves[i].pv[0];
-    pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+    pos.do_move(move, st, ci, pos.gives_check(move, ci));
     int v = -Tablebases::probe_wdl(pos, &success);
     pos.undo_move(move);
     if (!success) return false;
