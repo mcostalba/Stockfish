@@ -435,6 +435,8 @@ namespace {
         {
             bool stop = false; // Local variable, not the volatile Signals.stop
 
+            TimeMgr.update_node_factor(RootPos.nodes_searched(), Limits.inc[RootColor]);
+
             // Take in account some extra time if the best move has changed
             if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges);
