@@ -165,7 +165,7 @@ namespace {
 
   const Score Tempo            = make_score(24, 11);
   const Score BishopPin        = make_score(66, 11);
-  const Score RookOn7th        = make_score(11, 20);
+  const Score RookOn7th        = make_score(11, 20);//to tune
   const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
   const Score QueenOnPawn      = make_score( 4, 20);
