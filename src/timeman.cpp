@@ -85,7 +85,7 @@ void TimeManager::pv_instability(double bestMoveChanges) {
 void TimeManager::update_node_factor(double nodes, int inc) {
 
   if (optimumSearchTime > inc)
-      nodefactor = (nodes * 1.4 + 250000) / (nodes + 350000);
+      nodeFactor = (nodes * 1.4 + 350000) / (nodes + 350000);
 }
 
 
@@ -117,7 +117,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   // Initialize to maximum values but unstablePVExtraTime that is reset
   unstablePVExtraTime = 0;
-  nodefactor = 5.0 / 7.0;
+  nodeFactor = 1;
   optimumSearchTime = maximumSearchTime = limits.time[us];
 
   // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
