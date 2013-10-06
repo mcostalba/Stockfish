@@ -45,11 +45,16 @@ typedef unsigned __int64 uint64_t;
 #ifndef _WIN32 // Linux - Unix
 
 #  include <sys/time.h>
+#  include <ctime>
 
 inline int64_t system_time_to_msec() {
   timeval t;
   gettimeofday(&t, NULL);
   return t.tv_sec * 1000LL + t.tv_usec / 1000;
+}
+
+inline int64_t cpu_time_to_msec() {
+  return (int64_t)clock() * 1000 / CLOCKS_PER_SEC;
 }
 
 #  include <pthread.h>
@@ -72,14 +77,6 @@ typedef void*(*pt_start_fn)(void*);
 
 #else // Windows and MinGW
 
-#  include <sys/timeb.h>
-
-inline int64_t system_time_to_msec() {
-  _timeb t;
-  _ftime(&t);
-  return t.time * 1000LL + t.millitm;
-}
-
 #ifndef NOMINMAX
 #  define NOMINMAX // disable macros min() and max()
 #endif
@@ -88,6 +85,23 @@ inline int64_t system_time_to_msec() {
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
 #undef NOMINMAX
+
+#  include <sys/timeb.h>
+
+inline int64_t system_time_to_msec() {
+  _timeb t;
+  _ftime(&t);
+  return t.time * 1000LL + t.millitm;
+}
+
+inline int64_t cpu_time_to_msec() {
+  FILETIME creation, exit, kernel, user;
+  if (!GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user))
+      return 0;
+
+  // FILETIME represents the number of 100-nanosecond intervals since January 1, 1601 (UTC)
+  return (int64_t)(((uint64_t(user.dwHighDateTime) << 32) | user.dwLowDateTime) / 10000);
+}
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
