@@ -85,6 +85,8 @@ const bool Is64Bit = true;
 const bool Is64Bit = false;
 #endif
 
+const bool UseCPUTime = false;
+
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 

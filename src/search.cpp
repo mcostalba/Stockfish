@@ -272,10 +272,6 @@ void Search::think() {
 
 finalize:
 
-  // When search is stopped this info is not printed
-  sync_cout << "info nodes " << RootPos.nodes_searched()
-            << " time " << Time::now() - SearchTime + 1 << sync_endl;
-
   // When we reach max depth we arrive here even without Signals.stop is raised,
   // but if we are pondering or in infinite search, according to UCI protocol,
   // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit"
@@ -287,8 +283,11 @@ finalize:
       RootPos.this_thread()->wait_for(Signals.stop);
   }
 
-  // Best move could be MOVE_NONE when searching on a stalemate position
-  sync_cout << "bestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
+  // Best move could be MOVE_NONE when searching on a stalemate position. Send also
+  // time to update the GUI in case we are in CPU time mode for testing.
+  sync_cout << "info nodes " << RootPos.nodes_searched()
+            << " time " << Time::now() - SearchTime + 1
+            << "\nbestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
             << " ponder "  << move_to_uci(RootMoves[0].pv[1], RootPos.is_chess960())
             << sync_endl;
 }
