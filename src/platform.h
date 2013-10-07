@@ -53,7 +53,7 @@ inline int64_t system_time_to_msec() {
   return t.tv_sec * 1000LL + t.tv_usec / 1000;
 }
 
-inline int64_t cpu_time_to_msec() {
+inline int64_t process_time_to_msec() {
   return (int64_t)clock() * 1000 / CLOCKS_PER_SEC;
 }
 
@@ -94,7 +94,7 @@ inline int64_t system_time_to_msec() {
   return t.time * 1000LL + t.millitm;
 }
 
-inline int64_t cpu_time_to_msec() {
+inline int64_t process_time_to_msec() {
   FILETIME creation, exit, kernel, user;
   if (!GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user))
       return 0;

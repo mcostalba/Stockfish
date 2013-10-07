@@ -128,6 +128,7 @@ void benchmark(const Position& current, istream& is) {
 
   int64_t nodes = 0;
   Search::StateStackPtr st;
+  Time::processTime = Options["ProcessTime"];
   Time::point elapsed = Time::now();
 
   for (size_t i = 0; i < fens.size(); ++i)

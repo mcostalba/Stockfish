@@ -370,6 +370,7 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
                                 const std::vector<Move>& searchMoves, StateStackPtr& states) {
   wait_for_think_finished();
 
+  Time::processTime = Options["ProcessTime"];
   SearchTime = Time::now(); // As early as possible
 
   Signals.stopOnPonderhit = Signals.firstRootMove = false;

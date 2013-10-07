@@ -77,6 +77,7 @@ void init(OptionsMap& o) {
   o["Clear Hash"]                  = Option(on_clear_hash);
   o["Ponder"]                      = Option(true);
   o["OwnBook"]                     = Option(false);
+  o["ProcessTime"]                 = Option(false);
   o["MultiPV"]                     = Option(1, 1, 500);
   o["Skill Level"]                 = Option(20, 0, 20);
   o["Emergency Move Horizon"]      = Option(40, 0, 50);
