@@ -714,17 +714,14 @@ Value do_evaluate(const Position& pos, Value& margin) {
                              | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK];
             b &= unsafe;
 
-            // Check for mate (not exact, but won't report mate if none exists)
             while (b)
             {
-                b1 = pos.attacks_from<KING>(ksq) & ~(unsafe | pos.attacks_from<KING>(pop_lsb(&b)));
+                attackUnits += QueenContactCheck * (pos.side_to_move() == Them ? 2 : 1);
 
-                if (!b1 && pos.side_to_move() == Them)
-                    return make_score(-VALUE_KNOWN_WIN, -VALUE_KNOWN_WIN);
-
-                attackUnits +=  QueenContactCheck
-                              * (Them == pos.side_to_move() ? 2 : 1)
-                              * (!b1 ? 6 : 1);
+                // Check for mate (not exact, but won't report mate if none exists)
+                if (!(pos.attacks_from<KING>(ksq) & ~(unsafe | pos.attacks_from<KING>(pop_lsb(&b))))
+                    && pos.side_to_move() == Them)
+                    attackUnits += 100;
             }
         }
 
