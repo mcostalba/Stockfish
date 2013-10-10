@@ -716,12 +716,9 @@ Value do_evaluate(const Position& pos, Value& margin) {
 
             while (b)
             {
-                attackUnits += QueenContactCheck * (pos.side_to_move() == Them ? 2 : 1);
-
-                // Check for mate (not exact, but won't report mate if none exists)
-                if (!(pos.attacks_from<KING>(ksq) & ~(unsafe | pos.attacks_from<KING>(pop_lsb(&b))))
-                    && pos.side_to_move() == Them)
-                    attackUnits += 100;
+                // King has possible evasions ?
+                b2 = pos.attacks_from<KING>(ksq) & ~(unsafe | pos.attacks_from<KING>(pop_lsb(&b)));
+                attackUnits += (b2 ? QueenContactCheck : 50) * (pos.side_to_move() == Them ? 2 : 1);
             }
         }
 
