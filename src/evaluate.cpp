@@ -200,7 +200,7 @@ namespace {
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
-  const int QueenContactCheck = 7;
+  const int QueenContactCheck = 6;
   const int RookContactCheck  = 4;
   const int QueenCheck        = 3;
   const int RookCheck         = 2;
@@ -713,9 +713,8 @@ Value do_evaluate(const Position& pos, Value& margin) {
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
             if (b)
-                attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
+                attackUnits +=  popcount<Max15>(b)
+                              * (Them == pos.side_to_move() ? 2 * QueenContactCheck : 3 * QueenContactCheck / 2);
         }
 
         // Analyse enemy's safe rook contact checks. First find undefended
