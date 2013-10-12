@@ -710,16 +710,12 @@ Value do_evaluate(const Position& pos, Value& margin) {
         if (b)
         {
             // ...then remove squares not supported by another enemy piece
-            Bitboard unsafe =  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
-                             | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK];
-            b &= unsafe;
-
-            while (b)
-            {
-                // King has possible evasions ?
-                b2 = pos.attacks_from<KING>(ksq) & ~(unsafe | pos.attacks_from<KING>(pop_lsb(&b)));
-                attackUnits += (b2 ? QueenContactCheck : 50) * (pos.side_to_move() == Them ? 2 : 1);
-            }
+            b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
+                  | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
+            if (b)
+                attackUnits +=  QueenContactCheck
+                              * popcount<Max15>(b)
+                              * (Them == pos.side_to_move() ? 2 : 1);
         }
 
         // Analyse enemy's safe rook contact checks. First find undefended
