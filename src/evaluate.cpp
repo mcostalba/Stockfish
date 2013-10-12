@@ -713,7 +713,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
             if (b)
-                attackUnits += 2 * QueenContactCheck * popcount<Max15>(b);
+                attackUnits += (3 * QueenContactCheck / 2) * popcount<Max15>(b);
         }
 
         // Analyse enemy's safe rook contact checks. First find undefended
