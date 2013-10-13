@@ -32,6 +32,8 @@ namespace Zobrist {
   extern Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 }
 
+bool Tablebases::initialized = false;
+
 static RKISS rk;
 
 // Given a position with 6 or fewer pieces, produce a text string

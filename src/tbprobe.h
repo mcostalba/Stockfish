@@ -3,6 +3,8 @@
 
 namespace Tablebases {
 
+extern bool initialized;
+
 void init(const std::string& path);
 int probe_wdl(Position& pos, int *success);
 int probe_dtz(Position& pos, int *success);

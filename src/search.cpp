@@ -243,7 +243,7 @@ void Search::think() {
           << std::endl;
   }
 
-  use_tb = Options["Probe Syzygybases"];
+  use_tb = Tablebases::initialized ? (int)(Options["Probe Syzygybases"]) : 0;
   tb_position = 0;
   tbhits = 0;
   if (popcount<Full>(RootPos.pieces()) <= use_tb)

@@ -115,7 +115,7 @@ static char *map_file(const char *name, const char *suffix, uint64 *size)
   }
   char *data = (char *)MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
   if (data == NULL) {
-    printf("MapViewOfFile() failed.\n");
+    printf("MapViewOfFile() failed, name = %s%s, error = %lu.\n", name, suffix, GetLastError());
     exit(1);
   }
 #endif
@@ -250,8 +250,7 @@ void Tablebases::init(const std::string& path)
   char str[16];
   int i, j, k, l;
 
-  if (TBnum_piece + TBnum_pawn > 0)
-    return;
+  if (initialized) return;
 
   const char *p = path.c_str();
   if (strlen(p) == 0) return;
@@ -341,7 +340,10 @@ void Tablebases::init(const std::string& path)
 
   printf("info string Found %d tablebases.\n", TBnum_piece + TBnum_pawn);
 
-  init_indices();
+  if (TBnum_piece + TBnum_pawn > 0) {
+    initialized = true;
+    init_indices();
+  }
 }
 
 static const char offdiag[] = {
