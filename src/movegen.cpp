@@ -61,8 +61,8 @@ namespace {
 
     (mlist++)->move = make<CASTLE>(kfrom, rfrom);
 
-    if (Checks && !pos.move_gives_check((mlist - 1)->move, CheckInfo(pos)))
-        mlist--;
+    if (Checks && !pos.gives_check((mlist - 1)->move, CheckInfo(pos)))
+        --mlist;
 
     return mlist;
   }
@@ -359,7 +359,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
   // evasions so to skip known illegal moves avoiding useless legality check later.
   do
   {
-      checkersCnt++;
+      ++checkersCnt;
       checksq = pop_lsb(&b);
 
       assert(color_of(pos.piece_on(checksq)) == ~us);
@@ -414,10 +414,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* mlist) {
                        : generate<NON_EVASIONS>(pos, mlist);
   while (cur != end)
       if (   (pinned || from_sq(cur->move) == ksq || type_of(cur->move) == ENPASSANT)
-          && !pos.pl_move_is_legal(cur->move, pinned))
+          && !pos.legal(cur->move, pinned))
           cur->move = (--end)->move;
       else
-          cur++;
+          ++cur;
 
   return end;
 }

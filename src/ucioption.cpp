@@ -82,7 +82,7 @@ void init(OptionsMap& o) {
   o["Emergency Base Time"]         = Option(60, 0, 30000);
   o["Emergency Move Time"]         = Option(30, 0, 5000);
   o["Minimum Thinking Time"]       = Option(20, 0, 5000);
-  o["Slow Mover"]                  = Option(50, 10, 1000);
+  o["Slow Mover"]                  = Option(70, 10, 1000);
   o["UCI_Chess960"]                = Option(false);
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
 }
@@ -93,7 +93,7 @@ void init(OptionsMap& o) {
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
-  for (size_t idx = 0; idx < om.size(); idx++)
+  for (size_t idx = 0; idx < om.size(); ++idx)
   {
       auto it = std::find_if(om.begin(), om.end(), [idx](const OptionsMap::value_type& p)
                                                    { return p.second.idx == idx; });
@@ -106,6 +106,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
       if (o.type == "spin")
           os << " min " << o.min << " max " << o.max;
   }
+
   return os;
 }
 

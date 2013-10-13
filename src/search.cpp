@@ -84,7 +84,7 @@ namespace {
 
   size_t PVSize, PVIdx;
   TimeManager TimeMgr;
-  float BestMoveChanges;
+  double BestMoveChanges;
   Value DrawValue[COLOR_NB];
   HistoryStats History;
   GainsStats Gains;
@@ -131,7 +131,7 @@ void Search::init() {
   int mc; // moveCount
 
   // Init reductions array
-  for (hd = 1; hd < 64; hd++) for (mc = 1; mc < 64; mc++)
+  for (hd = 1; hd < 64; ++hd) for (mc = 1; mc < 64; ++mc)
   {
       double    pvRed = log(double(hd)) * log(double(mc)) / 3.0;
       double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
@@ -143,14 +143,17 @@ void Search::init() {
 
       if (Reductions[0][0][hd][mc] > 2 * ONE_PLY)
           Reductions[0][0][hd][mc] += ONE_PLY;
+
+      else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
+          Reductions[0][0][hd][mc] += ONE_PLY / 2;
   }
 
   // Init futility margins array
-  for (d = 1; d < 16; d++) for (mc = 0; mc < 64; mc++)
+  for (d = 1; d < 16; ++d) for (mc = 0; mc < 64; ++mc)
       FutilityMargins[d][mc] = Value(112 * int(log(double(d * d) / 2) / log(2.0) + 1.001) - 8 * mc + 45);
 
   // Init futility move count array
-  for (d = 0; d < 32; d++)
+  for (d = 0; d < 32; ++d)
   {
       FutilityMoveCounts[0][d] = int(3 + 0.3 * pow(double(d       ), 1.8)) * 3/4 + (2 < d && d < 5);
       FutilityMoveCounts[1][d] = int(3 + 0.3 * pow(double(d + 0.98), 1.8));
@@ -170,7 +173,7 @@ static size_t perft(Position& pos, Depth depth) {
 
   for (const ExtMove& ms : MoveList<LEGAL>(pos))
   {
-      pos.do_move(ms.move, st, ci, pos.move_gives_check(ms.move, ci));
+      pos.do_move(ms.move, st, ci, pos.gives_check(ms.move, ci));
       cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
       pos.undo_move(ms.move);
   }
@@ -333,7 +336,7 @@ namespace {
     while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
         // Age out PV variability metric
-        BestMoveChanges *= 0.8f;
+        BestMoveChanges *= 0.8;
 
         // Save last iteration's scores before first PV line is searched and all
         // the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -341,7 +344,7 @@ namespace {
             rm.prevScore = rm.score;
 
         // MultiPV loop. We perform a full root search for each PV line
-        for (PVIdx = 0; PVIdx < PVSize; PVIdx++)
+        for (PVIdx = 0; PVIdx < PVSize; ++PVIdx)
         {
             // Reset aspiration window starting size
             if (depth >= 5)
@@ -584,7 +587,7 @@ namespace {
 
         if (    ttValue >= beta
             &&  ttMove
-            && !pos.is_capture_or_promotion(ttMove)
+            && !pos.capture_or_promotion(ttMove)
             &&  ttMove != ss->killers[0])
         {
             ss->killers[1] = ss->killers[0];
@@ -738,10 +741,10 @@ namespace {
         CheckInfo ci(pos);
 
         while ((move = mp.next_move<false>()) != MOVE_NONE)
-            if (pos.pl_move_is_legal(move, ci.pinned))
+            if (pos.legal(move, ci.pinned))
             {
                 ss->currentMove = move;
-                pos.do_move(move, st, ci, pos.move_gives_check(move, ci));
+                pos.do_move(move, st, ci, pos.gives_check(move, ci));
                 value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cutNode);
                 pos.undo_move(move);
                 if (value >= rbeta)
@@ -803,14 +806,14 @@ moves_loop: // When in check and at SpNode search starts from here
       if (SpNode)
       {
           // Shared counter cannot be decremented later if move turns out to be illegal
-          if (!pos.pl_move_is_legal(move, ci.pinned))
+          if (!pos.legal(move, ci.pinned))
               continue;
 
           moveCount = ++splitPoint->moveCount;
           splitPoint->mutex.unlock();
       }
       else
-          moveCount++;
+          ++moveCount;
 
       if (RootNode)
       {
@@ -823,10 +826,10 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       ext = DEPTH_ZERO;
-      captureOrPromotion = pos.is_capture_or_promotion(move);
-      givesCheck = pos.move_gives_check(move, ci);
+      captureOrPromotion = pos.capture_or_promotion(move);
+      givesCheck = pos.gives_check(move, ci);
       dangerous =   givesCheck
-                 || pos.is_passed_pawn_push(move)
+                 || pos.passed_pawn_push(move)
                  || type_of(move) == CASTLE;
 
       // Step 12. Extend checks
@@ -841,7 +844,7 @@ moves_loop: // When in check and at SpNode search starts from here
       if (    singularExtensionNode
           &&  move == ttMove
           && !ext
-          &&  pos.pl_move_is_legal(move, ci.pinned)
+          &&  pos.legal(move, ci.pinned)
           &&  abs(ttValue) < VALUE_KNOWN_WIN)
       {
           assert(ttValue != VALUE_NONE);
@@ -884,7 +887,7 @@ moves_loop: // When in check and at SpNode search starts from here
           // but fixing this made program slightly weaker.
           Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
           futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
-                         + Gains[pos.piece_moved(move)][to_sq(move)];
+                         + Gains[pos.moved_piece(move)][to_sq(move)];
 
           if (futilityValue < beta)
           {
@@ -917,9 +920,9 @@ moves_loop: // When in check and at SpNode search starts from here
           ss->futilityMoveCount = 0;
 
       // Check for legality only before to do the move
-      if (!RootNode && !SpNode && !pos.pl_move_is_legal(move, ci.pinned))
+      if (!RootNode && !SpNode && !pos.legal(move, ci.pinned))
       {
-          moveCount--;
+          --moveCount;
           continue;
       }
 
@@ -1017,7 +1020,7 @@ moves_loop: // When in check and at SpNode search starts from here
               // iteration. This information is used for time management: When
               // the best move changes frequently, we allocate some more time.
               if (!pvMove)
-                  BestMoveChanges++;
+                  ++BestMoveChanges;
           }
           else
               // All other moves but the PV are set to the lowest value, this
@@ -1088,7 +1091,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Quiet best move: update killers, history and countermoves
     if (    bestValue >= beta
-        && !pos.is_capture_or_promotion(bestMove)
+        && !pos.capture_or_promotion(bestMove)
         && !inCheck)
     {
         if (ss->killers[0] != bestMove)
@@ -1100,11 +1103,11 @@ moves_loop: // When in check and at SpNode search starts from here
         // Increase history value of the cut-off move and decrease all the other
         // played non-capture moves.
         Value bonus = Value(int(depth) * int(depth));
-        History.update(pos.piece_moved(bestMove), to_sq(bestMove), bonus);
+        History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
         for (int i = 0; i < quietCount - 1; ++i)
         {
             Move m = quietsSearched[i];
-            History.update(pos.piece_moved(m), to_sq(m), -bonus);
+            History.update(pos.moved_piece(m), to_sq(m), -bonus);
         }
 
         if (is_ok((ss-1)->currentMove))
@@ -1188,6 +1191,11 @@ moves_loop: // When in check and at SpNode search starts from here
             if (  (ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE
                 ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
                 ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
+
+            // Can ttValue be used as a better position evaluation?
+            if (ttValue != VALUE_NONE)
+                if (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))
+                    bestValue = ttValue;
         }
         else
             ss->staticEval = bestValue = evaluate(pos, ss->evalMargin);
@@ -1205,7 +1213,7 @@ moves_loop: // When in check and at SpNode search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = ss->staticEval + ss->evalMargin + Value(128);
+        futilityBase = bestValue + ss->evalMargin + Value(128);
     }
 
     // Initialize a MovePicker object for the current position, and prepare
@@ -1220,7 +1228,7 @@ moves_loop: // When in check and at SpNode search starts from here
     {
       assert(is_ok(move));
 
-      givesCheck = pos.move_gives_check(move, ci);
+      givesCheck = pos.gives_check(move, ci);
 
       // Futility pruning
       if (   !PvNode
@@ -1229,7 +1237,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move != ttMove
           &&  type_of(move) != PROMOTION
           &&  futilityBase > -VALUE_KNOWN_WIN
-          && !pos.is_passed_pawn_push(move))
+          && !pos.passed_pawn_push(move))
       {
           futilityValue =  futilityBase
                          + PieceValue[EG][pos.piece_on(to_sq(move))]
@@ -1254,7 +1262,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // Detect non-capture evasions that are candidate to be pruned
       evasionPrunable =    InCheck
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
-                       && !pos.is_capture(move)
+                       && !pos.capture(move)
                        && !pos.can_castle(pos.side_to_move());
 
       // Don't search moves with negative SEE values
@@ -1266,7 +1274,7 @@ moves_loop: // When in check and at SpNode search starts from here
           continue;
 
       // Check for legality only before to do the move
-      if (!pos.pl_move_is_legal(move, ci.pinned))
+      if (!pos.legal(move, ci.pinned))
           continue;
 
       ss->currentMove = move;
@@ -1406,7 +1414,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // If the threatened piece has value less than or equal to the value of the
     // threat piece, don't prune moves which defend it.
-    if (    pos.is_capture(second)
+    if (    pos.capture(second)
         && (   PieceValue[MG][pos.piece_on(m2from)] >= PieceValue[MG][pos.piece_on(m2to)]
             || type_of(pos.piece_on(m2from)) == KING))
     {
@@ -1443,7 +1451,7 @@ moves_loop: // When in check and at SpNode search starts from here
     static RKISS rk;
 
     // PRNG sequence should be not deterministic
-    for (int i = Time::now() % 50; i > 0; i--)
+    for (int i = Time::now() % 50; i > 0; --i)
         rk.rand<unsigned>();
 
     // RootMoves are already sorted by score in descending order
@@ -1514,7 +1522,7 @@ moves_loop: // When in check and at SpNode search starts from here
           << " multipv "   << i + 1
           << " pv";
 
-        for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; j++)
+        for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
             s <<  " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
     }
 
@@ -1547,8 +1555,8 @@ void RootMove::extract_pv_from_tt(Position& pos) {
       tte = TT.probe(pos.key());
 
   } while (   tte
-           && pos.is_pseudo_legal(m = tte->move()) // Local copy, TT could change
-           && pos.pl_move_is_legal(m, pos.pinned_pieces())
+           && pos.pseudo_legal(m = tte->move()) // Local copy, TT could change
+           && pos.legal(m, pos.pinned_pieces())
            && ply < MAX_PLY
            && (!pos.is_draw() || ply < 2));
 
@@ -1725,7 +1733,7 @@ void check_time() {
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active positions nodes.
       for (Thread* th : Threads)
-          for (int i = 0; i < th->splitPointsSize; i++)
+          for (int i = 0; i < th->splitPointsSize; ++i)
           {
               SplitPoint& sp = th->splitPoints[i];
 
