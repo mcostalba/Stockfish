@@ -52,6 +52,7 @@ enum EndgameType {
   KBPsK,   // KB+pawns vs K
   KQKRPs,  // KQ vs KR+pawns
   KRPKR,   // KRP vs KR
+  KRPKB,   // KRP vs KB
   KRPPKRP, // KRPP vs KRP
   KPsK,    // King and pawns vs king
   KBPKB,   // KBP vs KB
@@ -85,12 +86,12 @@ struct EndgameBase {
 template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
 struct Endgame : public EndgameBase<T> {
 
-  explicit Endgame(Color c) : strongerSide(c), weakerSide(~c) {}
-  Color color() const { return strongerSide; }
+  explicit Endgame(Color c) : strongSide(c), weakSide(~c) {}
+  Color color() const { return strongSide; }
   T operator()(const Position&) const;
 
 private:
-  Color strongerSide, weakerSide;
+  Color strongSide, weakSide;
 };
 
 
