@@ -200,12 +200,12 @@ namespace {
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
-  const int QueenContactCheck = 12;
-  const int RookContactCheck  = 8;
-  const int QueenCheck        = 6;
-  const int RookCheck         = 4;
-  const int BishopCheck       = 1;
-  const int KnightCheck       = 2;
+  const int QueenContactCheck = 18;
+  const int RookContactCheck  = 12;
+  const int QueenCheck        = 8;
+  const int RookCheck         = 6;
+  const int BishopCheck       = 2;
+  const int KnightCheck       = 3;
 
   // KingExposed[Square] contains penalties based on the position of the
   // defending king, indexed by king's square (from white's point of view).
