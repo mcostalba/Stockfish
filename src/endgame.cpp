@@ -464,10 +464,10 @@ ScaleFactor Endgame<KQKRPs>::operator()(const Position& pos) const {
 
   if (    relative_rank(weakSide, kingSq) <= RANK_2
       &&  relative_rank(weakSide, pos.king_square(strongSide)) >= RANK_4
-      && (pos.pieces(weakSide, ROOK) & rank_bb(relative_rank(weakSide, RANK_3)))
-      && (pos.pieces(weakSide, PAWN) & rank_bb(relative_rank(weakSide, RANK_2)))
-      && (pos.attacks_from<KING>(kingSq) & pos.pieces(weakSide, PAWN))
-      && (pos.attacks_from<PAWN>(rsq, strongSide) & pos.pieces(weakSide, PAWN)))
+      &&  relative_rank(weakSide, rsq) == RANK_3
+      && (  pos.pieces(weakSide, PAWN)
+          & pos.attacks_from<KING>(kingSq)
+          & pos.attacks_from<PAWN>(rsq, strongSide)))
           return SCALE_FACTOR_DRAW;
 
   return SCALE_FACTOR_NONE;
@@ -684,25 +684,15 @@ ScaleFactor Endgame<KPsK>::operator()(const Position& pos) const {
 
   Square ksq = pos.king_square(weakSide);
   Bitboard pawns = pos.pieces(strongSide, PAWN);
+  Square psq = pos.list<PAWN>(strongSide)[0];
 
-  // Are all pawns on the 'a' file?
-  if (!(pawns & ~FileABB))
-  {
-      // Does the defending king block the pawns?
-      if (   square_distance(ksq, relative_square(strongSide, SQ_A8)) <= 1
-          || (    file_of(ksq) == FILE_A
-              && !(in_front_bb(strongSide, rank_of(ksq)) & pawns)))
-          return SCALE_FACTOR_DRAW;
-  }
-  // Are all pawns on the 'h' file?
-  else if (!(pawns & ~FileHBB))
-  {
-    // Does the defending king block the pawns?
-    if (   square_distance(ksq, relative_square(strongSide, SQ_H8)) <= 1
-        || (    file_of(ksq) == FILE_H
-            && !(in_front_bb(strongSide, rank_of(ksq)) & pawns)))
-        return SCALE_FACTOR_DRAW;
-  }
+  // If all pawns are ahead of the king, all pawns are on a single
+  // rook file and the king is within one file of the pawns then draw.
+  if (   !(pawns & ~in_front_bb(weakSide, rank_of(ksq)))
+      && !((pawns & ~FileABB) && (pawns & ~FileHBB))
+      && file_distance(ksq, psq) <= 1)
+      return SCALE_FACTOR_DRAW;
+
   return SCALE_FACTOR_NONE;
 }
 
