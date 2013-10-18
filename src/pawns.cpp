@@ -176,7 +176,7 @@ namespace {
             value -= Backward[opposed][f];
 
         if (chain)
-            value += ChainMember[f] + 3 * CandidatePassed[relative_rank(Us, s)] / 8;
+            value += ChainMember[f] + 5 * CandidatePassed[relative_rank(Us, s)] / 8;
 
         if (candidate)
         {
