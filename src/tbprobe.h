@@ -14,4 +14,3 @@ bool root_probe_wdl(Position& pos);
 }
 
 #endif
-
