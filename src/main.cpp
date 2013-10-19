@@ -24,10 +24,10 @@
 #include "evaluate.h"
 #include "position.h"
 #include "search.h"
+#include "tbprobe.h"
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
-#include "tbprobe.h"
 
 int main(int argc, char* argv[]) {
 

@@ -30,12 +30,11 @@
 #include "movepick.h"
 #include "notation.h"
 #include "search.h"
+#include "tbprobe.h"
 #include "timeman.h"
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
-#include "bitcount.h"
-#include "tbprobe.h"
 
 namespace Search {
 
@@ -46,8 +45,8 @@ namespace Search {
   Color RootColor;
   Time::point SearchTime;
   StateStackPtr SetupStates;
-  int use_tb;
-  uint64_t tbhits;
+  int TBCardinality;
+  uint64_t TBHits;
 }
 
 using std::string;
@@ -195,10 +194,11 @@ size_t Search::perft(Position& pos, Depth depth) {
 void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
-  bool tb_position;
+  bool root_in_tb = false;
 
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
+  TBHits = TBCardinality = 0;
 
   if (RootMoves.empty())
   {
@@ -243,32 +243,34 @@ void Search::think() {
           << std::endl;
   }
 
-  use_tb = Tablebases::initialized ? (int)(Options["Probe Syzygybases"]) : 0;
-  tb_position = 0;
-  tbhits = 0;
-  if (popcount<Full>(RootPos.pieces()) <= use_tb)
+  if (Tablebases::initialized)
   {
-      if ((tb_position = Tablebases::root_probe(RootPos))) {
-          tbhits++;
+      int piecesCnt = RootPos.count<ALL_PIECES>(WHITE) + RootPos.count<ALL_PIECES>(BLACK);
+      TBCardinality = Options["Probe Syzygybases"];
 
-          // The current root position is in the tablebases.
-          // RootMoves now contains only moves that preserve the draw or win.
+      if (piecesCnt <= TBCardinality)
+      {
+          // If the current root position is in the tablebases then RootMoves
+          // contains only moves that preserve the draw or win.
+          root_in_tb = Tablebases::root_probe(RootPos);
 
-          // Do not probe tablebases during the search.
-          use_tb = 0;
+          if (root_in_tb)
+          {
+              TBHits++;
+              TBCardinality = 0; // Do not probe tablebases during the search
 
-          // It might be a good idea to mangle the hash key (xor it
-          // with a fixed value) in order to "clear" the hash table of
-          // the results of previous probes. However, that would have to
-          // be done from within the Position class, so we skip it for now.
+              // It might be a good idea to mangle the hash key (xor it
+              // with a fixed value) in order to "clear" the hash table of
+              // the results of previous probes. However, that would have to
+              // be done from within the Position class, so we skip it for now.
 
-          // Optional: decrease target time.
-      }
-      else {
-          // If DTZ tables are missing, use WDL tables as a fallback.
-          use_tb = popcount<Full>(RootPos.pieces()) - 1;
-          if (Tablebases::root_probe_wdl(RootPos))
-              tbhits++;
+              // Optional: decrease target time.
+          }
+          else // If DTZ tables are missing, use WDL tables as a fallback
+          {
+              TBCardinality = piecesCnt - 1;
+              TBHits += Tablebases::root_probe_wdl(RootPos);
+          }
       }
   }
 
@@ -292,8 +294,9 @@ void Search::think() {
   Threads.timer->msec = 0; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
-  if (tb_position) {
-      // If we mangled the hash key, unmangle it here.
+  if (root_in_tb)
+  {
+      // If we mangled the hash key, unmangle it here
   }
 
   if (Options["Write Search Log"])
@@ -315,7 +318,7 @@ finalize:
 
   // When search is stopped this info is not printed
   sync_cout << "info nodes " << RootPos.nodes_searched()
-            << " tbhits " << tbhits
+            << " tbhits " << TBHits
             << " time " << Time::now() - SearchTime + 1 << sync_endl;
 
   // When we reach max depth we arrive here even without Signals.stop is raised,
@@ -636,18 +639,22 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (!RootNode && popcount<Full>(pos.pieces()) <= use_tb) {
-      int success;
-      int v = Tablebases::probe_wdl(pos, &success);
-      if (success) {
-        tbhits++;
-	if (v < -1) value = -VALUE_MATE + MAX_PLY + ss->ply;
-	else if (v > 1) value = VALUE_MATE - MAX_PLY - ss->ply;
-	else value = VALUE_DRAW + v;
-        TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
-                 depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE, VALUE_NONE);
-	return value;
-      }
+    if (   !RootNode
+        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality)
+    {
+        int found, v = Tablebases::probe_wdl(pos, &found);
+
+        if (found)
+        {
+            TBHits++;
+            value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
+                  : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply : VALUE_DRAW + v;
+
+            TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
+                     depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE, VALUE_NONE);
+
+            return value;
+        }
     }
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -1572,7 +1579,7 @@ moves_loop: // When in check and at SpNode search starts from here
           << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
           << " nodes "     << pos.nodes_searched()
           << " nps "       << pos.nodes_searched() * 1000 / elapsed
-          << " tbhits "    << tbhits
+          << " tbhits "    << TBHits
           << " time "      << elapsed
           << " multipv "   << i + 1
           << " pv";
