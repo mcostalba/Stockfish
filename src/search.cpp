@@ -35,6 +35,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
+#include "bitcount.h"
 
 namespace Search {
 
@@ -245,7 +246,7 @@ void Search::think() {
 
   if (Tablebases::initialized)
   {
-      int piecesCnt = RootPos.count<ALL_PIECES>(WHITE) + RootPos.count<ALL_PIECES>(BLACK);
+      int piecesCnt = popcount<Full>(RootPos.pieces());
       TBCardinality = Options["Probe Syzygybases"];
 
       if (piecesCnt <= TBCardinality)
@@ -640,7 +641,7 @@ namespace {
 
     // Step 4a. Tablebase probe
     if (   !RootNode
-        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality)
+        && popcount<Full>(RootPos.pieces()) <= TBCardinality)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
 
