@@ -35,10 +35,10 @@ This distribution of Stockfish consists of the following files:
 
 **Configuration**
 
-Syzygybases are configured using the UCI options "Probe Syzygybases" and
-"Syzygybases Path".
+Syzygybases are configured using the UCI options "SyzygyProbeLimit" and
+"SyzygyPath".
 
-The option "Syzygybases Path" should be set to the directory or directories
+The option "SyzygyPath" should be set to the directory or directories
 where the .rtbw and .rtbz files can be found. Multiple directories should
 be separated by ";" on Windows and by ":" on Unix-based operating systems.
 
@@ -47,9 +47,9 @@ Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tableb
 It is recommended to store .rtbw files on an SSD. There is no loss in
 storing the .rtbz files on a regular HD.
 
-**Note:** At the moment, the "Syzygybases Path" option can only be set once. If you want to change it, you need to restart the engine.
+**Note:** At the moment, the "SyzygyPath" option can only be set once. If you want to change it, you need to restart the engine.
 
-If you have the 6-piece tables, set the value of "Probe Syzygybases" to 6.
+If you have the 6-piece tables, set the value of "SyzygyProbeLimit" to 6 (the default).
 If you only have the 5-piece table, set it to 5. Set the value of this option
 to 0 if you want to temporarily disable tablebase probing.
 
