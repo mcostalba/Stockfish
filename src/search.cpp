@@ -196,6 +196,7 @@ void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
   bool root_in_tb = false;
+  int piecesCnt;
 
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
@@ -244,34 +245,33 @@ void Search::think() {
           << std::endl;
   }
 
-  if (Tablebases::initialized)
+  piecesCnt = popcount<Full>(RootPos.pieces());
+  TBCardinality = Options["SyzygyProbeLimit"];
+  if (TBCardinality > Tablebases::TBLargest)
+      TBCardinality = Tablebases::TBLargest;
+
+  if (piecesCnt <= TBCardinality)
   {
-      int piecesCnt = popcount<Full>(RootPos.pieces());
-      TBCardinality = Options["SyzygyProbeLimit"];
+      // If the current root position is in the tablebases then RootMoves
+      // contains only moves that preserve the draw or win.
+      root_in_tb = Tablebases::root_probe(RootPos);
 
-      if (piecesCnt <= TBCardinality)
+      if (root_in_tb)
       {
-          // If the current root position is in the tablebases then RootMoves
-          // contains only moves that preserve the draw or win.
-          root_in_tb = Tablebases::root_probe(RootPos);
+          TBHits++;
+          TBCardinality = 0; // Do not probe tablebases during the search
 
-          if (root_in_tb)
-          {
-              TBHits++;
-              TBCardinality = 0; // Do not probe tablebases during the search
+          // It might be a good idea to mangle the hash key (xor it
+          // with a fixed value) in order to "clear" the hash table of
+          // the results of previous probes. However, that would have to
+          // be done from within the Position class, so we skip it for now.
 
-              // It might be a good idea to mangle the hash key (xor it
-              // with a fixed value) in order to "clear" the hash table of
-              // the results of previous probes. However, that would have to
-              // be done from within the Position class, so we skip it for now.
-
-              // Optional: decrease target time.
-          }
-          else // If DTZ tables are missing, use WDL tables as a fallback
-          {
-              TBCardinality = piecesCnt - 1;
-              TBHits += Tablebases::root_probe_wdl(RootPos);
-          }
+          // Optional: decrease target time.
+      }
+      else // If DTZ tables are missing, use WDL tables as a fallback
+      {
+          TBCardinality = piecesCnt - 1;
+          TBHits += Tablebases::root_probe_wdl(RootPos);
       }
   }
 

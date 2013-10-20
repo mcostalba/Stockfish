@@ -40,6 +40,7 @@
 
 static LOCK_T TB_mutex;
 
+static bool initialized = false;
 static int num_paths = 0;
 static char *path_string = NULL;
 static char **paths = NULL;
@@ -56,6 +57,8 @@ static struct DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
 static void init_indices(void);
 static uint64 calc_key_from_pcs(int *pcs, int mirror);
+static void free_wdl_entry(struct TBEntry *entry);
+static void free_dtz_entry(struct TBEntry *entry);
 
 static FD open_tb(const char *str, const char *suffix)
 {
@@ -123,15 +126,20 @@ static char *map_file(const char *name, const char *suffix, uint64 *size)
   return data;
 }
 
+#ifndef __WIN32__
 static void unmap_file(char *data, uint64 size)
 {
   if (!data) return;
-#ifndef __WIN32__
   munmap(data, size);
-#else
-  UnmapViewOfFile(data);
-#endif
 }
+#else
+#define unmap_file(data, size) unmap_file_win32(data)
+static void unmap_file_win32(char *data)
+{
+  if (!data) return;
+  UnmapViewOfFile(data);
+}
+#endif
 
 static void add_to_hash(struct TBEntry *ptr, uint64 key)
 {
@@ -217,6 +225,8 @@ static void init_tb(char *str)
     entry->num += pcs[i];
   entry->symmetric = (key == key2);
   entry->has_pawns = (pcs[TB_WPAWN] + pcs[TB_BPAWN] > 0);
+  if (entry->num > Tablebases::TBLargest)
+    Tablebases::TBLargest = entry->num;
 
   if (entry->has_pawns) {
     struct TBEntry_pawn *ptr = (struct TBEntry_pawn *)entry;
@@ -250,7 +260,25 @@ void Tablebases::init(const std::string& path)
   char str[16];
   int i, j, k, l;
 
-  if (initialized) return;
+  if (initialized) {
+    free(path_string);
+    free(paths);
+    struct TBEntry *entry;
+    for (i = 0; i < TBnum_piece; i++) {
+      entry = (struct TBEntry *)&TB_piece[i];
+      free_wdl_entry(entry);
+    }
+    for (i = 0; i < TBnum_pawn; i++) {
+      entry = (struct TBEntry *)&TB_pawn[i];
+      free_wdl_entry(entry);
+    }
+    for (i = 0; i < DTZ_ENTRIES; i++)
+      if (DTZ_table[i].entry)
+	free_dtz_entry(DTZ_table[i].entry);
+  } else {
+    init_indices();
+    initialized = true;
+  }
 
   const char *p = path.c_str();
   if (strlen(p) == 0) return;
@@ -275,10 +303,13 @@ void Tablebases::init(const std::string& path)
   LOCK_INIT(TB_mutex);
 
   TBnum_piece = TBnum_pawn = 0;
+  TBLargest = 0;
 
   for (i = 0; i < (1 << TBHASHBITS); i++)
-    for (j = 0; j < HSHMAX; j++)
+    for (j = 0; j < HSHMAX; j++) {
+      TB_hash[i][j].key = 0ULL;
       TB_hash[i][j].ptr = NULL;
+    }
 
   for (i = 0; i < DTZ_ENTRIES; i++)
     DTZ_table[i].entry = NULL;
@@ -339,11 +370,6 @@ void Tablebases::init(const std::string& path)
 	}
 
   printf("info string Found %d tablebases.\n", TBnum_piece + TBnum_pawn);
-
-  if (TBnum_piece + TBnum_pawn > 0) {
-    initialized = true;
-    init_indices();
-  }
 }
 
 static const char offdiag[] = {
@@ -1242,8 +1268,7 @@ static int init_table_wdl(struct TBEntry *entry, char *str)
 
   // first mmap the table into memory
 
-  uint64 dummy;
-  entry->data = map_file(str, WDLSUFFIX, &dummy);
+  entry->data = map_file(str, WDLSUFFIX, &entry->mapped_size);
   if (!entry->data) {
     printf("Could not find %s" WDLSUFFIX, str);
     return 0;
@@ -1545,8 +1570,7 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
 				? sizeof(struct DTZEntry_pawn)
 				: sizeof(struct DTZEntry_piece));
 
-  uint64 size = 0ULL;
-  ptr3->data = map_file(str, DTZSUFFIX, &size);
+  ptr3->data = map_file(str, DTZSUFFIX, &ptr3->mapped_size);
   ptr3->key = ptr->key;
   ptr3->num = ptr->num;
   ptr3->symmetric = ptr->symmetric;
@@ -1555,11 +1579,9 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
     struct DTZEntry_pawn *entry = (struct DTZEntry_pawn *)ptr3;
     entry->pawns[0] = ((struct TBEntry_pawn *)ptr)->pawns[0];
     entry->pawns[1] = ((struct TBEntry_pawn *)ptr)->pawns[1];
-    entry->mapped_size = size;
   } else {
     struct DTZEntry_piece *entry = (struct DTZEntry_piece *)ptr3;
     entry->enc_type = ((struct TBEntry_piece *)ptr)->enc_type;
-    entry->mapped_size = size;
   }
   if (!init_table_dtz(ptr3))
     free(ptr3);
@@ -1567,18 +1589,36 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
     DTZ_table[0].entry = ptr3;
 }
 
+static void free_wdl_entry(struct TBEntry *entry)
+{
+  unmap_file(entry->data, entry->mapped_size);
+  if (!entry->has_pawns) {
+    struct TBEntry_piece *ptr = (struct TBEntry_piece *)entry;
+    free(ptr->precomp[0]);
+    if (ptr->precomp[1])
+      free(ptr->precomp[1]);
+  } else {
+    struct TBEntry_pawn *ptr = (struct TBEntry_pawn *)entry;
+    int f;
+    for (f = 0; f < 4; f++) {
+      free(ptr->file[f].precomp[0]);
+      if (ptr->file[f].precomp[1])
+	free(ptr->file[f].precomp[1]);
+    }
+  }
+}
+
 static void free_dtz_entry(struct TBEntry *entry)
 {
+  unmap_file(entry->data, entry->mapped_size);
   if (!entry->has_pawns) {
     struct DTZEntry_piece *ptr = (struct DTZEntry_piece *)entry;
     free(ptr->precomp);
-    unmap_file(ptr->data, ptr->mapped_size);
   } else {
     struct DTZEntry_pawn *ptr = (struct DTZEntry_pawn *)entry;
     int f;
     for (f = 0; f < 4; f++)
       free(ptr->file[f].precomp);
-    unmap_file(ptr->data, ptr->mapped_size);
   }
   free(entry);
 }

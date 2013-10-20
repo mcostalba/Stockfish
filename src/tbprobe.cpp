@@ -32,7 +32,7 @@ namespace Zobrist {
   extern Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 }
 
-bool Tablebases::initialized = false;
+int Tablebases::TBLargest = 0;
 
 static RKISS rk;
 
@@ -547,7 +547,7 @@ static int wdl_to_dtz[] = {
 // Probe the DTZ table for a particular position.
 // If *success != 0, the probe was successful.
 // The return value is from the point of view of the side to move:
-//         n < -100 : 
+//         n < -100 : loss, but draw under 50-move rule
 // -100 <= n < -1   : loss in n ply (assuming 50-move counter == 0)
 //         0	    : draw
 //     1 < n <= 100 : win in n ply (assuming 50-move counter == 0)
@@ -662,7 +662,7 @@ static int has_repeated(StateInfo *st)
 // If the position is lost, but DTZ is fairly high, only keep moves that
 // maximise DTZ.
 //
-// A return value of 0 indicates that not all probes were successful and that
+// A return value false indicates that not all probes were successful and that
 // no moves were filtered out.
 bool Tablebases::root_probe(Position& pos)
 {
@@ -747,7 +747,7 @@ bool Tablebases::root_probe(Position& pos)
 // Use the WDL tables to filter out moves that don't preserve the win or draw.
 // This is a fallback for the case that some or all DTZ tables are missing.
 //
-// A return value of 0 indicates that not all probes were successful and that
+// A return value false indicates that not all probes were successful and that
 // no moves were filtered out.
 bool Tablebases::root_probe_wdl(Position& pos)
 {

@@ -69,6 +69,7 @@ struct PairsData {
 struct TBEntry {
   char *data;
   uint64 key;
+  uint64 mapped_size;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -78,6 +79,7 @@ struct TBEntry {
 struct TBEntry_piece {
   char *data;
   uint64 key;
+  uint64 mapped_size;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -92,6 +94,7 @@ struct TBEntry_piece {
 struct TBEntry_pawn {
   char *data;
   uint64 key;
+  uint64 mapped_size;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -108,6 +111,7 @@ struct TBEntry_pawn {
 struct DTZEntry_piece {
   char *data;
   uint64 key;
+  uint64 mapped_size;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -117,7 +121,6 @@ struct DTZEntry_piece {
   int factor[TBPIECES];
   ubyte pieces[TBPIECES];
   ubyte norm[TBPIECES];
-  uint64 mapped_size;
   ubyte flags; // accurate, mapped, side
   ushort map_idx[4];
   ubyte *map;
@@ -126,6 +129,7 @@ struct DTZEntry_piece {
 struct DTZEntry_pawn {
   char *data;
   uint64 key;
+  uint64 mapped_size;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -137,7 +141,6 @@ struct DTZEntry_pawn {
     ubyte pieces[TBPIECES];
     ubyte norm[TBPIECES];
   } file[4];
-  uint64 mapped_size;
   ubyte flags[4];
   ushort map_idx[4][4];
   ubyte *map;

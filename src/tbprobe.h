@@ -3,7 +3,7 @@
 
 namespace Tablebases {
 
-extern bool initialized;
+extern int TBLargest;
 
 void init(const std::string& path);
 int probe_wdl(Position& pos, int *success);
