@@ -641,7 +641,7 @@ namespace {
 
     // Step 4a. Tablebase probe
     if (   !RootNode
-        && popcount<Full>(RootPos.pieces()) <= TBCardinality)
+        && popcount<Full>(pos.pieces()) <= TBCardinality)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
 
