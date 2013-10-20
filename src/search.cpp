@@ -247,7 +247,7 @@ void Search::think() {
   if (Tablebases::initialized)
   {
       int piecesCnt = popcount<Full>(RootPos.pieces());
-      TBCardinality = Options["Probe Syzygybases"];
+      TBCardinality = Options["SyzygyProbeLimit"];
 
       if (piecesCnt <= TBCardinality)
       {
