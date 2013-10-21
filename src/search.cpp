@@ -35,7 +35,6 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
-#include "bitcount.h"
 
 namespace Search {
 
@@ -245,7 +244,7 @@ void Search::think() {
           << std::endl;
   }
 
-  piecesCnt = popcount<Full>(RootPos.pieces());
+  piecesCnt = RootPos.count<ALL_PIECES>(WHITE) + RootPos.count<ALL_PIECES>(BLACK);
   TBCardinality = Options["SyzygyProbeLimit"];
   if (TBCardinality > Tablebases::TBLargest)
       TBCardinality = Tablebases::TBLargest;
@@ -641,7 +640,7 @@ namespace {
 
     // Step 4a. Tablebase probe
     if (   !RootNode
-        && popcount<Full>(pos.pieces()) <= TBCardinality)
+        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
 
