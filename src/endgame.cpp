@@ -197,7 +197,7 @@ Square get_flip_sq(const Position& pos, Color strongSide) {
 
   Square psq = pos.list<PAWN>(strongSide)[0];
 
-  return Square(7 * (8 * strongSide + (file_of(psq) >= FILE_E)));
+  return (FILE_H * (file_of(psq) >= FILE_E)) | (RANK_8 * int(strongSide));
 }
 
 Square operator^(Square s, Square flip_sq) {
