@@ -200,12 +200,12 @@ namespace {
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
-  const int QueenContactCheck = 12;
-  const int RookContactCheck  = 8;
-  const int QueenCheck        = 6;
-  const int RookCheck         = 4;
-  const int BishopCheck       = 1;
-  const int KnightCheck       = 2;
+  const int QueenContactCheck = 24;
+  const int RookContactCheck  = 16;
+  const int QueenCheck        = 12;
+  const int RookCheck         = 8;
+  const int BishopCheck       = 2;
+  const int KnightCheck       = 3;
 
   // KingExposed[Square] contains penalties based on the position of the
   // defending king, indexed by king's square (from white's point of view).
@@ -878,9 +878,7 @@ Value do_evaluate(const Position& pos, Value& margin) {
                 ebonus -= ebonus / 4;
         }
 
-        // Increase the bonus if we have more non-pawn pieces
-        if (pos.count<ALL_PIECES>(  Us) - pos.count<PAWN>(  Us) >
-            pos.count<ALL_PIECES>(Them) - pos.count<PAWN>(Them))
+        if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
             ebonus += ebonus / 4;
 
         score += make_score(mbonus, ebonus);
