@@ -615,6 +615,8 @@ ScaleFactor Endgame<KRPKB>::operator()(const Position& pos) const {
 /// K, rook and two pawns vs K, rook and one pawn. There is only a single
 /// pattern: If the stronger side has no passed pawns and the defending king
 /// is actively placed, the position is drawish.
+static const ScaleFactor KRPPKRP_rank_factor[RANK_NB] =
+{ SCALE_FACTOR_NONE, ScaleFactor(10), ScaleFactor(10), ScaleFactor(15), ScaleFactor(20), ScaleFactor(40), SCALE_FACTOR_NONE, SCALE_FACTOR_NONE };
 template<>
 ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
 
@@ -623,26 +625,20 @@ ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
 
   Square wpsq1 = pos.list<PAWN>(strongSide)[0];
   Square wpsq2 = pos.list<PAWN>(strongSide)[1];
-  Square bksq = pos.king_square(weakSide);
 
   // Does the stronger side have a passed pawn?
   if (pos.pawn_passed(strongSide, wpsq1) || pos.pawn_passed(strongSide, wpsq2))
       return SCALE_FACTOR_NONE;
 
+  Square bksq = pos.king_square(weakSide);
   Rank r = std::max(relative_rank(strongSide, wpsq1), relative_rank(strongSide, wpsq2));
 
   if (   file_distance(bksq, wpsq1) <= 1
       && file_distance(bksq, wpsq2) <= 1
       && relative_rank(strongSide, bksq) > r)
   {
-      switch (r) {
-      case RANK_2: return ScaleFactor(10);
-      case RANK_3: return ScaleFactor(10);
-      case RANK_4: return ScaleFactor(15);
-      case RANK_5: return ScaleFactor(20);
-      case RANK_6: return ScaleFactor(40);
-      default: assert(false);
-      }
+      assert( r >= RANK_2 && r <= RANK_6 );
+      return KRPPKRP_rank_factor[r];
   }
   return SCALE_FACTOR_NONE;
 }
