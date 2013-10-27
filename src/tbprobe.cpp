@@ -18,7 +18,6 @@
 
 #include "position.h"
 #include "movegen.h"
-#include "rkiss.h"
 #include "bitboard.h"
 #include "search.h"
 #include "bitcount.h"
@@ -33,8 +32,6 @@ namespace Zobrist {
 }
 
 int Tablebases::TBLargest = 0;
-
-static RKISS rk;
 
 // Given a position with 6 or fewer pieces, produce a text string
 // of the form KQPvKRP, where "KQP" represents the white pieces if
@@ -641,6 +638,8 @@ int Tablebases::probe_dtz(Position& pos, int *success)
   return v;
 }
 
+// Check whether there has been at least one repetition of positions
+// since the last capture or pawn move.
 static int has_repeated(StateInfo *st)
 {
   while (1) {
