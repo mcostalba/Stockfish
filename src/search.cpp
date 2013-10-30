@@ -65,13 +65,12 @@ namespace {
   inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
 
   // Futility lookup tables (initialized at startup) and their access functions
-  Value FutilityMargins[16][64]; // [depth][moveNumber]
+  Value FutilityMargins[14][64]; // [depth][moveNumber]
   int FutilityMoveCounts[2][32]; // [improving][depth]
 
   inline Value futility_margin(Depth d, int mn) {
-
-    return d < 7 * ONE_PLY ? FutilityMargins[std::max(int(d), 1)][std::min(mn, 63)]
-                           : 2 * VALUE_INFINITE;
+    assert(DEPTH_ZERO <= d && d < 7 * ONE_PLY);
+    return FutilityMargins[d][std::min(mn, 63)];
   }
 
   // Reduction lookup tables (initialized at startup) and their access function
@@ -148,8 +147,8 @@ void Search::init() {
   }
 
   // Init futility margins array
-  for (d = 1; d < 16; ++d) for (mc = 0; mc < 64; ++mc)
-      FutilityMargins[d][mc] = Value(112 * int(2.9 * log(double(d))) - 8 * mc + 45);
+  for (d = 0; d < 14; ++d) for (mc = 0; mc < 64; ++mc)
+      FutilityMargins[d][mc] = Value(112 * int(2.9 * log(double(std::max(1,d)))) - 8 * mc + 45);
 
   // Init futility move count array
   for (d = 0; d < 32; ++d)
@@ -504,7 +503,7 @@ namespace {
     Move ttMove, move, excludedMove, bestMove, threatMove;
     Depth ext, newDepth;
     Value bestValue, value, ttValue;
-    Value eval, nullValue, futilityValue;
+    Value eval, nullValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, quietCount;
@@ -633,12 +632,10 @@ namespace {
             return v;
     }
 
-    // Step 7. Static null move pruning (skipped when in check)
-    // We're betting that the opponent doesn't have a move that will reduce
-    // the score by more than futility_margin(depth) if we do a null move.
+    // Step 7. post-Futility pruning (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth < 4 * ONE_PLY
+        &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
