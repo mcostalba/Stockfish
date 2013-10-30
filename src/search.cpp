@@ -87,7 +87,6 @@ namespace {
   double BestMoveChanges;
   Value DrawValue[COLOR_NB];
   HistoryStats History;
-  GainsStats Gains;
   CountermovesStats Countermoves;
 
   template <NodeType NT>
@@ -310,7 +309,6 @@ namespace {
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
-    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = 0;
     BestMoveChanges = 0;
@@ -319,7 +317,6 @@ namespace {
 
     TT.new_search();
     History.clear();
-    Gains.clear();
     Countermoves.clear();
 
     PVSize = Options["MultiPV"];
@@ -620,18 +617,6 @@ namespace {
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 
-    // Update gain for the parent non-capture move given the static position
-    // evaluation before and after the move.
-    if (   !pos.captured_piece_type()
-        &&  ss->staticEval != VALUE_NONE
-        && (ss-1)->staticEval != VALUE_NONE
-        && (move = (ss-1)->currentMove) != MOVE_NULL
-        &&  type_of(move) == NORMAL)
-    {
-        Square to = to_sq(move);
-        Gains.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
-    }
-
     // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
@@ -860,13 +845,13 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Update current move (this must be done after singular extension search)
       newDepth = depth - ONE_PLY + ext;
+      Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 
       // Step 13. Futility pruning (is omitted in PV nodes)
       if (   !PvNode
           && !captureOrPromotion
           && !inCheck
           && !dangerous
-       /* &&  move != ttMove Already implicit in the next condition */
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
@@ -877,26 +862,6 @@ moves_loop: // When in check and at SpNode search starts from here
               if (SpNode)
                   splitPoint->mutex.lock();
 
-              continue;
-          }
-
-          // Value based pruning
-          // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
-          // but fixing this made program slightly weaker.
-          Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
-          futilityValue =  ss->staticEval + futility_margin(predictedDepth, moveCount)
-                         + Gains[pos.moved_piece(move)][to_sq(move)];
-
-          if (futilityValue < beta)
-          {
-              bestValue = std::max(bestValue, futilityValue);
-
-              if (SpNode)
-              {
-                  splitPoint->mutex.lock();
-                  if (bestValue > splitPoint->bestValue)
-                      splitPoint->bestValue = bestValue;
-              }
               continue;
           }
 
