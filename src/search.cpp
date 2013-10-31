@@ -1099,7 +1099,7 @@ moves_loop: // When in check and at SpNode search starts from here
     const TTEntry* tte;
     Key posKey;
     Move ttMove, move, bestMove;
-    Value bestValue, value, ttValue, /*futilityValue,*/ futilityBase, oldAlpha;
+    Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool givesCheck, evasionPrunable;
     Depth ttDepth;
 
@@ -1198,7 +1198,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.passed_pawn_push(move))
       {
-          /*futilityValue =  futilityBase
+          futilityValue =  futilityBase
                          + PieceValue[EG][pos.piece_on(to_sq(move))]
                          + (type_of(move) == ENPASSANT ? PawnValueEg : VALUE_ZERO);
 
@@ -1206,7 +1206,7 @@ moves_loop: // When in check and at SpNode search starts from here
           {
               bestValue = std::max(bestValue, futilityValue);
               continue;
-          }*/
+          }
 
           // Prune moves with negative or equal SEE and also moves with positive
           // SEE where capturing piece loses a tempo and SEE < beta - futilityBase.
