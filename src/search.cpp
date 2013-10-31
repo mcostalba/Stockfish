@@ -148,7 +148,7 @@ void Search::init() {
 
   // Init futility margins array
   for (d = 0; d < 14; ++d) for (mc = 0; mc < 64; ++mc)
-      FutilityMargins[d][mc] = Value(325.0 * log(double(std::max(d, 1))) - 8.0 * mc + 45.0 + 16.0);
+      FutilityMargins[d][mc] = Value(325.0 * log(double(std::max(d, 1))) - 8.0 * mc + 45.0 + 64.0);
 
   // Init futility move count array
   for (d = 0; d < 32; ++d)
