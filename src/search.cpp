@@ -63,12 +63,10 @@ namespace {
   inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
 
   // Futility lookup tables (initialized at startup) and their access functions
-  Value FutilityMargins[14][64]; // [depth][moveNumber]
   int FutilityMoveCounts[2][32]; // [improving][depth]
 
-  inline Value futility_margin(Depth d, int mn) {
-    assert(DEPTH_ZERO <= d && d < 7 * ONE_PLY);
-    return FutilityMargins[d][std::min(mn, 63)];
+  inline Value futility_margin(Depth d) {
+    return Value(100 * int(d));
   }
 
   // Reduction lookup tables (initialized at startup) and their access function
@@ -143,10 +141,6 @@ void Search::init() {
       else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
           Reductions[0][0][hd][mc] += ONE_PLY / 2;
   }
-
-  // Init futility margins array
-  for (d = 0; d < 14; ++d) for (mc = 0; mc < 64; ++mc)
-      FutilityMargins[d][mc] = Value(112 * int(2.9 * log(d >= 1 ? double(d) : 1.0)) - 8 * mc + 45);
 
   // Init futility move count array
   for (d = 0; d < 32; ++d)
@@ -523,7 +517,6 @@ namespace {
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
-    ss->futilityMoveCount = 0;
     (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
@@ -628,11 +621,11 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth < 7 * ONE_PLY
-        &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
+        &&  eval - futility_margin(depth) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return eval - futility_margin(depth, (ss-1)->futilityMoveCount);
+        return eval - futility_margin(depth);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
@@ -864,12 +857,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          // We have not pruned the move that will be searched, but remember how
-          // far in the move list we are to be more aggressive in the child node.
-          ss->futilityMoveCount = moveCount;
       }
-      else
-          ss->futilityMoveCount = 0;
 
       // Check for legality only before to do the move
       if (!RootNode && !SpNode && !pos.legal(move, ci.pinned))
