@@ -68,18 +68,18 @@ void TranspositionTable::clear() {
 /// transposition table. Returns a pointer to the TTEntry or NULL if
 /// position is not found.
 
+template<unsigned N> struct ProbeHelper {
+    inline static const TTEntry* probe(const TTEntry* const cluster, const uint32_t key32)
+    { return (cluster->key() == key32) ? cluster : ProbeHelper<N-1>::probe(cluster + 1, key32); }
+};
+template<> struct ProbeHelper<1> {
+    inline static const TTEntry* probe(const TTEntry* const cluster, const uint32_t key32)
+    { return (cluster->key() == key32) ? cluster : NULL; }
+};
+
 const TTEntry* TranspositionTable::probe(const Key key) const {
-
-  const TTEntry* tte = first_entry(key);
-  uint32_t key32 = key >> 32;
-
-  for (unsigned i = 0; i < ClusterSize; ++i, ++tte)
-      if (tte->key() == key32)
-          return tte;
-
-  return NULL;
+    return ProbeHelper<ClusterSize>::probe(first_entry(key), key >> 32);
 }
-
 
 /// TranspositionTable::store() writes a new entry containing position key and
 /// valuable information of current position. The lowest order bits of position
