@@ -617,7 +617,7 @@ namespace {
             return v;
     }
 
-    // Step 7. post-Futility pruning (skipped when in check)
+    // Step 7. Futility pruning: child node (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth < 7 * ONE_PLY
@@ -827,9 +827,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Update current move (this must be done after singular extension search)
       newDepth = depth - ONE_PLY + ext;
-      Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 
-      // Step 13. Futility pruning (is omitted in PV nodes)
+      // Step 13. Pruning at shallow depth (exclude PV nodes)
       if (   !PvNode
           && !captureOrPromotion
           && !inCheck
@@ -845,6 +844,27 @@ moves_loop: // When in check and at SpNode search starts from here
                   splitPoint->mutex.lock();
 
               continue;
+          }
+
+          Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
+          
+          // Futility pruning: parent node
+          if (predictedDepth < 7 * ONE_PLY)
+          {
+              Value futilityValue = ss->staticEval + futility_margin(predictedDepth) + Value(128);
+
+              if (futilityValue <= alpha)
+              {
+                  bestValue = std::max(bestValue, futilityValue);
+
+                  if (SpNode)
+                  {
+                      splitPoint->mutex.lock();
+                      if (bestValue > splitPoint->bestValue)
+                          splitPoint->bestValue = bestValue;
+                  }
+                  continue;
+              }
           }
 
           // Prune moves with negative SEE at low depths
