@@ -30,12 +30,10 @@ namespace {
   #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
-  // Doubled pawn penalty by opposed flag and file
-  const Score Doubled[2][FILE_NB] = {
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) },
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) }};
+  // Doubled pawn penalty by file
+  const Score Doubled[FILE_NB] = {
+    S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+    S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
 
   // Isolated pawn penalty by opposed flag and file
   const Score Isolated[2][FILE_NB] = {
@@ -57,8 +55,7 @@ namespace {
   // Candidate passed pawn bonus by rank
   const Score CandidatePassed[RANK_NB] = {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
-    S(34,68), S(83,166), S(0, 0), S( 0, 0)
-  };
+    S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
@@ -72,7 +69,7 @@ namespace {
   { V( 0),  V( 0), V( 64), V(25), V(13) }};
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
-  // in front of the king and no enemy pawn on the horizont.
+  // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(263);
 
   #undef S
@@ -103,17 +100,17 @@ namespace {
     e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
-    // Loop through all pawns of the current color and score each pawn
+    // Loop through all pawns of the current color and score each pawn.
     while ((s = *pl++) != SQ_NONE)
     {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         f = file_of(s);
 
-        // This file cannot be semi-open
+        // This file cannot be semi-open.
         e->semiopenFiles[Us] &= ~(1 << f);
 
-        // Our rank plus previous one. Used for chain detection
+        // Our rank plus previous one. Used for chain detection.
         b = rank_bb(s) | rank_bb(s - pawn_push(Us));
 
         // Flag the pawn as passed, isolated, doubled or member of a pawn
@@ -148,7 +145,7 @@ namespace {
 
         assert(opposed | passed | (pawn_attack_span(Us, s) & theirPawns));
 
-        // A not passed pawn is a candidate to become passed if it is free to
+        // A not passed pawn is a candidate to become passed, if it is free to
         // advance and if the number of friendly pawns beside or behind this
         // pawn on adjacent files is higher or equal than the number of
         // enemy pawns in the forward direction on the adjacent files.
@@ -167,7 +164,7 @@ namespace {
             value -= Isolated[opposed][f];
 
         if (doubled)
-            value -= Doubled[opposed][f];
+            value -= Doubled[f];
 
         if (backward)
             value -= Backward[opposed][f];
@@ -274,7 +271,7 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
-  // If we can castle use the bonus after the castle if is bigger
+  // If we can castle use the bonus after the castle if it is bigger
   if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 
