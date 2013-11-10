@@ -42,7 +42,7 @@ namespace {
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
-    {  10,    2                         }, // Pawn
+    {  24,    2                         }, // Pawn
     {  35,  271,  -4                    }, // Knight
     {   0,  105,   4,    0              }, // Bishop
     { -27,   -2,  46,   100,  -141      }, // Rook
