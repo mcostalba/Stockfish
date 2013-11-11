@@ -91,11 +91,11 @@ void TimerThread::idle_loop() {
       std::unique_lock<std::mutex> lk(mutex);
 
       if (!exit)
-          sleepCondition.wait_for(lk, std::chrono::milliseconds(msec ? msec : INT_MAX));
+          sleepCondition.wait_for(lk, std::chrono::milliseconds(run ? Resolution : INT_MAX));
 
       lk.unlock();
 
-      if (msec)
+      if (run)
           check_time();
   }
 }

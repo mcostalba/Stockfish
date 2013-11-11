@@ -30,43 +30,32 @@ namespace {
   #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
-  // Doubled pawn penalty by opposed flag and file
-  const Score Doubled[2][FILE_NB] = {
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) },
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) }};
+  // Doubled pawn penalty by file
+  const Score Doubled[FILE_NB] = {
+    S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+    S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
 
   // Isolated pawn penalty by opposed flag and file
   const Score Isolated[2][FILE_NB] = {
   { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
     S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
   { S(25, 30), S(36, 35), S(40, 35), S(40, 35),
-    S(40, 35), S(40, 35), S(36, 35), S(25, 30) }};
+    S(40, 35), S(40, 35), S(36, 35), S(25, 30) } };
 
   // Backward pawn penalty by opposed flag and file
   const Score Backward[2][FILE_NB] = {
   { S(30, 42), S(43, 46), S(49, 46), S(49, 46),
     S(49, 46), S(49, 46), S(43, 46), S(30, 42) },
   { S(20, 28), S(29, 31), S(33, 31), S(33, 31),
-    S(33, 31), S(33, 31), S(29, 31), S(20, 28) }};
+    S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
 
-  // Pawn chain membership bonus by file
-  const Score ChainMember[FILE_NB][RANK_NB] = {
-  { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
-  { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-  { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-  { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-  { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-  { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-  { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-  { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }};
+  // Pawn chain membership bonus by file and rank (initialized by formula)
+  Score ChainMember[FILE_NB][RANK_NB];
 
   // Candidate passed pawn bonus by rank
   const Score CandidatePassed[RANK_NB] = {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
-    S(34,68), S(83,166), S(0, 0), S( 0, 0)
-  };
+    S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
@@ -77,10 +66,10 @@ namespace {
   const Value StormDanger[3][RANK_NB] = {
   { V( 0),  V(64), V(128), V(51), V(26) },
   { V(26),  V(32), V( 96), V(38), V(20) },
-  { V( 0),  V( 0), V( 64), V(25), V(13) }};
+  { V( 0),  V( 0), V( 64), V(25), V(13) } };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
-  // in front of the king and no enemy pawn on the horizont.
+  // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(263);
 
   #undef S
@@ -156,7 +145,7 @@ namespace {
 
         assert(opposed | passed | (pawn_attack_span(Us, s) & theirPawns));
 
-        // A not passed pawn is a candidate to become passed if it is free to
+        // A not passed pawn is a candidate to become passed, if it is free to
         // advance and if the number of friendly pawns beside or behind this
         // pawn on adjacent files is higher or equal than the number of
         // enemy pawns in the forward direction on the adjacent files.
@@ -175,7 +164,7 @@ namespace {
             value -= Isolated[opposed][f];
 
         if (doubled)
-            value -= Doubled[opposed][f];
+            value -= Doubled[f];
 
         if (backward)
             value -= Backward[opposed][f];
@@ -198,6 +187,22 @@ namespace {
 } // namespace
 
 namespace Pawns {
+
+/// init() initializes some tables by formula instead of hard-code their values
+
+void init() {
+
+  const int chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+  int bonus;
+
+  for (Rank r = RANK_1; r < RANK_8; ++r)
+      for (File f = FILE_A; f <= FILE_H; ++f)
+      {
+          bonus = r * (r-1) * (r-2) + chainByFile[f] * (r/2 + 1);
+          ChainMember[f][r] = make_score(bonus, bonus);
+      }
+}
+
 
 /// probe() takes a position object as input, computes a Entry object, and returns
 /// a pointer to it. The result is also stored in a hash table, so we don't have
@@ -266,7 +271,7 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
-  // If we can castle use the bonus after the castle if is bigger
+  // If we can castle use the bonus after the castle if it is bigger
   if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 

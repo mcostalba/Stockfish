@@ -74,6 +74,7 @@ extern Bitboard AdjacentFilesBB[FILE_NB];
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
 extern Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard DistanceRingsBB[SQUARE_NB][8];
 extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
@@ -222,12 +223,11 @@ inline Bitboard squares_of_color(Square s) {
 }
 
 
-/// squares_aligned() returns true if the squares s1, s2 and s3 are aligned
+/// aligned() returns true if the squares s1, s2 and s3 are aligned
 /// either on a straight or on a diagonal line.
 
-inline bool squares_aligned(Square s1, Square s2, Square s3) {
-  return  (BetweenBB[s1][s2] | BetweenBB[s1][s3] | BetweenBB[s2][s3])
-        & (     SquareBB[s1] |      SquareBB[s2] |      SquareBB[s3]);
+inline bool aligned(Square s1, Square s2, Square s3) {
+  return LineBB[s1][s2] & s3;
 }
 
 

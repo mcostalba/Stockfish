@@ -121,9 +121,10 @@ struct MainThread : public Thread {
 };
 
 struct TimerThread : public ThreadBase {
-  TimerThread() : msec(0) {}
+  TimerThread() : run(false) {}
   virtual void idle_loop();
-  int msec;
+  bool run;
+  static const int Resolution = 5; // msec between two check_time() calls
 };
 
 
