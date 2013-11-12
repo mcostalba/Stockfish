@@ -634,7 +634,7 @@ namespace {
                   : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply : VALUE_DRAW + v;
 
             TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
-                     depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE, VALUE_NONE);
+                     depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE);
 
             return value;
         }
