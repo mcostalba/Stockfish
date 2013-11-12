@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(ENDGAME_H_INCLUDED)
+#ifndef ENDGAME_H_INCLUDED
 #define ENDGAME_H_INCLUDED
 
 #include <map>
@@ -33,6 +33,7 @@ enum EndgameType {
 
   // Evaluation functions
 
+  KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
   KPK,   // KP vs K
@@ -42,7 +43,6 @@ enum EndgameType {
   KQKP,  // KQ vs KP
   KQKR,  // KQ vs KR
   KBBKN, // KBB vs KN
-  KNNK,  // KNN vs K
   KmmKm, // K and two minors vs K and one or two minors
 
 
@@ -52,6 +52,7 @@ enum EndgameType {
   KBPsK,   // KB+pawns vs K
   KQKRPs,  // KQ vs KR+pawns
   KRPKR,   // KRP vs KR
+  KRPKB,   // KRP vs KB
   KRPPKRP, // KRPP vs KRP
   KPsK,    // King and pawns vs king
   KBPKB,   // KBP vs KB
@@ -85,12 +86,12 @@ struct EndgameBase {
 template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
 struct Endgame : public EndgameBase<T> {
 
-  explicit Endgame(Color c) : strongerSide(c), weakerSide(~c) {}
-  Color color() const { return strongerSide; }
+  explicit Endgame(Color c) : strongSide(c), weakSide(~c) {}
+  Color color() const { return strongSide; }
   T operator()(const Position&) const;
 
 private:
-  Color strongerSide, weakerSide;
+  const Color strongSide, weakSide;
 };
 
 
@@ -119,4 +120,4 @@ public:
   { return eg = map(eg).count(key) ? map(eg)[key] : NULL; }
 };
 
-#endif // !defined(ENDGAME_H_INCLUDED)
+#endif // #ifndef ENDGAME_H_INCLUDED

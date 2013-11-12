@@ -243,7 +243,7 @@ ifeq ($(comp),mingw)
 endif
 
 ifeq ($(comp),icc)
-	CXXFLAGS += -wd383,981,1418,1419,1476,10187,10188,11505,11503 -Wcheck -Wabi -Wdeprecated -strict-ansi
+	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(comp),clang)
@@ -263,9 +263,12 @@ endif
 
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
-	# Haiku has pthreads in its libroot, so only link it in on other platforms
-	ifneq ($(UNAME),Haiku)
-		LDFLAGS += -lpthread
+	# On Android Bionic's C library comes with its own pthread implementation bundled in
+	ifneq ($(arch),armv7)
+		# Haiku has pthreads in its libroot, so only link it in on other platforms
+		ifneq ($(UNAME),Haiku)
+			LDFLAGS += -lpthread
+		endif
 	endif
 endif
 
@@ -296,7 +299,7 @@ ifeq ($(optimize),yes)
 		endif
 
 		ifeq ($(arch),armv7)
-			CXXFLAGS += -fno-gcse
+			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
@@ -308,7 +311,7 @@ ifeq ($(optimize),yes)
 		ifeq ($(os),osx)
 			CXXFLAGS += -fast -mdynamic-no-pic
 		else
-			CXXFLAGS += -O3
+			CXXFLAGS += -fast
 		endif
 	endif
 
@@ -446,9 +449,9 @@ profile-build:
 
 embed-signature:
 	@echo "Running benchmark for getting the signature ..."
-	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\1/p' > sign.txt
-	@sed -e 's,^,/static const string Version/s/"\\(.*\\)"/"sig-,1' -e 's,$$,"/1,1' -i sign.txt
-	@sed -f sign.txt -i misc.cpp
+	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\/string Version\/s\/"\\(.*\\)"\/"sig-\1"\//p' > sign.txt
+	@sed -f sign.txt misc.cpp > misc2.cpp
+	@mv misc2.cpp misc.cpp
 	@rm sign.txt
 
 signature-build: build embed-signature

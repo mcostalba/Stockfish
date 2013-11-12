@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(TIMEMAN_H_INCLUDED)
+#ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
 /// The TimeManager class computes the optimal time to think depending on the
@@ -26,7 +26,7 @@
 class TimeManager {
 public:
   void init(const Search::LimitsType& limits, int currentPly, Color us);
-  void pv_instability(int curChanges, int prevChanges);
+  void pv_instability(double bestMoveChanges);
   int available_time() const { return optimumSearchTime + unstablePVExtraTime; }
   int maximum_time() const { return maximumSearchTime; }
 
@@ -36,4 +36,4 @@ private:
   int unstablePVExtraTime;
 };
 
-#endif // !defined(TIMEMAN_H_INCLUDED)
+#endif // #ifndef TIMEMAN_H_INCLUDED

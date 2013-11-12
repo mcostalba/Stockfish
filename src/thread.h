@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(THREAD_H_INCLUDED)
+#ifndef THREAD_H_INCLUDED
 #define THREAD_H_INCLUDED
 
 #include <vector>
@@ -86,24 +86,38 @@ struct SplitPoint {
 };
 
 
+/// ThreadBase struct is the base of the hierarchy from where we derive all the
+/// specialized thread classes.
+
+struct ThreadBase {
+
+  ThreadBase() : exit(false) {}
+  virtual ~ThreadBase() {}
+  virtual void idle_loop() = 0;
+  void notify_one();
+  void wait_for(volatile const bool& b);
+
+  Mutex mutex;
+  ConditionVariable sleepCondition;
+  NativeHandle handle;
+  volatile bool exit;
+};
+
+
 /// Thread struct keeps together all the thread related stuff like locks, state
 /// and especially split points. We also use per-thread pawn and material hash
 /// tables so that once we get a pointer to an entry its life time is unlimited
 /// and we don't have to care about someone changing the entry under our feet.
 
-struct Thread {
+struct Thread : public ThreadBase {
 
   Thread();
-  virtual ~Thread();
-
   virtual void idle_loop();
-  void notify_one();
   bool cutoff_occurred() const;
-  bool is_available_to(Thread* master) const;
-  void wait_for(volatile const bool& b);
+  bool available_to(const Thread* master) const;
 
   template <bool Fake>
-  void split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
+  void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
              Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
@@ -113,17 +127,13 @@ struct Thread {
   Position* activePosition;
   size_t idx;
   int maxPly;
-  Mutex mutex;
-  ConditionVariable sleepCondition;
-  NativeHandle handle;
   SplitPoint* volatile activeSplitPoint;
   volatile int splitPointsSize;
   volatile bool searching;
-  volatile bool exit;
 };
 
 
-/// MainThread and TimerThread are sublassed from Thread to characterize the two
+/// MainThread and TimerThread are derived classes used to characterize the two
 /// special threads: the main one and the recurring timer.
 
 struct MainThread : public Thread {
@@ -132,10 +142,11 @@ struct MainThread : public Thread {
   volatile bool thinking;
 };
 
-struct TimerThread : public Thread {
-  TimerThread() : msec(0) {}
+struct TimerThread : public ThreadBase {
+  TimerThread() : run(false) {}
   virtual void idle_loop();
-  int msec;
+  bool run;
+  static const int Resolution = 5; // msec between two check_time() calls
 };
 
 
@@ -148,9 +159,9 @@ struct ThreadPool : public std::vector<Thread*> {
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
 
-  MainThread* main_thread() { return static_cast<MainThread*>((*this)[0]); }
+  MainThread* main() { return static_cast<MainThread*>((*this)[0]); }
   void read_uci_options();
-  Thread* available_slave(Thread* master) const;
+  Thread* available_slave(const Thread* master) const;
   void wait_for_think_finished();
   void start_thinking(const Position&, const Search::LimitsType&,
                       const std::vector<Move>&, Search::StateStackPtr&);
@@ -165,4 +176,4 @@ struct ThreadPool : public std::vector<Thread*> {
 
 extern ThreadPool Threads;
 
-#endif // !defined(THREAD_H_INCLUDED)
+#endif // #ifndef THREAD_H_INCLUDED

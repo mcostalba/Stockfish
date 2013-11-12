@@ -56,7 +56,7 @@ namespace {
 
 void UCI::loop(const string& args) {
 
-  Position pos(StartFEN, false, Threads.main_thread()); // The root position
+  Position pos(StartFEN, false, Threads.main()); // The root position
   string token, cmd = args;
 
   do {
@@ -77,7 +77,7 @@ void UCI::loop(const string& args) {
           if (token != "ponderhit" || Search::Signals.stopOnPonderhit)
           {
               Search::Signals.stop = true;
-              Threads.main_thread()->notify_one(); // Could be sleeping
+              Threads.main()->notify_one(); // Could be sleeping
           }
           else
               Search::Limits.ponder = false;
@@ -103,6 +103,11 @@ void UCI::loop(const string& args) {
                     << "\n"       << Options
                     << "\nuciok"  << sync_endl;
 
+      else if (token == "eval")
+      {
+          Search::RootColor = pos.side_to_move(); // Ensure it is set
+          sync_cout << Eval::trace(pos) << sync_endl;
+      }
       else if (token == "ucinewgame") TT.clear();
       else if (token == "go")         go(pos, is);
       else if (token == "position")   position(pos, is);
@@ -111,7 +116,6 @@ void UCI::loop(const string& args) {
       else if (token == "bench")      benchmark(pos, is);
       else if (token == "d")          sync_cout << pos.pretty() << sync_endl;
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
-      else if (token == "eval")       sync_cout << Eval::trace(pos) << sync_endl;
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 
@@ -146,7 +150,7 @@ namespace {
     else
         return;
 
-    pos.set(fen, Options["UCI_Chess960"], Threads.main_thread());
+    pos.set(fen, Options["UCI_Chess960"], Threads.main());
     SetupStates = Search::StateStackPtr(new std::stack<StateInfo>());
 
     // Parse move list (if any)

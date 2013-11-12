@@ -17,8 +17,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "search.h"
 #include "timeman.h"
@@ -29,8 +29,8 @@ namespace {
   /// Constants
 
   const int MoveHorizon  = 50;    // Plan time management at most this many moves ahead
-  const float MaxRatio   = 7.0f;  // When in trouble, we can step over reserved time with this ratio
-  const float StealRatio = 0.33f; // However we must not steal time from remaining moves over this ratio
+  const double MaxRatio   = 7.0;  // When in trouble, we can step over reserved time with this ratio
+  const double StealRatio = 0.33; // However we must not steal time from remaining moves over this ratio
 
 
   // MoveImportance[] is based on naive statistical analysis of "how many games are still undecided
@@ -76,10 +76,9 @@ namespace {
 }
 
 
-void TimeManager::pv_instability(int curChanges, int prevChanges) {
+void TimeManager::pv_instability(double bestMoveChanges) {
 
-  unstablePVExtraTime =  curChanges  * (optimumSearchTime / 2)
-                       + prevChanges * (optimumSearchTime / 3);
+  unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
 }
 
 
@@ -115,7 +114,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
-  for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); hypMTG++)
+  for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {
       // Calculate thinking time for hypothetic "moves to go"-value
       hypMyTime =  limits.time[us]
@@ -145,17 +144,17 @@ namespace {
   template<TimeType T>
   int remaining(int myTime, int movesToGo, int currentPly, int slowMover)
   {
-    const float TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
-    const float TStealRatio = (T == OptimumTime ? 0 : StealRatio);
+    const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
+    const double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
 
-    int thisMoveImportance = move_importance(currentPly) * slowMover / 100;
+    double thisMoveImportance = double(move_importance(currentPly) * slowMover) / 100;
     int otherMovesImportance = 0;
 
-    for (int i = 1; i < movesToGo; i++)
+    for (int i = 1; i < movesToGo; ++i)
         otherMovesImportance += move_importance(currentPly + 2 * i);
 
-    float ratio1 = (TMaxRatio * thisMoveImportance) / float(TMaxRatio * thisMoveImportance + otherMovesImportance);
-    float ratio2 = (thisMoveImportance + TStealRatio * otherMovesImportance) / float(thisMoveImportance + otherMovesImportance);
+    double ratio1 = (TMaxRatio * thisMoveImportance) / (TMaxRatio * thisMoveImportance + otherMovesImportance);
+    double ratio2 = (thisMoveImportance + TStealRatio * otherMovesImportance) / (thisMoveImportance + otherMovesImportance);
 
     return int(floor(myTime * std::min(ratio1, ratio2)));
   }

@@ -35,31 +35,29 @@ namespace {
   const int NoPawnsSF[4] = { 6, 12, 32 };
 
   // Polynomial material balance parameters
-  const Value RedundantQueen = Value(320);
-  const Value RedundantRook  = Value(554);
 
   //                                  pair  pawn knight bishop rook queen
-  const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+  const int LinearCoefficients[6] = { 1852, -162, -1122, -183,  249, -52 };
 
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
-    {   7                               }, // Bishop pair
+    {   0                               }, // Bishop pair
     {  39,    2                         }, // Pawn
     {  35,  271,  -4                    }, // Knight
-    {   7,  105,   4,    7              }, // Bishop
-    { -27,   -2,  46,   100,   56       }, // Rook
-    {  58,   29,  83,   148,   -3,  -25 }  // Queen
+    {   0,  105,   4,    0              }, // Bishop
+    { -27,   -2,  46,   100,  -141      }, // Rook
+    {  58,   29,  83,   148,  -163,   0 }  // Queen
   };
 
   const int QuadraticCoefficientsOppositeColor[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
     // pair pawn knight bishop rook queen
-    {  41                               }, // Bishop pair
-    {  37,   41                         }, // Pawn
-    {  10,   62,  41                    }, // Knight      OUR PIECES
-    {  57,   64,  39,    41             }, // Bishop
-    {  50,   40,  23,   -22,   41       }, // Rook
-    { 106,  101,   3,   151,  171,   41 }  // Queen
+    {   0                               }, // Bishop pair
+    {  37,    0                         }, // Pawn
+    {  10,   62,   0                    }, // Knight      OUR PIECES
+    {  57,   64,  39,     0             }, // Bishop
+    {  50,   40,  23,   -22,    0       }, // Rook
+    { 106,  101,   3,   151,  171,    0 }  // Queen
   };
 
   // Endgame evaluation and scaling functions accessed direcly and not through
@@ -106,14 +104,8 @@ namespace {
     int pt1, pt2, pc, v;
     int value = 0;
 
-    // Redundancy of major pieces, formula based on Kaufman's paper
-    // "The Evaluation of Material Imbalances in Chess"
-    if (pieceCount[Us][ROOK] > 0)
-        value -=  RedundantRook * (pieceCount[Us][ROOK] - 1)
-                + RedundantQueen * pieceCount[Us][QUEEN];
-
     // Second-degree polynomial material imbalance by Tord Romstad
-    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; pt1++)
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
     {
         pc = pieceCount[Us][pt1];
         if (!pc)
@@ -121,7 +113,7 @@ namespace {
 
         v = LinearCoefficients[pt1];
 
-        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; pt2++)
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
             v +=  QuadraticCoefficientsSameColor[pt1][pt2] * pieceCount[Us][pt2]
                 + QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[Them][pt2];
 
@@ -240,7 +232,8 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
       }
   }
 
-  // No pawns makes it difficult to win, even with a material advantage
+  // No pawns makes it difficult to win, even with a material advantage. This
+  // catches some trivial draws like KK, KBK and KNK
   if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
   {
       e->factor[WHITE] = (uint8_t)
@@ -255,7 +248,12 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 
   // Compute the space weight
   if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)
-      e->spaceWeight = make_score((npm_w + npm_b) / QueenValueMg, 0);
+  {
+      int minorPieceCount =  pos.count<KNIGHT>(WHITE) + pos.count<BISHOP>(WHITE)
+                           + pos.count<KNIGHT>(BLACK) + pos.count<BISHOP>(BLACK);
+
+      e->spaceWeight = make_score(minorPieceCount * minorPieceCount, 0);
+  }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", this allow us to be more flexible

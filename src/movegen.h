@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MOVEGEN_H_INCLUDED)
+#ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
 #include "types.h"
@@ -42,7 +42,7 @@ template<GenType T>
 struct MoveList {
 
   explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) { last->move = MOVE_NONE; }
-  void operator++() { cur++; }
+  void operator++() { ++cur; }
   Move operator*() const { return cur->move; }
   size_t size() const { return last - mlist; }
   bool contains(Move m) const {
@@ -55,4 +55,4 @@ private:
   ExtMove *cur, *last;
 };
 
-#endif // !defined(MOVEGEN_H_INCLUDED)
+#endif // #ifndef MOVEGEN_H_INCLUDED

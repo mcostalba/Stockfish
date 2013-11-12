@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(EVALUATE_H_INCLUDED)
+#ifndef EVALUATE_H_INCLUDED
 #define EVALUATE_H_INCLUDED
 
 #include "types.h"
@@ -27,9 +27,9 @@ class Position;
 namespace Eval {
 
 extern void init();
-extern Value evaluate(const Position& pos, Value& margin);
+extern Value evaluate(const Position& pos);
 extern std::string trace(const Position& pos);
 
 }
 
-#endif // !defined(EVALUATE_H_INCLUDED)
+#endif // #ifndef EVALUATE_H_INCLUDED

@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(SEARCH_H_INCLUDED)
+#ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
 #include <cstring>
@@ -45,9 +45,7 @@ struct Stack {
   Move killers[2];
   Depth reduction;
   Value staticEval;
-  Value evalMargin;
   int skipNullMove;
-  int futilityMoveCount;
 };
 
 
@@ -109,4 +107,4 @@ extern void think();
 
 } // namespace Search
 
-#endif // !defined(SEARCH_H_INCLUDED)
+#endif // #ifndef SEARCH_H_INCLUDED

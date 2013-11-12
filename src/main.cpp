@@ -37,13 +37,14 @@ int main(int argc, char* argv[]) {
   Position::init();
   Bitbases::init_kpk();
   Search::init();
+  Pawns::init();
   Eval::init();
   Threads.init();
   TT.set_size(Options["Hash"]);
 
   std::string args;
 
-  for (int i = 1; i < argc; i++)
+  for (int i = 1; i < argc; ++i)
       args += std::string(argv[i]) + " ";
 
   UCI::loop(args);

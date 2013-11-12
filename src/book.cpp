@@ -361,7 +361,7 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
 
   n = 0;
-  for (size_t i = 0; i < sizeof(T); i++)
+  for (size_t i = 0; i < sizeof(T); ++i)
       n = T((n << 8) + ifstream::get());
 
   return *this;
@@ -413,7 +413,7 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
       // Choose book move according to its score. If a move has a very
       // high score it has higher probability to be choosen than a move
       // with lower score. Note that first entry is always chosen.
-      if (   (sum && rkiss.rand<unsigned>() % sum < e.count)
+      if (   (!pickBest && sum && rkiss.rand<unsigned>() % sum < e.count)
           || (pickBest && e.count == best))
           move = Move(e.move);
   }

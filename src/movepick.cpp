@@ -25,7 +25,7 @@
 
 namespace {
 
-  enum Sequencer {
+  enum Stages {
     MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
     EVASION,     EVASIONS_S2,
     QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
@@ -70,34 +70,23 @@ namespace {
 /// search captures, promotions and some checks) and about how important good
 /// move ordering is at the current node.
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move* cm,
-                       Search::Stack* s, Value beta) : pos(p), history(h), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
+                       Move* cm, Search::Stack* s) : pos(p), history(h), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
-  captureThreshold = 0;
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
   countermoves = cm;
   ss = s;
 
   if (p.checkers())
-      phase = EVASION;
+      stage = EVASION;
 
   else
-  {
-      phase = MAIN_SEARCH;
+      stage = MAIN_SEARCH;
 
-      // Consider sligtly negative captures as good if at low depth and far from beta
-      if (ss->staticEval < beta - PawnValueMg && d < 3 * ONE_PLY)
-          captureThreshold = -PawnValueMg;
-
-      // Consider negative captures as good if still enough to reach beta
-      else if (ss->staticEval > beta)
-          captureThreshold = beta - ss->staticEval;
-  }
-
-  ttMove = (ttm && pos.is_pseudo_legal(ttm) ? ttm : MOVE_NONE);
+  ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
 }
 
@@ -107,29 +96,29 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
   assert(d <= DEPTH_ZERO);
 
   if (p.checkers())
-      phase = EVASION;
+      stage = EVASION;
 
   else if (d > DEPTH_QS_NO_CHECKS)
-      phase = QSEARCH_0;
+      stage = QSEARCH_0;
 
   else if (d > DEPTH_QS_RECAPTURES)
   {
-      phase = QSEARCH_1;
+      stage = QSEARCH_1;
 
       // Skip TT move if is not a capture or a promotion, this avoids qsearch
       // tree explosion due to a possible perpetual check or similar rare cases
       // when TT table is full.
-      if (ttm && !pos.is_capture_or_promotion(ttm))
+      if (ttm && !pos.capture_or_promotion(ttm))
           ttm = MOVE_NONE;
   }
   else
   {
-      phase = RECAPTURE;
+      stage = RECAPTURE;
       recaptureSquare = sq;
       ttm = MOVE_NONE;
   }
 
-  ttMove = (ttm && pos.is_pseudo_legal(ttm) ? ttm : MOVE_NONE);
+  ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
 }
 
@@ -138,13 +127,13 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Piece
 
   assert(!pos.checkers());
 
-  phase = PROBCUT;
+  stage = PROBCUT;
 
   // In ProbCut we generate only captures better than parent's captured piece
   captureThreshold = PieceValue[MG][pt];
-  ttMove = (ttm && pos.is_pseudo_legal(ttm) ? ttm : MOVE_NONE);
+  ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
 
-  if (ttMove && (!pos.is_capture(ttMove) ||  pos.see(ttMove) <= captureThreshold))
+  if (ttMove && (!pos.capture(ttMove) || pos.see(ttMove) <= captureThreshold))
       ttMove = MOVE_NONE;
 
   end += (ttMove != MOVE_NONE);
@@ -174,7 +163,7 @@ void MovePicker::score<CAPTURES>() {
   {
       m = it->move;
       it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                 - type_of(pos.piece_moved(m));
+                 - type_of(pos.moved_piece(m));
 
       if (type_of(m) == PROMOTION)
           it->score += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
@@ -192,7 +181,7 @@ void MovePicker::score<QUIETS>() {
   for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
-      it->score = history[pos.piece_moved(m)][to_sq(m)];
+      it->score = history[pos.moved_piece(m)][to_sq(m)];
   }
 }
 
@@ -210,11 +199,11 @@ void MovePicker::score<EVASIONS>() {
       if ((seeScore = pos.see_sign(m)) < 0)
           it->score = seeScore - HistoryStats::Max; // At the bottom
 
-      else if (pos.is_capture(m))
+      else if (pos.capture(m))
           it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                     - type_of(pos.piece_moved(m)) + HistoryStats::Max;
+                     - type_of(pos.moved_piece(m)) + HistoryStats::Max;
       else
-          it->score = history[pos.piece_moved(m)][to_sq(m)];
+          it->score = history[pos.moved_piece(m)][to_sq(m)];
   }
 }
 
@@ -226,7 +215,7 @@ void MovePicker::generate_next() {
 
   cur = moves;
 
-  switch (++phase) {
+  switch (++stage) {
 
   case CAPTURES_S1: case CAPTURES_S3: case CAPTURES_S4: case CAPTURES_S5: case CAPTURES_S6:
       end = generate<CAPTURES>(pos, moves);
@@ -242,7 +231,7 @@ void MovePicker::generate_next() {
       killers[2].move = killers[3].move = MOVE_NONE;
 
       // Be sure countermoves are different from killers
-      for (int i = 0; i < 2; i++)
+      for (int i = 0; i < 2; ++i)
           if (countermoves[i] != cur->move && countermoves[i] != (cur+1)->move)
               (end++)->move = countermoves[i];
 
@@ -282,7 +271,7 @@ void MovePicker::generate_next() {
       return;
 
   case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT: case RECAPTURE:
-      phase = STOP;
+      stage = STOP;
   case STOP:
       end = cur + 1; // Avoid another next_phase() call
       return;
@@ -307,19 +296,17 @@ Move MovePicker::next_move<false>() {
       while (cur == end)
           generate_next();
 
-      switch (phase) {
+      switch (stage) {
 
       case MAIN_SEARCH: case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT:
-          cur++;
+          ++cur;
           return ttMove;
 
       case CAPTURES_S1:
           move = pick_best(cur++, end)->move;
           if (move != ttMove)
           {
-              assert(captureThreshold <= 0); // Otherwise we cannot use see_sign()
-
-              if (pos.see_sign(move) >= captureThreshold)
+              if (pos.see_sign(move) >= 0)
                   return move;
 
               // Losing capture, move it to the tail of the array
@@ -330,9 +317,9 @@ Move MovePicker::next_move<false>() {
       case KILLERS_S1:
           move = (cur++)->move;
           if (    move != MOVE_NONE
-              &&  pos.is_pseudo_legal(move)
+              &&  pos.pseudo_legal(move)
               &&  move != ttMove
-              && !pos.is_capture(move))
+              && !pos.capture(move))
               return move;
           break;
 

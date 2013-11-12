@@ -18,7 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(BITBOARD_H_INCLUDED)
+#ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
 #include "types.h"
@@ -74,6 +74,7 @@ extern Bitboard AdjacentFilesBB[FILE_NB];
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
 extern Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard DistanceRingsBB[SQUARE_NB][8];
 extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
@@ -82,7 +83,7 @@ extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
-const Bitboard BlackSquares = 0xAA55AA55AA55AA55ULL;
+const Bitboard DarkSquares = 0xAA55AA55AA55AA55ULL;
 
 /// Overloads of bitwise operators between a Bitboard and a Square for testing
 /// whether a given bit is set in a bitboard, and for setting and clearing bits.
@@ -214,20 +215,19 @@ inline Bitboard passed_pawn_mask(Color c, Square s) {
 }
 
 
-/// squares_aligned() returns true if the squares s1, s2 and s3 are aligned
-/// either on a straight or on a diagonal line.
+/// squares_of_color() returns a bitboard representing all squares with the same
+/// color of the given square.
 
-inline bool squares_aligned(Square s1, Square s2, Square s3) {
-  return  (BetweenBB[s1][s2] | BetweenBB[s1][s3] | BetweenBB[s2][s3])
-        & (     SquareBB[s1] |      SquareBB[s2] |      SquareBB[s3]);
+inline Bitboard squares_of_color(Square s) {
+  return DarkSquares & s ? DarkSquares : ~DarkSquares;
 }
 
 
-/// same_color_squares() returns a bitboard representing all squares with
-/// the same color of the given square.
+/// aligned() returns true if the squares s1, s2 and s3 are aligned
+/// either on a straight or on a diagonal line.
 
-inline Bitboard same_color_squares(Square s) {
-  return BlackSquares & s ? BlackSquares : ~BlackSquares;
+inline bool aligned(Square s1, Square s2, Square s3) {
+  return LineBB[s1][s2] & s3;
 }
 
 
@@ -258,7 +258,7 @@ inline Bitboard attacks_bb(Square s, Bitboard occ) {
 /// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
 /// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
 
-#if defined(USE_BSFQ)
+#ifdef USE_BSFQ
 
 #  if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 
@@ -311,7 +311,7 @@ FORCE_INLINE Square pop_lsb(Bitboard* b) {
   return s;
 }
 
-#else // if !defined(USE_BSFQ)
+#else // if defined(USE_BSFQ)
 
 extern Square msb(Bitboard b);
 extern Square lsb(Bitboard b);
@@ -319,4 +319,10 @@ extern Square pop_lsb(Bitboard* b);
 
 #endif
 
-#endif // !defined(BITBOARD_H_INCLUDED)
+/// frontmost_sq() and backmost_sq() find the square corresponding to the
+/// most/least advanced bit relative to the given color.
+
+inline Square frontmost_sq(Color c, Bitboard b) { return c == WHITE ? msb(b) : lsb(b); }
+inline Square  backmost_sq(Color c, Bitboard b) { return c == WHITE ? lsb(b) : msb(b); }
+
+#endif // #ifndef BITBOARD_H_INCLUDED
