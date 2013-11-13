@@ -25,42 +25,43 @@
 
 /// The TTEntry is the 128 bit transposition table entry, defined as below:
 ///
-/// key: 32 bit
-/// move: 16 bit
-/// bound type: 8 bit
+/// key: 44 bit
+/// depth: 10 bit
+/// bound type: 2 bit
 /// generation: 8 bit
+/// move: 16 bit
 /// value: 16 bit
-/// depth: 16 bit
 /// static value: 16 bit
 /// static margin: 16 bit
 
 struct TTEntry {
 
-  void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value ev) {
+  void save(uint64_t k, Value v, Bound b, Depth d, Move m, int g, Value ev) {
 
-    key32        = (uint32_t)k;
+    key44        = (uint64_t)k;
+    depth10      = (int64_t)d;
+    bound2       = (uint64_t)b;
+    generation8  = (uint64_t)g;
     move16       = (uint16_t)m;
-    bound8       = (uint8_t)b;
-    generation8  = (uint8_t)g;
     value16      = (int16_t)v;
-    depth16      = (int16_t)d;
     evalValue    = (int16_t)ev;
   }
   void set_generation(uint8_t g) { generation8 = g; }
 
-  uint32_t key() const      { return key32; }
-  Depth depth() const       { return (Depth)depth16; }
+  uint64_t key() const      { return key44; }
+  Depth depth() const       { return (Depth)depth10; }
   Move move() const         { return (Move)move16; }
   Value value() const       { return (Value)value16; }
-  Bound bound() const       { return (Bound)bound8; }
+  Bound bound() const       { return (Bound)bound2; }
   int generation() const    { return (int)generation8; }
   Value eval_value() const  { return (Value)evalValue; }
 
 private:
-  uint32_t key32;
+  uint64_t key44:44;
+  int64_t  depth10:10;
+  uint64_t bound2:2, generation8:8;
   uint16_t move16;
-  uint8_t bound8, generation8;
-  int16_t value16, depth16, evalValue;
+  int16_t value16, evalValue;
 };
 
 
