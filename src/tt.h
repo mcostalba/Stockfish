@@ -47,6 +47,7 @@ struct TTEntry {
     evalValue    = (int16_t)ev;
   }
   void set_generation(uint8_t g) { generation8 = g; }
+  void set_eval_value(Value ev) { evalValue = (int16_t)ev; }
 
   uint32_t key() const      { return key32; }
   Depth depth() const       { return (Depth)depth16; }
