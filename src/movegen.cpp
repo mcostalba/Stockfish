@@ -56,7 +56,7 @@ namespace {
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    if (Chess960 && (pos.attackers_to(kto, pos.pieces() ^ rfrom) & enemies))
+    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
         return mlist;
 
     (mlist++)->move = make<CASTLE>(kfrom, rfrom);
@@ -364,26 +364,9 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 
       assert(color_of(pos.piece_on(checksq)) == ~us);
 
-      switch (type_of(pos.piece_on(checksq)))
-      {
-      case BISHOP: sliderAttacks |= PseudoAttacks[BISHOP][checksq]; break;
-      case ROOK:   sliderAttacks |= PseudoAttacks[ROOK][checksq];   break;
-      case QUEEN:
-          // If queen and king are far or not on a diagonal line we can safely
-          // remove all the squares attacked in the other direction becuase are
-          // not reachable by the king anyway.
-          if (between_bb(ksq, checksq) || !(PseudoAttacks[BISHOP][checksq] & ksq))
-              sliderAttacks |= PseudoAttacks[QUEEN][checksq];
+      if (type_of(pos.piece_on(checksq)) > KNIGHT) // A slider
+          sliderAttacks |= LineBB[checksq][ksq] ^ checksq;
 
-          // Otherwise we need to use real rook attacks to check if king is safe
-          // to move in the other direction. For example: king in B2, queen in A1
-          // a knight in B1, and we can safely move to C1.
-          else
-              sliderAttacks |= PseudoAttacks[BISHOP][checksq] | pos.attacks_from<ROOK>(checksq);
-
-      default:
-          break;
-      }
   } while (b);
 
   // Generate evasions for king, capture and non capture moves
