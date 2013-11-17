@@ -589,7 +589,10 @@ namespace {
     {
         // Never assume anything on values stored in TT
         if ((ss->staticEval = eval = tte->eval_value()) == VALUE_NONE)
+        {
             eval = ss->staticEval = evaluate(pos);
+            const_cast<TTEntry*>(tte)->set_eval_value(eval);
+        }
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
@@ -1157,7 +1160,10 @@ moves_loop: // When in check and at SpNode search starts from here
         {
             // Never assume anything on values stored in TT
             if ((ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE)
+            {
                 ss->staticEval = bestValue = evaluate(pos);
+                const_cast<TTEntry*>(tte)->set_eval_value(bestValue);
+            }
 
             // Can ttValue be used as a better position evaluation?
             if (ttValue != VALUE_NONE)
