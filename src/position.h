@@ -150,7 +150,6 @@ public:
   Key exclusion_key() const;
   Key pawn_key() const;
   Key material_key() const;
-  Key neutral_key() const;
 
   // Incremental piece-square evaluation
   Score psq_score() const;

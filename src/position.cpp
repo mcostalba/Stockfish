@@ -56,7 +56,6 @@ namespace Zobrist {
 }
 
 Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion;}
-Key Position::neutral_key() const { return side_to_move() == WHITE ? st->key : st->key ^ Zobrist::side; }
 
 namespace {
 
