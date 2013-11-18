@@ -507,7 +507,8 @@ namespace {
         threatMove = splitPoint->threatMove;
         bestValue  = splitPoint->bestValue;
         tte = NULL;
-        ttMove = excludedMove = MOVE_NONE;
+        ttMove = MOVE_NONE;
+        excludedMove = ss->excludedMove;
         ttValue = VALUE_NONE;
 
         assert(splitPoint->bestValue > -VALUE_INFINITE && splitPoint->moveCount > 0);
