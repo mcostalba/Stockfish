@@ -25,11 +25,19 @@
 #include "bitcount.h"
 #include "evaluate.h"
 #include "material.h"
+#include "misc.h"
 #include "pawns.h"
 #include "thread.h"
 #include "ucioption.h"
 
 namespace {
+
+  struct Entry {
+    uint32_t key32;
+    Score score;
+  };
+
+  HashTable<Entry, 0x800> evalTable;
 
   enum ExtendedPieceType { // Used for tracing
     PST = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL
@@ -238,7 +246,7 @@ namespace {
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility);
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, const EvalInfo& ei);
+  Score evaluate_king(const Position& pos, const EvalInfo& ei, bool& symmetrical);
 
   template<Color Us, bool Trace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei);
@@ -311,14 +319,24 @@ Value do_evaluate(const Position& pos) {
 
   assert(!pos.checkers());
 
+  Key k = pos.neutral_key();
+  Entry* ee;
   EvalInfo ei;
   Score score, mobility[2] = { SCORE_ZERO, SCORE_ZERO };
   Thread* th = pos.this_thread();
+  
+  // Probe the eval hash table
+  if (!Trace && (k >> 32) == (ee = evalTable[k])->key32)
+  {
+      score = ee->score;
+      ei.mi = Material::probe(pos, th->materialTable, th->endgames);
+      goto finalize;
+  }
 
   // Initialize score by reading the incrementally updated scores included
   // in the position object (material + piece square tables) and adding
   // Tempo bonus. Score is computed from the point of view of white.
-  score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
+  score = pos.psq_score();
 
   // Probe the material hash table
   ei.mi = Material::probe(pos, th->materialTable, th->endgames);
@@ -345,8 +363,9 @@ Value do_evaluate(const Position& pos) {
 
   // Evaluate kings after all other pieces because we need complete attack
   // information when computing the king safety evaluation.
-  score +=  evaluate_king<WHITE, Trace>(pos, ei)
-          - evaluate_king<BLACK, Trace>(pos, ei);
+  bool symmetrical = true;
+  score +=  evaluate_king<WHITE, Trace>(pos, ei, symmetrical)
+          - evaluate_king<BLACK, Trace>(pos, ei, symmetrical);
 
   // Evaluate tactical threats, we need full attack information including king
   score +=  evaluate_threats<WHITE, Trace>(pos, ei)
@@ -367,6 +386,16 @@ Value do_evaluate(const Position& pos) {
       int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
       score += apply_weight(s * ei.mi->space_weight(), Weights[Space]);
   }
+
+  if (!Trace && symmetrical)
+  {
+      ee->key32 = k >> 32;
+      ee->score = score;
+  }
+
+finalize:
+
+  score += pos.side_to_move() == WHITE ? Tempo : -Tempo;
 
   // Scale winning side if position is more drawish that what it appears
   ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
@@ -629,7 +658,7 @@ Value do_evaluate(const Position& pos) {
   // evaluate_king() assigns bonuses and penalties to a king of a given color
 
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, const EvalInfo& ei) {
+  Score evaluate_king(const Position& pos, const EvalInfo& ei, bool& symmetrical) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -671,9 +700,12 @@ Value do_evaluate(const Position& pos) {
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
             if (b)
+            {
+                symmetrical = false;
                 attackUnits +=  QueenContactCheck
                               * popcount<Max15>(b)
                               * (Them == pos.side_to_move() ? 2 : 1);
+            }
         }
 
         // Analyse enemy's safe rook contact checks. First find undefended
@@ -689,9 +721,12 @@ Value do_evaluate(const Position& pos) {
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][QUEEN]);
             if (b)
+            {
+                symmetrical = false;
                 attackUnits +=  RookContactCheck
                               * popcount<Max15>(b)
                               * (Them == pos.side_to_move() ? 2 : 1);
+            }
         }
 
         // Analyse enemy's safe distance checks for sliders and knights
