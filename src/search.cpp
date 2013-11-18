@@ -526,6 +526,7 @@ namespace {
     assert(PvNode || (alpha == beta - 1));
     assert(depth > DEPTH_ZERO);
 
+    Move quietsSearched[64];
     StateInfo st;
     const TTEntry *tte;
     SplitPoint* splitPoint;
@@ -535,11 +536,12 @@ namespace {
     Value bestValue, value, ttValue, eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
     bool captureOrPromotion, dangerous, doFullDepthSearch;
-    int moveCount;
+    int moveCount, quietCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
+    excludedMove = ss->excludedMove;
 
     if (SpNode)
     {
@@ -548,7 +550,7 @@ namespace {
         threatMove = splitPoint->threatMove;
         bestValue  = splitPoint->bestValue;
         tte = NULL;
-        ttMove = excludedMove = MOVE_NONE;
+        ttMove = MOVE_NONE;
         ttValue = VALUE_NONE;
 
         assert(splitPoint->bestValue > -VALUE_INFINITE && splitPoint->moveCount > 0);
@@ -556,7 +558,7 @@ namespace {
         goto moves_loop;
     }
 
-    moveCount = 0;
+    moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
@@ -588,7 +590,6 @@ namespace {
     // Step 4. Transposition table lookup
     // We don't want the score of a partial search to overwrite a previous full search
     // TT value, so we use a different position key in case of an excluded move.
-    excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey);
     ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
@@ -961,6 +962,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       pvMove = PvNode && moveCount == 1;
       ss->currentMove = move;
+      if (!SpNode && !captureOrPromotion && quietCount < 64)
+          quietsSearched[quietCount++] = move;
 
       // Step 14. Make the move
       pos.do_move(move, st, ci, givesCheck);
@@ -1135,9 +1138,11 @@ moves_loop: // When in check and at SpNode search starts from here
         // played non-capture moves.
         Value bonus = Value(int(depth) * int(depth));
         History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
-
-        for (const ExtMove* em = mp.quiet_moves(); em && em->move != bestMove; ++em)
-            History.update(pos.moved_piece(em->move), to_sq(em->move), -bonus);
+        for (int i = 0; i < quietCount - 1; ++i)
+        {
+            Move m = quietsSearched[i];
+            History.update(pos.moved_piece(m), to_sq(m), -bonus);
+        }
 
         if (is_ok((ss-1)->currentMove))
             Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
