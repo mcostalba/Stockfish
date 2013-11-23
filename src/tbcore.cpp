@@ -1277,6 +1277,8 @@ static int init_table_wdl(struct TBEntry *entry, char *str)
   ubyte *data = (ubyte *)entry->data;
   if (((uint32 *)data)[0] != WDL_MAGIC) {
     printf("Corrupted table.\n");
+    unmap_file(entry->data, entry->mapped_size);
+    entry->data = 0;
     return 0;
   }
 

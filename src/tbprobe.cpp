@@ -130,9 +130,9 @@ static int probe_wdl_table(Position& pos, int *success)
       char str[16];
       prt_str(pos, str, ptr->key != key);
       if (!init_table_wdl(ptr, str)) {
-	ptr->data = NULL;
 	ptr2[i].key = 0ULL;
 	*success = 0;
+	UNLOCK(TB_mutex);
 	return 0;
       }
       ptr->ready = 1;
