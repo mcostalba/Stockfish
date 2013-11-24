@@ -91,7 +91,7 @@ static void close_tb(FD fd)
 #endif
 }
 
-static char *map_file(const char *name, const char *suffix, uint64 *size)
+static char *map_file(const char *name, const char *suffix, uint64 *mapping)
 {
   FD fd = open_tb(name, suffix);
   if (fd == FD_ERR)
@@ -99,7 +99,7 @@ static char *map_file(const char *name, const char *suffix, uint64 *size)
 #ifndef __WIN32__
   struct stat statbuf;
   fstat(fd, &statbuf);
-  *size = statbuf.st_size;
+  *mapping = statbuf.st_size;
   char *data = (char *)mmap(NULL, statbuf.st_size, PROT_READ,
 			      MAP_SHARED, fd, 0);
   if (data == (char *)(-1)) {
@@ -109,13 +109,14 @@ static char *map_file(const char *name, const char *suffix, uint64 *size)
 #else
   DWORD size_low, size_high;
   size_low = GetFileSize(fd, &size_high);
-  *size = ((uint64)size_high) << 32 | ((uint64)size_low);
+//  *size = ((uint64)size_high) << 32 | ((uint64)size_low);
   HANDLE map = CreateFileMapping(fd, NULL, PAGE_READONLY, size_high, size_low,
 				  NULL);
   if (map == NULL) {
     printf("CreateFileMapping() failed.\n");
     exit(1);
   }
+  *mapping = (uint64)map;
   char *data = (char *)MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
   if (data == NULL) {
     printf("MapViewOfFile() failed, name = %s%s, error = %lu.\n", name, suffix, GetLastError());
@@ -133,11 +134,11 @@ static void unmap_file(char *data, uint64 size)
   munmap(data, size);
 }
 #else
-#define unmap_file(data, size) unmap_file_win32(data)
-static void unmap_file_win32(char *data)
+static void unmap_file(char *data, uint64 mapping)
 {
   if (!data) return;
   UnmapViewOfFile(data);
+  CloseHandle((HANDLE)mapping);
 }
 #endif
 
@@ -1268,7 +1269,7 @@ static int init_table_wdl(struct TBEntry *entry, char *str)
 
   // first mmap the table into memory
 
-  entry->data = map_file(str, WDLSUFFIX, &entry->mapped_size);
+  entry->data = map_file(str, WDLSUFFIX, &entry->mapping);
   if (!entry->data) {
     printf("Could not find %s" WDLSUFFIX, str);
     return 0;
@@ -1277,7 +1278,7 @@ static int init_table_wdl(struct TBEntry *entry, char *str)
   ubyte *data = (ubyte *)entry->data;
   if (((uint32 *)data)[0] != WDL_MAGIC) {
     printf("Corrupted table.\n");
-    unmap_file(entry->data, entry->mapped_size);
+    unmap_file(entry->data, entry->mapping);
     entry->data = 0;
     return 0;
   }
@@ -1572,7 +1573,7 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
 				? sizeof(struct DTZEntry_pawn)
 				: sizeof(struct DTZEntry_piece));
 
-  ptr3->data = map_file(str, DTZSUFFIX, &ptr3->mapped_size);
+  ptr3->data = map_file(str, DTZSUFFIX, &ptr3->mapping);
   ptr3->key = ptr->key;
   ptr3->num = ptr->num;
   ptr3->symmetric = ptr->symmetric;
@@ -1593,7 +1594,7 @@ void load_dtz_table(char *str, uint64 key1, uint64 key2)
 
 static void free_wdl_entry(struct TBEntry *entry)
 {
-  unmap_file(entry->data, entry->mapped_size);
+  unmap_file(entry->data, entry->mapping);
   if (!entry->has_pawns) {
     struct TBEntry_piece *ptr = (struct TBEntry_piece *)entry;
     free(ptr->precomp[0]);
@@ -1612,7 +1613,7 @@ static void free_wdl_entry(struct TBEntry *entry)
 
 static void free_dtz_entry(struct TBEntry *entry)
 {
-  unmap_file(entry->data, entry->mapped_size);
+  unmap_file(entry->data, entry->mapping);
   if (!entry->has_pawns) {
     struct DTZEntry_piece *ptr = (struct DTZEntry_piece *)entry;
     free(ptr->precomp);

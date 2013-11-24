@@ -69,7 +69,7 @@ struct PairsData {
 struct TBEntry {
   char *data;
   uint64 key;
-  uint64 mapped_size;
+  uint64 mapping;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -79,7 +79,7 @@ struct TBEntry {
 struct TBEntry_piece {
   char *data;
   uint64 key;
-  uint64 mapped_size;
+  uint64 mapping;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -94,7 +94,7 @@ struct TBEntry_piece {
 struct TBEntry_pawn {
   char *data;
   uint64 key;
-  uint64 mapped_size;
+  uint64 mapping;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -111,7 +111,7 @@ struct TBEntry_pawn {
 struct DTZEntry_piece {
   char *data;
   uint64 key;
-  uint64 mapped_size;
+  uint64 mapping;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
@@ -129,7 +129,7 @@ struct DTZEntry_piece {
 struct DTZEntry_pawn {
   char *data;
   uint64 key;
-  uint64 mapped_size;
+  uint64 mapping;
   ubyte ready;
   ubyte num;
   ubyte symmetric;
