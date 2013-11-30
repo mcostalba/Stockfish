@@ -26,7 +26,7 @@
 namespace Bitboards {
 
 void init();
-void print(Bitboard b);
+const std::string pretty(Bitboard b);
 
 }
 
@@ -223,10 +223,10 @@ inline Bitboard squares_of_color(Square s) {
 }
 
 
-/// squares_aligned() returns true if the squares s1, s2 and s3 are aligned
+/// aligned() returns true if the squares s1, s2 and s3 are aligned
 /// either on a straight or on a diagonal line.
 
-inline bool squares_aligned(Square s1, Square s2, Square s3) {
+inline bool aligned(Square s1, Square s2, Square s3) {
   return LineBB[s1][s2] & s3;
 }
 
@@ -254,6 +254,16 @@ inline Bitboard attacks_bb(Square s, Bitboard occ) {
   return (Pt == ROOK ? RAttacks : BAttacks)[s][magic_index<Pt>(s, occ)];
 }
 
+inline Bitboard attacks_bb(Piece p, Square s, Bitboard occ) {
+
+  switch (type_of(p))
+  {
+  case BISHOP: return attacks_bb<BISHOP>(s, occ);
+  case ROOK  : return attacks_bb<ROOK>(s, occ);
+  case QUEEN : return attacks_bb<BISHOP>(s, occ) | attacks_bb<ROOK>(s, occ);
+  default    : return StepAttacksBB[p][s];
+  }
+}
 
 /// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
 /// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
