@@ -1,4 +1,4 @@
-/*
+﻿/*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -43,7 +43,7 @@ namespace {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
     {  39,    2                         }, // Pawn
-    {  35,  300,  -4                    }, // Knight
+    {  35,  330,  -4                    }, // Knight
     {   0,  105,   4,    0              }, // Bishop
     { -27,   -2,  46,   100,  -141      }, // Rook
     {  58,   29,  83,   148,  -163,   0 }  // Queen
