@@ -807,7 +807,7 @@ moves_loop: // When in check and at SpNode search starts from here
       givesCheck = pos.gives_check(move, ci);
       dangerous =   givesCheck
                  || pos.passed_pawn_push(move)
-                 || type_of(move) == CASTLE;
+                 || type_of(move) == CASTLING;
 
       // Step 12. Extend checks
       if (givesCheck && pos.see_sign(move) >= 0)
@@ -1332,7 +1332,7 @@ moves_loop: // When in check and at SpNode search starts from here
     assert(is_ok(first));
     assert(is_ok(second));
     assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(type_of(first) == CASTLE || color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
+    assert(type_of(first) == CASTLING || color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
 
     Square m1from = from_sq(first);
     Square m2from = from_sq(second);
@@ -1351,7 +1351,7 @@ moves_loop: // When in check and at SpNode search starts from here
       return true;
 
     // Second's destination is defended by the first move's piece
-    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
+    Bitboard m1att = attacks_bb(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
     if (m1att & m2to)
         return true;
 
@@ -1395,7 +1395,7 @@ moves_loop: // When in check and at SpNode search starts from here
         Piece pc = pos.piece_on(m1from);
 
         // The moved piece attacks the square 'tto' ?
-        if (pos.attacks_from(pc, m1to, occ) & m2to)
+        if (attacks_bb(pc, m1to, occ) & m2to)
             return true;
 
         // Scan for possible X-ray attackers behind the moved piece
