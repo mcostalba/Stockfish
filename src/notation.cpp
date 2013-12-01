@@ -42,7 +42,7 @@ string score_to_uci(Value v, Value alpha, Value beta) {
 
   stringstream s;
 
-  if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+  if (abs(v) < VALUE_MATE - MAX_PLY)
       s << "cp " << v * 100 / int(PawnValueMg);
   else
       s << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;

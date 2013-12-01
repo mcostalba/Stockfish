@@ -657,17 +657,25 @@ static int has_repeated(StateInfo *st)
   }
 }
 
+static Value wdl_to_Value[5] = {
+  -VALUE_MATE + MAX_PLY + 1,
+  VALUE_DRAW - 2,
+  VALUE_DRAW,
+  VALUE_DRAW + 2,
+  VALUE_MATE - MAX_PLY - 1
+};
+
 // Use the DTZ tables to filter out moves that don't preserve the win or draw.
 // If the position is lost, but DTZ is fairly high, only keep moves that
 // maximise DTZ.
 //
 // A return value false indicates that not all probes were successful and that
 // no moves were filtered out.
-bool Tablebases::root_probe(Position& pos)
+bool Tablebases::root_probe(Position& pos, Value& TBScore)
 {
   int success;
 
-  int wdl = Tablebases::probe_wdl(pos, &success);
+  int dtz = probe_dtz(pos, &success);
   if (!success) return false;
 
   StateInfo st;
@@ -678,7 +686,7 @@ bool Tablebases::root_probe(Position& pos)
     Move move = Search::RootMoves[i].pv[0];
     pos.do_move(move, st, ci, pos.gives_check(move, ci));
     int v = 0;
-    if (pos.checkers() && wdl == 2) {
+    if (pos.checkers() && dtz > 0) {
       ExtMove s[192];
       if (generate<LEGAL>(pos, s) == s)
 	v = 1;
@@ -698,9 +706,22 @@ bool Tablebases::root_probe(Position& pos)
     Search::RootMoves[i].score = (Value)v;
   }
 
+  // Obtain 50-move counter for the root position.
+  // In Stockfish there seems to be no clean way, so we do it like this:
   int cnt50 = st.previous->rule50;
+
+  // Use 50-move counter to determine whether the root position is
+  // won, lost or drawn.
+  int wdl = 0;
+  if (dtz > 0)
+    wdl = (dtz + cnt50 <= 100) ? 2 : 1;
+  else if (dtz < 0)
+    wdl = (-dtz + cnt50 <= 100) ? -2 : -1;
+  TBScore = wdl_to_Value[wdl + 2];
+
+  // Now be a bit smart about filtering out moves.
   size_t j = 0;
-  if (wdl > 0) {
+  if (dtz > 0) { // winning (or 50-move rule draw)
     int best = 0xffff;
     for (size_t i = 0; i < Search::RootMoves.size(); i++) {
       int v = Search::RootMoves[i].score;
@@ -709,7 +730,7 @@ bool Tablebases::root_probe(Position& pos)
     }
     int max = best;
     // If the current phase has not seen repetitions, then try all moves
-    // that stay safely within the 50-move budget.
+    // that stay safely within the 50-move budget, if there are any.
     if (!has_repeated(st.previous) && best + cnt50 <= 99)
       max = 99 - cnt50;
     for (size_t i = 0; i < Search::RootMoves.size(); i++) {
@@ -717,7 +738,7 @@ bool Tablebases::root_probe(Position& pos)
       if (v > 0 && v <= max)
 	Search::RootMoves[j++] = Search::RootMoves[i];
     }
-  } else if (wdl < 0) {
+  } else if (dtz < 0) { // losing (or 50-move rule draw)
     int best = 0;
     for (size_t i = 0; i < Search::RootMoves.size(); i++) {
       int v = Search::RootMoves[i].score;
@@ -731,7 +752,7 @@ bool Tablebases::root_probe(Position& pos)
       if (Search::RootMoves[i].score == best)
 	Search::RootMoves[j++] = Search::RootMoves[i];
     }
-  } else {
+  } else { // drawing
     // Try all moves that preserve the draw.
     for (size_t i = 0; i < Search::RootMoves.size(); i++) {
       if (Search::RootMoves[i].score == 0)
@@ -748,9 +769,13 @@ bool Tablebases::root_probe(Position& pos)
 //
 // A return value false indicates that not all probes were successful and that
 // no moves were filtered out.
-bool Tablebases::root_probe_wdl(Position& pos)
+bool Tablebases::root_probe_wdl(Position& pos, Value& TBScore)
 {
   int success;
+
+  int wdl = Tablebases::probe_wdl(pos, &success);
+  if (!success) return false;
+  TBScore = wdl_to_Value[wdl + 2];
 
   StateInfo st;
   CheckInfo ci(pos);

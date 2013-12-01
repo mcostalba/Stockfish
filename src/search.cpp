@@ -48,6 +48,8 @@ namespace Search {
   StateStackPtr SetupStates;
   int TBCardinality;
   uint64_t TBHits;
+  bool RootInTB;
+  Value TBScore;
 }
 
 using std::string;
@@ -185,12 +187,12 @@ size_t Search::perft(Position& pos, Depth depth) {
 void Search::think() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
-  bool root_in_tb = false;
   int piecesCnt;
 
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
   TBHits = TBCardinality = 0;
+  RootInTB = false;
 
   if (RootMoves.empty())
   {
@@ -242,13 +244,14 @@ void Search::think() {
 
   if (piecesCnt <= TBCardinality)
   {
+      TBHits = RootMoves.size();
+
       // If the current root position is in the tablebases then RootMoves
       // contains only moves that preserve the draw or win.
-      root_in_tb = Tablebases::root_probe(RootPos);
+      RootInTB = Tablebases::root_probe(RootPos, TBScore);
 
-      if (root_in_tb)
+      if (RootInTB)
       {
-          TBHits++;
           TBCardinality = 0; // Do not probe tablebases during the search
 
           // It might be a good idea to mangle the hash key (xor it
@@ -261,8 +264,11 @@ void Search::think() {
       else // If DTZ tables are missing, use WDL tables as a fallback
       {
           TBCardinality = piecesCnt - 1;
-          TBHits += Tablebases::root_probe_wdl(RootPos);
+          RootInTB = Tablebases::root_probe_wdl(RootPos, TBScore);
       }
+
+      if (!RootInTB)
+          TBHits = 0;
   }
 
   // Reset the threads, still sleeping: will be wake up at split time
@@ -278,7 +284,7 @@ void Search::think() {
   Threads.timer->run = false; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
-  if (root_in_tb)
+  if (RootInTB)
   {
       // If we mangled the hash key, unmangle it here
   }
@@ -631,7 +637,8 @@ namespace {
         {
             TBHits++;
             value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
-                  : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply : VALUE_DRAW + v;
+                  : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply
+                  : VALUE_DRAW + 2 * v;
 
             TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
                      depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE);
@@ -1543,12 +1550,21 @@ moves_loop: // When in check and at SpNode search starts from here
         int d   = updated ? depth : depth - 1;
         Value v = updated ? RootMoves[i].score : RootMoves[i].prevScore;
 
+	bool tb = RootInTB;
+        if (tb)
+        {
+	    if (abs(v) >= VALUE_MATE - MAX_PLY)
+                tb = false;
+            else
+                v = TBScore;
+        }
+
         if (s.rdbuf()->in_avail()) // Not at first line
             s << "\n";
 
         s << "info depth " << d
           << " seldepth "  << selDepth
-          << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
+          << " score "     << ((!tb && i == PVIdx) ? score_to_uci(v, alpha, beta) : score_to_uci(v))
           << " nodes "     << pos.nodes_searched()
           << " nps "       << pos.nodes_searched() * 1000 / elapsed
           << " tbhits "    << TBHits
