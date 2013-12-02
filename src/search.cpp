@@ -333,7 +333,7 @@ namespace {
             // Reset aspiration window starting size
             if (depth >= 5)
             {
-                delta = Value(std::min(25, 5 + depth / 2));
+                delta = Value(std::min(32, 5 + depth / 2));
                 alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
                 beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
             }
