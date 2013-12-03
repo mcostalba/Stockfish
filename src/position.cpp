@@ -211,7 +211,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 */
 
   char col, row, token;
-  size_t p;
+  size_t idx;
   Square sq = SQ_A8;
   std::istringstream ss(fenStr);
 
@@ -227,9 +227,9 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
       else if (token == '/')
           sq -= Square(16);
 
-      else if ((p = PieceToChar.find(token)) != string::npos)
+      else if ((idx = PieceToChar.find(token)) != string::npos)
       {
-          put_piece(sq, color_of(Piece(p)), type_of(Piece(p)));
+          put_piece(sq, color_of(Piece(idx)), type_of(Piece(idx)));
           ++sq;
       }
   }
@@ -329,25 +329,21 @@ void Position::set_castling_flag(Color c, Square rfrom) {
 
 const string Position::fen() const {
 
+  int emptyCnt;
   std::ostringstream ss;
 
   for (Rank rank = RANK_8; rank >= RANK_1; --rank)
   {
       for (File file = FILE_A; file <= FILE_H; ++file)
       {
-          Square sq = file | rank;
+          for (emptyCnt = 0; file <= FILE_H && empty(file | rank); ++file)
+              ++emptyCnt;
 
-          if (empty(sq))
-          {
-              int emptyCnt = 1;
-
-              for ( ; file < FILE_H && empty(++sq); ++file)
-                  ++emptyCnt;
-
+          if (emptyCnt)
               ss << emptyCnt;
-          }
-          else
-              ss << PieceToChar[piece_on(sq)];
+
+          if (file <= FILE_H)
+              ss << PieceToChar[piece_on(file | rank)];
       }
 
       if (rank > RANK_1)
@@ -368,11 +364,11 @@ const string Position::fen() const {
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? file_to_char(file_of(castling_rook_square(BLACK, QUEEN_SIDE)),  true) : 'q');
 
-  if (st->castlingFlags == NO_CASTLING)
+  if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
 
   ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
-      << st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
+     << st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
 
   return ss.str();
 }
@@ -419,20 +415,21 @@ const string Position::pretty(Move move) const {
 /// pieces, according to the call parameters. Pinned pieces protect our king and
 /// discovered check pieces attack the enemy king.
 
-Bitboard Position::hidden_checkers(Square ksq, Color c, Color toMove) const {
+Bitboard Position::hidden_checkers(Color c, Color kingColor) const {
 
   Bitboard b, pinners, result = 0;
+  Square ksq = king_square(kingColor);
 
   // Pinners are sliders that give check when a pinned piece is removed
   pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
-             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(c);
+             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(~kingColor);
 
   while (pinners)
   {
       b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
 
       if (!more_than_one(b))
-          result |= b & pieces(toMove);
+          result |= b & pieces(c);
   }
   return result;
 }
@@ -1232,35 +1229,25 @@ Value Position::compute_non_pawn_material(Color c) const {
 }
 
 
-/// Position::is_draw() tests whether the position is drawn by material,
-/// repetition, or the 50 moves rule. It does not detect stalemates: this
-/// must be done by the search.
+/// Position::is_draw() tests whether the position is drawn by material, 50 moves
+/// rule or repetition. It does not detect stalemates.
+
 bool Position::is_draw() const {
 
-  // Draw by material?
   if (   !pieces(PAWN)
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
       return true;
 
-  // Draw by the 50 moves rule?
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  int i = 4, e = std::min(st->rule50, st->pliesFromNull);
-
-  if (i <= e)
+  StateInfo* stp = st;
+  for (int i = 2, e = std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
   {
-      StateInfo* stp = st->previous->previous;
+      stp = stp->previous->previous;
 
-      do {
-          stp = stp->previous->previous;
-
-          if (stp->key == st->key)
-              return true; // Draw after first repetition
-
-          i += 2;
-
-      } while (i <= e);
+      if (stp->key == st->key)
+          return true; // Draw at first repetition
   }
 
   return false;
