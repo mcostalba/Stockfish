@@ -125,7 +125,7 @@ inline int rank_distance(Square s1, Square s2) {
 }
 
 
-/// shift_bb() moves bitboard one step along direction Delta. Mainly for pawns.
+/// shift_bb() moves bitboard one step along direction Delta (mainly for pawns).
 
 template<Square Delta>
 inline Bitboard shift_bb(Bitboard b) {
@@ -166,8 +166,8 @@ inline Bitboard adjacent_files_bb(File f) {
 
 
 /// in_front_bb() takes a color and a rank as input, and returns a bitboard
-/// representing all the squares on all ranks in front of the rank, from the
-/// given color's point of view. For instance, in_front_bb(BLACK, RANK_3) will
+/// representing all the squares on all ranks in front of the rank (from the
+/// given color's point of view). For instance, in_front_bb(BLACK, RANK_3) will
 /// give all squares on ranks 1 and 2.
 
 inline Bitboard in_front_bb(Color c, Rank r) {
@@ -186,8 +186,8 @@ inline Bitboard between_bb(Square s1, Square s2) {
 
 
 /// forward_bb() takes a color and a square as input, and returns a bitboard
-/// representing all squares along the line in front of the square, from the
-/// point of view of the given color. Definition of the table is:
+/// representing all squares along the line in front of the square (from the
+/// point of view of the given color). Definition of the table is:
 /// ForwardBB[c][s] = in_front_bb(c, s) & file_bb(s)
 
 inline Bitboard forward_bb(Color c, Square s) {
@@ -197,7 +197,7 @@ inline Bitboard forward_bb(Color c, Square s) {
 
 /// pawn_attack_span() takes a color and a square as input, and returns a bitboard
 /// representing all squares that can be attacked by a pawn of the given color
-/// when it moves along its file starting from the given square. Definition is:
+/// when it moves along its file starting from the given square. Definition of the table is:
 /// PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
 
 inline Bitboard pawn_attack_span(Color c, Square s) {
