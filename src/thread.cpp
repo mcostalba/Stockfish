@@ -350,8 +350,10 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 }
 
 // Explicit template instantiations
-template void Thread::split<false>(Position&, const Stack*, Value, Value, Value*, Move*, Depth, Move, int, MovePicker*, int, bool);
-template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*, Move*, Depth, Move, int, MovePicker*, int, bool);
+template void Thread::split<false>(Position&, const Stack*, 
+                                  Value, Value, Value*, Move*, Depth, Move, int, MovePicker*, int, bool);
+template void Thread::split< true>(Position&, const Stack*, 
+                                  Value, Value, Value*, Move*, Depth, Move, int, MovePicker*, int, bool);
 
 
 // wait_for_think_finished() waits for main thread to go to sleep then returns
