@@ -125,7 +125,7 @@ inline int rank_distance(Square s1, Square s2) {
 }
 
 
-/// shift_bb() moves bitboard one step along direction Delta (mainly for pawns).
+/// shift_bb() moves bitboard one step along direction Delta. It is used mainly for pawns.
 
 template<Square Delta>
 inline Bitboard shift_bb(Bitboard b) {
