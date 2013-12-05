@@ -108,15 +108,15 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   int minThinkingTime      = Options["Minimum Thinking Time"];
   int slowMover            = Options["Slow Mover"];
 
-  // Initialize to maximum values but unstablePVExtraTime that is reset
+  // Initialize all to maximum values but unstablePVExtraTime that is reset
   unstablePVExtraTime = 0;
   optimumSearchTime = maximumSearchTime = limits.time[us];
 
-  // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
+  // We calculate optimum time usage for different hypothetical "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {
-      // Calculate thinking time for hypothetic "moves to go"-value
+      // Calculate thinking time for hypothetical "moves to go"-value
       hypMyTime =  limits.time[us]
                  + limits.inc[us] * (hypMTG - 1)
                  - emergencyBaseTime

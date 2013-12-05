@@ -26,7 +26,7 @@
 /// For Windows, part of the configuration is detected automatically, but some
 /// switches need to be set manually:
 ///
-/// -DNDEBUG      | Disable debugging mode. Use always.
+/// -DNDEBUG      | Disable debugging mode. Always use this.
 ///
 /// -DNO_PREFETCH | Disable use of prefetch asm-instruction. A must if you want
 ///               | the executable to run on some very old machines.
@@ -236,10 +236,11 @@ enum Rank {
 };
 
 
-/// Score enum keeps a midgame and an endgame value in a single integer (enum),
-/// first LSB 16 bits are used to store endgame value, while upper bits are used
-/// for midgame value. Compiler is free to choose the enum type as long as can
-/// keep its data, so ensure Score to be an integer type.
+/// The Score enum stores a midgame and an endgame value in a single integer
+/// (enum). The least significant 16 bits are used to store the endgame value
+/// and the upper 16 bits are used to store the midgame value. The compiler is
+/// free to choose the enum type as long as it can store the data, so we
+/// ensure that Score is an integer type by assigning some big int values.
 enum Score {
   SCORE_ZERO,
   SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX,
@@ -248,14 +249,14 @@ enum Score {
 
 inline Score make_score(int mg, int eg) { return Score((mg << 16) + eg); }
 
-/// Extracting the signed lower and upper 16 bits it not so trivial because
+/// Extracting the signed lower and upper 16 bits is not so trivial because
 /// according to the standard a simple cast to short is implementation defined
 /// and so is a right shift of a signed integer.
 inline Value mg_value(Score s) { return Value(((s + 0x8000) & ~0xffff) / 0x10000); }
 
 /// On Intel 64 bit we have a small speed regression with the standard conforming
-/// version, so use a faster code in this case that, although not 100% standard
-/// compliant it seems to work for Intel and MSVC.
+/// version. Therefore, in this case we use faster code that, although not 100%
+/// standard compliant, seems to work for Intel and MSVC.
 #if defined(IS_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
 inline Value eg_value(Score s) { return Value(int16_t(s & 0xffff)); }
