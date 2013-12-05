@@ -64,7 +64,7 @@ private:
 };
 
 
-/// A TranspositionTable consists of a power of 2 number of clusters and each
+/// A TranspositionTable consists of a (power of 2) number of clusters and each
 /// cluster consists of ClusterSize number of TTEntry. Each non-empty entry
 /// contains information of exactly one position. The size of a cluster should
 /// not be bigger than a cache line size. In case it is less, it should be padded
