@@ -20,7 +20,7 @@
 #ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
-/// For Linux and OSX configuration is done automatically using Makefile. To get
+/// For Linux and OSX, configuration is done automatically using Makefile. To get
 /// started type 'make help'.
 ///
 /// For Windows, part of the configuration is detected automatically, but some
@@ -236,9 +236,9 @@ enum Rank {
 };
 
 
-/// The Score enum stores a midgame and an endgame value in a single integer
+/// The Score enum stores a middlegame and an endgame value in a single integer
 /// (enum). The least significant 16 bits are used to store the endgame value
-/// and the upper 16 bits are used to store the midgame value. The compiler is
+/// and the upper 16 bits are used to store the middlegame value. The compiler is
 /// free to choose the enum type as long as it can store the data, so we
 /// ensure that Score is an integer type by assigning some big int values.
 enum Score {
@@ -250,7 +250,7 @@ enum Score {
 inline Score make_score(int mg, int eg) { return Score((mg << 16) + eg); }
 
 /// Extracting the signed lower and upper 16 bits is not so trivial because
-/// according to the standard a simple cast to short is implementation defined
+/// according to the standard, a simple cast to short is implementation defined
 /// and so is a right shift of a signed integer.
 inline Value mg_value(Score s) { return Value(((s + 0x8000) & ~0xffff) / 0x10000); }
 

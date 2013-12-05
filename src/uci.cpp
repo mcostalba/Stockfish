@@ -71,9 +71,9 @@ void UCI::loop(const string& args) {
       if (token == "quit" || token == "stop" || token == "ponderhit")
       {
           // The GUI sends 'ponderhit' to tell us to ponder on the same move the
-          // opponent has played. In case Signals.stopOnPonderhit is set we are
-          // waiting for 'ponderhit' to stop the search (for instance because we
-          // already ran out of time), otherwise we should continue searching but
+          // opponent has played. In case Signals.stopOnPonderhit is set, we
+          // wait for 'ponderhit' to stop the search (for instance because we
+          // already ran out of time), otherwise we continue searching but
           // switch from pondering to normal search.
           if (token != "ponderhit" || Search::Signals.stopOnPonderhit)
           {
@@ -129,7 +129,7 @@ void UCI::loop(const string& args) {
 namespace {
 
   // position() is called when engine receives the "position" UCI command.
-  // The function sets up the position described in the given fen string ("fen")
+  // The function sets up the position described in the given FEN string ("fen")
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
 

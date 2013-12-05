@@ -86,7 +86,7 @@ void Bitbases::init_kpk() {
   std::vector<KPKPosition> db;
   db.reserve(IndexMax);
 
-  // Initialize db with known win / draw positions
+  // Initialize db with known win/draw positions
   for (idx = 0; idx < IndexMax; ++idx)
       db.push_back(KPKPosition(idx));
 

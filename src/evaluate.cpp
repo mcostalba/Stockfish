@@ -151,10 +151,10 @@ namespace {
   // type attacks which one.
   const Score Threat[][PIECE_TYPE_NB] = {
     {}, {},
-    { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // KNIGHT
-    { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BISHOP
-    { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
-    { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEEN
+    { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // Knight
+    { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // Bishop
+    { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // Rook
+    { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // Queen
   };
 
   // ThreatenedByPawn[PieceType] contains a penalty according to which piece
@@ -185,8 +185,8 @@ namespace {
   // happen in Chess960 games.
   const Score TrappedBishopA1H1 = make_score(50, 50);
 
-  // The SpaceMask[Color] contains the area of the board which is considered
-  // by the space evaluation. In the middle game, each side is given a bonus
+  // SpaceMask[Color] contains the area of the board which is considered
+  // by the space evaluation. In the middlegame, each side is given a bonus
   // based on how many squares inside this area are safe and available for
   // friendly minor pieces.
   const Bitboard SpaceMask[] = {
@@ -195,11 +195,11 @@ namespace {
   };
 
   // King danger constants and variables. The king danger scores are taken
-  // from the KingDanger[]. Various little "meta-bonuses" measuring
+  // from KingDanger[]. Various little "meta-bonuses" measuring
   // the strength of the enemy attack are added up into an integer, which
   // is used as an index to KingDanger[].
   //
-  // KingAttackWeights[PieceType] contains king attack weights by piece type
+  // KingAttackWeights[PieceType] contains king attack weights by piece type.
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
@@ -261,7 +261,7 @@ namespace {
 namespace Eval {
 
   /// evaluate() is the main evaluation function. It always computes two
-  /// values, an endgame score and a middle game score, and interpolates
+  /// values, an endgame score and a middlegame score, and interpolates
   /// between them based on the remaining material.
 
   Value evaluate(const Position& pos) {
@@ -283,12 +283,18 @@ namespace Eval {
 
   void init() {
 
-    Weights[Mobility]       = weight_option("Mobility (Midgame)", "Mobility (Endgame)", WeightsInternal[Mobility]);
-    Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-    Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-    Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    Weights[Mobility]       = weight_option("Mobility (Midgame)", "Mobility (Endgame)", 
+                              WeightsInternal[Mobility]);
+    Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", 
+                              WeightsInternal[PawnStructure]);
+    Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", 
+                              WeightsInternal[PassedPawns]);
+    Weights[Space]          = weight_option("Space", "Space", 
+                              WeightsInternal[Space]);
+    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", 
+                              WeightsInternal[KingDangerUs]);
+    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", 
+                              WeightsInternal[KingDangerThem]);
 
     const int MaxSlope = 30;
     const int Peak = 1280;
@@ -362,14 +368,14 @@ Value do_evaluate(const Position& pos) {
       score +=  evaluate_unstoppable_pawns(pos, WHITE, ei)
               - evaluate_unstoppable_pawns(pos, BLACK, ei);
 
-  // Evaluate space for both sides, only in middle-game.
+  // Evaluate space for both sides, only in middlegame.
   if (ei.mi->space_weight())
   {
       int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
       score += apply_weight(s * ei.mi->space_weight(), Weights[Space]);
   }
 
-  // Scale winning side if position is more drawish that what it appears
+  // Scale winning side if position is more drawish than it appears.
   ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
                                                 : ei.mi->scale_factor(pos, BLACK);
 
@@ -380,7 +386,7 @@ Value do_evaluate(const Position& pos) {
       && sf == SCALE_FACTOR_NORMAL)
   {
       // Ignoring any pawns, do both sides only have a single bishop and no
-      // other pieces ?
+      // other pieces?
       if (   pos.non_pawn_material(WHITE) == BishopValueMg
           && pos.non_pawn_material(BLACK) == BishopValueMg)
       {
@@ -458,7 +464,7 @@ Value do_evaluate(const Position& pos) {
     Value bonus = Outpost[Piece == BISHOP][relative_square(Us, s)];
 
     // Increase bonus if supported by pawn, especially if the opponent has
-    // no minor piece which can exchange the outpost piece.
+    // no minor piece which can trade with the outpost piece.
     if (bonus && (ei.attackedBy[Us][PAWN] & s))
     {
         if (   !pos.pieces(Them, KNIGHT)
@@ -609,7 +615,7 @@ Value do_evaluate(const Position& pos) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+    // Do not include in mobility: squares protected by enemy pawns or occupied by our pieces
     const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us, PAWN, KING));
 
     Score score =  evaluate_pieces<KNIGHT, Us, Trace>(pos, ei, mobility, mobilityArea)
@@ -891,7 +897,7 @@ Value do_evaluate(const Position& pos) {
     if (Trace)
         Tracing::scores[Us][PASSED] = apply_weight(score, Weights[PassedPawns]);
 
-    // Add the scores to the middle game and endgame eval
+    // Add the scores to the middlegame and endgame eval
     return apply_weight(score, Weights[PassedPawns]);
   }
 
@@ -943,7 +949,7 @@ Value do_evaluate(const Position& pos) {
   }
 
 
-  // interpolate() interpolates between a middle game and an endgame score,
+  // interpolate() interpolates between a middlegame and an endgame score,
   // based on game phase. It also scales the return value by a ScaleFactor array.
 
   Value interpolate(const Score& v, Phase ph, ScaleFactor sf) {

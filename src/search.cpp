@@ -53,7 +53,7 @@ using namespace Search;
 
 namespace {
 
-  // Set to true to force running with one thread. Used for debugging
+  // Set to "true" to force running with one thread. Used for debugging
   const bool FakeSplit = false;
 
   // Different node types, used as template parameter
@@ -229,7 +229,7 @@ void Search::think() {
           << std::endl;
   }
 
-  // Reset the threads, still sleeping: will be wake up at split time
+  // Reset the threads, still sleeping: will wake up at split time
   for (size_t i = 0; i < Threads.size(); ++i)
       Threads[i]->maxPly = 0;
 
@@ -346,9 +346,9 @@ namespace {
                 bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
 
                 // Bring the best move to the front. It is critical that sorting
-                // is done with a stable algorithm because all the values but the
-                // first and eventually the new best one are set to -VALUE_INFINITE
-                // and we want to keep the same order for all the moves but the new
+                // is done with a stable algorithm because all the values (but the
+                // first, and eventually the new best one) are set to -VALUE_INFINITE
+                // and we want to keep the same order for all the moves except the new
                 // PV that goes to the front. Note that in case of MultiPV search
                 // the already searched PV lines are preserved.
                 std::stable_sort(RootMoves.begin() + PVIdx, RootMoves.end());
@@ -358,7 +358,7 @@ namespace {
                 for (size_t i = 0; i <= PVIdx; ++i)
                     RootMoves[i].insert_pv_in_tt(pos);
 
-                // If search has been stopped break immediately. Sorting and
+                // If search has been stopped, break immediately. Sorting and
                 // writing PV back to TT is safe because RootMoves is still
                 // valid, although it refers to previous iteration.
                 if (Signals.stop)
@@ -536,7 +536,7 @@ namespace {
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
         // a shorter mate was found upward in the tree then there is no need to search
-        // because we will never beat the current alpha. Same logic but with reversed
+        // because we will never beat the current alpha. Same logic, but with reversed
         // signs applies also in the opposite condition of being mated instead of giving
         // mate. In this case return a fail-high score.
         alpha = std::max(mated_in(ss->ply), alpha);
@@ -776,7 +776,7 @@ moves_loop: // When in check and at SpNode search starts from here
           continue;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
-      // Move List, as a consequence any illegal move is also skipped. In MultiPV
+      // Move List. As a consequence, any illegal move is also skipped. In MultiPV
       // mode we also skip PV moves which have been already searched.
       if (RootNode && !std::count(RootMoves.begin() + PVIdx, RootMoves.end(), move))
           continue;
@@ -907,7 +907,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 14. Make the move
       pos.do_move(move, st, ci, givesCheck);
 
-      // Step 15. Reduced depth search (LMR). If the move fails high will be
+      // Step 15. Reduced depth search (LMR). If the move fails high, it will be
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
           && !pvMove
@@ -1401,7 +1401,7 @@ moves_loop: // When in check and at SpNode search starts from here
         Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
                        | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
-        // Verify attackers are triggered by our move and not already exist
+        // Verify attackers are triggered by our move and not already existing
         if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
             return true;
     }

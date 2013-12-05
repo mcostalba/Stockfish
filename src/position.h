@@ -62,7 +62,7 @@ struct StateInfo {
 };
 
 
-/// When making a move the current StateInfo up to 'key' excluded is copied to
+/// When making a move the current StateInfo (up to 'key' excluded) is copied to
 /// the new one. Here we calculate the quad words (64bits) needed to be copied.
 const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 
@@ -163,7 +163,7 @@ public:
   void set_nodes_searched(int64_t n);
   bool is_draw() const;
 
-  // Position consistency check, for debugging
+  // Position consistency check (for debugging)
   bool pos_is_ok(int* failedStep = NULL) const;
   void flip();
 

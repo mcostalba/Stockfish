@@ -35,7 +35,7 @@ using namespace std;
 namespace {
 
   // A Polyglot book is a series of "entries" of 16 bytes. All integers are
-  // stored in big-endian format, with highest byte first (regardless of size).
+  // stored in big-endian format, with the highest byte first (regardless of size).
   // The entries are ordered according to the key in ascending order.
   struct Entry {
     uint64_t key;
@@ -411,8 +411,8 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
       sum += e.count;
 
       // Choose book move according to its score. If a move has a very
-      // high score it has higher probability to be choosen than a move
-      // with lower score. Note that first entry is always chosen.
+      // high score, it has a higher probability of being choosen than a move
+      // with a lower score. Note that first entry is always chosen.
       if (   (!pickBest && sum && rkiss.rand<unsigned>() % sum < e.count)
           || (pickBest && e.count == best))
           move = Move(e.move);
@@ -429,7 +429,7 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
   //
   // Castling moves follow the "king captures rook" representation. If a book
   // move is a promotion, we have to convert it to our representation and in
-  // all other cases, we can directly compare with a Move after having masked
+  // all other cases, we can directly compare with Move after having masked
   // out the special Move flags (bit 14-15) that are not supported by PolyGlot.
   int pt = (move >> 12) & 7;
   if (pt)
