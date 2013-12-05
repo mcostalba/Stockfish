@@ -27,7 +27,7 @@
 using namespace std;
 
 /// Version number. If Version is left empty, then compile date (in the
-/// format DD-MM-YY). It is shown in engine_info.
+/// format DD-MM-YY) and show in engine_info.
 static const string Version = "";
 
 
