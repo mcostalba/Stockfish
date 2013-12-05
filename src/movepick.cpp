@@ -50,7 +50,7 @@ namespace {
   }
 
   // Unary predicate used by std::partition to split positive scores from remaining
-  // ones so to sort separately the two sets, and with the second sort delayed.
+  // ones so as to sort the two sets separately (with the second sort delayed).
   inline bool has_positive_score(const ExtMove& ms) { return ms.score > 0; }
 
   // Picks the best move in the range (begin, end) and moves it to the front.
@@ -65,9 +65,9 @@ namespace {
 
 
 /// Constructors of the MovePicker class. As arguments we pass information
-/// to help it to return the presumably good moves first, to decide which
+/// to help it to return the (presumably) good moves first, to decide which
 /// moves to return (in the quiescence search, for instance, we only want to
-/// search captures, promotions and some checks) and about how important good
+/// search captures, promotions and some checks) and how important good
 /// move ordering is at the current node.
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
@@ -106,7 +106,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
       stage = QSEARCH_1;
 
       // Skip TT move if is not a capture or a promotion. This avoids qsearch
-      // tree explosion due to a possible perpetual check or similar rare cases
+      // tree explosion due to a possible perpetual check )or similar rare cases)
       // when TT table is full.
       if (ttm && !pos.capture_or_promotion(ttm))
           ttm = MOVE_NONE;
@@ -154,8 +154,8 @@ void MovePicker::score<CAPTURES>() {
   // where it is possible to recapture with the hanging piece). Exchanging
   // big pieces before capturing a hanging piece probably helps to reduce
   // the subtree size.
-  // In main search we want to push captures with negative SEE values to the
-  // badCaptures[] array, but instead of doing it now we delay until the move
+  // In main search, we want to push captures with negative SEE values to the
+  // badCaptures[] array, but instead of doing it now, we delay until the move
   // has been picked up in pick_move_from_list(). This way we save some SEE
   // calls in case we get a cutoff.
   Move m;
@@ -189,7 +189,7 @@ void MovePicker::score<QUIETS>() {
 template<>
 void MovePicker::score<EVASIONS>() {
   // Try good captures ordered by MVV/LVA, then non-captures if destination square
-  // is not under attack, ordered by history value, then bad-captures and quiet
+  // is not under attack (ordered by history value), then bad-captures and quiet
   // moves with a negative SEE. This last group is ordered by the SEE score.
   Move m;
   int seeScore;
@@ -286,7 +286,7 @@ void MovePicker::generate_next() {
 /// next_move() is the most important method of the MovePicker class. It returns
 /// a new pseudo legal move every time it is called, until there are no more moves
 /// left. It picks the move with the biggest score from a list of generated moves
-/// taking care not returning the ttMove if has already been searched previously.
+/// taking care not returning the ttMove if it has already been searched previously.
 template<>
 Move MovePicker::next_move<false>() {
 
