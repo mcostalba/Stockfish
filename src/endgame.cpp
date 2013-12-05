@@ -187,9 +187,9 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
   Square loserKSq = pos.king_square(weakSide);
   Square bishopSq = pos.list<BISHOP>(strongSide)[0];
 
-  // kbnk_mate_table() tries to drive toward corners A1 or H8. Ff we have a
+  // kbnk_mate_table() tries to drive toward corners a1 or h8. If we have a
   // bishop that cannot reach the above squares, we flip the kings in order
-  // to drive the enemy toward corners A8 or H1.
+  // to drive the enemy toward corners a8 or h1.
   if (opposite_colors(bishopSq, SQ_A1))
   {
       winnerKSq = ~winnerKSq;
