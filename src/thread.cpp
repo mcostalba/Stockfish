@@ -91,7 +91,7 @@ Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
-// and then calls check_time(). If msec is 0 thread sleeps until its woken up.
+// and then calls check_time(). If msec is 0 thread sleeps until it's woken up.
 extern void check_time();
 
 void TimerThread::idle_loop() {
