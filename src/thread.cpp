@@ -67,7 +67,7 @@ void ThreadBase::notify_one() {
 }
 
 
-// ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
+// ThreadBase::wait_for() set the thread to sleep until condition 'b' turns "true"
 
 void ThreadBase::wait_for(volatile const bool& b) {
 
@@ -91,7 +91,7 @@ Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
-// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+// and then calls check_time(). If msec is 0 thread sleeps until its woken up.
 extern void check_time();
 
 void TimerThread::idle_loop() {
@@ -169,18 +169,18 @@ bool Thread::available_to(const Thread* master) const {
   if (searching)
       return false;
 
-  // Make a local copy to be sure doesn't become zero under our feet while
-  // testing next condition and so leading to an out of bounds access.
+  // Make a local copy to be sure it doesn't become zero under our feet while
+  // testing next condition and so leading to an "out of bounds access".
   int size = splitPointsSize;
 
   // No split points means that the thread is available as a slave for any
-  // other thread otherwise apply the "helpful master" concept if possible.
+  // other thread, otherwise apply the "helpful master" concept if possible.
   return !size || (splitPoints[size - 1].slavesMask & (1ULL << master->idx));
 }
 
 
 // init() is called at startup to create and launch requested threads, that will
-// go immediately to sleep due to 'sleepWhileIdle' set to true. We cannot use
+// go immediately to sleep because 'sleepWhileIdle' set to "true". We cannot use
 // a c'tor because Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
 
