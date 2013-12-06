@@ -568,15 +568,6 @@ namespace {
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
-
-        if (    ttValue >= beta
-            &&  ttMove
-            && !pos.capture_or_promotion(ttMove)
-            &&  ttMove != ss->killers[0])
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = ttMove;
-        }
         return ttValue;
     }
 
