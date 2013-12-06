@@ -36,7 +36,7 @@
 
 struct TTEntry {
 
-  void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value ev, Value em) {
+  void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value ev) {
 
     key32        = (uint32_t)k;
     move16       = (uint16_t)m;
@@ -45,7 +45,6 @@ struct TTEntry {
     value16      = (int16_t)v;
     depth16      = (int16_t)d;
     evalValue    = (int16_t)ev;
-    evalMargin   = (int16_t)em;
   }
   void set_generation(uint8_t g) { generation8 = g; }
 
@@ -56,21 +55,20 @@ struct TTEntry {
   Bound bound() const       { return (Bound)bound8; }
   int generation() const    { return (int)generation8; }
   Value eval_value() const  { return (Value)evalValue; }
-  Value eval_margin() const { return (Value)evalMargin; }
 
 private:
   uint32_t key32;
   uint16_t move16;
   uint8_t bound8, generation8;
-  int16_t value16, depth16, evalValue, evalMargin;
+  int16_t value16, depth16, evalValue;
 };
 
 
 /// A TranspositionTable consists of a power of 2 number of clusters and each
 /// cluster consists of ClusterSize number of TTEntry. Each non-empty entry
-/// contains information of exactly one position. Size of a cluster shall not be
-/// bigger than a cache line size. In case it is less, it should be padded to
-/// guarantee always aligned accesses.
+/// contains information of exactly one position. The size of a cluster should
+/// not be bigger than a cache line size. In case it is less, it should be padded
+/// to guarantee always aligned accesses.
 
 class TranspositionTable {
 
@@ -78,14 +76,14 @@ class TranspositionTable {
 
 public:
  ~TranspositionTable() { free(mem); }
-  void new_search() { generation++; }
+  void new_search() { ++generation; }
 
   const TTEntry* probe(const Key key) const;
   TTEntry* first_entry(const Key key) const;
   void refresh(const TTEntry* tte) const;
   void set_size(size_t mbSize);
   void clear();
-  void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV, Value kingD);
+  void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV);
 
 private:
   uint32_t hashMask;
@@ -108,7 +106,7 @@ inline TTEntry* TranspositionTable::first_entry(const Key key) const {
 
 
 /// TranspositionTable::refresh() updates the 'generation' value of the TTEntry
-/// to avoid aging. Normally called after a TT hit.
+/// to avoid aging. It is normally called after a TT hit.
 
 inline void TranspositionTable::refresh(const TTEntry* tte) const {
 

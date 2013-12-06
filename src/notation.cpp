@@ -56,7 +56,7 @@ string score_to_uci(Value v, Value alpha, Value beta) {
 /// move_to_uci() converts a move to a string in coordinate notation
 /// (g1f3, a7a8q, etc.). The only special case is castling moves, where we print
 /// in the e1g1 notation in normal chess mode, and in e1h1 notation in chess960
-/// mode. Internally castle moves are always coded as "king captures rook".
+/// mode. Internally castling moves are always encoded as "king captures rook".
 
 const string move_to_uci(Move m, bool chess960) {
 
@@ -69,7 +69,7 @@ const string move_to_uci(Move m, bool chess960) {
   if (m == MOVE_NULL)
       return "0000";
 
-  if (type_of(m) == CASTLE && !chess960)
+  if (type_of(m) == CASTLING && !chess960)
       to = (to > from ? FILE_G : FILE_C) | rank_of(from);
 
   string move = square_to_string(from) + square_to_string(to);
@@ -118,7 +118,7 @@ const string move_to_san(Position& pos, Move m) {
   Piece pc = pos.piece_on(from);
   PieceType pt = type_of(pc);
 
-  if (type_of(m) == CASTLE)
+  if (type_of(m) == CASTLING)
       san = to > from ? "O-O" : "O-O-O";
   else
   {
@@ -126,14 +126,14 @@ const string move_to_san(Position& pos, Move m) {
       {
           san = PieceToChar[WHITE][pt]; // Upper case
 
-          // Disambiguation if we have more then one piece of type 'pt' that can
-          // reach 'to' with a legal move.
+          // A disambiguation occurs if we have more then one piece of type 'pt'
+          // that can reach 'to' with a legal move.
           others = b = (pos.attacks_from(pc, to) & pos.pieces(us, pt)) ^ from;
 
           while (b)
           {
               Move move = make_move(pop_lsb(&b), to);
-              if (!pos.pl_move_is_legal(move, pos.pinned_pieces()))
+              if (!pos.legal(move, pos.pinned_pieces(pos.side_to_move())))
                   others ^= from_sq(move);
           }
 
@@ -149,10 +149,10 @@ const string move_to_san(Position& pos, Move m) {
                   san += square_to_string(from);
           }
       }
-      else if (pos.is_capture(m))
+      else if (pos.capture(m))
           san = file_to_char(file_of(from));
 
-      if (pos.is_capture(m))
+      if (pos.capture(m))
           san += 'x';
 
       san += square_to_string(to);
@@ -161,7 +161,7 @@ const string move_to_san(Position& pos, Move m) {
           san += string("=") + PieceToChar[WHITE][promotion_type(m)];
   }
 
-  if (pos.move_gives_check(m, CheckInfo(pos)))
+  if (pos.gives_check(m, CheckInfo(pos)))
   {
       StateInfo st;
       pos.do_move(m, st);
@@ -175,7 +175,7 @@ const string move_to_san(Position& pos, Move m) {
 
 /// pretty_pv() formats human-readable search information, typically to be
 /// appended to the search log file. It uses the two helpers below to pretty
-/// format time and score respectively.
+/// format the time and score respectively.
 
 static string time_to_string(int64_t msecs) {
 
@@ -207,7 +207,7 @@ static string score_to_string(Value v) {
       s << "-#" << (VALUE_MATE + v) / 2;
 
   else
-      s << setprecision(2) << fixed << showpos << float(v) / PawnValueMg;
+      s << setprecision(2) << fixed << showpos << double(v) / PawnValueMg;
 
   return s.str();
 }

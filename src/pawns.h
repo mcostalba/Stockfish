@@ -27,7 +27,7 @@
 namespace Pawns {
 
 /// Pawns::Entry contains various information about a pawn structure. Currently,
-/// it only includes a middle game and end game pawn structure evaluation, and a
+/// it only includes a middlegame and endgame pawn structure evaluation, and a
 /// bitboard of passed pawns. We may want to add further information in the future.
 /// A lookup to the pawn hash table (performed by calling the probe function)
 /// returns a pointer to an Entry object.
@@ -48,7 +48,7 @@ struct Entry {
   template<Color Us>
   Score king_safety(const Position& pos, Square ksq)  {
 
-    return kingSquares[Us] == ksq && castleRights[Us] == pos.can_castle(Us)
+    return kingSquares[Us] == ksq && castlingFlags[Us] == pos.can_castle(Us)
          ? kingSafety[Us] : update_safety<Us>(pos, ksq);
   }
 
@@ -64,7 +64,7 @@ struct Entry {
   Bitboard pawnAttacks[COLOR_NB];
   Square kingSquares[COLOR_NB];
   int minKPdistance[COLOR_NB];
-  int castleRights[COLOR_NB];
+  int castlingFlags[COLOR_NB];
   Score value;
   int semiopenFiles[COLOR_NB];
   Score kingSafety[COLOR_NB];
@@ -73,6 +73,7 @@ struct Entry {
 
 typedef HashTable<Entry, 16384> Table;
 
+void init();
 Entry* probe(const Position& pos, Table& entries);
 
 }

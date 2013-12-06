@@ -38,7 +38,7 @@ namespace {
 
 
  // Helpers to launch a thread after creation and joining before delete. Must be
- // outside Thread c'tor and d'tor because object shall be fully initialized
+ // outside Thread c'tor and d'tor because the object will be fully initialized
  // when start_routine (and hence virtual idle_loop) is called and when joining.
 
  template<typename T> T* new_thread() {
@@ -77,8 +77,8 @@ void ThreadBase::wait_for(volatile const bool& b) {
 }
 
 
-// Thread c'tor just inits data but does not launch any thread of execution that
-// instead will be started only upon c'tor returns.
+// Thread c'tor just inits data and does not launch any execution thread.
+// Such a thread will only be started when c'tor returns.
 
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
@@ -91,7 +91,7 @@ Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
-// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+// and then calls check_time(). If msec is 0 thread sleeps until it's woken up.
 extern void check_time();
 
 void TimerThread::idle_loop() {
@@ -101,18 +101,18 @@ void TimerThread::idle_loop() {
       mutex.lock();
 
       if (!exit)
-          sleepCondition.wait_for(mutex, msec ? msec : INT_MAX);
+          sleepCondition.wait_for(mutex, run ? Resolution : INT_MAX);
 
       mutex.unlock();
 
-      if (msec)
+      if (run)
           check_time();
   }
 }
 
 
 // MainThread::idle_loop() is where the main thread is parked waiting to be started
-// when there is a new search. Main thread will launch all the slave threads.
+// when there is a new search. The main thread will launch all the slave threads.
 
 void MainThread::idle_loop() {
 
@@ -124,7 +124,7 @@ void MainThread::idle_loop() {
 
       while (!thinking && !exit)
       {
-          Threads.sleepCondition.notify_one(); // Wake up UI thread if needed
+          Threads.sleepCondition.notify_one(); // Wake up the UI thread if needed
           sleepCondition.wait(mutex);
       }
 
@@ -157,20 +157,20 @@ bool Thread::cutoff_occurred() const {
 }
 
 
-// Thread::is_available_to() checks whether the thread is available to help the
+// Thread::available_to() checks whether the thread is available to help the
 // thread 'master' at a split point. An obvious requirement is that thread must
 // be idle. With more than two threads, this is not sufficient: If the thread is
 // the master of some split point, it is only available as a slave to the slaves
-// which are busy searching the split point at the top of slaves split point
+// which are busy searching the split point at the top of slave's split point
 // stack (the "helpful master concept" in YBWC terminology).
 
-bool Thread::is_available_to(const Thread* master) const {
+bool Thread::available_to(const Thread* master) const {
 
   if (searching)
       return false;
 
-  // Make a local copy to be sure doesn't become zero under our feet while
-  // testing next condition and so leading to an out of bound access.
+  // Make a local copy to be sure it doesn't become zero under our feet while
+  // testing next condition and so leading to an out of bounds access.
   int size = splitPointsSize;
 
   // No split points means that the thread is available as a slave for any
@@ -181,7 +181,7 @@ bool Thread::is_available_to(const Thread* master) const {
 
 // init() is called at startup to create and launch requested threads, that will
 // go immediately to sleep due to 'sleepWhileIdle' set to true. We cannot use
-// a c'tor becuase Threads is a static object and we need a fully initialized
+// a c'tor because Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
 
 void ThreadPool::init() {
@@ -206,8 +206,9 @@ void ThreadPool::exit() {
 
 // read_uci_options() updates internal threads parameters from the corresponding
 // UCI options and creates/destroys threads to match the requested number. Thread
-// objects are dynamically allocated to avoid creating in advance all possible
-// threads, with included pawns and material tables, if only few are used.
+// objects are dynamically allocated to avoid creating all possible threads
+// in advance (which include pawns and material tables), even if only a few
+// are to be used.
 
 void ThreadPool::read_uci_options() {
 
@@ -241,7 +242,7 @@ void ThreadPool::read_uci_options() {
 Thread* ThreadPool::available_slave(const Thread* master) const {
 
   for (const_iterator it = begin(); it != end(); ++it)
-      if ((*it)->is_available_to(master))
+      if ((*it)->available_to(master))
           return *it;
 
   return NULL;
@@ -296,7 +297,7 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   Threads.mutex.lock();
   sp.mutex.lock();
 
-  splitPointsSize++;
+  ++splitPointsSize;
   activeSplitPoint = &sp;
   activePosition = NULL;
 
@@ -323,20 +324,21 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 
       Thread::idle_loop(); // Force a call to base class idle_loop()
 
-      // In helpful master concept a master can help only a sub-tree of its split
-      // point, and because here is all finished is not possible master is booked.
+      // In the helpful master concept, a master can help only a sub-tree of its
+      // split point and because everything is finished here, it's not possible
+      // for the master to be booked.
       assert(!searching);
       assert(!activePosition);
 
       // We have returned from the idle loop, which means that all threads are
       // finished. Note that setting 'searching' and decreasing splitPointsSize is
-      // done under lock protection to avoid a race with Thread::is_available_to().
+      // done under lock protection to avoid a race with Thread::available_to().
       Threads.mutex.lock();
       sp.mutex.lock();
   }
 
   searching = true;
-  splitPointsSize--;
+  --splitPointsSize;
   activeSplitPoint = sp.parentSplitPoint;
   activePosition = &pos;
   pos.set_nodes_searched(pos.nodes_searched() + sp.nodes);

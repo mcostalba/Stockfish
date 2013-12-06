@@ -26,8 +26,8 @@
 
 using namespace std;
 
-/// Version number. If Version is left empty, then compile date, in the
-/// format DD-MM-YY, is shown in engine_info.
+/// Version number. If Version is left empty, then compile date in the format
+/// DD-MM-YY and show in engine_info.
 static const string Version = "";
 
 
@@ -63,9 +63,9 @@ const string engine_info(bool to_uci) {
 
 static uint64_t hits[2], means[2];
 
-void dbg_hit_on(bool b) { hits[0]++; if (b) hits[1]++; }
+void dbg_hit_on(bool b) { ++hits[0]; if (b) ++hits[1]; }
 void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
-void dbg_mean_of(int v) { means[0]++; means[1] += v; }
+void dbg_mean_of(int v) { ++means[0]; means[1] += v; }
 
 void dbg_print() {
 
@@ -75,14 +75,14 @@ void dbg_print() {
 
   if (means[0])
       cerr << "Total " << means[0] << " Mean "
-           << (float)means[1] / means[0] << endl;
+           << (double)means[1] / means[0] << endl;
 }
 
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
-/// can toggle the logging of std::cout and std:cin at runtime while preserving
-/// usual i/o functionality and without changing a single line of code!
+/// can toggle the logging of std::cout and std:cin at runtime whilst preserving
+/// usual i/o functionality, all without changing a single line of code!
 /// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 
 struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and cout
@@ -137,7 +137,7 @@ public:
 };
 
 
-/// Used to serialize access to std::cout to avoid multiple threads to write at
+/// Used to serialize access to std::cout to avoid multiple threads writing at
 /// the same time.
 
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
@@ -158,8 +158,8 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 void start_logger(bool b) { Logger::start(b); }
 
 
-/// timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-/// conversion from milliseconds to struct timespec, as used by pthreads.
+/// timed_wait() waits for msec milliseconds. It is mainly a helper to wrap
+/// the conversion from milliseconds to struct timespec, as used by pthreads.
 
 void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 
@@ -177,9 +177,9 @@ void timed_wait(WaitCondition& sleepCond, Lock& sleepLock, int msec) {
 }
 
 
-/// prefetch() preloads the given address in L1/L2 cache. This is a non
-/// blocking function and do not stalls the CPU waiting for data to be
-/// loaded from memory, that can be quite slow.
+/// prefetch() preloads the given address in L1/L2 cache. This is a non-blocking
+/// function that doesn't stall the CPU waiting for data to be loaded from memory,
+/// which can be quite slow.
 #ifdef NO_PREFETCH
 
 void prefetch(char*) {}
@@ -189,8 +189,8 @@ void prefetch(char*) {}
 void prefetch(char* addr) {
 
 #  if defined(__INTEL_COMPILER)
-   // This hack prevents prefetches to be optimized away by
-   // Intel compiler. Both MSVC and gcc seems not affected.
+   // This hack prevents prefetches from being optimized away by
+   // Intel compiler. Both MSVC and gcc seem not be affected by this.
    __asm__ ("");
 #  endif
 

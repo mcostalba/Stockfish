@@ -45,9 +45,7 @@ struct Stack {
   Move killers[2];
   Depth reduction;
   Value staticEval;
-  Value evalMargin;
   int skipNullMove;
-  int futilityMoveCount;
 };
 
 
@@ -75,7 +73,7 @@ struct RootMove {
 
 /// The LimitsType struct stores information sent by GUI about available time
 /// to search the current move, maximum depth/time, if we are in analysis mode
-/// or if we have to ponder while is our opponent's side to move.
+/// or if we have to ponder while it's our opponent's turn to move.
 
 struct LimitsType {
 
@@ -87,7 +85,7 @@ struct LimitsType {
 
 
 /// The SignalsType struct stores volatile flags updated during the search
-/// typically in an async fashion, for instance to stop the search by the GUI.
+/// typically in an async fashion e.g. to stop the search by the GUI.
 
 struct SignalsType {
   bool stopOnPonderhit, firstRootMove, stop, failedLowAtRoot;

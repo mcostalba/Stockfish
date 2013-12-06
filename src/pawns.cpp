@@ -30,38 +30,32 @@ namespace {
   #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
-  // Doubled pawn penalty by opposed flag and file
-  const Score Doubled[2][FILE_NB] = {
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) },
-  { S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) }};
+  // Doubled pawn penalty by file
+  const Score Doubled[FILE_NB] = {
+    S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+    S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
 
   // Isolated pawn penalty by opposed flag and file
   const Score Isolated[2][FILE_NB] = {
   { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
     S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
   { S(25, 30), S(36, 35), S(40, 35), S(40, 35),
-    S(40, 35), S(40, 35), S(36, 35), S(25, 30) }};
+    S(40, 35), S(40, 35), S(36, 35), S(25, 30) } };
 
   // Backward pawn penalty by opposed flag and file
   const Score Backward[2][FILE_NB] = {
   { S(30, 42), S(43, 46), S(49, 46), S(49, 46),
     S(49, 46), S(49, 46), S(43, 46), S(30, 42) },
   { S(20, 28), S(29, 31), S(33, 31), S(33, 31),
-    S(33, 31), S(33, 31), S(29, 31), S(20, 28) }};
+    S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
 
-  // Pawn chain membership bonus by file
-  const Score ChainMember[FILE_NB] = {
-    S(11,-1), S(13,-1), S(13,-1), S(14,-1),
-    S(14,-1), S(13,-1), S(13,-1), S(11,-1)
-  };
+  // Pawn chain membership bonus by file and rank (initialized by formula)
+  Score ChainMember[FILE_NB][RANK_NB];
 
   // Candidate passed pawn bonus by rank
   const Score CandidatePassed[RANK_NB] = {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
-    S(34,68), S(83,166), S(0, 0), S( 0, 0)
-  };
+    S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
@@ -72,10 +66,10 @@ namespace {
   const Value StormDanger[3][RANK_NB] = {
   { V( 0),  V(64), V(128), V(51), V(26) },
   { V(26),  V(32), V( 96), V(38), V(20) },
-  { V( 0),  V( 0), V( 64), V(25), V(13) }};
+  { V( 0),  V( 0), V( 64), V(25), V(13) } };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
-  // in front of the king and no enemy pawn on the horizont.
+  // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(263);
 
   #undef S
@@ -130,7 +124,7 @@ namespace {
         // Test for backward pawn.
         // If the pawn is passed, isolated, or member of a pawn chain it cannot
         // be backward. If there are friendly pawns behind on adjacent files
-        // or if can capture an enemy pawn it cannot be backward either.
+        // or if it can capture an enemy pawn it cannot be backward either.
         if (   (passed | isolated | chain)
             || (ourPawns & pawn_attack_span(Them, s))
             || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
@@ -151,9 +145,9 @@ namespace {
 
         assert(opposed | passed | (pawn_attack_span(Us, s) & theirPawns));
 
-        // A not passed pawn is a candidate to become passed if it is free to
+        // A not-passed pawn is a candidate to become passed, if it is free to
         // advance and if the number of friendly pawns beside or behind this
-        // pawn on adjacent files is higher or equal than the number of
+        // pawn on adjacent files is higher than or equal to the number of
         // enemy pawns in the forward direction on the adjacent files.
         candidate =   !(opposed | passed | backward | isolated)
                    && (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
@@ -170,13 +164,13 @@ namespace {
             value -= Isolated[opposed][f];
 
         if (doubled)
-            value -= Doubled[opposed][f];
+            value -= Doubled[f];
 
         if (backward)
             value -= Backward[opposed][f];
 
         if (chain)
-            value += ChainMember[f];
+            value += ChainMember[f][relative_rank(Us, s)];
 
         if (candidate)
         {
@@ -193,6 +187,22 @@ namespace {
 } // namespace
 
 namespace Pawns {
+
+/// init() initializes some tables by formula instead of hard-coding their values
+
+void init() {
+
+  const int chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+  int bonus;
+
+  for (Rank r = RANK_1; r < RANK_8; ++r)
+      for (File f = FILE_A; f <= FILE_H; ++f)
+      {
+          bonus = r * (r-1) * (r-2) + chainByFile[f] * (r/2 + 1);
+          ChainMember[f][r] = make_score(bonus, bonus);
+      }
+}
+
 
 /// probe() takes a position object as input, computes a Entry object, and returns
 /// a pointer to it. The result is also stored in a hash table, so we don't have
@@ -227,13 +237,13 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
   Rank rkUs, rkThem;
   File kf = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
 
-  for (int f = kf - 1; f <= kf + 1; f++)
+  for (File f = kf - File(1); f <= kf + File(1); ++f)
   {
-      b = ourPawns & FileBB[f];
+      b = ourPawns & file_bb(f);
       rkUs = b ? relative_rank(Us, backmost_sq(Us, b)) : RANK_1;
       safety -= ShelterWeakness[rkUs];
 
-      b  = theirPawns & FileBB[f];
+      b  = theirPawns & file_bb(f);
       rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
       safety -= StormDanger[rkUs == RANK_1 ? 0 : rkThem == rkUs + 1 ? 2 : 1][rkThem];
   }
@@ -242,14 +252,15 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 }
 
 
-/// Entry::update_safety() calculates and caches a bonus for king safety. It is
-/// called only when king square changes, about 20% of total king_safety() calls.
+/// Entry::update_safety() calculates and caches a bonus for king safety.
+/// It is called only when king square changes, which is about 20% of total
+/// king_safety() calls.
 
 template<Color Us>
 Score Entry::update_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
-  castleRights[Us] = pos.can_castle(Us);
+  castlingFlags[Us] = pos.can_castle(Us);
   minKPdistance[Us] = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
@@ -261,11 +272,11 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
-  // If we can castle use the bonus after the castle if is bigger
-  if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
+  // If we can castle use the bonus after the castling if it is bigger
+  if (pos.can_castle(make_castling_flag(Us, KING_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 
-  if (pos.can_castle(make_castle_right(Us, QUEEN_SIDE)))
+  if (pos.can_castle(make_castling_flag(Us, QUEEN_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
   return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);

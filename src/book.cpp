@@ -25,7 +25,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 
 #include "book.h"
 #include "misc.h"
@@ -36,8 +35,8 @@ using namespace std;
 namespace {
 
   // A Polyglot book is a series of "entries" of 16 bytes. All integers are
-  // stored in big-endian format, with highest byte first (regardless of size).
-  // The entries are ordered according to the key in ascending order.
+  // stored in big-endian format, with the highest byte first (regardless of
+  // size). The entries are ordered according to the key in ascending order.
   struct Entry {
     uint64_t key;
     uint16_t move;
@@ -50,7 +49,7 @@ namespace {
     Key PolyGlotRandoms[781];
     struct {
       Key psq[12][64];  // [piece][square]
-      Key castle[4];    // [castle right]
+      Key castling[4];  // [castling flag]
       Key enpassant[8]; // [file]
       Key turn;
     } Zobrist;
@@ -333,10 +332,10 @@ namespace {
         key ^= PG.Zobrist.psq[2 * (type_of(p) - 1) + (color_of(p) == WHITE)][s];
     }
 
-    b = pos.can_castle(ALL_CASTLES);
+    b = pos.can_castle(ANY_CASTLING);
 
     while (b)
-        key ^= PG.Zobrist.castle[pop_lsb(&b)];
+        key ^= PG.Zobrist.castling[pop_lsb(&b)];
 
     if (pos.ep_square() != SQ_NONE)
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];
@@ -355,7 +354,7 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 
 
 /// operator>>() reads sizeof(T) chars from the file's binary byte stream and
-/// converts them in a number of type T. A Polyglot book stores numbers in
+/// converts them into a number of type T. A Polyglot book stores numbers in
 /// big-endian format.
 
 template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
@@ -383,14 +382,15 @@ bool PolyglotBook::open(const char* fName) {
   ifstream::open(fName, ifstream::in | ifstream::binary);
 
   fileName = is_open() ? fName : "";
-  ifstream::clear(); // Reset any error flag to allow retry ifstream::open()
+  ifstream::clear(); // Reset any error flag to allow a retry ifstream::open()
   return !fileName.empty();
 }
 
 
 /// probe() tries to find a book move for the given position. If no move is
-/// found returns MOVE_NONE. If pickBest is true returns always the highest
-/// rated move, otherwise randomly chooses one, based on the move score.
+/// found, it returns MOVE_NONE. If pickBest is true, then it always returns
+/// the highest-rated move, otherwise it randomly chooses one based on the
+/// move score.
 
 Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) {
 
@@ -410,10 +410,10 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
       best = max(best, e.count);
       sum += e.count;
 
-      // Choose book move according to its score. If a move has a very
-      // high score it has higher probability to be choosen than a move
-      // with lower score. Note that first entry is always chosen.
-      if (   (sum && rkiss.rand<unsigned>() % sum < e.count)
+      // Choose book move according to its score. If a move has a very high
+      // score it has a higher probability of being choosen than a move with
+      // a lower score. Note that first entry is always chosen.
+      if (   (!pickBest && sum && rkiss.rand<unsigned>() % sum < e.count)
           || (pickBest && e.count == best))
           move = Move(e.move);
   }
@@ -427,10 +427,10 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
   // bit  6-11: origin square (from 0 to 63)
   // bit 12-14: promotion piece (from KNIGHT == 1 to QUEEN == 4)
   //
-  // Castling moves follow "king captures rook" representation. So in case book
-  // move is a promotion we have to convert to our representation, in all the
-  // other cases we can directly compare with a Move after having masked out
-  // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
+  // Castling moves follow the "king captures rook" representation. If a book
+  // move is a promotion, we have to convert it to our representation and in
+  // all other cases, we can directly compare with a Move after having masked
+  // out the special Move flags (bit 14-15) that are not supported by PolyGlot.
   int pt = (move >> 12) & 7;
   if (pt)
       move = make<PROMOTION>(from_sq(move), to_sq(move), PieceType(pt + 1));

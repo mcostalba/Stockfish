@@ -35,35 +35,33 @@ namespace {
   const int NoPawnsSF[4] = { 6, 12, 32 };
 
   // Polynomial material balance parameters
-  const Value RedundantQueen = Value(320);
-  const Value RedundantRook  = Value(554);
 
   //                                  pair  pawn knight bishop rook queen
-  const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+  const int LinearCoefficients[6] = { 1852, -162, -1122, -183,  249, -52 };
 
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
-    {   7                               }, // Bishop pair
+    {   0                               }, // Bishop pair
     {  39,    2                         }, // Pawn
     {  35,  271,  -4                    }, // Knight
-    {   7,  105,   4,    7              }, // Bishop
-    { -27,   -2,  46,   100,   56       }, // Rook
-    {  58,   29,  83,   148,   -3,  -25 }  // Queen
+    {   0,  105,   4,    0              }, // Bishop
+    { -27,   -2,  46,   100,  -141      }, // Rook
+    {  58,   29,  83,   148,  -163,   0 }  // Queen
   };
 
   const int QuadraticCoefficientsOppositeColor[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
     // pair pawn knight bishop rook queen
-    {  41                               }, // Bishop pair
-    {  37,   41                         }, // Pawn
-    {  10,   62,  41                    }, // Knight      OUR PIECES
-    {  57,   64,  39,    41             }, // Bishop
-    {  50,   40,  23,   -22,   41       }, // Rook
-    { 106,  101,   3,   151,  171,   41 }  // Queen
+    {   0                               }, // Bishop pair
+    {  37,    0                         }, // Pawn
+    {  10,   62,   0                    }, // Knight      OUR PIECES
+    {  57,   64,  39,     0             }, // Bishop
+    {  50,   40,  23,   -22,    0       }, // Rook
+    { 106,  101,   3,   151,  171,    0 }  // Queen
   };
 
-  // Endgame evaluation and scaling functions accessed direcly and not through
-  // the function maps because correspond to more then one material hash key.
+  // Endgame evaluation and scaling functions are accessed directly and not through
+  // the function maps because they correspond to more then one material hash key.
   Endgame<KmmKm> EvaluateKmmKm[] = { Endgame<KmmKm>(WHITE), Endgame<KmmKm>(BLACK) };
   Endgame<KXK>   EvaluateKXK[]   = { Endgame<KXK>(WHITE),   Endgame<KXK>(BLACK) };
 
@@ -95,7 +93,7 @@ namespace {
           && pos.count<PAWN>(Them) >= 1;
   }
 
-  /// imbalance() calculates imbalance comparing piece count of each
+  /// imbalance() calculates the imbalance by comparing the piece count of each
   /// piece type for both colors.
 
   template<Color Us>
@@ -106,14 +104,8 @@ namespace {
     int pt1, pt2, pc, v;
     int value = 0;
 
-    // Redundancy of major pieces, formula based on Kaufman's paper
-    // "The Evaluation of Material Imbalances in Chess"
-    if (pieceCount[Us][ROOK] > 0)
-        value -=  RedundantRook * (pieceCount[Us][ROOK] - 1)
-                + RedundantQueen * pieceCount[Us][QUEEN];
-
     // Second-degree polynomial material imbalance by Tord Romstad
-    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; pt1++)
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
     {
         pc = pieceCount[Us][pt1];
         if (!pc)
@@ -121,7 +113,7 @@ namespace {
 
         v = LinearCoefficients[pt1];
 
-        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; pt2++)
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
             v +=  QuadraticCoefficientsSameColor[pt1][pt2] * pieceCount[Us][pt2]
                 + QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[Them][pt2];
 
@@ -155,9 +147,9 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   e->factor[WHITE] = e->factor[BLACK] = (uint8_t)SCALE_FACTOR_NORMAL;
   e->gamePhase = game_phase(pos);
 
-  // Let's look if we have a specialized evaluation function for this
-  // particular material configuration. First we look for a fixed
-  // configuration one, then a generic one if previous search failed.
+  // Let's look if we have a specialized evaluation function for this particular
+  // material configuration. Firstly we look for a fixed configuration one, then
+  // for a generic one if the previous search failed.
   if (endgames.probe(key, e->evaluationFunction))
       return e;
 
@@ -202,7 +194,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // Generic scaling functions that refer to more then one material
-  // distribution. Should be probed after the specialized ones.
+  // distribution. They should be probed after the specialized ones.
   // Note that these ones don't return after setting the function.
   if (is_KBPsKs<WHITE>(pos))
       e->scalingFunction[WHITE] = &ScaleKBPsK[WHITE];
@@ -264,7 +256,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
-  // for the bishop pair "extended piece", this allow us to be more flexible
+  // for the bishop pair "extended piece", which allows us to be more flexible
   // in defining bishop pair bonuses.
   const int pieceCount[COLOR_NB][PIECE_TYPE_NB] = {
   { pos.count<BISHOP>(WHITE) > 1, pos.count<PAWN>(WHITE), pos.count<KNIGHT>(WHITE),

@@ -50,7 +50,7 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 }
 
 
-/// init() initializes the UCI options to their hard coded default values
+/// init() initializes the UCI options to their hard-coded default values
 
 void init(OptionsMap& o) {
 
@@ -80,10 +80,10 @@ void init(OptionsMap& o) {
   o["MultiPV"]                     = Option(1, 1, 500);
   o["Skill Level"]                 = Option(20, 0, 20);
   o["Emergency Move Horizon"]      = Option(40, 0, 50);
-  o["Emergency Base Time"]         = Option(50, 0, 30000);
-  o["Emergency Move Time"]         = Option(20, 0, 5000);
+  o["Emergency Base Time"]         = Option(60, 0, 30000);
+  o["Emergency Move Time"]         = Option(30, 0, 5000);
   o["Minimum Thinking Time"]       = Option(20, 0, 5000);
-  o["Slow Mover"]                  = Option(50, 10, 1000);
+  o["Slow Mover"]                  = Option(70, 10, 1000);
   o["UCI_Chess960"]                = Option(false);
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
 }
@@ -94,7 +94,7 @@ void init(OptionsMap& o) {
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
-  for (size_t idx = 0; idx < om.size(); idx++)
+  for (size_t idx = 0; idx < om.size(); ++idx)
       for (OptionsMap::const_iterator it = om.begin(); it != om.end(); ++it)
           if (it->second.idx == idx)
           {
