@@ -568,6 +568,15 @@ namespace {
     {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
+
+        if (    ttValue >= beta
+            &&  ttMove
+            && !pos.capture_or_promotion(ttMove)
+            &&  ttMove != ss->killers[0])
+        {
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = ttMove;
+        }
         return ttValue;
     }
 
@@ -624,7 +633,7 @@ namespace {
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth < 7 * ONE_PLY
+        &&  depth < 6 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
