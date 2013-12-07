@@ -135,6 +135,8 @@ static int probe_wdl_table(Position& pos, int *success)
 	UNLOCK(TB_mutex);
 	return 0;
       }
+      // Memory barrier to ensure ptr->ready = 1 is not reordered.
+      __asm__ __volatile__ ("" ::: "memory");
       ptr->ready = 1;
     }
     UNLOCK(TB_mutex);
