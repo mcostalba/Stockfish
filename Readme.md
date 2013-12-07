@@ -45,7 +45,7 @@ be separated by ";" on Windows and by ":" on Unix-based operating systems.
 Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
 
 It is recommended to store .rtbw files on an SSD. There is no loss in
-storing the .rtbz files on a regular HD.
+storing the .rtbz files on a regular HDD.
 
 **Note:** At the moment, the "Syzygybases Path" option can only be set once. If you want to change it, you need to restart the engine.
 
@@ -64,7 +64,7 @@ If the engine is given a position to search that is in the tablebases, it
 will use the tablebases at the beginning of the search to preselect all
 good moves, i.e. all moves that preserve the win or preserve the draw while
 taking into account the 50-move rule.
-It wil then perform a search only on those moves. **The engine will not move
+It will then perform a search only on those moves. **The engine will not move
 immediately**, unless there is only a single good move. **The engine might 
 not report a mate score even when the position is won.** Instead, it reports
 the score that is returned by the search.
@@ -83,7 +83,7 @@ In the near future an option will be added to switch between the current
 behaviour and a mode in which Stockfish will immediately play one of the
 good moves. This new mode will have the problem that it leads to unnatural
 play once the engine has reached a tablebase position. For example, the
-engine will then prefer any winning pawn move (even those that lose material
+engine will prefer any winning pawn move (even those that lose material
 and complicate the win) over moves that lead to a quick mate but have a
 higher "distance-to-zero" value.
 
