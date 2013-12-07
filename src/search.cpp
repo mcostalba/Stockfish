@@ -859,6 +859,17 @@ moves_loop: // When in check and at SpNode search starts from here
 
               continue;
           }
+          
+          // Quiet move count and value based pruning
+          if (    depth < 16 * ONE_PLY
+              &&  cutNode
+              && !SpNode
+              &&  ss->staticEval + ss->evalMargin < (ss-2)->staticEval + (ss-2)->evalMargin
+              &&  moveCount + quietCount >= FutilityMoveCounts[depth]
+              &&  (!threatMove || !refutes(pos, move, threatMove)))
+          {
+              continue;
+          }
 
           predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 

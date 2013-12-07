@@ -1,0 +1,33 @@
+﻿Squashed commit of the following:
+
+commit 9db910033f7ebf79f570a605ce6ba2cec9655191
+Merge: f8c0d5a 2067a99
+Author: Eelco de Groot <Kingdefendergit@gmail.com>
+Date:   Thu Jul 25 21:18:25 2013 +0200
+
+    Merge remote-tracking branch 'upstream/master' into QuietFutility
+
+commit f8c0d5ae98370388cbfa565be81aca1270a32b09
+Merge: 03ac38c 73131e7
+Author: Eelco de Groot <Kingdefendergit@gmail.com>
+Date:   Mon Jul 22 20:31:34 2013 +0200
+
+    Merge remote-tracking branch 'upstream/master' into QuietFutility
+
+commit 03ac38c29f9d022d3b55c263fdc4da32ce5120b7
+Author: Kingdefender <eelcogro@gmail.com>
+Date:   Mon Jul 22 20:24:04 2013 +0200
+
+    Only the search change
+
+    ThreatByKing_Futility branch with only the search changed (second take on search).
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch QuietFutilityIII
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#	modified:   src/search.cpp
+#
+
