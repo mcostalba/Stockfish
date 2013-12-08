@@ -633,7 +633,7 @@ namespace {
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth < 8 * ONE_PLY
+        &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
@@ -934,6 +934,15 @@ moves_loop: // When in check and at SpNode search starts from here
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
           doFullDepthSearch = (value > alpha && ss->reduction != DEPTH_ZERO);
+
+          // Research at intermediate depth if reduction is very high
+          if (doFullDepthSearch && ss->reduction >= 4 * ONE_PLY)
+          {
+              Depth d2 = std::max(newDepth - 2 * ONE_PLY, ONE_PLY);
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d2, true);
+              doFullDepthSearch = (value > alpha);
+          }
+
           ss->reduction = DEPTH_ZERO;
       }
       else
