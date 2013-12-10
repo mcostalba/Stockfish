@@ -1208,8 +1208,9 @@ moves_loop: // When in check and at SpNode search starts from here
       assert(is_ok(move));
 
       givesCheck = pos.gives_check(move, ci);
-      LateEndgame =  pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) <= 2 * BishopValueMg
-                  && pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) <= 5;
+
+      LateEndgame =  pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) <= 3 * BishopValueMg
+                  && pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) <= 8;
 
 
       // Futility pruning
