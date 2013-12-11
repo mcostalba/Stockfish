@@ -573,13 +573,10 @@ namespace {
         if (    ttValue >= beta
             &&  ttMove
             && !pos.capture_or_promotion(ttMove)
-            && !inCheck)
+            &&  ss->killers[0] != ttMove)
         {
-            if (ss->killers[0] != ttMove)
-            {
-                ss->killers[1] = ss->killers[0];
-                ss->killers[0] = ttMove;
-            }
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = ttMove;
 
             Value bonus = Value(int(depth) * int(depth));
             History.update(pos.moved_piece(ttMove), to_sq(ttMove), bonus);
@@ -1085,13 +1082,10 @@ moves_loop: // When in check and at SpNode search starts from here
     // Quiet best move: update killers, history and countermoves
     if (    bestValue >= beta
         && !pos.capture_or_promotion(bestMove)
-        && !inCheck)
+        &&  ss->killers[0] != bestMove)
     {
-        if (ss->killers[0] != bestMove)
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = bestMove;
-        }
+        ss->killers[1] = ss->killers[0];
+        ss->killers[0] = bestMove;
 
         // Increase history value of the cut-off move and decrease all the other
         // played non-capture moves.
