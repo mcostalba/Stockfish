@@ -569,13 +569,26 @@ namespace {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
+        // Update killers, history, and counter move on TT hit
         if (    ttValue >= beta
             &&  ttMove
             && !pos.capture_or_promotion(ttMove)
-            &&  ttMove != ss->killers[0])
+            && !inCheck)
         {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = ttMove;
+            if (ss->killers[0] != ttMove)
+            {
+                ss->killers[1] = ss->killers[0];
+                ss->killers[0] = ttMove;
+            }
+
+            Value bonus = Value(int(depth) * int(depth));
+            History.update(pos.moved_piece(ttMove), to_sq(ttMove), bonus);
+
+            if (is_ok((ss-1)->currentMove))
+            {
+                Square prevMoveSq = to_sq((ss-1)->currentMove);
+                Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, ttMove);
+            }
         }
         return ttValue;
     }
@@ -933,16 +946,14 @@ moves_loop: // When in check and at SpNode search starts from here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
-          doFullDepthSearch = (value > alpha && ss->reduction != DEPTH_ZERO);
-
           // Research at intermediate depth if reduction is very high
-          if (doFullDepthSearch && ss->reduction >= 4 * ONE_PLY)
+          if (value > alpha && ss->reduction >= 4 * ONE_PLY)
           {
-              Depth d2 = std::max(newDepth - ss->reduction / 2, ONE_PLY);
+              Depth d2 = std::max(newDepth - 2 * ONE_PLY, ONE_PLY);
               value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d2, true);
-              doFullDepthSearch = (value > alpha);
           }
 
+          doFullDepthSearch = (value > alpha && ss->reduction != DEPTH_ZERO);
           ss->reduction = DEPTH_ZERO;
       }
       else
