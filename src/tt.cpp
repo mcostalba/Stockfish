@@ -32,9 +32,9 @@ TranspositionTable TT; // Our global transposition table
 
 void TranspositionTable::set_size(size_t mbSize) {
 
-  assert(msb((mbSize << 20) / sizeof(TTEntry)) < 32);
+  assert(mbSize < (size_t) 1 << (sizeof(size_t) * 8 - 20) );
 
-  uint32_t size = ClusterSize << msb((mbSize << 20) / sizeof(TTEntry[ClusterSize]));
+  size_t size = ClusterSize << msb((mbSize << 20) / sizeof(TTEntry[ClusterSize]));
 
   if (hashMask == size - ClusterSize)
       return;
