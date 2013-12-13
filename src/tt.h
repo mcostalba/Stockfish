@@ -32,7 +32,7 @@
 /// value: 16 bit
 /// depth: 16 bit
 /// static value: 16 bit
-/// static margin: 16 bit
+/// unused: 16 bit
 
 struct TTEntry {
 
@@ -72,7 +72,7 @@ private:
 
 class TranspositionTable {
 
-  static const unsigned ClusterSize = 4; // A cluster is 64 Bytes
+  static const size_t ClusterSize = 4; // A cluster is 64 Bytes
 
 public:
  ~TranspositionTable() { free(mem); }
@@ -86,7 +86,7 @@ public:
   void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV);
 
 private:
-  uint32_t hashMask;
+  size_t hashMask;
   TTEntry* table;
   void* mem;
   uint8_t generation; // Size must be not bigger than TTEntry::generation8
@@ -101,7 +101,7 @@ extern TranspositionTable TT;
 
 inline TTEntry* TranspositionTable::first_entry(const Key key) const {
 
-  return table + ((uint32_t)key & hashMask);
+  return table + ((size_t)key & hashMask);
 }
 
 
