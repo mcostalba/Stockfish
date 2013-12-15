@@ -433,12 +433,9 @@ namespace {
 
             // Stop the search early if one move seems to be much better than others
             if (    depth >= 12
-                &&  BestMoveChanges <= DBL_EPSILON
                 && !stop
                 &&  PVSize == 1
-                &&  bestValue > VALUE_MATED_IN_MAX_PLY
-                && (   RootMoves.size() == 1
-                    || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
+                &&  bestValue > VALUE_MATED_IN_MAX_PLY)
             {
                 Value rBeta = bestValue - 2 * PawnValueMg;
                 ss->excludedMove = RootMoves[0].pv[0];
