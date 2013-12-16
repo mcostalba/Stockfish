@@ -432,7 +432,7 @@ namespace {
                 stop = true;
 
             // Stop the search early if one move seems to be much better than others
-            if (    depth >= 12
+            if (    depth >= 16
                 && !stop
                 &&  PVSize == 1
                 &&  bestValue > VALUE_MATED_IN_MAX_PLY)
