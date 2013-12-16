@@ -90,6 +90,7 @@ void init(OptionsMap& o) {
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
   o["SyzygyProbeLimit"]            = Option(6, 0, 6);
   o["SyzygyPath"]                  = Option("", on_tb_path);
+  o["Syzygy50MoveRule"]            = Option(true);
 }
 
 

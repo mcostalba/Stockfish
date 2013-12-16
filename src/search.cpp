@@ -49,6 +49,7 @@ namespace Search {
   int TBCardinality;
   uint64_t TBHits;
   bool RootInTB;
+  bool TB50MoveRule;
   Value TBScore;
 }
 
@@ -239,6 +240,7 @@ void Search::think() {
   TBCardinality = Options["SyzygyProbeLimit"];
   if (TBCardinality > Tablebases::TBLargest)
       TBCardinality = Tablebases::TBLargest;
+  TB50MoveRule = Options["Syzygy50MoveRule"];
 
   if (piecesCnt <= TBCardinality)
   {
@@ -266,7 +268,15 @@ void Search::think() {
       }
 
       if (!RootInTB)
+      {
           TBHits = 0;
+      }
+      else if (!TB50MoveRule)
+      {
+          TBScore = TBScore > VALUE_DRAW ? VALUE_MATE - MAX_PLY - 1
+                  : TBScore < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
+                  : TBScore;
+      }
   }
 
   // Reset the threads, still sleeping: will wake up at split time
@@ -647,9 +657,18 @@ namespace {
         if (found)
         {
             TBHits++;
-            value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
-                  : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply
-                  : VALUE_DRAW + 2 * v;
+
+            if (TB50MoveRule) {
+                value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
+                      : v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply
+                      : VALUE_DRAW + 2 * v;
+            }
+            else
+            {
+                value = v < 0 ? -VALUE_MATE + MAX_PLY + ss->ply
+                      : v > 0 ?  VALUE_MATE - MAX_PLY - ss->ply
+                      : VALUE_DRAW;
+            }
 
             TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
                      depth + 6 * ONE_PLY, MOVE_NONE, VALUE_NONE);
