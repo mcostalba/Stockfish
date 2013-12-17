@@ -50,6 +50,7 @@ namespace Search {
   uint64_t TBHits;
   bool RootInTB;
   bool TB50MoveRule;
+  Depth TBProbeDepth;
   Value TBScore;
 }
 
@@ -241,6 +242,7 @@ void Search::think() {
   if (TBCardinality > Tablebases::TBLargest)
       TBCardinality = Tablebases::TBLargest;
   TB50MoveRule = Options["Syzygy50MoveRule"];
+  TBProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
 
   if (piecesCnt <= TBCardinality)
   {
@@ -649,7 +651,7 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (   !RootNode
+    if (   !RootNode && depth >= TBProbeDepth
         && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);

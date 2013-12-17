@@ -88,9 +88,10 @@ void init(OptionsMap& o) {
   o["Slow Mover"]                  = Option(70, 10, 1000);
   o["UCI_Chess960"]                = Option(false);
   o["UCI_AnalyseMode"]             = Option(false, on_eval);
-  o["SyzygyProbeLimit"]            = Option(6, 0, 6);
   o["SyzygyPath"]                  = Option("", on_tb_path);
+  o["SyzygyProbeDepth"]            = Option(1, 1, 100);
   o["Syzygy50MoveRule"]            = Option(true);
+  o["SyzygyProbeLimit"]            = Option(6, 0, 6);
 }
 
 
