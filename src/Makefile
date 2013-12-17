@@ -233,6 +233,24 @@ ifeq ($(COMP),gcc)
 	profile_clean = gcc-profile-clean
 endif
 
+ifeq ($(COMP),ntoarmv7-gcc)
+	comp=ntoarmv7-gcc
+	CXX=ntoarmv7-g++
+	profile_prepare = gcc-profile-prepare
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+	profile_clean = gcc-profile-clean
+endif
+
+ifeq ($(COMP),ntox86-gcc)
+	comp=ntox86-gcc
+	CXX=ntox86-g++
+	profile_prepare = gcc-profile-prepare
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+	profile_clean = gcc-profile-clean
+endif
+
 ifeq ($(COMP),icc)
 	comp=icc
 	CXX=icpc
@@ -287,7 +305,12 @@ ifneq ($(comp),mingw)
 	ifneq ($(arch),armv7)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
 		ifneq ($(UNAME),Haiku)
-			LDFLAGS += -lpthread
+			# QNX (nto) has pthreads in libc so no need to link libpthreads
+			ifneq ($(COMP),ntoarmv7-gcc)
+				ifneq ($(COMP),ntox86-gcc)
+					LDFLAGS += -lpthread
+				endif
+			endif
 		endif
 	endif
 endif
@@ -437,6 +460,8 @@ help:
 	@echo "mingw                   > Gnu compiler with MinGW under Windows"
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
+	@echo "ntox86-gcc              > QNX x86 compiler"
+	@echo "ntoarmv7-gcc            > QNX arm compiler"
 	@echo ""
 	@echo "Non-standard targets:"
 	@echo ""
@@ -535,7 +560,7 @@ config-sanity:
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
+	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" || test "$(comp)" = "ntox86-gcc" || test "$(comp)" = "ntoarmv7-gcc"
 
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
