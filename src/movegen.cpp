@@ -22,7 +22,7 @@
 #include "movegen.h"
 #include "position.h"
 
-/// Simple macro to wrap a very common while loop, no facny, no flexibility,
+/// Simple macro to wrap a very common while loop, no fancy, no flexibility,
 /// hardcoded names 'mlist' and 'from'.
 #define SERIALIZE(b) while (b) (mlist++)->move = make_move(from, pop_lsb(&b))
 
@@ -32,15 +32,15 @@
 namespace {
 
   template<CastlingSide Side, bool Checks, bool Chess960>
-  ExtMove* generate_castle(const Position& pos, ExtMove* mlist, Color us) {
+  ExtMove* generate_castling(const Position& pos, ExtMove* mlist, Color us) {
 
-    if (pos.castle_impeded(us, Side) || !pos.can_castle(make_castle_right(us, Side)))
+    if (pos.castling_impeded(us, Side) || !pos.can_castle(make_castling_flag(us, Side)))
         return mlist;
 
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
     Square kfrom = pos.king_square(us);
-    Square rfrom = pos.castle_rook_square(us, Side);
+    Square rfrom = pos.castling_rook_square(us, Side);
     Square kto = relative_square(us, Side == KING_SIDE ? SQ_G1 : SQ_C1);
     Bitboard enemies = pos.pieces(~us);
 
@@ -59,7 +59,7 @@ namespace {
     if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
         return mlist;
 
-    (mlist++)->move = make<CASTLE>(kfrom, rfrom);
+    (mlist++)->move = make<CASTLING>(kfrom, rfrom);
 
     if (Checks && !pos.gives_check((mlist - 1)->move, CheckInfo(pos)))
         --mlist;
@@ -88,8 +88,8 @@ namespace {
             (mlist++)->move = make<PROMOTION>(to - Delta, to, KNIGHT);
         }
 
-        // Knight-promotion is the only one that can give a direct check not
-        // already included in the queen-promotion.
+        // Knight promotion is the only promotion that can give a direct check
+        // that's not already included in the queen promotion.
         if (Type == QUIET_CHECKS && (StepAttacksBB[W_KNIGHT][to] & ci->ksq))
             (mlist++)->move = make<PROMOTION>(to - Delta, to, KNIGHT);
         else
@@ -144,7 +144,7 @@ namespace {
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovery check
-            // promotion has been already generated among captures.
+            // promotion has been already generated amongst the captures.
             if (pawnsNotOn7 & ci->dcCandidates)
             {
                 dc1 = shift_bb<Up>(pawnsNotOn7 & ci->dcCandidates) & emptySquares & ~file_bb(ci->ksq);
@@ -260,13 +260,13 @@ namespace {
     {
         if (pos.is_chess960())
         {
-            mlist = generate_castle< KING_SIDE, Checks, true>(pos, mlist, Us);
-            mlist = generate_castle<QUEEN_SIDE, Checks, true>(pos, mlist, Us);
+            mlist = generate_castling< KING_SIDE, Checks, true>(pos, mlist, Us);
+            mlist = generate_castling<QUEEN_SIDE, Checks, true>(pos, mlist, Us);
         }
         else
         {
-            mlist = generate_castle< KING_SIDE, Checks, false>(pos, mlist, Us);
-            mlist = generate_castle<QUEEN_SIDE, Checks, false>(pos, mlist, Us);
+            mlist = generate_castling< KING_SIDE, Checks, false>(pos, mlist, Us);
+            mlist = generate_castling<QUEEN_SIDE, Checks, false>(pos, mlist, Us);
         }
     }
 
@@ -325,7 +325,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
      PieceType pt = type_of(pos.piece_on(from));
 
      if (pt == PAWN)
-         continue; // Will be generated togheter with direct checks
+         continue; // Will be generated together with direct checks
 
      Bitboard b = pos.attacks_from(Piece(pt), from) & ~pos.pieces();
 
@@ -355,8 +355,9 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 
   assert(pos.checkers());
 
-  // Find squares attacked by slider checkers, we will remove them from the king
-  // evasions so to skip known illegal moves avoiding useless legality check later.
+  // Find all the squares attacked by slider checkers. We will remove them from
+  // the king evasions in order to skip known illegal moves, which avoids any
+  // useless legality checks later on.
   do
   {
       ++checkersCnt;

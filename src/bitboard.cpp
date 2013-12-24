@@ -19,11 +19,10 @@
 
 #include <algorithm>
 #include <cstring>
-#include <iostream>
+#include <sstream>
 
 #include "bitboard.h"
 #include "bitcount.h"
-#include "misc.h"
 #include "rkiss.h"
 
 CACHE_LINE_ALIGNMENT
@@ -81,8 +80,8 @@ namespace {
   }
 }
 
-/// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
-/// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
+/// lsb()/msb() finds the least/most significant bit in a non-zero bitboard.
+/// pop_lsb() finds and clears the least significant bit in a non-zero bitboard.
 
 #ifndef USE_BSFQ
 
@@ -120,55 +119,49 @@ Square msb(Bitboard b) {
       result += 8;
   }
 
-  return (Square)(result + MS1BTable[b32]);
+  return Square(result + MS1BTable[b32]);
 }
 
 #endif // ifndef USE_BSFQ
 
 
-/// Bitboards::print() prints a bitboard in an easily readable format to the
-/// standard output. This is sometimes useful for debugging.
+/// Bitboards::pretty() returns an ASCII representation of a bitboard to be
+/// printed to standard output. This is sometimes useful for debugging.
 
-void Bitboards::print(Bitboard b) {
+const std::string Bitboards::pretty(Bitboard b) {
 
-  sync_cout;
+  std::ostringstream ss;
 
   for (Rank rank = RANK_8; rank >= RANK_1; --rank)
   {
-      std::cout << "+---+---+---+---+---+---+---+---+" << '\n';
+      ss << "+---+---+---+---+---+---+---+---+" << '\n';
 
       for (File file = FILE_A; file <= FILE_H; ++file)
-          std::cout << "| " << (b & (file | rank) ? "X " : "  ");
+          ss << "| " << (b & (file | rank) ? "X " : "  ");
 
-      std::cout << "|\n";
+      ss << "|\n";
   }
-  std::cout << "+---+---+---+---+---+---+---+---+" << sync_endl;
+  ss << "+---+---+---+---+---+---+---+---+";
+  return ss.str();
 }
 
 
-/// Bitboards::init() initializes various bitboard arrays. It is called during
-/// program initialization.
+/// Bitboards::init() initializes various bitboard tables. It is called at
+/// startup and relies on global objects to be already zero-initialized.
 
 void Bitboards::init() {
 
-  for (int k = 0, i = 0; i < 8; ++i)
-      while (k < (2 << i))
-          MS1BTable[k++] = i;
-
-  for (int i = 0; i < 64; ++i)
-      BSFTable[bsf_index(1ULL << i)] = Square(i);
-
   for (Square s = SQ_A1; s <= SQ_H8; ++s)
-      SquareBB[s] = 1ULL << s;
+      BSFTable[bsf_index(SquareBB[s] = 1ULL << s)] = s;
 
-  FileBB[FILE_A] = FileABB;
-  RankBB[RANK_1] = Rank1BB;
+  for (Bitboard b = 1; b < 256; ++b)
+      MS1BTable[b] = more_than_one(b) ? MS1BTable[b - 1] : lsb(b);
 
-  for (int i = 1; i < 8; ++i)
-  {
-      FileBB[i] = FileBB[i - 1] << 1;
-      RankBB[i] = RankBB[i - 1] << 8;
-  }
+  for (File f = FILE_A; f <= FILE_H; ++f)
+      FileBB[f] = f > FILE_A ? FileBB[f - 1] << 1 : FileABB;
+
+  for (Rank r = RANK_1; r <= RANK_8; ++r)
+      RankBB[r] = r > RANK_1 ? RankBB[r - 1] << 8 : Rank1BB;
 
   for (File f = FILE_A; f <= FILE_H; ++f)
       AdjacentFilesBB[f] = (f > FILE_A ? FileBB[f - 1] : 0) | (f < FILE_H ? FileBB[f + 1] : 0);
@@ -186,11 +179,11 @@ void Bitboards::init() {
 
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
       for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-      {
-          SquareDistance[s1][s2] = std::max(file_distance(s1, s2), rank_distance(s1, s2));
           if (s1 != s2)
-             DistanceRingsBB[s1][SquareDistance[s1][s2] - 1] |= s2;
-      }
+          {
+              SquareDistance[s1][s2] = std::max(file_distance(s1, s2), rank_distance(s1, s2));
+              DistanceRingsBB[s1][SquareDistance[s1][s2] - 1] |= s2;
+          }
 
   int steps[][9] = { {}, { 7, 9 }, { 17, 15, 10, 6, -6, -10, -15, -17 },
                      {}, {}, {}, { 9, 7, -7, -9, 8, 1, -1, -8 } };
@@ -198,9 +191,9 @@ void Bitboards::init() {
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (Square s = SQ_A1; s <= SQ_H8; ++s)
-              for (int k = 0; steps[pt][k]; ++k)
+              for (int i = 0; steps[pt][i]; ++i)
               {
-                  Square to = s + Square(c == WHITE ? steps[pt][k] : -steps[pt][k]);
+                  Square to = s + Square(c == WHITE ? steps[pt][i] : -steps[pt][i]);
 
                   if (is_ok(to) && square_distance(s, to) < 3)
                       StepAttacksBB[make_piece(c, pt)][s] |= to;
@@ -212,24 +205,23 @@ void Bitboards::init() {
   init_magics(RTable, RAttacks, RMagics, RMasks, RShifts, RDeltas, magic_index<ROOK>);
   init_magics(BTable, BAttacks, BMagics, BMasks, BShifts, BDeltas, magic_index<BISHOP>);
 
-  for (Square s = SQ_A1; s <= SQ_H8; ++s)
-  {
-      PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
-      PseudoAttacks[QUEEN][s] |= PseudoAttacks[  ROOK][s] = attacks_bb<  ROOK>(s, 0);
-  }
-
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+  {
+      PseudoAttacks[QUEEN][s1]  = PseudoAttacks[BISHOP][s1] = attacks_bb<BISHOP>(s1, 0);
+      PseudoAttacks[QUEEN][s1] |= PseudoAttacks[  ROOK][s1] = attacks_bb<  ROOK>(s1, 0);
+
       for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-          if (PseudoAttacks[QUEEN][s1] & s2)
-          {
-              Square delta = (s2 - s1) / square_distance(s1, s2);
+      {
+          Piece pc = (PseudoAttacks[BISHOP][s1] & s2) ? W_BISHOP :
+                     (PseudoAttacks[ROOK][s1]   & s2) ? W_ROOK   : NO_PIECE;
 
-              for (Square s = s1 + delta; s != s2; s += delta)
-                  BetweenBB[s1][s2] |= s;
+          if (pc == NO_PIECE)
+              continue;
 
-              PieceType pt = (PseudoAttacks[BISHOP][s1] & s2) ? BISHOP : ROOK;
-              LineBB[s1][s2] = (PseudoAttacks[pt][s1] & PseudoAttacks[pt][s2]) | s1 | s2;
-          }
+          LineBB[s1][s2] = (attacks_bb(pc, s1, 0) & attacks_bb(pc, s2, 0)) | s1 | s2;
+          BetweenBB[s1][s2] = attacks_bb(pc, s1, SquareBB[s2]) & attacks_bb(pc, s2, SquareBB[s1]);
+      }
+  }
 }
 
 
@@ -257,7 +249,7 @@ namespace {
   Bitboard pick_random(RKISS& rk, int booster) {
 
     // Values s1 and s2 are used to rotate the candidate magic of a
-    // quantity known to be the optimal to quickly find the magics.
+    // quantity known to be optimal to quickly find the magics.
     int s1 = booster & 63, s2 = (booster >> 6) & 63;
 
     Bitboard m = rk.rand<Bitboard>();

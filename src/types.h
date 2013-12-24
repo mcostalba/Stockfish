@@ -26,7 +26,7 @@
 /// For Windows, part of the configuration is detected automatically, but some
 /// switches need to be set manually:
 ///
-/// -DNDEBUG      | Disable debugging mode. Use always.
+/// -DNDEBUG      | Disable debugging mode. Always use this.
 ///
 /// -DNO_PREFETCH | Disable use of prefetch asm-instruction. A must if you want
 ///               | the executable to run on some very old machines.
@@ -103,7 +103,7 @@ const int MAX_PLY_PLUS_6 = MAX_PLY + 6;
 /// bit  0- 5: destination square (from 0 to 63)
 /// bit  6-11: origin square (from 0 to 63)
 /// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
-/// bit 14-15: special move flag: promotion (1), en passant (2), castle (3)
+/// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 /// any normal move destination square is always different from origin square
@@ -118,17 +118,17 @@ enum MoveType {
   NORMAL,
   PROMOTION = 1 << 14,
   ENPASSANT = 2 << 14,
-  CASTLE    = 3 << 14
+  CASTLING  = 3 << 14
 };
 
-enum CastleRight {  // Defined as in PolyGlot book hash key
-  CASTLES_NONE,
+enum CastlingFlag {  // Defined as in PolyGlot book hash key
+  NO_CASTLING,
   WHITE_OO,
   WHITE_OOO   = WHITE_OO << 1,
   BLACK_OO    = WHITE_OO << 2,
   BLACK_OOO   = WHITE_OO << 3,
-  ALL_CASTLES = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO,
-  CASTLE_RIGHT_NB = 16
+  ANY_CASTLING = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO,
+  CASTLING_FLAG_NB = 16
 };
 
 enum CastlingSide {
@@ -241,21 +241,21 @@ enum Rank {
 };
 
 
-/// Score enum keeps a midgame and an endgame value in a single integer, first
-/// LSB 16 bits are used to store endgame value, while upper bits are used for
-/// midgame value.
+/// The Score enum stores a middlegame and an endgame value in a single integer
+/// (enum). The least significant 16 bits are used to store the endgame value
+/// and the upper 16 bits are used to store the middlegame value.
 enum Score : int { SCORE_ZERO };
 
 inline Score make_score(int mg, int eg) { return Score((mg << 16) + eg); }
 
-/// Extracting the signed lower and upper 16 bits it not so trivial because
+/// Extracting the signed lower and upper 16 bits is not so trivial because
 /// according to the standard a simple cast to short is implementation defined
 /// and so is a right shift of a signed integer.
 inline Value mg_value(Score s) { return Value(((s + 0x8000) & ~0xffff) / 0x10000); }
 
 /// On Intel 64 bit we have a small speed regression with the standard conforming
-/// version, so use a faster code in this case that, although not 100% standard
-/// compliant it seems to work for Intel and MSVC.
+/// version. Therefore, in this case we use faster code that, although not 100%
+/// standard compliant, seems to work for Intel and MSVC.
 #if defined(IS_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
 inline Value eg_value(Score s) { return Value(int16_t(s & 0xffff)); }
@@ -346,8 +346,8 @@ inline Piece make_piece(Color c, PieceType pt) {
   return Piece((c << 3) | pt);
 }
 
-inline CastleRight make_castle_right(Color c, CastlingSide s) {
-  return CastleRight(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
+inline CastlingFlag make_castling_flag(Color c, CastlingSide s) {
+  return CastlingFlag(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
 }
 
 inline PieceType type_of(Piece p)  {

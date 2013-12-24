@@ -52,12 +52,12 @@ enum EndgameType {
   // Scaling functions
   SCALE_FUNS,
 
-  KBPsK,   // KB+pawns vs K
-  KQKRPs,  // KQ vs KR+pawns
+  KBPsK,   // KB and pawns vs K
+  KQKRPs,  // KQ vs KR and pawns
   KRPKR,   // KRP vs KR
   KRPKB,   // KRP vs KB
   KRPPKRP, // KRPP vs KRP
-  KPsK,    // King and pawns vs king
+  KPsK,    // K and pawns vs K
   KBPKB,   // KBP vs KB
   KBPPKB,  // KBPP vs KB
   KBPKN,   // KBP vs KN
@@ -67,7 +67,8 @@ enum EndgameType {
 };
 
 
-/// Endgame functions can return a Value or a ScaleFactor, according to EndgameType
+/// Endgame functions can be of two types depending on whether they return a
+/// Value or a ScaleFactor.
 template<EndgameType E>
 using eg_fun = std::conditional<(E < SCALE_FUNS), Value, ScaleFactor>;
 
@@ -95,9 +96,9 @@ private:
 };
 
 
-/// Endgames class stores in two std::map the std::unique_ptr to endgame
-/// evaluation and scaling base objects. Then we use polymorphism to invoke
-/// the actual endgame function calling its operator() that is virtual.
+/// The Endgames class stores the pointers to endgame evaluation and scaling
+/// base objects in two std::map typedefs. We then use polymorphism to invoke
+/// the actual endgame function by calling its virtual operator().
 
 class Endgames {
 

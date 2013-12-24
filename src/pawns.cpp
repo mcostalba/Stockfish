@@ -124,7 +124,7 @@ namespace {
         // Test for backward pawn.
         // If the pawn is passed, isolated, or member of a pawn chain it cannot
         // be backward. If there are friendly pawns behind on adjacent files
-        // or if can capture an enemy pawn it cannot be backward either.
+        // or if it can capture an enemy pawn it cannot be backward either.
         if (   (passed | isolated | chain)
             || (ourPawns & pawn_attack_span(Them, s))
             || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
@@ -145,9 +145,9 @@ namespace {
 
         assert(opposed | passed | (pawn_attack_span(Us, s) & theirPawns));
 
-        // A not passed pawn is a candidate to become passed, if it is free to
+        // A not-passed pawn is a candidate to become passed, if it is free to
         // advance and if the number of friendly pawns beside or behind this
-        // pawn on adjacent files is higher or equal than the number of
+        // pawn on adjacent files is higher than or equal to the number of
         // enemy pawns in the forward direction on the adjacent files.
         candidate =   !(opposed | passed | backward | isolated)
                    && (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
@@ -188,7 +188,7 @@ namespace {
 
 namespace Pawns {
 
-/// init() initializes some tables by formula instead of hard-code their values
+/// init() initializes some tables by formula instead of hard-coding their values
 
 void init() {
 
@@ -252,14 +252,15 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 }
 
 
-/// Entry::update_safety() calculates and caches a bonus for king safety. It is
-/// called only when king square changes, about 20% of total king_safety() calls.
+/// Entry::update_safety() calculates and caches a bonus for king safety.
+/// It is called only when king square changes, which is about 20% of total
+/// king_safety() calls.
 
 template<Color Us>
 Score Entry::update_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
-  castleRights[Us] = pos.can_castle(Us);
+  castlingFlags[Us] = pos.can_castle(Us);
   minKPdistance[Us] = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
@@ -271,11 +272,11 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
-  // If we can castle use the bonus after the castle if it is bigger
-  if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
+  // If we can castle use the bonus after the castling if it is bigger
+  if (pos.can_castle(make_castling_flag(Us, KING_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 
-  if (pos.can_castle(make_castle_right(Us, QUEEN_SIDE)))
+  if (pos.can_castle(make_castling_flag(Us, QUEEN_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
   return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);

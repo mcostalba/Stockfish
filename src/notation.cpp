@@ -56,7 +56,7 @@ string score_to_uci(Value v, Value alpha, Value beta) {
 /// move_to_uci() converts a move to a string in coordinate notation
 /// (g1f3, a7a8q, etc.). The only special case is castling moves, where we print
 /// in the e1g1 notation in normal chess mode, and in e1h1 notation in chess960
-/// mode. Internally castle moves are always coded as "king captures rook".
+/// mode. Internally castling moves are always encoded as "king captures rook".
 
 const string move_to_uci(Move m, bool chess960) {
 
@@ -69,7 +69,7 @@ const string move_to_uci(Move m, bool chess960) {
   if (m == MOVE_NULL)
       return "0000";
 
-  if (type_of(m) == CASTLE && !chess960)
+  if (type_of(m) == CASTLING && !chess960)
       to = (to > from ? FILE_G : FILE_C) | rank_of(from);
 
   string move = square_to_string(from) + square_to_string(to);
@@ -118,7 +118,7 @@ const string move_to_san(Position& pos, Move m) {
   Piece pc = pos.piece_on(from);
   PieceType pt = type_of(pc);
 
-  if (type_of(m) == CASTLE)
+  if (type_of(m) == CASTLING)
       san = to > from ? "O-O" : "O-O-O";
   else
   {
@@ -126,8 +126,8 @@ const string move_to_san(Position& pos, Move m) {
       {
           san = PieceToChar[WHITE][pt]; // Upper case
 
-          // Disambiguation if we have more then one piece of type 'pt' that can
-          // reach 'to' with a legal move.
+          // A disambiguation occurs if we have more then one piece of type 'pt'
+          // that can reach 'to' with a legal move.
           others = b = (pos.attacks_from(pc, to) & pos.pieces(us, pt)) ^ from;
 
           while (b)
@@ -175,7 +175,7 @@ const string move_to_san(Position& pos, Move m) {
 
 /// pretty_pv() formats human-readable search information, typically to be
 /// appended to the search log file. It uses the two helpers below to pretty
-/// format time and score respectively.
+/// format the time and score respectively.
 
 static string time_to_string(int64_t msecs) {
 

@@ -28,9 +28,9 @@
 using namespace std;
 using namespace std::chrono;
 
-/// Version number. If Version is left empty, then compile date, in the
-/// format DD-MM-YY, is shown in engine_info.
-static const string Version = "DD";
+/// Version number. If Version is left empty, then compile date in the format
+/// DD-MM-YY and show in engine_info.
+static const string Version = "";
 
 
 /// engine_info() returns the full name of the current Stockfish version. This
@@ -90,8 +90,8 @@ void dbg_print() {
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
-/// can toggle the logging of std::cout and std:cin at runtime while preserving
-/// usual i/o functionality and without changing a single line of code!
+/// can toggle the logging of std::cout and std:cin at runtime whilst preserving
+/// usual i/o functionality, all without changing a single line of code!
 /// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 
 struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and cout
@@ -146,7 +146,7 @@ public:
 };
 
 
-/// Used to serialize access to std::cout to avoid multiple threads to write at
+/// Used to serialize access to std::cout to avoid multiple threads writing at
 /// the same time.
 
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
@@ -167,9 +167,9 @@ std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 void start_logger(bool b) { Logger::start(b); }
 
 
-/// prefetch() preloads the given address in L1/L2 cache. This is a non
-/// blocking function and do not stalls the CPU waiting for data to be
-/// loaded from memory, that can be quite slow.
+/// prefetch() preloads the given address in L1/L2 cache. This is a non-blocking
+/// function that doesn't stall the CPU waiting for data to be loaded from memory,
+/// which can be quite slow.
 #ifdef NO_PREFETCH
 
 void prefetch(char*) {}
@@ -179,8 +179,8 @@ void prefetch(char*) {}
 void prefetch(char* addr) {
 
 #  if defined(__INTEL_COMPILER)
-   // This hack prevents prefetches to be optimized away by
-   // Intel compiler. Both MSVC and gcc seems not affected.
+   // This hack prevents prefetches from being optimized away by
+   // Intel compiler. Both MSVC and gcc seem not be affected by this.
    __asm__ ("");
 #  endif
 

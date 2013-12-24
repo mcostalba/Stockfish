@@ -45,7 +45,6 @@ struct SplitPoint {
   Depth depth;
   Value beta;
   int nodeType;
-  Move threatMove;
   bool cutNode;
 
   // Const pointers to shared data
@@ -96,7 +95,7 @@ struct Thread : public ThreadBase {
 
   template <bool Fake>
   void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
-             Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
+             Depth depth, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   Material::Table materialTable;
@@ -129,13 +128,13 @@ struct TimerThread : public ThreadBase {
 
 
 /// ThreadPool struct handles all the threads related stuff like init, starting,
-/// parking and, the most important, launching a slave thread at a split point.
+/// parking and, most importantly, launching a slave thread at a split point.
 /// All the access to shared thread data is done through this class.
 
 struct ThreadPool : public std::vector<Thread*> {
 
   void init(); // No c'tor and d'tor, threads rely on globals that should
-  void exit(); // be initialized and valid during the whole thread lifetime.
+  void exit(); // be initialized and are valid during the whole thread lifetime.
 
   MainThread* main() { return static_cast<MainThread*>((*this)[0]); }
   void read_uci_options();
