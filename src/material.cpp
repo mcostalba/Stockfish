@@ -125,7 +125,7 @@ namespace {
         int a = pieceCount[Us  ][KNIGHT] + pieceCount[Us  ][BISHOP] + pieceCount[Us  ][ROOK],
             b = pieceCount[Them][KNIGHT] + pieceCount[Them][BISHOP] + pieceCount[Them][ROOK];
 
-        if (b - a >= 3) value -= (b - 2) * 20 * 16;
+        if (b - a >= 3) value -= (b - 2) * 40 * 16;
     }
 
     return value;
