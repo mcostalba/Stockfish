@@ -120,13 +120,12 @@ namespace {
         value += pc * v;
     }
 
-    if (   pieceCount[Us][QUEEN] == 1 && pieceCount[Them][QUEEN] == 0
-        && pieceCount[Us][ROOK] + pieceCount[Them][ROOK] == 4)
+    if (   pieceCount[Us][QUEEN] == 1 && pieceCount[Them][QUEEN] == 0)
     {
-        int n = pieceCount[Them][KNIGHT] - pieceCount[Us][KNIGHT],
-            b = pieceCount[Them][BISHOP] - pieceCount[Us][BISHOP];
+        int a = pieceCount[Us  ][KNIGHT] + pieceCount[Us  ][BISHOP] + pieceCount[Us  ][ROOK],
+            b = pieceCount[Them][KNIGHT] + pieceCount[Them][BISHOP] + pieceCount[Them][ROOK];
 
-        if (n == 1 && b == 2) value -= 0x49 * 16;
+        if (b - a >= 3) value -= (b - 2) * 20 * 16;
     }
 
     return value;
