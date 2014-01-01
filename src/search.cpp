@@ -752,8 +752,7 @@ moves_loop: // When in check and at SpNode search starts from here
                || ss->staticEval == VALUE_NONE
                ||(ss-2)->staticEval == VALUE_NONE;
 
-    singularExtensionNode =   !RootNode
-                           && !SpNode
+    singularExtensionNode =   !SpNode
                            &&  depth >= 8 * ONE_PLY
                            &&  ttMove != MOVE_NONE
                            && !excludedMove // Recursive singular search is not allowed
