@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -358,9 +358,9 @@ Value do_evaluate(const Position& pos) {
 
   // If we don't already have an unusual scale factor, check for opposite
   // colored bishop endgames, and use a lower scale for those.
-  if (   ei.mi->game_phase() < PHASE_MIDGAME
-      && pos.opposite_bishops()
-      && sf == SCALE_FACTOR_NORMAL)
+  if (    ei.mi->game_phase() < PHASE_MIDGAME
+      &&  pos.opposite_bishops()
+      && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
   {
       // Ignoring any pawns, do both sides only have a single bishop and no
       // other pieces?
@@ -375,7 +375,7 @@ Value do_evaluate(const Position& pos) {
       else
           // Endgame with opposite-colored bishops, but also other pieces. Still
           // a bit drawish, but not as drawish as with only the two bishops.
-           sf = ScaleFactor(50);
+           sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
   }
 
   Value v = interpolate(score, ei.mi->game_phase(), sf);
