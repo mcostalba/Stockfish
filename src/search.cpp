@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1220,10 +1220,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          // Prune moves with negative or equal SEE and also moves with positive
-          // SEE where capturing piece loses a tempo and SEE < beta - futilityBase.
-          if (   futilityBase < beta
-              && pos.see(move, beta - futilityBase) <= 0)
+          if (futilityBase < beta && pos.see(move) <= 0)
           {
               bestValue = std::max(bestValue, futilityBase);
               continue;

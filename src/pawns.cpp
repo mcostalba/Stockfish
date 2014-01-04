@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,13 +49,16 @@ namespace {
   { S(20, 28), S(29, 31), S(33, 31), S(33, 31),
     S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
 
-  // Pawn chain membership bonus by file and rank (initialized by formula)
-  Score ChainMember[FILE_NB][RANK_NB];
+  // Connected pawn bonus by file and rank (initialized by formula)
+  Score Connected[FILE_NB][RANK_NB];
 
   // Candidate passed pawn bonus by rank
   const Score CandidatePassed[RANK_NB] = {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
     S(34,68), S(83,166), S(0, 0), S( 0, 0) };
+
+  // Bonus for file distance of the two outermost pawns
+  const Score PawnsFileSpan = S(0, 15);
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
@@ -86,7 +89,7 @@ namespace {
     Bitboard b;
     Square s;
     File f;
-    bool passed, isolated, doubled, opposed, chain, backward, candidate;
+    bool passed, isolated, doubled, opposed, connected, backward, candidate;
     Score value = SCORE_ZERO;
     const Square* pl = pos.list<PAWN>(Us);
 
@@ -110,22 +113,22 @@ namespace {
         // This file cannot be semi-open
         e->semiopenFiles[Us] &= ~(1 << f);
 
-        // Our rank plus previous one. Used for chain detection
+        // Our rank plus previous one
         b = rank_bb(s) | rank_bb(s - pawn_push(Us));
 
-        // Flag the pawn as passed, isolated, doubled or member of a pawn
-        // chain (but not the backward one).
-        chain    =   ourPawns   & adjacent_files_bb(f) & b;
-        isolated = !(ourPawns   & adjacent_files_bb(f));
-        doubled  =   ourPawns   & forward_bb(Us, s);
-        opposed  =   theirPawns & forward_bb(Us, s);
-        passed   = !(theirPawns & passed_pawn_mask(Us, s));
+        // Flag the pawn as passed, isolated, doubled or
+        // connected (but not the backward one).
+        connected =   ourPawns   & adjacent_files_bb(f) & b;
+        isolated  = !(ourPawns   & adjacent_files_bb(f));
+        doubled   =   ourPawns   & forward_bb(Us, s);
+        opposed   =   theirPawns & forward_bb(Us, s);
+        passed    = !(theirPawns & passed_pawn_mask(Us, s));
 
         // Test for backward pawn.
-        // If the pawn is passed, isolated, or member of a pawn chain it cannot
-        // be backward. If there are friendly pawns behind on adjacent files
+        // If the pawn is passed, isolated, or connected it cannot be
+        // backward. If there are friendly pawns behind on adjacent files
         // or if it can capture an enemy pawn it cannot be backward either.
-        if (   (passed | isolated | chain)
+        if (   (passed | isolated | connected)
             || (ourPawns & pawn_attack_span(Them, s))
             || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
             backward = false;
@@ -169,8 +172,8 @@ namespace {
         if (backward)
             value -= Backward[opposed][f];
 
-        if (chain)
-            value += ChainMember[f][relative_rank(Us, s)];
+        if (connected)
+            value += Connected[f][relative_rank(Us, s)];
 
         if (candidate)
         {
@@ -179,6 +182,14 @@ namespace {
             if (!doubled)
                 e->candidatePawns[Us] |= s;
         }
+    }
+
+    // In endgame it's better to have pawns on both wings. So give a bonus according
+    // to file distance between left and right outermost pawns.
+    if (pos.count<PAWN>(Us) > 1)
+    {
+        b = e->semiopenFiles[Us] ^ 0xFF;
+        value += PawnsFileSpan * int(msb(b) - lsb(b));
     }
 
     return value;
@@ -192,14 +203,14 @@ namespace Pawns {
 
 void init() {
 
-  const int chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+  const int bonusesByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
   int bonus;
 
   for (Rank r = RANK_1; r < RANK_8; ++r)
       for (File f = FILE_A; f <= FILE_H; ++f)
       {
-          bonus = r * (r-1) * (r-2) + chainByFile[f] * (r/2 + 1);
-          ChainMember[f][r] = make_score(bonus, bonus);
+          bonus = r * (r-1) * (r-2) + bonusesByFile[f] * (r/2 + 1);
+          Connected[f][r] = make_score(bonus, bonus);
       }
 }
 
