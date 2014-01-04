@@ -69,6 +69,10 @@ struct Entry {
   int semiopenFiles[COLOR_NB];
   Score kingSafety[COLOR_NB];
   int pawnsOnSquares[COLOR_NB][COLOR_NB];
+  int most_left;
+  int most_right;
+  int wideness;
+  int rammed;
 };
 
 typedef HashTable<Entry, 16384> Table;
