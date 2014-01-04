@@ -656,7 +656,6 @@ namespace {
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  (pos.non_pawn_material(pos.side_to_move()) >= QueenValueMg || depth < 12*ONE_PLY)        
         &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
@@ -701,7 +700,6 @@ namespace {
     if (   !PvNode
         &&  depth >= 5 * ONE_PLY
         && !ss->skipNullMove
-        &&  (pos.non_pawn_material(pos.side_to_move()) >= QueenValueMg || depth < 12*ONE_PLY)        
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value rbeta = beta + 200;
@@ -842,13 +840,11 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           && !inCheck
           && !dangerous
-          &&  (pos.non_pawn_material(pos.side_to_move()) >= QueenValueMg || depth < 12*ONE_PLY)          
        /* &&  move != ttMove Already implicit in the next condition */
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-          &&  (pos.non_pawn_material(pos.side_to_move()) >= QueenValueMg || depth < 8*ONE_PLY)
               && moveCount >= FutilityMoveCounts[improving][depth] )
           {
               if (SpNode)
@@ -909,7 +905,6 @@ moves_loop: // When in check and at SpNode search starts from here
       if (    depth >= 3 * ONE_PLY
           && !pvMove
           && !captureOrPromotion
-          &&  pos.non_pawn_material(pos.side_to_move())          
           &&  move != ttMove
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
