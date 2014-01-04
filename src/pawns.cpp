@@ -24,6 +24,7 @@
 #include "bitcount.h"
 #include "pawns.h"
 #include "position.h"
+#include "evaluate.h"
 
 namespace {
 
@@ -106,6 +107,10 @@ namespace {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         f = file_of(s);
+
+		// Handle Wideness
+		e->most_right = f > e->most_right ? f : e->most_right;
+		e->most_left  = f < e->most_left  ? f : e->most_left;
 
         // This file cannot be semi-open
         e->semiopenFiles[Us] &= ~(1 << f);
@@ -217,7 +222,19 @@ Entry* probe(const Position& pos, Table& entries) {
       return e;
 
   e->key = key;
+
+  // Init Wideness
+  e->most_left  = FILE_H;
+  e->most_right = FILE_A;
+
   e->value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
+  
+  // Set wideness
+  e->wideness = e->most_right >= e->most_left ? e->most_right - e->most_left : 0;
+
+  // Calculate rammed (How closed is the position)
+  e->rammed = popcount<Max15>((((Eval::SpaceMask[WHITE] | Eval::SpaceMask[BLACK]) & pos.pieces(BLACK, PAWN)) >> 8) & pos.pieces(WHITE, PAWN));
+
   return e;
 }
 
