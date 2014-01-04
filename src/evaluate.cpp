@@ -456,6 +456,8 @@ Value do_evaluate(const Position& pos) {
            abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK)) < PawnValueMg/2  &&
            pos.count<ROOK>(WHITE) <=1 &&
            pos.count<ROOK>(BLACK) <=1 &&
+           pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) >= 1 &&
+           pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK) >= 1 &&
            pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) + pos.count<ROOK>(WHITE) <= 2 &&
            pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK) + pos.count<ROOK>(BLACK) <= 2)
       {
