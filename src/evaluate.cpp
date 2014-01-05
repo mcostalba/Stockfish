@@ -580,7 +580,6 @@ Value do_evaluate(const Position& pos) {
 		// Rammed penalty
         if (Piece == BISHOP) 
 		{
-			score += BishopRammedPawns[ei.pi->rammed];
             score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 		}
 
@@ -588,7 +587,6 @@ Value do_evaluate(const Position& pos) {
 		// Rammed bonus
         if (Piece == KNIGHT) 
 		{
-			score += KnightRammedPawns[ei.pi->rammed];
             score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
 		}
 
