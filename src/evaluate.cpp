@@ -182,16 +182,6 @@ namespace {
   // happen in Chess960 games.
   const Score TrappedBishopA1H1 = make_score(50, 50);
 
-   // Knights better in closed positions
-   const Score KnightRammedPawns [] = {
-	  make_score(0,0) ,   make_score(0,0) ,   make_score(5,5) ,   make_score(10,10) ,  make_score(15,15) , make_score(20,20) , make_score(25,25) , make_score(25,25)
-   };
-
-   // Bishops worse in closed positions
-   const Score BishopRammedPawns [] = {
-	  make_score(0,0) ,   make_score(0,0) ,   make_score(-5,-5) ,   make_score(-10,-10) ,  make_score(-15,-15) , make_score(-20,-20) , make_score(-25,-25) , make_score(-25,-25)
-   };
-
   // Knigth versus Bishop endgame-types, Knigth prefers pawns on one side only
   const Score KnightWideness [] = {
     make_score(50,50), make_score(50,50), make_score(50,50), make_score(36,36),  make_score(18,18) ,  make_score(0,0),   make_score(0,0) ,  make_score(0,0)
