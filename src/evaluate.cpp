@@ -419,7 +419,7 @@ Value do_evaluate(const Position& pos) {
   }
 
   if (ei.mi->game_phase() < PHASE_MIDGAME
-      && sf == SCALE_FACTOR_NORMAL)
+      && (sf == SCALE_FACTOR_NORMAL || (pos.opposite_bishops() && sf == ScaleFactor(50))))
   {
 	  // Bishop Versus Knight endgame
 	  if (   pos.non_pawn_material(WHITE) == BishopValueMg
