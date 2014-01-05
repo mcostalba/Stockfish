@@ -94,6 +94,7 @@ namespace {
   void id_loop(Position& pos);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
+  void update_hist(Position& pos, Stack* ss, Move bestMove, Depth depth, Move* quietsSearched, int quietCount);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
@@ -567,26 +568,8 @@ namespace {
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
         // Update killers, history, and counter move on TT hit
-        if (    ttValue >= beta
-            &&  ttMove
-            && !pos.capture_or_promotion(ttMove)
-            && !inCheck)
-        {
-            if (ss->killers[0] != ttMove)
-            {
-                ss->killers[1] = ss->killers[0];
-                ss->killers[0] = ttMove;
-            }
-
-            Value bonus = Value(int(depth) * int(depth));
-            History.update(pos.moved_piece(ttMove), to_sq(ttMove), bonus);
-
-            if (is_ok((ss-1)->currentMove))
-            {
-                Square prevMoveSq = to_sq((ss-1)->currentMove);
-                Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, ttMove);
-            }
-        }
+        if (ttMove && ttValue >= beta && !inCheck)
+            update_hist(pos, ss, ttMove, depth, quietsSearched, 1);
         return ttValue;
     }
 
@@ -1063,29 +1046,8 @@ moves_loop: // When in check and at SpNode search starts from here
              depth, bestMove, ss->staticEval);
 
     // Quiet best move: update killers, history and countermoves
-    if (    bestValue >= beta
-        && !pos.capture_or_promotion(bestMove)
-        && !inCheck)
-    {
-        if (ss->killers[0] != bestMove)
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = bestMove;
-        }
-
-        // Increase history value of the cut-off move and decrease all the other
-        // played non-capture moves.
-        Value bonus = Value(int(depth) * int(depth));
-        History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
-        for (int i = 0; i < quietCount - 1; ++i)
-        {
-            Move m = quietsSearched[i];
-            History.update(pos.moved_piece(m), to_sq(m), -bonus);
-        }
-
-        if (is_ok((ss-1)->currentMove))
-            Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
-    }
+    if (bestValue >= beta && !inCheck)
+        update_hist(pos, ss, bestMove, depth, quietsSearched, quietCount);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1315,6 +1277,36 @@ moves_loop: // When in check and at SpNode search starts from here
     return  v == VALUE_NONE             ? VALUE_NONE
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+  }
+
+
+  // update_hist() updates killers, history and countermoves
+
+  void update_hist(Position& pos, Stack* ss, Move bestMove, Depth depth, Move* quietsSearched, int quietCount) {
+
+    if (!pos.capture_or_promotion(bestMove)) {
+        if (ss->killers[0] != bestMove)
+        {
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = bestMove;
+        }
+
+        // Increase history value of the cut-off move and decrease all the other
+        // played non-capture moves.
+        Value bonus = Value(int(depth) * int(depth));
+        History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
+        for (int i = 0; i < quietCount - 1; ++i)
+        {
+            Move m = quietsSearched[i];
+            History.update(pos.moved_piece(m), to_sq(m), -bonus);
+        }
+
+        if (is_ok((ss-1)->currentMove))
+        {
+            Square prevMoveSq = to_sq((ss-1)->currentMove);
+            Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
+        }
+    }
   }
 
 
