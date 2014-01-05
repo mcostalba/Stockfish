@@ -243,9 +243,6 @@ Entry* probe(const Position& pos, Table& entries) {
   // Set wideness
   e->wideness = e->most_right >= e->most_left ? e->most_right - e->most_left : 0;
 
-  // Calculate rammed (How closed is the position)
-  e->rammed = popcount<Max15>((((Eval::SpaceMask[WHITE] | Eval::SpaceMask[BLACK]) & pos.pieces(BLACK, PAWN)) >> 8) & pos.pieces(WHITE, PAWN));
-
   return e;
 }
 
