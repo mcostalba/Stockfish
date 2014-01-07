@@ -633,7 +633,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
   // Is there a discovered check?
   if (   unlikely(ci.dcCandidates)
       && (ci.dcCandidates & from)
-      && !aligned(from, to, king_square(~sideToMove)))
+      && !aligned(from, to, ci.ksq))
       return true;
 
   // Can we skip the ugly special cases?
@@ -641,7 +641,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
       return false;
 
   Color us = sideToMove;
-  Square ksq = king_square(~us);
+  Square ksq = ci.ksq;
 
   switch (type_of(m))
   {
