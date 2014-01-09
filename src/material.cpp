@@ -63,7 +63,7 @@ namespace {
 const int LinearCoefficientsSameColorWinning[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
-    {   0,  100                         }, // Pawn
+    {   0,   50                         }, // Pawn
     {   0,    0,   0                    }, // Knight
     {   0,    0,   0,     0             }, // Bishop
     {   0,    0,   0,     0,     0      }, // Rook
@@ -74,7 +74,7 @@ const int LinearCoefficientsSameColorWinning[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
-    {   0,  100                         }, // Pawn
+    {   0,   50                         }, // Pawn
     {   0,    0,   0                    }, // Knight      OUR PIECES
     {   0,    0,   0,     0             }, // Bishop
     {   0,    0,   0,     0,    0       }, // Rook
@@ -85,10 +85,10 @@ const int LinearCoefficientsSameColorLoosing[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
     {   0,    0                         }, // Pawn
-    {   0,    0, 100                    }, // Knight
-    {   0,    0,   0,   100             }, // Bishop
-    {   0,    0,   0,     0,   100      }, // Rook
-    {   0,    0,   0,     0,     0, 100 }  // Queen
+    {   0,    0,  50                    }, // Knight
+    {   0,    0,   0,    50             }, // Bishop
+    {   0,    0,   0,     0,    50      }, // Rook
+    {   0,    0,   0,     0,     0,  50 }  // Queen
   };
 
   const int LinearCoefficientsOppositeColorLoosing[][PIECE_TYPE_NB] = {
@@ -96,10 +96,10 @@ const int LinearCoefficientsSameColorLoosing[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
     {   0,    0                         }, // Pawn
-    {   0,    0, 100                    }, // Knight      OUR PIECES
-    {   0,    0,   0,   100             }, // Bishop
-    {   0,    0,   0,     0,  100       }, // Rook
-    {   0,    0,   0,     0,    0,  100 }  // Queen
+    {   0,    0,  50                    }, // Knight      OUR PIECES
+    {   0,    0,   0,    50             }, // Bishop
+    {   0,    0,   0,     0,   50       }, // Rook
+    {   0,    0,   0,     0,    0,   50 }  // Queen
   };
 
 
