@@ -72,6 +72,7 @@ struct Entry {
   int most_left;
   int most_right;
   int wideness;
+  int rammed;
 };
 
 typedef HashTable<Entry, 16384> Table;
