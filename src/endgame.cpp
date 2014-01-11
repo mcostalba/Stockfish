@@ -362,10 +362,11 @@ Value Endgame<KBBKN>::operator()(const Position& pos) const {
   Square loserKSq = pos.king_square(weakSide);
   Square knightSq = pos.list<KNIGHT>(weakSide)[0];
 
-  Value result =  VALUE_KNOWN_WIN
+  Value result =  pos.bishop_pair(strongSide) ? VALUE_KNOWN_WIN
                 + PushToCorners[loserKSq]
                 + PushClose[square_distance(winnerKSq, loserKSq)]
-                + PushAway[square_distance(loserKSq, knightSq)];
+                + PushAway[square_distance(loserKSq, knightSq)]
+                : VALUE_DRAW;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
