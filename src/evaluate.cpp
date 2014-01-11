@@ -176,23 +176,34 @@ namespace {
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
-  const Score TrappedBishopA1H1 = make_score(50, 50);
+  const Score TrappedBishopA1H1 = S(50, 50);
+
+   // Knights better in closed positions
+  const Score KnightRammedPawns [] = {
+	S(0,0) ,   S(0,0) ,   S(5,5) ,   S(10,10) ,  S(15,15) , S(20,20) , S(25,25) , S(25,25)
+  };
+
+   // Bishops worse in closed positions
+  const Score BishopRammedPawns [] = {
+    S(0,0) ,   S(0,0) ,   S(-5,-5) ,   S(-10,-10) ,  S(-15,-15) , S(-20,-20) , S(-25,-25) , S(-25,-25)
+  };
 
   // Knigth versus Bishop endgame-types, Knigth prefers pawns on one side only
   const Score KnightWideness [] = {
-    make_score(50,50), make_score(50,50), make_score(50,50), make_score(36,36),  make_score(18,18) ,  make_score(0,0),   make_score(0,0) ,  make_score(0,0)
+    S(50,50), S(50,50), S(50,50), S(36,36),  S(18,18) ,  S(0,0),   S(0,0) ,  S(0,0)
   };
   // Knigth versus Bishop endgame-types, Bishops prefers pawns on both sides
   const Score BishopWideness [] = {
-    make_score(0,0) ,   make_score(0,0) ,   make_score(0,0) ,   make_score(0,0) ,  make_score(18,18) , make_score(25,25) , make_score(36,36) , make_score(50,50)
+    S(0,0) ,   S(0,0) ,   S(0,0) ,   S(0,0) ,  S(18,18) , S(25,25) , S(36,36) , S(50,50)
   };
 
   // Rook versus  2 Minors, Rook prefer pawns on both sides
   const Score RookWideness [] = {
-    make_score(-25,-25) ,make_score(-25,-25) , make_score(-25,-25) ,make_score(-25,-25) , make_score(-25,-25),   make_score(0,0), make_score(25,25), make_score(50,50)
+    S(-25,-25) ,S(-25,-25) , S(-25,-25) ,S(-25,-25) , S(-25,-25),   S(0,0), S(25,25), S(50,50)
   };
 
 
+  #undef S
   // King danger constants and variables. The king danger scores are taken
   // from KingDanger[]. Various little "meta-bonuses" measuring the strength
   // of the enemy attack are added up into an integer, which is used as an
