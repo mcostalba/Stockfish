@@ -357,11 +357,11 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 
   e->value = (int16_t)((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
 
-  // Having pawn(s) and ahead at least a quality (npm) ==> Exchange Pieces not Pawns !
-  if (npm_w >= (npm_b + 2*PawnValueMg) && pos.count<PAWN>(WHITE) && pos.count<PAWN>(WHITE) > pos.count<PAWN>(BLACK) - 3)
+  // Having pawn(s) and ahead at least a piece (npm) ==> Exchange Pieces not Pawns !
+  if (npm_w >= (npm_b + 3*PawnValueMg) && pos.count<PAWN>(WHITE) && pos.count<PAWN>(WHITE) > pos.count<PAWN>(BLACK) - 3)
     e->value += (int16_t)((imbalanceWinning<WHITE>(pieceCount) - imbalanceLoosing<BLACK>(pieceCount)) / 16);
 
-  if (npm_b >= (npm_w + 2*PawnValueMg) && pos.count<PAWN>(BLACK) && pos.count<PAWN>(BLACK) > pos.count<PAWN>(WHITE) - 3)
+  if (npm_b >= (npm_w + 3*PawnValueMg) && pos.count<PAWN>(BLACK) && pos.count<PAWN>(BLACK) > pos.count<PAWN>(WHITE) - 3)
     e->value += (int16_t)((imbalanceWinning<BLACK>(pieceCount) - imbalanceLoosing<WHITE>(pieceCount)) / 16);
 
   return e;
