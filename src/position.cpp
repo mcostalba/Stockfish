@@ -1288,20 +1288,20 @@ bool Position::pos_is_ok(int* failedStep) const {
   int dummy, *step = failedStep ? failedStep : &dummy;
 
   // What features of the position should be verified?
-  const bool all = false;
+  const static bool all = false;
 
-  const bool debugBitboards       = all || false;
-  const bool debugKingCount       = all || false;
-  const bool debugKingCapture     = all || false;
-  const bool debugCheckerCount    = all || false;
-  const bool debugKey             = all || false;
-  const bool debugMaterialKey     = all || false;
-  const bool debugPawnKey         = all || false;
-  const bool debugIncrementalEval = all || false;
-  const bool debugNonPawnMaterial = all || false;
-  const bool debugPieceCounts     = all || false;
-  const bool debugPieceList       = all || false;
-  const bool debugCastlingSquares = all || false;
+  const static bool debugBitboards       = all || false;
+  const static bool debugKingCount       = all || false;
+  const static bool debugKingCapture     = all || false;
+  const static bool debugCheckerCount    = all || false;
+  const static bool debugKey             = all || false;
+  const static bool debugMaterialKey     = all || false;
+  const static bool debugPawnKey         = all || false;
+  const static bool debugIncrementalEval = all || false;
+  const static bool debugNonPawnMaterial = all || false;
+  const static bool debugPieceCounts     = all || false;
+  const static bool debugPieceList       = all || false;
+  const static bool debugCastlingSquares = all || false;
 
   *step = 1;
 
