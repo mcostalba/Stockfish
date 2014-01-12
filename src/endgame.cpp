@@ -113,6 +113,7 @@ Endgames::Endgames() {
   add<KPK>("KPK");
   add<KNNK>("KNNK");
   add<KBNK>("KBNK");
+  add<KBBK>("KBBK");
   add<KRKP>("KRKP");
   add<KRKB>("KRKB");
   add<KRKN>("KRKN");
@@ -199,6 +200,26 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
   Value result =  VALUE_KNOWN_WIN
                 + PushClose[square_distance(winnerKSq, loserKSq)]
                 + PushToCorners[loserKSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
+/// Mate with KBB vs K, we have to drive the
+/// defending king towards a corner square.
+template<>
+Value Endgame<KBBK>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, 2 * BishopValueMg, 0));
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+
+  Square loserKSq = pos.king_square(weakSide);
+
+  // We check for a draw, if the two bishops
+  // are on the same color.
+  Value result =  pos.bishop_pair(strongSide) ? VALUE_KNOWN_WIN
+                + PushToCorners[loserKSq]
+                : VALUE_DRAW;
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -362,7 +383,7 @@ Value Endgame<KBBKN>::operator()(const Position& pos) const {
   Square loserKSq = pos.king_square(weakSide);
   Square knightSq = pos.list<KNIGHT>(weakSide)[0];
 
-  Value result =  pos.bishop_pair(strongSide) ? VALUE_KNOWN_WIN / 4
+  Value result =  pos.bishop_pair(strongSide) ? 3 * PawnValueMg
                 + PushToCorners[loserKSq]
                 + PushClose[square_distance(winnerKSq, loserKSq)]
                 + PushAway[square_distance(loserKSq, knightSq)]

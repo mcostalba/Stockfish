@@ -36,6 +36,7 @@ enum EndgameType {
   KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
+  KBBK,  // KBB vs K
   KPK,   // KP vs K
   KRKP,  // KR vs KP
   KRKB,  // KR vs KB
