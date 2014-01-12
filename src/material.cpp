@@ -328,13 +328,13 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
   {
       e->factor[WHITE] = (uint8_t)
-      (npm_w <= npm_b || npm_w < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(WHITE), 2)]);
+      (npm_w == npm_b || npm_w < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(WHITE), 2)]);
   }
 
   if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
   {
       e->factor[BLACK] = (uint8_t)
-      (npm_b <= npm_w || npm_b < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(BLACK), 2)]);
+      (npm_w == npm_b || npm_b < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(BLACK), 2)]);
   }
 
   // Compute the space weight
