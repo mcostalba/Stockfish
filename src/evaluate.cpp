@@ -453,8 +453,10 @@ Value do_evaluate(const Position& pos) {
 
       // 2 pieces each side (no Queens no RR) close to even material (e.g. BB against BN (or RB against RN)
       // and MAX one pawn ahead with low ei.pi->wideness ---> DRAW, you can sac a piece on the very last pawn after pawn exchange
+      // Exception : BB + pawn (or 2 pawn versus 1 pawn and no passed pawns) versus NN after sac of knigth on last pawn BB versus N should win.
       if ( ei.pi->wideness <= 1 && abs(pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) <= 1 &&
            abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK)) < PawnValueMg/2  &&
+           abs(pos.count<BISHOP>(WHITE) - pos.count<BISHOP>(BLACK)) < 2 && // not 2 bishops "ahead" (the exception)
            ((pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) == 1) || (!ei.pi->passed_pawns(WHITE) && !ei.pi->passed_pawns(BLACK))) &&
            pos.count<ROOK>(WHITE) <=1 &&
            pos.count<ROOK>(BLACK) <=1 &&
