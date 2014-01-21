@@ -216,22 +216,22 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   // No pawns makes it difficult to win, even with a material advantage. This
   // catches some trivial draws like KK, KBK and KNK and gives a very drawish
   // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-  if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
+  if (npm_w - npm_b <= BishopValueMg && !pos.count<PAWN>(WHITE))
   {
       e->factor[WHITE] = npm_w < RookValueMg ? 0 : npm_b <= BishopValueMg ? 4 : 12;
   }
 
-  if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
+  if (npm_b - npm_w <= BishopValueMg && !pos.count<PAWN>(BLACK))
   {
       e->factor[BLACK] = npm_b < RookValueMg ? 0 : npm_w <= BishopValueMg ? 4 : 12;
   }
 
-  if (pos.count<PAWN>(WHITE) == 1 && npm_w - npm_b <= BishopValueMg)
+  if (npm_w - npm_b <= BishopValueMg && pos.count<PAWN>(WHITE) == 1)
   {
       e->factor[WHITE] = (uint8_t) SCALE_FACTOR_ONEPAWN;
   }
 
-  if (pos.count<PAWN>(BLACK) == 1 && npm_b - npm_w <= BishopValueMg)
+  if (npm_b - npm_w <= BishopValueMg && pos.count<PAWN>(BLACK) == 1)
   {
       e->factor[BLACK] = (uint8_t) SCALE_FACTOR_ONEPAWN;
   }
