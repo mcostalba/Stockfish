@@ -277,7 +277,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
     if (entry->flags & 2)
       res = entry->map[entry->map_idx[wdl_to_map[wdl + 2]] + res];
 
-    if (!(entry->flags & pa_flags[wdl + 2]) && !(wdl & 1))
+    if (!(entry->flags & pa_flags[wdl + 2]) || (wdl & 1))
       res *= 2;
   } else {
     struct DTZEntry_pawn *entry = (struct DTZEntry_pawn *)ptr;
@@ -306,7 +306,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
     if (entry->flags[f] & 2)
       res = entry->map[entry->map_idx[f][wdl_to_map[wdl + 2]] + res];
 
-    if (!(entry->flags[f] & pa_flags[wdl + 2]) && !(wdl & 1))
+    if (!(entry->flags[f] & pa_flags[wdl + 2]) || (wdl & 1))
       res *= 2;
   }
 
