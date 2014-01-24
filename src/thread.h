@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -67,7 +67,6 @@ struct SplitPoint {
   Depth depth;
   Value beta;
   int nodeType;
-  Move threatMove;
   bool cutNode;
 
   // Const pointers to shared data
@@ -118,7 +117,7 @@ struct Thread : public ThreadBase {
 
   template <bool Fake>
   void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
-             Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
+             Depth depth, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   Material::Table materialTable;

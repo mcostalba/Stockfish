@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ namespace Search {
   std::vector<RootMove> RootMoves;
   Position RootPos;
   Color RootColor;
-  Time::point SearchTime;
+  Time::point SearchTime, IterationTime;
   StateStackPtr SetupStates;
 }
 
@@ -83,7 +83,7 @@ namespace {
   Value DrawValue[COLOR_NB];
   HistoryStats History;
   GainsStats Gains;
-  CountermovesStats Countermoves;
+  MovesStats Countermoves, Followupmoves;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
@@ -94,8 +94,7 @@ namespace {
   void id_loop(Position& pos);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
-  bool allows(const Position& pos, Move first, Move second);
-  bool refutes(const Position& pos, Move first, Move second);
+  void update_stats(Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
@@ -305,6 +304,7 @@ namespace {
     History.clear();
     Gains.clear();
     Countermoves.clear();
+    Followupmoves.clear();
 
     PVSize = Options["MultiPV"];
     Skill skill(Options["Skill Level"]);
@@ -397,6 +397,8 @@ namespace {
                 sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
 
+        IterationTime = Time::now() - SearchTime;
+
         // If skill levels are enabled and time is up, pick a sub-optimal best move
         if (skill.enabled() && skill.time_to_pick(depth))
             skill.pick_move();
@@ -427,31 +429,12 @@ namespace {
             if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges);
 
-            // Stop the search if most of the available time has been used. We
-            // probably don't have enough time to search the first move at the
-            // next iteration anyway.
-            if (Time::now() - SearchTime > (TimeMgr.available_time() * 62) / 100)
+            // Stop the search if only one legal move is available or most
+            // of the available time has been used. We probably don't have
+            // enough time to search the first move at the next iteration anyway.
+            if (   RootMoves.size() == 1
+                || IterationTime > (TimeMgr.available_time() * 62) / 100)
                 stop = true;
-
-            // Stop the search early if one move seems to be much better than others
-            if (    depth >= 12
-                &&  BestMoveChanges <= DBL_EPSILON
-                && !stop
-                &&  PVSize == 1
-                &&  bestValue > VALUE_MATED_IN_MAX_PLY
-                && (   RootMoves.size() == 1
-                    || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
-            {
-                Value rBeta = bestValue - 2 * PawnValueMg;
-                ss->excludedMove = RootMoves[0].pv[0];
-                ss->skipNullMove = true;
-                Value v = search<NonPV>(pos, ss, rBeta - 1, rBeta, (depth - 3) * ONE_PLY, true);
-                ss->skipNullMove = false;
-                ss->excludedMove = MOVE_NONE;
-
-                if (v < rBeta)
-                    stop = true;
-            }
 
             if (stop)
             {
@@ -490,7 +473,7 @@ namespace {
     const TTEntry *tte;
     SplitPoint* splitPoint;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove, threatMove;
+    Move ttMove, move, excludedMove, bestMove;
     Depth ext, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
@@ -505,7 +488,6 @@ namespace {
     {
         splitPoint = ss->splitPoint;
         bestMove   = splitPoint->bestMove;
-        threatMove = splitPoint->threatMove;
         bestValue  = splitPoint->bestValue;
         tte = NULL;
         ttMove = excludedMove = MOVE_NONE;
@@ -518,7 +500,7 @@ namespace {
 
     moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
-    ss->currentMove = threatMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
+    ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
     (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -551,7 +533,7 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey);
-    ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
+    ss->ttMove = ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
     ttValue = tte ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
 
     // At PV nodes we check for exact scores, whilst at non-PV nodes we check for
@@ -569,14 +551,10 @@ namespace {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
-        if (    ttValue >= beta
-            &&  ttMove
-            && !pos.capture_or_promotion(ttMove)
-            &&  ttMove != ss->killers[0])
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = ttMove;
-        }
+        // If ttMove is quiet, update killers, history, counter move and followup move on TT hit
+        if (ttValue >= beta && ttMove && !pos.capture_or_promotion(ttMove) && !inCheck)
+            update_stats(pos, ss, ttMove, depth, NULL, 0);
+
         return ttValue;
     }
 
@@ -681,22 +659,6 @@ namespace {
             if (v >= beta)
                 return nullValue;
         }
-        else
-        {
-            // The null move failed low, which means that we may be faced with
-            // some kind of threat. If the previous move was reduced, check if
-            // the move that refuted the null move was somehow connected to the
-            // move which was reduced. If a connection is found, return a fail
-            // low score (which will cause the reduced move to fail high in the
-            // parent node, which will trigger a re-search with full depth).
-            threatMove = (ss+1)->currentMove;
-
-            if (   depth < 5 * ONE_PLY
-                && (ss-1)->reduction
-                && threatMove != MOVE_NONE
-                && allows(pos, (ss-1)->currentMove, threatMove))
-                return alpha;
-        }
     }
 
     // Step 9. ProbCut (skipped when in check)
@@ -751,7 +713,11 @@ moves_loop: // When in check and at SpNode search starts from here
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
                             Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 
-    MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
+    Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
+    Move followupmoves[] = { Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].first,
+                             Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].second };
+
+    MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -851,8 +817,7 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[improving][depth]
-              && (!threatMove || !refutes(pos, move, threatMove)))
+              && moveCount >= FutilityMoveCounts[improving][depth] )
           {
               if (SpNode)
                   splitPoint->mutex.lock();
@@ -1040,7 +1005,7 @@ moves_loop: // When in check and at SpNode search starts from here
           assert(bestValue < beta);
 
           thisThread->split<FakeSplit>(pos, ss, alpha, beta, &bestValue, &bestMove,
-                                       depth, threatMove, moveCount, &mp, NT, cutNode);
+                                       depth, moveCount, &mp, NT, cutNode);
           if (bestValue >= beta)
               break;
       }
@@ -1069,30 +1034,9 @@ moves_loop: // When in check and at SpNode search starts from here
              PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
              depth, bestMove, ss->staticEval);
 
-    // Quiet best move: update killers, history and countermoves
-    if (    bestValue >= beta
-        && !pos.capture_or_promotion(bestMove)
-        && !inCheck)
-    {
-        if (ss->killers[0] != bestMove)
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = bestMove;
-        }
-
-        // Increase history value of the cut-off move and decrease all the other
-        // played non-capture moves.
-        Value bonus = Value(int(depth) * int(depth));
-        History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
-        for (int i = 0; i < quietCount - 1; ++i)
-        {
-            Move m = quietsSearched[i];
-            History.update(pos.moved_piece(m), to_sq(m), -bonus);
-        }
-
-        if (is_ok((ss-1)->currentMove))
-            Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
-    }
+    // Quiet best move: update killers, history, countermoves and followupmoves
+    if (bestValue >= beta && !pos.capture_or_promotion(bestMove) && !inCheck)
+        update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount - 1);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1231,10 +1175,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          // Prune moves with negative or equal SEE and also moves with positive
-          // SEE where capturing piece loses a tempo and SEE < beta - futilityBase.
-          if (   futilityBase < beta
-              && pos.see(move, beta - futilityBase) <= 0)
+          if (futilityBase < beta && pos.see(move) <= 0)
           {
               bestValue = std::max(bestValue, futilityBase);
               continue;
@@ -1332,96 +1273,38 @@ moves_loop: // When in check and at SpNode search starts from here
   }
 
 
-  // allows() tests whether the 'first' move at previous ply somehow makes the
-  // 'second' move possible e.g. if the moving piece is the same in both moves.
-  // Normally the second move is the threat (the best move returned from a null
-  // search that fails low).
+  // update_stats() updates killers, history, countermoves and followupmoves stats after a fail-high
+  // of a quiet move.
 
-  bool allows(const Position& pos, Move first, Move second) {
+  void update_stats(Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt) {
 
-    assert(is_ok(first));
-    assert(is_ok(second));
-    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(type_of(first) == CASTLING || color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // The piece is the same or second's destination was vacated by the first move.
-    // We exclude the trivial case where a sliding piece does in two moves what
-    // it could do in one move: eg. Ra1a2, Ra2a3.
-    if (    m2to == m1from
-        || (m1to == m2from && !aligned(m1from, m2from, m2to)))
-        return true;
-
-    // Second one moves through the square vacated by first one
-    if (between_bb(m2from, m2to) & m1from)
-      return true;
-
-    // Second's destination is defended by the first move's piece
-    Bitboard m1att = attacks_bb(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
-    if (m1att & m2to)
-        return true;
-
-    // Second move gives a discovered check through the first's checking piece
-    if (m1att & pos.king_square(pos.side_to_move()))
+    if (ss->killers[0] != move)
     {
-        assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
-        return true;
+        ss->killers[1] = ss->killers[0];
+        ss->killers[0] = move;
     }
 
-    return false;
-  }
-
-
-  // refutes() tests whether a 'first' move is able to defend against a 'second'
-  // opponent's move. In this case will not be pruned. Normally the second move
-  // is the threat (the best move returned from a null search that fails low).
-
-  bool refutes(const Position& pos, Move first, Move second) {
-
-    assert(is_ok(first));
-    assert(is_ok(second));
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // Don't prune moves of the threatened piece
-    if (m1from == m2to)
-        return true;
-
-    // If the threatened piece has a value less than or equal to the value of
-    // the threat piece, don't prune moves which defend it.
-    if (    pos.capture(second)
-        && (   PieceValue[MG][pos.piece_on(m2from)] >= PieceValue[MG][pos.piece_on(m2to)]
-            || type_of(pos.piece_on(m2from)) == KING))
+    // Increase history value of the cut-off move and decrease all the other
+    // played quiet moves.
+    Value bonus = Value(int(depth) * int(depth));
+    History.update(pos.moved_piece(move), to_sq(move), bonus);
+    for (int i = 0; i < quietsCnt; ++i)
     {
-        // Update occupancy as if the piece and the threat are moving
-        Bitboard occ = pos.pieces() ^ m1from ^ m1to ^ m2from;
-        Piece pc = pos.piece_on(m1from);
-
-        // Does the moved piece attack the square 'm2to' ?
-        if (attacks_bb(pc, m1to, occ) & m2to)
-            return true;
-
-        // Scan for possible X-ray attackers behind the moved piece
-        Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
-                       | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
-
-        // Verify attackers are triggered by our move and not already existing
-        if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
-            return true;
+        Move m = quiets[i];
+        History.update(pos.moved_piece(m), to_sq(m), -bonus);
     }
 
-    // Don't prune safe moves which block the threat path
-    if ((between_bb(m2from, m2to) & m1to) && pos.see_sign(first) >= 0)
-        return true;
+    if (is_ok((ss-1)->currentMove))
+    {
+        Square prevMoveSq = to_sq((ss-1)->currentMove);
+        Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, move);
+    }
 
-    return false;
+    if (is_ok((ss-2)->currentMove) && (ss-1)->currentMove == (ss-1)->ttMove)
+    {
+        Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
+        Followupmoves.update(pos.piece_on(prevOwnMoveSq), prevOwnMoveSq, move);
+    }
   }
 
 
@@ -1744,7 +1627,9 @@ void check_time() {
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove
                          && !Signals.failedLowAtRoot
-                         &&  elapsed > TimeMgr.available_time();
+                         && (   elapsed > TimeMgr.available_time()
+                             || (   elapsed > (TimeMgr.available_time() * 62) / 100
+                                 && elapsed > IterationTime * 1.4));
 
   bool noMoreTime =   elapsed > TimeMgr.maximum_time() - 2 * TimerThread::Resolution
                    || stillAtFirstMove;

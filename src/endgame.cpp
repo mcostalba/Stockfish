@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -118,7 +118,6 @@ Endgames::Endgames() {
   add<KRKN>("KRKN");
   add<KQKP>("KQKP");
   add<KQKR>("KQKR");
-  add<KBBKN>("KBBKN");
 
   add<KNPK>("KNPK");
   add<KNPKB>("KNPKB");
@@ -348,32 +347,8 @@ Value Endgame<KQKR>::operator()(const Position& pos) const {
 }
 
 
-/// KBB vs KN. This is almost always a win. We try to push the enemy king to a corner
-/// and away from his knight. For a reference of this difficult endgame see:
-/// en.wikipedia.org/wiki/Chess_endgame#Effect_of_tablebases_on_endgame_theory
-
-template<>
-Value Endgame<KBBKN>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, 2 * BishopValueMg, 0));
-  assert(verify_material(pos, weakSide, KnightValueMg, 0));
-
-  Square winnerKSq = pos.king_square(strongSide);
-  Square loserKSq = pos.king_square(weakSide);
-  Square knightSq = pos.list<KNIGHT>(weakSide)[0];
-
-  Value result =  VALUE_KNOWN_WIN
-                + PushToCorners[loserKSq]
-                + PushClose[square_distance(winnerKSq, loserKSq)]
-                + PushAway[square_distance(loserKSq, knightSq)];
-
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
-
 /// Some cases of trivial draws
 template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
-template<> Value Endgame<KmmKm>::operator()(const Position&) const { return VALUE_DRAW; }
 
 
 /// KB and one or more pawns vs K. It checks for draws with rook pawns and
@@ -817,7 +792,7 @@ ScaleFactor Endgame<KBPKN>::operator()(const Position& pos) const {
 
 
 /// KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
-/// and the defending king prevents the pawn from advancing the position is drawn.
+/// and the defending king prevents the pawn from advancing, the position is drawn.
 template<>
 ScaleFactor Endgame<KNPK>::operator()(const Position& pos) const {
 

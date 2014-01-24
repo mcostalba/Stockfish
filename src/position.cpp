@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -411,11 +411,14 @@ const string Position::pretty(Move move) const {
 }
 
 
-/// Position:hidden_checkers() returns a bitboard of all pinned / discovered check
-/// pieces, according to the call parameters. Pinned pieces protect our king and
-/// discovered check pieces attack the enemy king.
+/// Position::check_blockers() returns a bitboard of all the pieces with color
+/// 'c' that are blocking check on the king with color 'kingColor'. A piece
+/// blocks a check if removing that piece from the board would result in a
+/// position where the king is in check. A check blocking piece can be either a
+/// pinned or a discovered check piece, according if its color 'c' is the same
+/// or the opposite of 'kingColor'.
 
-Bitboard Position::hidden_checkers(Color c, Color kingColor) const {
+Bitboard Position::check_blockers(Color c, Color kingColor) const {
 
   Bitboard b, pinners, result = 0;
   Square ksq = king_square(kingColor);
@@ -614,7 +617,7 @@ bool Position::pseudo_legal(const Move m) const {
 }
 
 
-/// Position::move_gives_check() tests whether a pseudo-legal move gives a check
+/// Position::gives_check() tests whether a pseudo-legal move gives a check
 
 bool Position::gives_check(Move m, const CheckInfo& ci) const {
 
@@ -633,20 +636,17 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
   // Is there a discovered check?
   if (   unlikely(ci.dcCandidates)
       && (ci.dcCandidates & from)
-      && !aligned(from, to, king_square(~sideToMove)))
+      && !aligned(from, to, ci.ksq))
       return true;
 
   // Can we skip the ugly special cases?
   if (type_of(m) == NORMAL)
       return false;
 
-  Color us = sideToMove;
-  Square ksq = king_square(~us);
-
   switch (type_of(m))
   {
   case PROMOTION:
-      return attacks_bb(Piece(promotion_type(m)), to, pieces() ^ from) & ksq;
+      return attacks_bb(Piece(promotion_type(m)), to, pieces() ^ from) & ci.ksq;
 
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -657,18 +657,18 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
       Square capsq = file_of(to) | rank_of(from);
       Bitboard b = (pieces() ^ from ^ capsq) | to;
 
-      return  (attacks_bb<  ROOK>(ksq, b) & pieces(us, QUEEN, ROOK))
-            | (attacks_bb<BISHOP>(ksq, b) & pieces(us, QUEEN, BISHOP));
+      return  (attacks_bb<  ROOK>(ci.ksq, b) & pieces(sideToMove, QUEEN, ROOK))
+            | (attacks_bb<BISHOP>(ci.ksq, b) & pieces(sideToMove, QUEEN, BISHOP));
   }
   case CASTLING:
   {
       Square kfrom = from;
       Square rfrom = to; // Castling is encoded as 'King captures the rook'
-      Square kto = relative_square(us, rfrom > kfrom ? SQ_G1 : SQ_C1);
-      Square rto = relative_square(us, rfrom > kfrom ? SQ_F1 : SQ_D1);
+      Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
+      Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
 
-      return   (PseudoAttacks[ROOK][rto] & ksq)
-            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & ksq);
+      return   (PseudoAttacks[ROOK][rto] & ci.ksq)
+            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & ci.ksq);
   }
   default:
       assert(false);
@@ -1011,10 +1011,7 @@ void Position::undo_null_move() {
 
 
 /// Position::see() is a static exchange evaluator: It tries to estimate the
-/// material gain or loss resulting from a move. Parameter 'asymmThreshold' takes
-/// tempi into account. If the side who initiated the capturing sequence does the
-/// last capture, he loses a tempo and if the result is below 'asymmThreshold'
-/// the capturing sequence is considered bad.
+/// material gain or loss resulting from a move.
 
 int Position::see_sign(Move m) const {
 
@@ -1029,7 +1026,7 @@ int Position::see_sign(Move m) const {
   return see(m);
 }
 
-int Position::see(Move m, int asymmThreshold) const {
+int Position::see(Move m) const {
 
   Square from, to;
   Bitboard occupied, attackers, stmAttackers;
@@ -1080,7 +1077,6 @@ int Position::see(Move m, int asymmThreshold) const {
 
       // Add the new entry to the swap list
       swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
-      ++slIndex;
 
       // Locate and remove the next least valuable attacker
       captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
@@ -1089,21 +1085,11 @@ int Position::see(Move m, int asymmThreshold) const {
 
       // Stop before processing a king capture
       if (captured == KING && stmAttackers)
-      {
-          swapList[slIndex++] = QueenValueMg * 16;
           break;
-      }
+
+      ++slIndex;
 
   } while (stmAttackers);
-
-  // If we are doing asymmetric SEE evaluation and the same side does the first
-  // and the last capture, it loses a tempo and gain must be at least worth
-  // 'asymmThreshold', otherwise we replace the score with a very low value,
-  // before negamaxing.
-  if (asymmThreshold)
-      for (int i = 0; i < slIndex; i += 2)
-          if (swapList[i] < asymmThreshold)
-              swapList[i] = - QueenValueMg * 16;
 
   // Having built the swap list, we negamax through it to find the best
   // achievable score from the point of view of the side to move.
