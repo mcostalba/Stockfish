@@ -810,10 +810,10 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 13. Pruning at shallow depth (exclude PV nodes)
       if (   !PvNode
           && !captureOrPromotion
+          && !inCheck
           && !dangerous
        /* &&  move != ttMove Already implicit in the next condition */
-          &&  bestValue > VALUE_MATED_IN_MAX_PLY
-          && !inCheck)
+          &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
@@ -876,10 +876,10 @@ moves_loop: // When in check and at SpNode search starts from here
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
           && !pvMove
+          && !captureOrPromotion
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1]
-          && !captureOrPromotion)
+          &&  move != ss->killers[1])
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
@@ -1075,7 +1075,7 @@ moves_loop: // When in check and at SpNode search starts from here
     ss->ply = (ss-1)->ply + 1;
 
     // Check for an instant draw or if the maximum ply has been reached
-    if (ss->ply > MAX_PLY || pos.is_draw())
+    if (pos.is_draw() || ss->ply > MAX_PLY)
         return DrawValue[pos.side_to_move()];
 
     // Decide whether or not to include checks: this fixes also the type of
@@ -1419,7 +1419,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
            && pos.pseudo_legal(m = tte->move()) // Local copy, TT could change
            && pos.legal(m, pos.pinned_pieces(pos.side_to_move()))
            && ply < MAX_PLY
-           && (ply < 2 || !pos.is_draw()));
+           && (!pos.is_draw() || ply < 2));
 
   pv.push_back(MOVE_NONE); // Must be zero-terminating
 

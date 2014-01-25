@@ -493,8 +493,8 @@ bool Position::legal(Move m, Bitboard pinned) const {
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
-  return   !(pinned & from)
-        || !pinned
+  return   !pinned
+        || !(pinned & from)
         ||  aligned(from, to_sq(m), king_square(us));
 }
 
@@ -580,8 +580,8 @@ bool Position::pseudo_legal(const Move m) const {
       // rank, and both the destination square and the square between the
       // source and destination squares must be empty.
       if (    rank_of(to) != RANK_5
-          || !empty(from + DELTA_S)
-          || !empty(to))
+          || !empty(to)
+          || !empty(from + DELTA_S))
           return false;
       break;
 
@@ -1084,7 +1084,7 @@ int Position::see(Move m) const {
       stmAttackers = attackers & pieces(stm);
 
       // Stop before processing a king capture
-      if (stmAttackers && captured == KING)
+      if (captured == KING && stmAttackers)
           break;
 
       ++slIndex;

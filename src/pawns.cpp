@@ -152,8 +152,8 @@ namespace {
         // advance and if the number of friendly pawns beside or behind this
         // pawn on adjacent files is higher than or equal to the number of
         // enemy pawns in the forward direction on the adjacent files.
-        candidate =    (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
-                   &&  !(opposed | passed | backward | isolated)
+        candidate =   !(opposed | passed | backward | isolated)
+                   && (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
                    &&  popcount<Max15>(b) >= popcount<Max15>(pawn_attack_span(Us, s) & theirPawns);
 
         // Passed pawns will be properly scored in evaluation because we need
