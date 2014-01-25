@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ public:
   void undo_null_move();
 
   // Static exchange evaluation
-  int see(Move m, int asymmThreshold = 0) const;
+  int see(Move m) const;
   int see_sign(Move m) const;
 
   // Accessing hash keys
@@ -174,7 +174,7 @@ private:
 
   // Helper functions
   void do_castling(Square kfrom, Square kto, Square rfrom, Square rto);
-  Bitboard hidden_checkers(Color c, Color kingColor) const;
+  Bitboard check_blockers(Color c, Color kingColor) const;
   void put_piece(Square s, Color c, PieceType pt);
   void remove_piece(Square s, Color c, PieceType pt);
   void move_piece(Square from, Square to, Color c, PieceType pt);
@@ -315,11 +315,11 @@ inline Bitboard Position::checkers() const {
 }
 
 inline Bitboard Position::discovered_check_candidates() const {
-  return hidden_checkers(sideToMove, ~sideToMove);
+  return check_blockers(sideToMove, ~sideToMove);
 }
 
 inline Bitboard Position::pinned_pieces(Color c) const {
-  return hidden_checkers(c, c);
+  return check_blockers(c, c);
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {

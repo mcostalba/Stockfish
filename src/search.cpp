@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ namespace Search {
   std::vector<RootMove> RootMoves;
   Position RootPos;
   Color RootColor;
-  Time::point SearchTime;
+  Time::point SearchTime, IterationTime;
   StateStackPtr SetupStates;
 }
 
@@ -83,7 +83,7 @@ namespace {
   Value DrawValue[COLOR_NB];
   HistoryStats History;
   GainsStats Gains;
-  CountermovesStats Countermoves;
+  MovesStats Countermoves, Followupmoves;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
@@ -94,6 +94,7 @@ namespace {
   void id_loop(Position& pos);
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
+  void update_stats(Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
@@ -303,6 +304,7 @@ namespace {
     History.clear();
     Gains.clear();
     Countermoves.clear();
+    Followupmoves.clear();
 
     PVSize = Options["MultiPV"];
     Skill skill(Options["Skill Level"]);
@@ -395,6 +397,8 @@ namespace {
                 sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
 
+        IterationTime = Time::now() - SearchTime;
+
         // If skill levels are enabled and time is up, pick a sub-optimal best move
         if (skill.enabled() && skill.time_to_pick(depth))
             skill.pick_move();
@@ -425,31 +429,12 @@ namespace {
             if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges);
 
-            // Stop the search if most of the available time has been used. We
-            // probably don't have enough time to search the first move at the
-            // next iteration anyway.
-            if (Time::now() - SearchTime > (TimeMgr.available_time() * 62) / 100)
+            // Stop the search if only one legal move is available or most
+            // of the available time has been used. We probably don't have
+            // enough time to search the first move at the next iteration anyway.
+            if (   RootMoves.size() == 1
+                || IterationTime > (TimeMgr.available_time() * 62) / 100)
                 stop = true;
-
-            // Stop the search early if one move seems to be much better than others
-            if (    depth >= 12
-                &&  BestMoveChanges <= DBL_EPSILON
-                && !stop
-                &&  PVSize == 1
-                &&  bestValue > VALUE_MATED_IN_MAX_PLY
-                && (   RootMoves.size() == 1
-                    || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
-            {
-                Value rBeta = bestValue - 2 * PawnValueMg;
-                ss->excludedMove = RootMoves[0].pv[0];
-                ss->skipNullMove = true;
-                Value v = search<NonPV>(pos, ss, rBeta - 1, rBeta, (depth - 3) * ONE_PLY, true);
-                ss->skipNullMove = false;
-                ss->excludedMove = MOVE_NONE;
-
-                if (v < rBeta)
-                    stop = true;
-            }
 
             if (stop)
             {
@@ -515,7 +500,7 @@ namespace {
 
     moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
-    ss->currentMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
+    ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
     (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -548,7 +533,7 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey);
-    ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
+    ss->ttMove = ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
     ttValue = tte ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
 
     // At PV nodes we check for exact scores, whilst at non-PV nodes we check for
@@ -566,27 +551,10 @@ namespace {
         TT.refresh(tte);
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
-        // Update killers, history, and counter move on TT hit
-        if (    ttValue >= beta
-            &&  ttMove
-            && !pos.capture_or_promotion(ttMove)
-            && !inCheck)
-        {
-            if (ss->killers[0] != ttMove)
-            {
-                ss->killers[1] = ss->killers[0];
-                ss->killers[0] = ttMove;
-            }
+        // If ttMove is quiet, update killers, history, counter move and followup move on TT hit
+        if (ttValue >= beta && ttMove && !pos.capture_or_promotion(ttMove) && !inCheck)
+            update_stats(pos, ss, ttMove, depth, NULL, 0);
 
-            Value bonus = Value(int(depth) * int(depth));
-            History.update(pos.moved_piece(ttMove), to_sq(ttMove), bonus);
-
-            if (is_ok((ss-1)->currentMove))
-            {
-                Square prevMoveSq = to_sq((ss-1)->currentMove);
-                Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, ttMove);
-            }
-        }
         return ttValue;
     }
 
@@ -745,7 +713,11 @@ moves_loop: // When in check and at SpNode search starts from here
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
                             Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 
-    MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
+    Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
+    Move followupmoves[] = { Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].first,
+                             Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].second };
+
+    MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -1062,30 +1034,9 @@ moves_loop: // When in check and at SpNode search starts from here
              PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
              depth, bestMove, ss->staticEval);
 
-    // Quiet best move: update killers, history and countermoves
-    if (    bestValue >= beta
-        && !pos.capture_or_promotion(bestMove)
-        && !inCheck)
-    {
-        if (ss->killers[0] != bestMove)
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = bestMove;
-        }
-
-        // Increase history value of the cut-off move and decrease all the other
-        // played non-capture moves.
-        Value bonus = Value(int(depth) * int(depth));
-        History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
-        for (int i = 0; i < quietCount - 1; ++i)
-        {
-            Move m = quietsSearched[i];
-            History.update(pos.moved_piece(m), to_sq(m), -bonus);
-        }
-
-        if (is_ok((ss-1)->currentMove))
-            Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
-    }
+    // Quiet best move: update killers, history, countermoves and followupmoves
+    if (bestValue >= beta && !pos.capture_or_promotion(bestMove) && !inCheck)
+        update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount - 1);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1220,10 +1171,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          // Prune moves with negative or equal SEE and also moves with positive
-          // SEE where capturing piece loses a tempo and SEE < beta - futilityBase.
-          if (   futilityBase < beta
-              && pos.see(move, beta - futilityBase) <= 0)
+          if (futilityBase < beta && pos.see(move) <= 0)
           {
               bestValue = std::max(bestValue, futilityBase);
               continue;
@@ -1318,6 +1266,41 @@ moves_loop: // When in check and at SpNode search starts from here
     return  v == VALUE_NONE             ? VALUE_NONE
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+  }
+
+
+  // update_stats() updates killers, history, countermoves and followupmoves stats after a fail-high
+  // of a quiet move.
+
+  void update_stats(Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt) {
+
+    if (ss->killers[0] != move)
+    {
+        ss->killers[1] = ss->killers[0];
+        ss->killers[0] = move;
+    }
+
+    // Increase history value of the cut-off move and decrease all the other
+    // played quiet moves.
+    Value bonus = Value(int(depth) * int(depth));
+    History.update(pos.moved_piece(move), to_sq(move), bonus);
+    for (int i = 0; i < quietsCnt; ++i)
+    {
+        Move m = quiets[i];
+        History.update(pos.moved_piece(m), to_sq(m), -bonus);
+    }
+
+    if (is_ok((ss-1)->currentMove))
+    {
+        Square prevMoveSq = to_sq((ss-1)->currentMove);
+        Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, move);
+    }
+
+    if (is_ok((ss-2)->currentMove) && (ss-1)->currentMove == (ss-1)->ttMove)
+    {
+        Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
+        Followupmoves.update(pos.piece_on(prevOwnMoveSq), prevOwnMoveSq, move);
+    }
   }
 
 
@@ -1635,7 +1618,9 @@ void check_time() {
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove
                          && !Signals.failedLowAtRoot
-                         &&  elapsed > TimeMgr.available_time();
+                         && (   elapsed > TimeMgr.available_time()
+                             || (   elapsed > (TimeMgr.available_time() * 62) / 100
+                                 && elapsed > IterationTime * 1.4));
 
   bool noMoreTime =   elapsed > TimeMgr.maximum_time() - 2 * TimerThread::Resolution
                    || stillAtFirstMove;

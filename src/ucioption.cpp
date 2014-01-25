@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ void init(OptionsMap& o) {
   o["Max Threads per Split Point"] = Option(5, 4,  8, on_threads);
   o["Threads"]                     = Option(1, 1, MAX_THREADS, on_threads);
   o["Idle Threads Sleep"]          = Option(true);
-  o["Hash"]                        = Option(32, 1, 8192, on_hash_size);
+  o["Hash"]                        = Option(32, 1, 16384, on_hash_size);
   o["Clear Hash"]                  = Option(on_clear_hash);
   o["Ponder"]                      = Option(true);
   o["OwnBook"]                     = Option(false);
@@ -111,7 +111,7 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 }
 
 
-/// Option c'tors and conversion operators
+/// Option class constructors and conversion operators
 
 Option::Option(const char* v, Fn* f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = v; }

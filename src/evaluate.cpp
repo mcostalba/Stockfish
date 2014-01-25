@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -87,9 +87,6 @@ namespace {
     Bitboard pinnedPieces[COLOR_NB];
   };
 
-  // Evaluation grain size, must be a power of 2
-  const int GrainSize = 4;
-
   // Evaluation weights, initialized from UCI options
   enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
   Score Weights[6];
@@ -163,7 +160,6 @@ namespace {
   #undef S
 
   const Score Tempo            = make_score(24, 11);
-  const Score BishopPin        = make_score(66, 11);
   const Score RookOn7th        = make_score(11, 20);
   const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
@@ -206,19 +202,6 @@ namespace {
   const int RookCheck         = 8;
   const int BishopCheck       = 2;
   const int KnightCheck       = 3;
-
-  // KingExposed[Square] contains penalties based on the position of the
-  // defending king, indexed by king's square (from white's point of view).
-  const int KingExposed[] = {
-     2,  0,  2,  5,  5,  2,  0,  2,
-     2,  2,  4,  8,  8,  4,  2,  2,
-     7, 10, 12, 12, 12, 12, 10,  7,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15
-  };
 
   // KingDanger[Color][attackUnits] contains the actual king danger weighted
   // scores, indexed by color and by a calculated integer number.
@@ -372,9 +355,9 @@ Value do_evaluate(const Position& pos) {
 
   // If we don't already have an unusual scale factor, check for opposite
   // colored bishop endgames, and use a lower scale for those.
-  if (   ei.mi->game_phase() < PHASE_MIDGAME
-      && pos.opposite_bishops()
-      && sf == SCALE_FACTOR_NORMAL)
+  if (    ei.mi->game_phase() < PHASE_MIDGAME
+      &&  pos.opposite_bishops()
+      && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
   {
       // Ignoring any pawns, do both sides only have a single bishop and no
       // other pieces?
@@ -389,7 +372,7 @@ Value do_evaluate(const Position& pos) {
       else
           // Endgame with opposite-colored bishops, but also other pieces. Still
           // a bit drawish, but not as drawish as with only the two bishops.
-           sf = ScaleFactor(50);
+           sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
   }
 
   Value v = interpolate(score, ei.mi->game_phase(), sf);
@@ -513,13 +496,6 @@ Value do_evaluate(const Position& pos) {
         // of threat evaluation must be done later when we have full attack info.
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawn[Piece];
-
-        // Otherwise give a bonus if we are a bishop and can pin a piece or can
-        // give a discovered check through an x-ray attack.
-        else if (    Piece == BISHOP
-                 && (PseudoAttacks[Piece][pos.king_square(Them)] & s)
-                 && !more_than_one(BetweenBB[s][pos.king_square(Them)] & pos.pieces()))
-                 score += BishopPin;
 
         // Penalty for bishop with same coloured pawns
         if (Piece == BISHOP)
@@ -653,11 +629,10 @@ Value do_evaluate(const Position& pos) {
         // Initialize the 'attackUnits' variable, which is used later on as an
         // index to the KingDanger[] array. The initial value is based on the
         // number and types of the enemy's attacking pieces, the number of
-        // attacked and undefended squares around our king, the square of the
-        // king, and the quality of the pawn shelter.
+        // attacked and undefended squares around our king and the quality of
+        // the pawn shelter (current 'score' value).
         attackUnits =  std::min(20, (ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]) / 2)
                      + 3 * (ei.kingAdjacentZoneAttacksCount[Them] + popcount<Max15>(undefended))
-                     + KingExposed[relative_square(Us, ksq)]
                      - mg_value(score) / 32;
 
         // Analyse the enemy's safe queen contact checks. Firstly, find the
@@ -948,8 +923,7 @@ Value do_evaluate(const Position& pos) {
     assert(ph >= PHASE_ENDGAME && ph <= PHASE_MIDGAME);
 
     int e = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
-    int r = (mg_value(v) * int(ph) + e * int(PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
-    return Value((r / GrainSize) * GrainSize); // Sign independent
+    return Value((mg_value(v) * int(ph) + e * int(PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
