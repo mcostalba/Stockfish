@@ -517,7 +517,7 @@ Value do_evaluate(const Position& pos) {
                 score += MinorBehindPawn;
         }
 
-        if (  (Piece == ROOK || Piece == QUEEN)
+        if (   (Piece == ROOK || Piece == QUEEN)
             && relative_rank(Us, s) >= RANK_5)
         {
             // Major piece on 7th rank and enemy king trapped on 8th
@@ -538,15 +538,15 @@ Value do_evaluate(const Position& pos) {
             if (ei.pi->semiopen(Us, file_of(s)))
                 score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
+            if (ei.pi->semiopen(Us, file_of(s)) || mob > 3)
                 continue;
 
             Square ksq = pos.king_square(Us);
 
             // Penalize rooks which are trapped by a king. Penalize more if the
             // king has lost its castling capability.
-            if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
-                && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
+            if (   (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
+                && ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && !ei.pi->semiopen_on_side(Us, file_of(ksq), file_of(ksq) < FILE_E))
                 score -= (TrappedRook - make_score(mob * 8, 0)) * (pos.can_castle(Us) ? 1 : 2);
         }
