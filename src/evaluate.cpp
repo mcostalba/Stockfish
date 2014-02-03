@@ -536,9 +536,12 @@ Value do_evaluate(const Position& pos) {
         {
             // Give a bonus for a rook on a open or semi-open file
             if (ei.pi->semiopen(Us, file_of(s)))
+            {
                 score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+                continue;
+            }
 
-            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
+            if (mob > 3)
                 continue;
 
             Square ksq = pos.king_square(Us);
