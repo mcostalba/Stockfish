@@ -646,17 +646,7 @@ namespace {
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
                 nullValue = beta;
 
-            if (depth < 12 * ONE_PLY)
-                return nullValue;
-
-            // Do verification search at high depths
-            ss->skipNullMove = true;
-            Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
-                                        :  search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
-            ss->skipNullMove = false;
-
-            if (v >= beta)
-                return nullValue;
+            return nullValue;
         }
     }
 
