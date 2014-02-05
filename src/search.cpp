@@ -266,7 +266,7 @@ void Search::think() {
       }
       else // If DTZ tables are missing, use WDL tables as a fallback
       {
-          TBCardinality = piecesCnt - 1;
+          // TBCardinality = piecesCnt - 1;
           RootInTB = Tablebases::root_probe_wdl(RootPos, TBScore);
       }
 
@@ -619,8 +619,10 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (   !RootNode && depth >= TBProbeDepth
-        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality)
+    if (   !RootNode
+        && depth >= TBProbeDepth
+        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality
+        && pos.rule50_count() == 0)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
 

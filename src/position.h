@@ -162,6 +162,7 @@ public:
   int64_t nodes_searched() const;
   void set_nodes_searched(int64_t n);
   bool is_draw() const;
+  int rule50_count() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok(int* failedStep = NULL) const;
@@ -353,6 +354,10 @@ inline Value Position::non_pawn_material(Color c) const {
 
 inline int Position::game_ply() const {
   return gamePly;
+}
+
+inline int Position::rule50_count() const {
+  return st->rule50;
 }
 
 inline bool Position::opposite_bishops() const {
