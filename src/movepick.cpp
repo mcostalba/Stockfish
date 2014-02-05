@@ -215,6 +215,8 @@ void MovePicker::score<EVASIONS>() {
 
 void MovePicker::generate_next() {
 
+  bool followUpMovesFound = false;
+  
   cur = moves;
 
   switch (++stage) {
@@ -248,9 +250,12 @@ void MovePicker::generate_next() {
               && followupmoves[i] != (cur+1)->move
               && followupmoves[i] != (cur+2)->move
               && followupmoves[i] != (cur+3)->move)
+          {
               (end++)->move = followupmoves[i];
+              followUpMovesFound = true;
+          }
 
-      if (followupmoves[1] && followupmoves[1] == followupmoves[0]) // Due to SMP races
+      if (followUpMovesFound && followupmoves[1] && followupmoves[1] == followupmoves[0]) // Due to SMP races
           (--end)->move = MOVE_NONE;
 
       return;
