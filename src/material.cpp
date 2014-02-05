@@ -57,6 +57,49 @@ namespace {
     { 106,  101,   3,   151,  171,    0 }  // Queen
   };
 
+const int LinearCoefficientsSameColorWinning[][PIECE_TYPE_NB] = {
+    // pair pawn knight bishop rook queen
+    {   0                               }, // Bishop pair
+    {   0,   50                         }, // Pawn
+    {   0,    0,   0                    }, // Knight
+    {   0,    0,   0,     0             }, // Bishop
+    {   0,    0,   0,     0,     0      }, // Rook
+    {   0,    0,   0,     0,     0,   0 }  // Queen
+  };
+
+  const int LinearCoefficientsOppositeColorWinning[][PIECE_TYPE_NB] = {
+    //           THEIR PIECES
+    // pair pawn knight bishop rook queen
+    {   0                               }, // Bishop pair
+    {   0,   50                         }, // Pawn
+    {   0,    0,   0                    }, // Knight      OUR PIECES
+    {   0,    0,   0,     0             }, // Bishop
+    {   0,    0,   0,     0,    0       }, // Rook
+    {   0,    0,   0,     0,    0,    0 }  // Queen
+  };
+
+const int LinearCoefficientsSameColorLoosing[][PIECE_TYPE_NB] = {
+    // pair pawn knight bishop rook queen
+    {   0                               }, // Bishop pair
+    {   0,    0                         }, // Pawn
+    {   0,    0,  50                    }, // Knight
+    {   0,    0,   0,    50             }, // Bishop
+    {   0,    0,   0,     0,    50      }, // Rook
+    {   0,    0,   0,     0,     0,  50 }  // Queen
+  };
+
+  const int LinearCoefficientsOppositeColorLoosing[][PIECE_TYPE_NB] = {
+    //           THEIR PIECES
+    // pair pawn knight bishop rook queen
+    {   0                               }, // Bishop pair
+    {   0,    0                         }, // Pawn
+    {   0,    0,  50                    }, // Knight      OUR PIECES
+    {   0,    0,   0,    50             }, // Bishop
+    {   0,    0,   0,     0,   50       }, // Rook
+    {   0,    0,   0,     0,    0,   50 }  // Queen
+  };
+
+
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
   Endgame<KXK>   EvaluateKXK[]   = { Endgame<KXK>(WHITE),   Endgame<KXK>(BLACK) };
@@ -114,6 +157,54 @@ namespace {
                 + QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[Them][pt2];
 
         value += pc * v;
+    }
+    return value;
+  }
+
+  template<Color Us>
+  int imbalanceWinning(const int pieceCount[][PIECE_TYPE_NB]) {
+
+    const Color Them = (Us == WHITE ? BLACK : WHITE);
+
+    int pt1, pt2, pc, v;
+    int value = 0;
+
+    // Second-degree polynomial material imbalance by Tord Romstad
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
+    {
+        pc = pieceCount[Us][pt1];
+        if (!pc)
+            continue;
+        v = 0;
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+            v +=  LinearCoefficientsSameColorWinning[pt1][pt2] * pieceCount[Us][pt2]
+                + LinearCoefficientsOppositeColorWinning[pt1][pt2] * pieceCount[Them][pt2];
+
+        value += v;
+    }
+    return value;
+  }
+
+    template<Color Us>
+  int imbalanceLoosing(const int pieceCount[][PIECE_TYPE_NB]) {
+
+    const Color Them = (Us == WHITE ? BLACK : WHITE);
+
+    int pt1, pt2, pc, v = 0;
+    int value = 0;
+
+    // Second-degree polynomial material imbalance by Tord Romstad
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
+    {
+        pc = pieceCount[Us][pt1];
+        if (!pc)
+            continue;
+		v = 0;
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+            v +=  LinearCoefficientsSameColorLoosing[pt1][pt2] * pieceCount[Us][pt2]
+                + LinearCoefficientsOppositeColorLoosing[pt1][pt2] * pieceCount[Them][pt2];
+
+        value += v;
     }
     return value;
   }
@@ -255,6 +346,14 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK) } };
 
   e->value = (int16_t)((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
+
+  // Having pawn(s) and ahead at least a piece (npm) ==> Exchange Pieces not Pawns !
+  if (npm_w >= (npm_b + 3*PawnValueMg) && pos.count<PAWN>(WHITE) && pos.count<PAWN>(WHITE) > pos.count<PAWN>(BLACK) - 3)
+    e->value += (int16_t)((imbalanceWinning<WHITE>(pieceCount) - imbalanceLoosing<BLACK>(pieceCount)) / 16);
+
+  if (npm_b >= (npm_w + 3*PawnValueMg) && pos.count<PAWN>(BLACK) && pos.count<PAWN>(BLACK) > pos.count<PAWN>(WHITE) - 3)
+    e->value += (int16_t)((imbalanceWinning<BLACK>(pieceCount) - imbalanceLoosing<WHITE>(pieceCount)) / 16);
+
   return e;
 }
 

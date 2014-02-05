@@ -16,7 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+ 
 #include <cassert>
 #include <iomanip>
 #include <sstream>
@@ -176,17 +176,34 @@ namespace {
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
-  const Score TrappedBishopA1H1 = make_score(50, 50);
+  const Score TrappedBishopA1H1 = S(50, 50);
 
-  // SpaceMask[Color] contains the area of the board which is considered
-  // by the space evaluation. In the middlegame, each side is given a bonus
-  // based on how many squares inside this area are safe and available for
-  // friendly minor pieces.
-  const Bitboard SpaceMask[] = {
-    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank2BB | Rank3BB | Rank4BB),
-    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB)
+   // Knights better in closed positions
+  const Score KnightRammedPawns [] = {
+	S(0,0) ,   S(0,0) ,   S(5,5) ,   S(10,10) ,  S(15,15) , S(20,20) , S(25,25) , S(25,25)
   };
 
+   // Bishops worse in closed positions
+  const Score BishopRammedPawns [] = {
+    S(0,0) ,   S(0,0) ,   S(-5,-5) ,   S(-10,-10) ,  S(-15,-15) , S(-20,-20) , S(-25,-25) , S(-25,-25)
+  };
+
+  // Knigth versus Bishop endgame-types, Knigth prefers pawns on one side only
+  const Score KnightWideness [] = {
+    S(50,50), S(50,50), S(50,50), S(36,36),  S(18,18) ,  S(0,0),   S(0,0) ,  S(0,0)
+  };
+  // Knigth versus Bishop endgame-types, Bishops prefers pawns on both sides
+  const Score BishopWideness [] = {
+    S(0,0) ,   S(0,0) ,   S(0,0) ,   S(0,0) ,  S(18,18) , S(25,25) , S(36,36) , S(50,50)
+  };
+
+  // Rook versus  2 Minors, Rook prefer pawns on both sides
+  const Score RookWideness [] = {
+    S(-25,-25) ,S(-25,-25) , S(-25,-25) ,S(-25,-25) , S(-25,-25),   S(0,0), S(25,25), S(50,50)
+  };
+
+
+  #undef S
   // King danger constants and variables. The king danger scores are taken
   // from KingDanger[]. Various little "meta-bonuses" measuring the strength
   // of the enemy attack are added up into an integer, which is used as an
@@ -280,7 +297,17 @@ namespace Eval {
         KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
         KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
-  }
+  }  
+  
+  // SpaceMask[Color] contains the area of the board which is considered
+  // by the space evaluation. In the middlegame, each side is given a bonus
+  // based on how many squares inside this area are safe and available for
+  // friendly minor pieces.
+  const Bitboard SpaceMask[] = {
+    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank2BB | Rank3BB | Rank4BB),
+    (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB)
+  };
+
 
 } // namespace Eval
 
@@ -374,6 +401,62 @@ Value do_evaluate(const Position& pos) {
           // a bit drawish, but not as drawish as with only the two bishops.
            sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
   }
+
+  if (ei.mi->game_phase() < PHASE_MIDGAME
+      && (sf == SCALE_FACTOR_NORMAL || (pos.opposite_bishops() && sf == ScaleFactor(50))))
+  {
+	  // Bishop Versus Knight endgame
+	  if (   pos.non_pawn_material(WHITE) == BishopValueMg
+	      && pos.non_pawn_material(BLACK) == KnightValueMg)
+	  {
+		  score += BishopWideness[ei.pi->wideness];
+		  score -= KnightWideness[ei.pi->wideness];
+	  }
+	  if (   pos.non_pawn_material(WHITE) == KnightValueMg
+	      && pos.non_pawn_material(BLACK) == BishopValueMg)
+	  {
+		  score += KnightWideness[ei.pi->wideness];
+		  score -= BishopWideness[ei.pi->wideness];
+	  }
+
+
+	  // Rook versus Knight+Bishop
+	  if (   pos.non_pawn_material(WHITE) == RookValueMg
+	      && pos.non_pawn_material(BLACK) == BishopValueMg + KnightValueMg)
+	  {
+	      score += RookWideness[ei.pi->wideness];
+	  }
+
+	  if (   pos.non_pawn_material(BLACK) == RookValueMg
+	      && pos.non_pawn_material(WHITE) == BishopValueMg + KnightValueMg)
+	  {
+	      score -= RookWideness[ei.pi->wideness];
+      }
+
+
+      // 2 pieces each side (no Queens no RR) close to even material (e.g. BB against BN (or RB against RN)
+      // and MAX one pawn ahead with low ei.pi->wideness ---> DRAW, you can sac a piece on the very last pawn after pawn exchange
+      // Exception : BB + pawn (or 2 pawn versus 1 pawn and no passed pawns) versus NN after sac of knigth on last pawn BB versus N should win.
+      if ( ei.pi->wideness <= 1 && abs(pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) <= 1 &&
+           abs(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK)) < PawnValueMg/2  &&
+           abs(pos.count<BISHOP>(WHITE) - pos.count<BISHOP>(BLACK)) < 2 && // not 2 bishops "ahead" (the exception)
+           ((pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) == 1) || (!ei.pi->passed_pawns(WHITE) && !ei.pi->passed_pawns(BLACK))) &&
+           pos.count<ROOK>(WHITE) <=1 &&
+           pos.count<ROOK>(BLACK) <=1 &&
+           pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) >= 1 &&
+           pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK) >= 1 &&
+           pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) + pos.count<ROOK>(WHITE) <= 2 &&
+           pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK) + pos.count<ROOK>(BLACK) <= 2)
+      {
+		  sf = ScaleFactor(16);
+      }
+  }
+
+
+
+
+
+
 
   Value v = interpolate(score, ei.mi->game_phase(), sf);
 
@@ -498,12 +581,20 @@ Value do_evaluate(const Position& pos) {
             score -= ThreatenedByPawn[Piece];
 
         // Penalty for bishop with same coloured pawns
-        if (Piece == BISHOP)
+        if (Piece == BISHOP) 
+	{
+            // Rammed penalty
+            score += BishopRammedPawns[ei.pi->rammed];
             score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
+	}
 
         // Penalty for knight when there are few enemy pawns
-        if (Piece == KNIGHT)
+        if (Piece == KNIGHT) 
+	{
+            // Rammed bonus
+            score += KnightRammedPawns[ei.pi->rammed];
             score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
+	}
 
         if (Piece == BISHOP || Piece == KNIGHT)
         {
@@ -895,7 +986,7 @@ Value do_evaluate(const Position& pos) {
     // Find the safe squares for our pieces inside the area defined by
     // SpaceMask[]. A square is unsafe if it is attacked by an enemy
     // pawn, or if it is undefended and attacked by an enemy piece.
-    Bitboard safe =   SpaceMask[Us]
+	Bitboard safe =   Eval::SpaceMask[Us]
                    & ~pos.pieces(Us, PAWN)
                    & ~ei.attackedBy[Them][PAWN]
                    & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
