@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
   Pawns::init();
   Eval::init();
   Threads.init();
-  TT.set_size(Options["Hash"]);
+  TT.resize(Options["Hash"]);
   Tablebases::init(Options["SyzygyPath"]);
 
   std::string args;
