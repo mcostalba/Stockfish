@@ -266,8 +266,12 @@ void Search::think() {
       }
       else // If DTZ tables are missing, use WDL tables as a fallback
       {
-          // TBCardinality = piecesCnt - 1;
+          // Filter out moves that do not preserve a draw or win.
           RootInTB = Tablebases::root_probe_wdl(RootPos, TBScore);
+
+          // Only probe during search if winning.
+          if (TBScore <= VALUE_DRAW)
+              TBCardinality = 0;
       }
 
       if (!RootInTB)
