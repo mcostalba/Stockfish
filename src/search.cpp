@@ -384,7 +384,7 @@ namespace {
     while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
         // Age out PV variability metric
-        BestMoveChanges *= 0.8;
+        BestMoveChanges *= 0.5;
 
         // Save the last iteration's scores before first PV line is searched and
         // all the move scores except the (new) PV are set to -VALUE_INFINITE.
@@ -493,11 +493,10 @@ namespace {
             if (depth > 4 && depth < 50 &&  PVSize == 1)
                 TimeMgr.pv_instability(BestMoveChanges);
 
-            // Stop the search if only one legal move is available or most
-            // of the available time has been used. We probably don't have
-            // enough time to search the first move at the next iteration anyway.
+            // Stop the search if only one legal move is available or all
+            // of the available time has been used.
             if (   RootMoves.size() == 1
-                || IterationTime > (TimeMgr.available_time() * 62) / 100)
+                || IterationTime > TimeMgr.available_time() )
                 stop = true;
 
             if (stop)
@@ -735,8 +734,24 @@ namespace {
         (ss+1)->skipNullMove = false;
         pos.undo_null_move();
 
-        if (nullValue >= beta) // Do not return unproven mate scores
-            return nullValue >= VALUE_MATE_IN_MAX_PLY ? beta : nullValue;
+        if (nullValue >= beta)
+        {
+            // Do not return unproven mate scores
+            if (nullValue >= VALUE_MATE_IN_MAX_PLY)
+                nullValue = beta;
+
+            if (depth < 12 * ONE_PLY)
+                return nullValue;
+
+            // Do verification search at high depths
+            ss->skipNullMove = true;
+            Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
+                                        :  search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            ss->skipNullMove = false;
+
+            if (v >= beta)
+                return nullValue;
+        }
     }
 
     // Step 9. ProbCut (skipped when in check)
@@ -1717,9 +1732,8 @@ void check_time() {
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove
                          && !Signals.failedLowAtRoot
-                         && (   elapsed > TimeMgr.available_time()
-                             || (   elapsed > (TimeMgr.available_time() * 62) / 100
-                                 && elapsed > IterationTime * 1.4));
+                         &&  elapsed > TimeMgr.available_time()
+                         &&  elapsed > IterationTime * 1.4;
 
   bool noMoreTime =   elapsed > TimeMgr.maximum_time() - 2 * TimerThread::Resolution
                    || stillAtFirstMove;
