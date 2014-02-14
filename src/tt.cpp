@@ -92,22 +92,22 @@ const TTEntry* TranspositionTable::probe(const Key key) const {
 void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m, Value statV) {
 
   int c1, c2, c3;
-  TTEntry *tte, *replace;
+  TTEntry *tte, *replace = first_entry(key);
   uint32_t key32 = key >> 32; // Use the high 32 bits as key inside the cluster
 
-  tte = replace = first_entry(key);
-
-  for (unsigned i = 0; i < ClusterSize; ++i, ++tte)
+  // First check all four slots for empty or match to avoid slower code below if possible 
+  // For speed reasons, this code is an unrolled loop that requires ClusterSize == 4 
+  assert(ClusterSize==4);
+  if (!replace->key() || replace->key() == key32) goto finalize;
+  else if (!(++replace)->key() || replace->key() == key32) goto finalize;
+  else if (!(++replace)->key() || replace->key() == key32) goto finalize;
+  else if (!(++replace)->key() || replace->key() == key32) goto finalize;
+  
+  // Rewind the replace pointer to the first entry and tte to the second
+  replace -= 3; tte = replace+1;
+  
+  for (unsigned i = 1; i < ClusterSize; ++i, ++tte)
   {
-      if (!tte->key() || tte->key() == key32) // Empty or overwrite old
-      {
-          if (!m)
-              m = tte->move(); // Preserve any existing ttMove
-
-          replace = tte;
-          break;
-      }
-
       // Implement replace strategy
       c1 = (replace->generation() == generation ?  2 : 0);
       c2 = (tte->generation() == generation || tte->bound() == BOUND_EXACT ? -2 : 0);
@@ -116,6 +116,9 @@ void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m,
       if (c1 + c2 + c3 > 0)
           replace = tte;
   }
-
+  goto end;
+finalize:
+  if (!m) m = replace->move(); // Preserve any existing ttMove for matched key case
+end:
   replace->save(key32, v, b, d, m, generation, statV);
 }
