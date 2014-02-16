@@ -64,11 +64,11 @@ static uint64 calc_key(Position& pos, int mirror)
   uint64 key = 0;
 
   color = !mirror ? WHITE : BLACK;
-  for (pt = PAWN; pt <= QUEEN; ++pt)
+  for (pt = PAWN; pt <= KING; ++pt)
     for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
       key ^= Zobrist::psq[WHITE][pt][i - 1];
   color = ~color;
-  for (pt = PAWN; pt <= QUEEN; ++pt)
+  for (pt = PAWN; pt <= KING; ++pt)
     for (i = popcount<Max15>(pos.pieces(color, pt)); i > 0; i--)
       key ^= Zobrist::psq[BLACK][pt][i - 1];
 
@@ -87,11 +87,11 @@ static uint64 calc_key_from_pcs(int *pcs, int mirror)
   uint64 key = 0;
 
   color = !mirror ? 0 : 8;
-  for (pt = PAWN; pt <= QUEEN; ++pt)
+  for (pt = PAWN; pt <= KING; ++pt)
     for (i = 0; i < pcs[color + pt]; i++)
       key ^= Zobrist::psq[WHITE][pt][i];
   color ^= 8;
-  for (pt = PAWN; pt <= QUEEN; ++pt)
+  for (pt = PAWN; pt <= KING; ++pt)
     for (i = 0; i < pcs[color + pt]; i++)
       key ^= Zobrist::psq[BLACK][pt][i];
 
@@ -113,7 +113,8 @@ static int probe_wdl_table(Position& pos, int *success)
   key = pos.material_key();
 
   // Test for KvK.
-  if (!key) return 0;
+  if (key == (Zobrist::psq[WHITE][KING][0] ^ Zobrist::psq[BLACK][KING][0]))
+    return 0;
 
   ptr2 = TB_hash[key >> (64 - TBHASHBITS)];
   for (i = 0; i < HSHMAX; i++)
