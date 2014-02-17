@@ -364,23 +364,26 @@ namespace {
                 if (Signals.stop)
                     break;
 
-                // When failing high/low give some update (without cluttering
-                // the UI) before a re-search.
-                if (  (bestValue <= alpha || bestValue >= beta)
-                    && Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
-
-                // In case of failing low/high increase aspiration window and
-                // re-search, otherwise exit the loop.
+                // In case of failing low/high increase aspiration window, give some
+                // update (without cluttering the UI), and re-search; otherwise exit
+                // the loop.
                 if (bestValue <= alpha)
                 {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
+
+                    if (Time::now() - SearchTime > 3000)
+                        sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
                 }
                 else if (bestValue >= beta)
+                {
                     beta = std::min(bestValue + delta, VALUE_INFINITE);
+
+                    if (Time::now() - SearchTime > 3000)
+                        sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                }
 
                 else
                     break;
