@@ -90,8 +90,11 @@ void benchmark(const Position& current, istream& is) {
   Options["Threads"] = threads;
   TT.clear();
 
-  if (limitType == "time")
+  if (limitType == "movetime")
       limits.movetime = 1000 * atoi(limit.c_str()); // movetime is in ms
+
+  else if (limitType == "time")
+      limits.time[WHITE] = limits.time[BLACK] = 1000 * atoi(limit.c_str());
 
   else if (limitType == "nodes")
       limits.nodes = atoi(limit.c_str());
