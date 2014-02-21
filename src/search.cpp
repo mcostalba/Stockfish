@@ -25,6 +25,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "bitcount.h"
 #include "book.h"
 #include "evaluate.h"
 #include "movegen.h"
@@ -238,7 +239,7 @@ void Search::think() {
           << std::endl;
   }
 
-  piecesCnt = RootPos.count<ALL_PIECES>(WHITE) + RootPos.count<ALL_PIECES>(BLACK);
+  piecesCnt = popcount<Full>(RootPos.pieces());
   TBCardinality = Options["SyzygyProbeLimit"];
   if (TBCardinality > Tablebases::TBLargest)
       TBCardinality = Tablebases::TBLargest;
@@ -624,7 +625,7 @@ namespace {
     // Step 4a. Tablebase probe
     if (   !RootNode
         && depth >= TBProbeDepth
-        && pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK) <= TBCardinality
+        && popcount<Full>(pos.pieces()) <= TBCardinality
         && pos.rule50_count() == 0)
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
