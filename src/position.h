@@ -141,8 +141,8 @@ public:
   void undo_null_move();
 
   // Static exchange evaluation
-  int see(Move m) const;
-  int see_sign(Move m) const;
+  Value see(Move m) const;
+  Value see_sign(Move m) const;
 
   // Accessing hash keys
   Key key() const;
@@ -159,8 +159,8 @@ public:
   int game_ply() const;
   bool is_chess960() const;
   Thread* this_thread() const;
-  int64_t nodes_searched() const;
-  void set_nodes_searched(int64_t n);
+  uint64_t nodes_searched() const;
+  void set_nodes_searched(uint64_t n);
   bool is_draw() const;
 
   // Position consistency check, for debugging
@@ -201,19 +201,19 @@ private:
   Square castlingRookSquare[COLOR_NB][CASTLING_SIDE_NB];
   Bitboard castlingPath[COLOR_NB][CASTLING_SIDE_NB];
   StateInfo startState;
-  int64_t nodes;
+  uint64_t nodes;
   int gamePly;
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
-  int chess960;
+  bool chess960;
 };
 
-inline int64_t Position::nodes_searched() const {
+inline uint64_t Position::nodes_searched() const {
   return nodes;
 }
 
-inline void Position::set_nodes_searched(int64_t n) {
+inline void Position::set_nodes_searched(uint64_t n) {
   nodes = n;
 }
 
@@ -403,7 +403,6 @@ inline void Position::put_piece(Square s, Color c, PieceType pt) {
   byTypeBB[ALL_PIECES] |= s;
   byTypeBB[pt] |= s;
   byColorBB[c] |= s;
-  pieceCount[c][ALL_PIECES]++;
   index[s] = pieceCount[c][pt]++;
   pieceList[c][pt][index[s]] = s;
 }
@@ -432,7 +431,6 @@ inline void Position::remove_piece(Square s, Color c, PieceType pt) {
   byTypeBB[pt] ^= s;
   byColorBB[c] ^= s;
   /* board[s] = NO_PIECE; */ // Not needed, will be overwritten by capturing
-  pieceCount[c][ALL_PIECES]--;
   Square lastSquare = pieceList[c][pt][--pieceCount[c][pt]];
   index[lastSquare] = index[s];
   pieceList[c][pt][index[lastSquare]] = lastSquare;

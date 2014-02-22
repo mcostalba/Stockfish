@@ -32,7 +32,7 @@
 namespace {
 
   template<CastlingSide Side, bool Checks, bool Chess960>
-  ExtMove* generate_castling(const Position& pos, ExtMove* mlist, Color us) {
+  ExtMove* generate_castling(const Position& pos, ExtMove* mlist, Color us, const CheckInfo* ci) {
 
     if (pos.castling_impeded(us, Side) || !pos.can_castle(make_castling_flag(us, Side)))
         return mlist;
@@ -46,10 +46,10 @@ namespace {
 
     assert(!pos.checkers());
 
-    const int K = Chess960 ? kto > kfrom ? -1 : 1
-                           : Side == KING_SIDE ? -1 : 1;
+    const Square K = Chess960 ? kto > kfrom       ? DELTA_W : DELTA_E
+                              : Side == KING_SIDE ? DELTA_W : DELTA_E;
 
-    for (Square s = kto; s != kfrom; s += (Square)K)
+    for (Square s = kto; s != kfrom; s += K)
         if (pos.attackers_to(s) & enemies)
             return mlist;
 
@@ -59,10 +59,12 @@ namespace {
     if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
         return mlist;
 
-    (mlist++)->move = make<CASTLING>(kfrom, rfrom);
+    Move m = make<CASTLING>(kfrom, rfrom);
 
-    if (Checks && !pos.gives_check((mlist - 1)->move, CheckInfo(pos)))
-        --mlist;
+    if (Checks && !pos.gives_check(m, *ci))
+        return mlist;
+
+    (mlist++)->move = m;
 
     return mlist;
   }
@@ -260,13 +262,13 @@ namespace {
     {
         if (pos.is_chess960())
         {
-            mlist = generate_castling< KING_SIDE, Checks, true>(pos, mlist, Us);
-            mlist = generate_castling<QUEEN_SIDE, Checks, true>(pos, mlist, Us);
+            mlist = generate_castling< KING_SIDE, Checks, true>(pos, mlist, Us, ci);
+            mlist = generate_castling<QUEEN_SIDE, Checks, true>(pos, mlist, Us, ci);
         }
         else
         {
-            mlist = generate_castling< KING_SIDE, Checks, false>(pos, mlist, Us);
-            mlist = generate_castling<QUEEN_SIDE, Checks, false>(pos, mlist, Us);
+            mlist = generate_castling< KING_SIDE, Checks, false>(pos, mlist, Us, ci);
+            mlist = generate_castling<QUEEN_SIDE, Checks, false>(pos, mlist, Us, ci);
         }
     }
 

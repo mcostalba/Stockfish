@@ -193,12 +193,12 @@ void MovePicker::score<EVASIONS>() {
   // is not under attack, ordered by history value, then bad-captures and quiet
   // moves with a negative SEE. This last group is ordered by the SEE score.
   Move m;
-  int seeScore;
+  Value seeScore;
 
   for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
-      if ((seeScore = pos.see_sign(m)) < 0)
+      if ((seeScore = pos.see_sign(m)) < VALUE_ZERO)
           it->score = seeScore - HistoryStats::Max; // At the bottom
 
       else if (pos.capture(m))
@@ -210,10 +210,10 @@ void MovePicker::score<EVASIONS>() {
 }
 
 
-/// generate_next() generates, scores and sorts the next bunch of moves, when
-/// there are no more moves to try for the current phase.
+/// generate_next_stage() generates, scores and sorts the next bunch of moves,
+/// when there are no more moves to try for the current stage.
 
-void MovePicker::generate_next() {
+void MovePicker::generate_next_stage() {
 
   cur = moves;
 
@@ -233,14 +233,14 @@ void MovePicker::generate_next() {
       killers[2].move = killers[3].move = MOVE_NONE;
       killers[4].move = killers[5].move = MOVE_NONE;
 
+      // Please note that following code is racy and could yield to rare (less
+      // than 1 out of a million) duplicated entries in SMP case. This is harmless.
+
       // Be sure countermoves are different from killers
       for (int i = 0; i < 2; ++i)
           if (   countermoves[i] != (cur+0)->move
               && countermoves[i] != (cur+1)->move)
               (end++)->move = countermoves[i];
-
-      if (countermoves[1] && countermoves[1] == countermoves[0]) // Due to SMP races
-          killers[3].move = MOVE_NONE;
 
       // Be sure followupmoves are different from killers and countermoves
       for (int i = 0; i < 2; ++i)
@@ -249,10 +249,6 @@ void MovePicker::generate_next() {
               && followupmoves[i] != (cur+2)->move
               && followupmoves[i] != (cur+3)->move)
               (end++)->move = followupmoves[i];
-
-      if (followupmoves[1] && followupmoves[1] == followupmoves[0]) // Due to SMP races
-          (--end)->move = MOVE_NONE;
-
       return;
 
   case QUIETS_1_S1:
@@ -300,7 +296,7 @@ void MovePicker::generate_next() {
 /// next_move() is the most important method of the MovePicker class. It returns
 /// a new pseudo legal move every time it is called, until there are no more moves
 /// left. It picks the move with the biggest score from a list of generated moves
-/// taking care not returning the ttMove if it has already been searched previously.
+/// taking care not to return the ttMove if it has already been searched.
 template<>
 Move MovePicker::next_move<false>() {
 
@@ -309,7 +305,7 @@ Move MovePicker::next_move<false>() {
   while (true)
   {
       while (cur == end)
-          generate_next();
+          generate_next_stage();
 
       switch (stage) {
 
@@ -321,7 +317,7 @@ Move MovePicker::next_move<false>() {
           move = pick_best(cur++, end)->move;
           if (move != ttMove)
           {
-              if (pos.see_sign(move) >= 0)
+              if (pos.see_sign(move) >= VALUE_ZERO)
                   return move;
 
               // Losing capture, move it to the tail of the array
