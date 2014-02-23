@@ -208,7 +208,7 @@ void Search::think() {
 
   if (!Options["UCI_AnalyseMode"])
   {
-      int cf = std::max(50 - RootPos.game_ply(), 0);
+      int cf = std::max(30 - RootPos.game_ply(), 0);
       DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
       DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
   }
