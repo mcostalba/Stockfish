@@ -206,10 +206,9 @@ void Search::think() {
       }
   }
 
-  if (Options["Contempt Factor"] && !Options["UCI_AnalyseMode"])
+  if (!Options["UCI_AnalyseMode"])
   {
-      int cf = Options["Contempt Factor"] * PawnValueMg / 100; // From centipawns
-      cf = cf * Material::game_phase(RootPos) / PHASE_MIDGAME; // Scale down with phase
+      int cf = std::max(70 - RootPos.game_ply(), 0);
       DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
       DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
   }
