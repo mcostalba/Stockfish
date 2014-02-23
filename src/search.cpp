@@ -608,7 +608,7 @@ namespace {
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
-        &&  depth < 7 * ONE_PLY
+        &&  depth < 9 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  abs(eval) < VALUE_KNOWN_WIN
