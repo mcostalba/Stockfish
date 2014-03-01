@@ -59,7 +59,7 @@ void init(OptionsMap& o) {
   o["Search Log Filename"]         = Option("SearchLog.txt");
   o["Book File"]                   = Option("book.bin");
   o["Best Book Move"]              = Option(false);
-  o["Contempt Factor"]             = Option(0, -50,  50);
+  o["Contempt Factor"]             = Option(15, -50,  50);
   o["Mobility (Midgame)"]          = Option(100, 0, 200, on_eval);
   o["Mobility (Endgame)"]          = Option(100, 0, 200, on_eval);
   o["Pawn Structure (Midgame)"]    = Option(100, 0, 200, on_eval);
