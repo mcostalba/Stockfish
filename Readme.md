@@ -49,7 +49,7 @@ In general it is recommended to run `make help` to see a list of make
 targets with corresponding descriptions. When not using the Makefile to
 compile (for instance with Microsoft MSVC) you need to manually
 set/unset some switches in the compiler command line; see file *types.h*
-for a quick reference.h
+for a quick reference.
 
 
 ### Terms of use
