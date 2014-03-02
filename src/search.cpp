@@ -621,7 +621,9 @@ namespace {
         ss->currentMove = MOVE_NULL;
 
         assert(eval - beta >= 0);
-
+                
+        Value rbeta = std::min(beta + 10, VALUE_INFINITE);
+        
         // Null move dynamic reduction based on depth and value
         Depth R =  3 * ONE_PLY
                  + depth / 4
@@ -629,12 +631,12 @@ namespace {
 
         pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
-        nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -beta+1, DEPTH_ZERO)
-                                      : - search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+        nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -rbeta, -rbeta+1, DEPTH_ZERO)
+                                      : - search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, depth-R, !cutNode);
         (ss+1)->skipNullMove = false;
         pos.undo_null_move();
 
-        if (nullValue >= beta)
+        if (nullValue >= rbeta)
         {
             // Do not return unproven mate scores
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
@@ -645,11 +647,11 @@ namespace {
 
             // Do verification search at high depths
             ss->skipNullMove = true;
-            Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
-                                        :  search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO)
+                                        :  search<NonPV>(pos, ss, rbeta-1, rbeta, depth-R, false);
             ss->skipNullMove = false;
 
-            if (v >= beta)
+            if (v >= rbeta)
                 return nullValue;
         }
     }
