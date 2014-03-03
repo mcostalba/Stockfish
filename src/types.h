@@ -116,6 +116,14 @@ enum MoveType {
   CASTLING  = 3 << 14
 };
 
+enum Color {
+  WHITE, BLACK, NO_COLOR, COLOR_NB = 2
+};
+
+enum CastlingSide {
+  KING_SIDE, QUEEN_SIDE, CASTLING_SIDE_NB = 2
+};
+
 enum CastlingFlag {  // Defined as in PolyGlot book hash key
   NO_CASTLING,
   WHITE_OO,
@@ -126,10 +134,10 @@ enum CastlingFlag {  // Defined as in PolyGlot book hash key
   CASTLING_FLAG_NB = 16
 };
 
-enum CastlingSide {
-  KING_SIDE,
-  QUEEN_SIDE,
-  CASTLING_SIDE_NB = 2
+template<Color C, CastlingSide S> struct MakeCastling {
+  static const CastlingFlag
+  flag = C == WHITE ? S == QUEEN_SIDE ? WHITE_OOO : WHITE_OO
+                    : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
 };
 
 enum Phase {
@@ -185,10 +193,6 @@ enum Piece {
   W_PAWN = 1, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
   B_PAWN = 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
   PIECE_NB = 16
-};
-
-enum Color {
-  WHITE, BLACK, NO_COLOR, COLOR_NB = 2
 };
 
 enum Depth {
@@ -337,6 +341,10 @@ inline Square operator|(File f, Rank r) {
   return Square((r << 3) | f);
 }
 
+inline CastlingFlag operator|(Color c, CastlingSide s) {
+  return CastlingFlag(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
+}
+
 inline Value mate_in(int ply) {
   return VALUE_MATE - ply;
 }
@@ -347,10 +355,6 @@ inline Value mated_in(int ply) {
 
 inline Piece make_piece(Color c, PieceType pt) {
   return Piece((c << 3) | pt);
-}
-
-inline CastlingFlag make_castling_flag(Color c, CastlingSide s) {
-  return CastlingFlag(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
 }
 
 inline PieceType type_of(Piece p)  {
@@ -391,11 +395,11 @@ inline bool opposite_colors(Square s1, Square s2) {
   return ((s >> 3) ^ s) & 1;
 }
 
-inline char file_to_char(File f, bool tolower = true) {
+inline char to_char(File f, bool tolower = true) {
   return char(f - FILE_A + (tolower ? 'a' : 'A'));
 }
 
-inline char rank_to_char(Rank r) {
+inline char to_char(Rank r) {
   return char(r - RANK_1 + '1');
 }
 
@@ -434,8 +438,8 @@ inline bool is_ok(Move m) {
 
 #include <string>
 
-inline const std::string square_to_string(Square s) {
-  char ch[] = { file_to_char(file_of(s)), rank_to_char(rank_of(s)), 0 };
+inline const std::string to_string(Square s) {
+  char ch[] = { to_char(file_of(s)), to_char(rank_of(s)), 0 };
   return ch;
 }
 
