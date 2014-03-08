@@ -304,23 +304,23 @@ void Position::set_castling_flag(Color c, Square rfrom) {
 
   Square kfrom = king_square(c);
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
-  CastlingFlag cf = make_castling_flag(c, cs);
+  CastlingFlag cf = (c | cs);
 
   st->castlingFlags |= cf;
   castlingFlagsMask[kfrom] |= cf;
   castlingFlagsMask[rfrom] |= cf;
-  castlingRookSquare[c][cs] = rfrom;
+  castlingRookSquare[cf] = rfrom;
 
   Square kto = relative_square(c, cs == KING_SIDE ? SQ_G1 : SQ_C1);
   Square rto = relative_square(c, cs == KING_SIDE ? SQ_F1 : SQ_D1);
 
   for (Square s = std::min(rfrom, rto); s <= std::max(rfrom, rto); ++s)
       if (s != kfrom && s != rfrom)
-          castlingPath[c][cs] |= s;
+          castlingPath[cf] |= s;
 
   for (Square s = std::min(kfrom, kto); s <= std::max(kfrom, kto); ++s)
       if (s != kfrom && s != rfrom)
-          castlingPath[c][cs] |= s;
+          castlingPath[cf] |= s;
 }
 
 
@@ -353,21 +353,21 @@ const string Position::fen() const {
   ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      ss << (chess960 ? file_to_char(file_of(castling_rook_square(WHITE,  KING_SIDE)), false) : 'K');
+      ss << (chess960 ? to_char(file_of(castling_rook_square(WHITE |  KING_SIDE)), false) : 'K');
 
   if (can_castle(WHITE_OOO))
-      ss << (chess960 ? file_to_char(file_of(castling_rook_square(WHITE, QUEEN_SIDE)), false) : 'Q');
+      ss << (chess960 ? to_char(file_of(castling_rook_square(WHITE | QUEEN_SIDE)), false) : 'Q');
 
   if (can_castle(BLACK_OO))
-      ss << (chess960 ? file_to_char(file_of(castling_rook_square(BLACK,  KING_SIDE)),  true) : 'k');
+      ss << (chess960 ? to_char(file_of(castling_rook_square(BLACK |  KING_SIDE)),  true) : 'k');
 
   if (can_castle(BLACK_OOO))
-      ss << (chess960 ? file_to_char(file_of(castling_rook_square(BLACK, QUEEN_SIDE)),  true) : 'q');
+      ss << (chess960 ? to_char(file_of(castling_rook_square(BLACK | QUEEN_SIDE)),  true) : 'q');
 
   if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
+  ss << (ep_square() == SQ_NONE ? " - " : " " + to_string(ep_square()) + " ")
      << st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
 
   return ss.str();
@@ -401,7 +401,7 @@ const string Position::pretty(Move move) const {
      << std::setfill('0') << std::setw(16) << st->key << "\nCheckers: ";
 
   for (Bitboard b = checkers(); b; )
-      ss << square_to_string(pop_lsb(&b)) << " ";
+      ss << to_string(pop_lsb(&b)) << " ";
 
   ss << "\nLegal moves: ";
   for (const ExtMove& ms : MoveList<LEGAL>(*this))
@@ -1393,14 +1393,12 @@ bool Position::pos_is_ok(int* failedStep) const {
       for (Color c = WHITE; c <= BLACK; ++c)
           for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
           {
-              CastlingFlag cf = make_castling_flag(c, s);
-
-              if (!can_castle(cf))
+              if (!can_castle(c | s))
                   continue;
 
-              if (  (castlingFlagsMask[king_square(c)] & cf) != cf
-                  || piece_on(castlingRookSquare[c][s]) != make_piece(c, ROOK)
-                  || castlingFlagsMask[castlingRookSquare[c][s]] != cf)
+              if (  (castlingFlagsMask[king_square(c)] & (c | s)) != (c | s)
+                  || piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
+                  || castlingFlagsMask[castlingRookSquare[c | s]] != (c | s))
                   return false;
           }
 
