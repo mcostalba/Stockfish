@@ -604,7 +604,7 @@ namespace {
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (    Options["Enable Null Move"]
-           !PvNode
+        && !PvNode
         && !ss->skipNullMove
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
