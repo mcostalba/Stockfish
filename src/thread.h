@@ -124,6 +124,7 @@ struct Thread : public ThreadBase {
   Endgames endgames;
   Pawns::Table pawnsTable;
   Position* activePosition;
+  Move firstMove;
   size_t idx;
   int maxPly;
   SplitPoint* volatile activeSplitPoint;

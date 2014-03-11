@@ -719,7 +719,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-    while ((move = mp.next_move<SpNode>()) != MOVE_NONE)
+    while ((move = SpNode && thisThread->firstMove ? thisThread->firstMove : mp.next_move<SpNode>()) != MOVE_NONE)
     {
       assert(is_ok(move));
 
@@ -734,6 +734,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       if (SpNode)
       {
+          thisThread->firstMove = MOVE_NONE; // One shot only
+
           // Shared counter cannot be decremented later if the move turns out to be illegal
           if (!pos.legal(move, ci.pinned))
               continue;

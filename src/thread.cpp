@@ -296,6 +296,7 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   ++splitPointsSize;
   activeSplitPoint = &sp;
   activePosition = NULL;
+  firstMove = MOVE_NONE; // TODO: Only for slaves at the moment
 
   size_t slavesCnt = 1; // This thread is always included
   Thread* slave;
@@ -303,6 +304,11 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   while (    (slave = Threads.available_slave(this)) != NULL
          && ++slavesCnt <= Threads.maxThreadsPerSplitPoint && !Fake)
   {
+      slave->firstMove = movePicker->next_move<true>();
+
+      if (!slave->firstMove)
+          break;
+
       sp.slavesMask |= 1ULL << slave->idx;
       slave->activeSplitPoint = &sp;
       slave->searching = true; // Slave leaves idle_loop()
