@@ -304,7 +304,7 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   while (    (slave = Threads.available_slave(this)) != NULL
          && ++slavesCnt <= Threads.maxThreadsPerSplitPoint && !Fake)
   {
-      slave->firstMove = movePicker->next_move<true>();
+      slave->firstMove = movePicker->next_move<false>();
 
       if (!slave->firstMove)
           break;
