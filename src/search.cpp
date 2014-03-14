@@ -723,6 +723,9 @@ moves_loop: // When in check and at SpNode search starts from here
     {
       assert(is_ok(move));
 
+      if (SpNode)
+          thisThread->firstMove = MOVE_NONE; // One shot only
+
       if (move == excludedMove)
           continue;
 
@@ -734,8 +737,6 @@ moves_loop: // When in check and at SpNode search starts from here
 
       if (SpNode)
       {
-          thisThread->firstMove = MOVE_NONE; // One shot only
-
           // Shared counter cannot be decremented later if the move turns out to be illegal
           if (!pos.legal(move, ci.pinned))
               continue;
