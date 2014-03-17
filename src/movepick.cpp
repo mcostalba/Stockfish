@@ -298,7 +298,7 @@ void MovePicker::generate_next_stage() {
 /// left. It picks the move with the biggest score from a list of generated moves
 /// taking care not to return the ttMove if it has already been searched.
 template<>
-Move MovePicker::next_move<false>() {
+Move MovePicker::next_move<false>(Thread*) {
 
   Move move;
 
@@ -387,4 +387,12 @@ Move MovePicker::next_move<false>() {
 /// from the split point's shared MovePicker object. This function is not thread
 /// safe so must be lock protected by the caller.
 template<>
-Move MovePicker::next_move<true>() { return ss->splitPoint->movePicker->next_move<false>(); }
+Move MovePicker::next_move<true>(Thread* th) {
+
+    Move m = th && th->firstMove ? th->firstMove
+                                 : ss->splitPoint->movePicker->next_move<false>();
+    if (th)
+        th->firstMove = MOVE_NONE;
+
+    return m;
+}
