@@ -389,10 +389,10 @@ Move MovePicker::next_move<false>(Thread*) {
 template<>
 Move MovePicker::next_move<true>(Thread* th) {
 
-    Move m = th && th->firstMove ? th->firstMove
-                                 : ss->splitPoint->movePicker->next_move<false>();
-    if (th)
-        th->firstMove = MOVE_NONE;
+    assert(th);
 
+    Move m = th->firstMove ? th->firstMove
+                           : ss->splitPoint->movePicker->next_move<false>();
+    th->firstMove = MOVE_NONE;
     return m;
 }
