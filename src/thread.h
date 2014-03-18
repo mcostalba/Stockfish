@@ -20,6 +20,7 @@
 #ifndef THREAD_H_INCLUDED
 #define THREAD_H_INCLUDED
 
+#include <bitset>
 #include <vector>
 
 #include "material.h"
@@ -56,20 +57,6 @@ private:
   WaitCondition c;
 };
 
-
-/// ThreadsMask struct implements a 128 bit mask, to handle up to 128 threads
-struct ThreadsMask {
-
-  operator bool() volatile const { return masks[0] | masks[1]; }
-  int  operator &(size_t idx) volatile const { return masks[idx / 64] & (1ULL << (idx % 64)); }
-  void operator^=(size_t idx) volatile { masks[idx / 64] ^= (1ULL << (idx % 64)); }
-  void operator|=(size_t idx) volatile { masks[idx / 64] |= (1ULL << (idx % 64)); }
-  void operator =(size_t idx) volatile { masks[0] = masks[1] = 0; *this |= idx; }
-
-private:
-  uint64_t masks[2];
-};
-
 struct Thread;
 
 struct SplitPoint {
@@ -89,7 +76,7 @@ struct SplitPoint {
 
   // Shared data
   Mutex mutex;
-  volatile ThreadsMask threadsMask;
+  std::bitset<MAX_THREADS> threadsMask;
   volatile uint64_t nodes;
   volatile Value alpha;
   volatile Value bestValue;
