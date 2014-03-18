@@ -28,7 +28,7 @@
 #include "position.h"
 #include "search.h"
 
-const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
+const int MAX_THREADS = 128;
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
 struct Mutex {
@@ -56,6 +56,20 @@ private:
   WaitCondition c;
 };
 
+
+/// ThreadsMask struct implements a 128 bit mask, to handle up to 128 threads
+struct ThreadsMask {
+
+  operator bool() volatile const { return masks[0] | masks[1]; }
+  int  operator &(size_t idx) volatile const { return masks[idx / 64] & (1ULL << (idx % 64)); }
+  void operator^=(size_t idx) volatile { masks[idx / 64] ^= (1ULL << (idx % 64)); }
+  void operator|=(size_t idx) volatile { masks[idx / 64] |= (1ULL << (idx % 64)); }
+  void operator =(size_t idx) volatile { masks[0] = masks[1] = 0; *this |= idx; }
+
+private:
+  uint64_t masks[2];
+};
+
 struct Thread;
 
 struct SplitPoint {
@@ -75,7 +89,7 @@ struct SplitPoint {
 
   // Shared data
   Mutex mutex;
-  volatile uint64_t slavesMask;
+  volatile ThreadsMask threadsMask;
   volatile uint64_t nodes;
   volatile Value alpha;
   volatile Value bestValue;
