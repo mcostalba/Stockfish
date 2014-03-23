@@ -57,33 +57,30 @@ Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion;}
 
 namespace {
 
-// min_attacker() is a helper function used by see() to locate the least
-// valuable attacker for the side to move, remove the attacker we just found
-// from the bitboards and scan for new X-ray attacks behind it.
+/// pick_lva() is a helper function used by see() to locate the least valuable
+/// attacker for the side to move, remove the attacker we just found from the
+/// bitboards and scan for new X-ray attacks behind it.
 
 template<int Pt> FORCE_INLINE
-PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
-                       Bitboard& occupied, Bitboard& attackers) {
+PieceType pick_lva(const Position& pos, Square to, Color c, Bitboard& occupied) {
 
-  Bitboard b = stmAttackers & bb[Pt];
+  Bitboard b =  Pt == BISHOP || Pt == ROOK ? attacks_bb<(PieceType)Pt>(to, occupied)
+              : Pt == QUEEN  ? attacks_bb<ROOK>(to, occupied) | attacks_bb<BISHOP>(to, occupied)
+              : StepAttacksBB[make_piece(~c, (PieceType)Pt)][to];
+
+  b &= pos.pieces(c, (PieceType)Pt) & occupied;
+
   if (!b)
-      return min_attacker<Pt+1>(bb, to, stmAttackers, occupied, attackers);
+      return pick_lva<Pt+1>(pos, to, c, occupied);
 
   occupied ^= b & ~(b - 1);
 
-  if (Pt == PAWN || Pt == BISHOP || Pt == QUEEN)
-      attackers |= attacks_bb<BISHOP>(to, occupied) & (bb[BISHOP] | bb[QUEEN]);
-
-  if (Pt == ROOK || Pt == QUEEN)
-      attackers |= attacks_bb<ROOK>(to, occupied) & (bb[ROOK] | bb[QUEEN]);
-
-  attackers &= occupied; // After X-ray that may add already processed pieces
   return (PieceType)Pt;
 }
 
 template<> FORCE_INLINE
-PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&) {
-  return KING; // No need to update bitboards: it is the last cycle
+PieceType pick_lva<KING+1>(const Position&, Square, Color, Bitboard&) {
+  return NO_PIECE_TYPE;
 }
 
 } // namespace
@@ -1033,10 +1030,10 @@ Value Position::see_sign(Move m) const {
 Value Position::see(Move m) const {
 
   Square from, to;
-  Bitboard occupied, attackers, stmAttackers;
+  Bitboard occupied;
   Value swapList[32];
   int slIndex = 1;
-  PieceType captured;
+  PieceType captured, capturing;
   Color stm;
 
   assert(is_ok(m));
@@ -1044,6 +1041,7 @@ Value Position::see(Move m) const {
   from = from_sq(m);
   to = to_sq(m);
   swapList[0] = PieceValue[MG][piece_on(to)];
+  capturing = type_of(piece_on(from));
   stm = color_of(piece_on(from));
   occupied = pieces() ^ from;
 
@@ -1059,47 +1057,30 @@ Value Position::see(Move m) const {
       swapList[0] = PieceValue[MG][PAWN];
   }
 
-  // Find all attackers to the destination square, with the moving piece
-  // removed, but possibly an X-ray attacker added behind it.
-  attackers = attackers_to(to, occupied) & occupied;
-
-  // If the opponent has no attackers we are finished
-  stm = ~stm;
-  stmAttackers = attackers & pieces(stm);
-  if (!stmAttackers)
-      return swapList[0];
-
-  // The destination square is defended, which makes things rather more
-  // difficult to compute. We proceed by building up a "swap list" containing
-  // the material gain or loss at each stop in a sequence of captures to the
-  // destination square, where the sides alternately capture, and always
-  // capture with the least valuable piece. After each capture, we look for
-  // new X-ray attacks from behind the capturing piece.
-  captured = type_of(piece_on(from));
-
-  do {
+  while (true)
+  {
       assert(slIndex < 32);
+
+      captured = capturing;
+      stm = ~stm;
+
+      // Locate and remove the next least valuable attacker
+      capturing = pick_lva<PAWN>(*this, to, stm, occupied);
+
+      if (capturing == NO_PIECE_TYPE)
+          break; // Finished
 
       // Add the new entry to the swap list
       swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
-
-      // Locate and remove the next least valuable attacker
-      captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
-
-      // Stop before processing a king capture
-      if (captured == KING)
-      {
-          if (stmAttackers == attackers)
-              ++slIndex;
-
-          break;
-      }
-
-      stm = ~stm;
-      stmAttackers = attackers & pieces(stm);
       ++slIndex;
 
-  } while (stmAttackers);
+      // Stop after a king capture
+      if (captured == KING)
+      {
+          swapList[slIndex - 1] += 10 * QueenValueMg;
+          break;
+      }
+  }
 
   // Having built the swap list, we negamax through it to find the best
   // achievable score from the point of view of the side to move.
