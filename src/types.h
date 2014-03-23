@@ -321,8 +321,8 @@ inline Score operator/(Score s, int i) {
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 struct ExtMove {
-  Move move;
   Value value;
+  Move move;
 };
 
 inline bool operator<(const ExtMove& f, const ExtMove& s) {
