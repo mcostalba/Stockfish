@@ -601,7 +601,7 @@ namespace {
         &&  pos.non_pawn_material(pos.side_to_move()))
         return eval - futility_margin(depth);
 
-    // Step 8. Null move search with verification search (is omitted in PV nodes)
+    // Step 8. Null move search with verification search (skipped when in check)
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth >= 2 * ONE_PLY
