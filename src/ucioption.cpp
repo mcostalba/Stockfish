@@ -92,18 +92,20 @@ void init(OptionsMap& o) {
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
   for (size_t idx = 0; idx < om.size() + 1; ++idx) // idx could start from 1
-  {
-      auto it = std::find_if(om.begin(), om.end(), [idx](const OptionsMap::value_type& p)
-                                                   { return p.second.idx == idx; });
-      const Option& o = it->second;
-      os << "\noption name " << it->first << " type " << o.type;
+      for (auto it : om)
+          if (it.second.idx == idx)
+          {
+              const Option& o = it.second;
+              os << "\noption name " << it.first << " type " << o.type;
 
-      if (o.type != "button")
-          os << " default " << o.defaultValue;
+              if (o.type != "button")
+                  os << " default " << o.defaultValue;
 
-      if (o.type == "spin")
-          os << " min " << o.min << " max " << o.max;
-  }
+              if (o.type == "spin")
+                  os << " min " << o.min << " max " << o.max;
+
+              break;
+          }
 
   return os;
 }
