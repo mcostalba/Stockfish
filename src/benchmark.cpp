@@ -88,7 +88,6 @@ void benchmark(const Position& current, istream& is) {
 
   Options["Hash"]    = ttSize;
   Options["Threads"] = threads;
-  TT.clear();
 
   if (limitType == "time")
       limits.movetime = 1000 * atoi(limit.c_str()); // movetime is in ms
@@ -132,6 +131,7 @@ void benchmark(const Position& current, istream& is) {
 
   for (size_t i = 0; i < fens.size(); ++i)
   {
+      TT.clear();
       Position pos(fens[i], Options["UCI_Chess960"], Threads.main());
 
       cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
