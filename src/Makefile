@@ -35,7 +35,10 @@ endif
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds and signature
-PGOBENCH = ./$(EXE) bench 32 1 10 default depth
+ifeq ($(PTIME),)
+	PTIME=1
+endif
+PGOBENCH = ./$(EXE) bench 128 1 $(PTIME) default time
 SIGNBENCH = ./$(EXE) bench
 
 ### Object files
@@ -334,13 +337,13 @@ help:
 	@echo ""
 	@echo "To compile stockfish, type: "
 	@echo ""
-	@echo "make target ARCH=arch [COMP=comp]"
+	@echo "make target ARCH=arch [COMP=comp] [PTIME=seconds]"
 	@echo ""
 	@echo "Supported targets:"
 	@echo ""
 	@echo "build                   > Standard build"
 	@echo "signature-build         > Standard build with embedded signature"
-	@echo "profile-build           > PGO build"
+	@echo "profile-build           > PGO build PTIME=1 (default)"
 	@echo "signature-profile-build > PGO build with embedded signature"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
