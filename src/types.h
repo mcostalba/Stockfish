@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
 const int MAX_MOVES      = 256;
-const int MAX_PLY        = 100;
+const int MAX_PLY        = 120;
 const int MAX_PLY_PLUS_6 = MAX_PLY + 6;
 
 /// A move needs 16 bits to be stored
@@ -98,6 +98,7 @@ const int MAX_PLY_PLUS_6 = MAX_PLY + 6;
 /// bit  6-11: origin square (from 0 to 63)
 /// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 /// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
+/// NOTE: EN-PASSANT bit is set only when a pawn can be captured
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 /// any normal move destination square is always different from origin square
@@ -115,20 +116,28 @@ enum MoveType {
   CASTLING  = 3 << 14
 };
 
-enum CastlingFlag {  // Defined as in PolyGlot book hash key
+enum Color {
+  WHITE, BLACK, NO_COLOR, COLOR_NB = 2
+};
+
+enum CastlingSide {
+  KING_SIDE, QUEEN_SIDE, CASTLING_SIDE_NB = 2
+};
+
+enum CastlingRight {  // Defined as in PolyGlot book hash key
   NO_CASTLING,
   WHITE_OO,
   WHITE_OOO   = WHITE_OO << 1,
   BLACK_OO    = WHITE_OO << 2,
   BLACK_OOO   = WHITE_OO << 3,
   ANY_CASTLING = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO,
-  CASTLING_FLAG_NB = 16
+  CASTLING_RIGHT_NB = 16
 };
 
-enum CastlingSide {
-  KING_SIDE,
-  QUEEN_SIDE,
-  CASTLING_SIDE_NB = 2
+template<Color C, CastlingSide S> struct MakeCastling {
+  static const CastlingRight
+  right = C == WHITE ? S == QUEEN_SIDE ? WHITE_OOO : WHITE_OO
+                     : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
 };
 
 enum Phase {
@@ -138,10 +147,11 @@ enum Phase {
 };
 
 enum ScaleFactor {
-  SCALE_FACTOR_DRAW   = 0,
-  SCALE_FACTOR_NORMAL = 64,
-  SCALE_FACTOR_MAX    = 128,
-  SCALE_FACTOR_NONE   = 255
+  SCALE_FACTOR_DRAW    = 0,
+  SCALE_FACTOR_ONEPAWN = 48,
+  SCALE_FACTOR_NORMAL  = 64,
+  SCALE_FACTOR_MAX     = 128,
+  SCALE_FACTOR_NONE    = 255
 };
 
 enum Bound {
@@ -154,10 +164,10 @@ enum Bound {
 enum Value {
   VALUE_ZERO      = 0,
   VALUE_DRAW      = 0,
-  VALUE_KNOWN_WIN = 15000,
-  VALUE_MATE      = 30000,
-  VALUE_INFINITE  = 30001,
-  VALUE_NONE      = 30002,
+  VALUE_KNOWN_WIN = 10000,
+  VALUE_MATE      = 32000,
+  VALUE_INFINITE  = 32001,
+  VALUE_NONE      = 32002,
 
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
@@ -183,10 +193,6 @@ enum Piece {
   W_PAWN = 1, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
   B_PAWN = 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
   PIECE_NB = 16
-};
-
-enum Color {
-  WHITE, BLACK, NO_COLOR, COLOR_NB = 2
 };
 
 enum Depth {
@@ -259,12 +265,12 @@ inline Value mg_value(Score s) { return Value(((s + 0x8000) & ~0xffff) / 0x10000
 /// standard compliant, seems to work for Intel and MSVC.
 #if defined(IS_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
-inline Value eg_value(Score s) { return Value(int16_t(s & 0xffff)); }
+inline Value eg_value(Score s) { return Value(int16_t(s & 0xFFFF)); }
 
 #else
 
 inline Value eg_value(Score s) {
-  return Value((int)(unsigned(s) & 0x7fffu) - (int)(unsigned(s) & 0x8000u));
+  return Value((int)(unsigned(s) & 0x7FFFU) - (int)(unsigned(s) & 0x8000U));
 }
 
 #endif
@@ -294,7 +300,7 @@ ENABLE_OPERATORS_ON(Square)
 ENABLE_OPERATORS_ON(File)
 ENABLE_OPERATORS_ON(Rank)
 
-/// Added operators for adding integers to a Value
+/// Additional operators to add integers to a Value
 inline Value operator+(Value v, int i) { return Value(int(v) + i); }
 inline Value operator-(Value v, int i) { return Value(int(v) - i); }
 
@@ -316,11 +322,11 @@ extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 struct ExtMove {
   Move move;
-  int score;
+  Value value;
 };
 
 inline bool operator<(const ExtMove& f, const ExtMove& s) {
-  return f.score < s.score;
+  return f.value < s.value;
 }
 
 inline Color operator~(Color c) {
@@ -331,8 +337,8 @@ inline Square operator~(Square s) {
   return Square(s ^ SQ_A8); // Vertical flip SQ_A1 -> SQ_A8
 }
 
-inline Square operator|(File f, Rank r) {
-  return Square((r << 3) | f);
+inline CastlingRight operator|(Color c, CastlingSide s) {
+  return CastlingRight(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
 }
 
 inline Value mate_in(int ply) {
@@ -343,12 +349,12 @@ inline Value mated_in(int ply) {
   return -VALUE_MATE + ply;
 }
 
-inline Piece make_piece(Color c, PieceType pt) {
-  return Piece((c << 3) | pt);
+inline Square make_square(File f, Rank r) {
+  return Square((r << 3) | f);
 }
 
-inline CastlingFlag make_castling_flag(Color c, CastlingSide s) {
-  return CastlingFlag(WHITE_OO << ((s == QUEEN_SIDE) + 2 * c));
+inline Piece make_piece(Color c, PieceType pt) {
+  return Piece((c << 3) | pt);
 }
 
 inline PieceType type_of(Piece p)  {
@@ -389,11 +395,11 @@ inline bool opposite_colors(Square s1, Square s2) {
   return ((s >> 3) ^ s) & 1;
 }
 
-inline char file_to_char(File f, bool tolower = true) {
+inline char to_char(File f, bool tolower = true) {
   return char(f - FILE_A + (tolower ? 'a' : 'A'));
 }
 
-inline char rank_to_char(Rank r) {
+inline char to_char(Rank r) {
   return char(r - RANK_1 + '1');
 }
 
@@ -432,8 +438,8 @@ inline bool is_ok(Move m) {
 
 #include <string>
 
-inline const std::string square_to_string(Square s) {
-  char ch[] = { file_to_char(file_of(s)), rank_to_char(rank_of(s)), 0 };
+inline const std::string to_string(Square s) {
+  char ch[] = { to_char(file_of(s)), to_char(rank_of(s)), 0 };
   return ch;
 }
 

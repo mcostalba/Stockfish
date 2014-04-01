@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,9 +31,6 @@ namespace {
   const Value MidgameLimit = Value(15581);
   const Value EndgameLimit = Value(3998);
 
-  // Scale factors used when one side has no more pawns
-  const int NoPawnsSF[4] = { 6, 12, 32 };
-
   // Polynomial material balance parameters
 
   //                                  pair  pawn knight bishop rook queen
@@ -61,8 +58,7 @@ namespace {
   };
 
   // Endgame evaluation and scaling functions are accessed directly and not through
-  // the function maps because they correspond to more then one material hash key.
-  Endgame<KmmKm> EvaluateKmmKm[] = { Endgame<KmmKm>(WHITE), Endgame<KmmKm>(BLACK) };
+  // the function maps because they correspond to more than one material hash key.
   Endgame<KXK>   EvaluateKXK[]   = { Endgame<KXK>(WHITE),   Endgame<KXK>(BLACK) };
 
   Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
@@ -174,21 +170,6 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
       return e;
   }
 
-  if (!pos.pieces(PAWN) && !pos.pieces(ROOK) && !pos.pieces(QUEEN))
-  {
-      // Minor piece endgame with at least one minor piece per side and
-      // no pawns. Note that the case KmmK is already handled by KXK.
-      assert((pos.pieces(WHITE, KNIGHT) | pos.pieces(WHITE, BISHOP)));
-      assert((pos.pieces(BLACK, KNIGHT) | pos.pieces(BLACK, BISHOP)));
-
-      if (   pos.count<BISHOP>(WHITE) + pos.count<KNIGHT>(WHITE) <= 2
-          && pos.count<BISHOP>(BLACK) + pos.count<KNIGHT>(BLACK) <= 2)
-      {
-          e->evaluationFunction = &EvaluateKmmKm[pos.side_to_move()];
-          return e;
-      }
-  }
-
   // OK, we didn't find any special evaluation function for the current
   // material configuration. Is there a suitable scaling function?
   //
@@ -202,7 +183,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
       return e;
   }
 
-  // Generic scaling functions that refer to more then one material
+  // Generic scaling functions that refer to more than one material
   // distribution. They should be probed after the specialized ones.
   // Note that these ones don't return after setting the function.
   if (is_KBPsKs<WHITE>(pos))
@@ -220,7 +201,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
 
-  if (npm_w + npm_b == VALUE_ZERO)
+  if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN))
   {
       if (!pos.count<PAWN>(BLACK))
       {
@@ -242,18 +223,19 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   }
 
   // No pawns makes it difficult to win, even with a material advantage. This
-  // catches some trivial draws like KK, KBK and KNK
+  // catches some trivial draws like KK, KBK and KNK and gives a very drawish
+  // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
   if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
-  {
-      e->factor[WHITE] = (uint8_t)
-      (npm_w == npm_b || npm_w < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(WHITE), 2)]);
-  }
+      e->factor[WHITE] = uint8_t(npm_w < RookValueMg ? SCALE_FACTOR_DRAW : npm_b <= BishopValueMg ? 4 : 12);
 
   if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
-  {
-      e->factor[BLACK] = (uint8_t)
-      (npm_w == npm_b || npm_b < RookValueMg ? 0 : NoPawnsSF[std::min(pos.count<BISHOP>(BLACK), 2)]);
-  }
+      e->factor[BLACK] = uint8_t(npm_b < RookValueMg ? SCALE_FACTOR_DRAW : npm_w <= BishopValueMg ? 4 : 12);
+
+  if (pos.count<PAWN>(WHITE) == 1 && npm_w - npm_b <= BishopValueMg)
+      e->factor[WHITE] = (uint8_t) SCALE_FACTOR_ONEPAWN;
+
+  if (pos.count<PAWN>(BLACK) == 1 && npm_b - npm_w <= BishopValueMg)
+      e->factor[BLACK] = (uint8_t) SCALE_FACTOR_ONEPAWN;
 
   // Compute the space weight
   if (npm_w + npm_b >= 2 * QueenValueMg + 4 * RookValueMg + 2 * KnightValueMg)

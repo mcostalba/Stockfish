@@ -1,6 +1,6 @@
 # Stockfish, a UCI chess playing engine derived from Glaurung 2.1
 # Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-# Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+# Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 #
 # Stockfish is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,7 +69,6 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 debug = no
 optimize = yes
 
-arch = any
 os = any
 bits = 32
 prefetch = no
@@ -79,18 +78,22 @@ sse = no
 
 ### 2.2 Architecture specific
 
+ifeq ($(ARCH),general-32)
+	arch = any
+endif
+
 ifeq ($(ARCH),x86-32-old)
 	arch = i386
 endif
 
 ifeq ($(ARCH),x86-32)
 	arch = i386
-	bits = 32
 	prefetch = yes
 	sse = yes
 endif
 
 ifeq ($(ARCH),general-64)
+	arch = any
 	bits = 64
 endif
 
@@ -113,7 +116,6 @@ endif
 
 ifeq ($(ARCH),armv7)
 	arch = armv7
-	bits = 32
 	prefetch = yes
 	bsfq = yes
 endif
@@ -121,7 +123,6 @@ endif
 ifeq ($(ARCH),osx-ppc-32)
 	arch = ppc
 	os = osx
-	bits = 32
 endif
 
 ifeq ($(ARCH),osx-ppc-64)
@@ -157,7 +158,6 @@ endif
 ifeq ($(ARCH),osx-x86-32)
 	arch = i386
 	os = osx
-	bits = 32
 	prefetch = yes
 	bsfq = no
 	popcnt = no
@@ -271,14 +271,10 @@ ifeq ($(optimize),yes)
 	endif
 
 	ifeq ($(comp),clang)
-		ifeq ($(os),osx)
-			# Clang on OS X supports LTO
-			CXXFLAGS += -O4
-		else
-			CXXFLAGS += -O3
-		endif
+		CXXFLAGS += -O3
 
 		ifeq ($(os),osx)
+			CXXFLAGS += -flto
 			ifeq ($(arch),i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif

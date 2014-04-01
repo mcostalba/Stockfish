@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
-#include <cstring>
 #include <memory>
 #include <stack>
 #include <vector>
@@ -41,6 +40,7 @@ struct Stack {
   SplitPoint* splitPoint;
   int ply;
   Move currentMove;
+  Move ttMove;
   Move excludedMove;
   Move killers[2];
   Depth reduction;
@@ -77,9 +77,13 @@ struct RootMove {
 
 struct LimitsType {
 
-  LimitsType() { std::memset(this, 0, sizeof(LimitsType)); }
+  LimitsType() { // Using memset on a std::vector is undefined behavior
+    time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = movestogo =
+    depth = nodes = movetime = mate = infinite = ponder = 0;
+  }
   bool use_time_management() const { return !(mate | movetime | depth | nodes | infinite); }
 
+  std::vector<Move> searchmoves;
   int time[COLOR_NB], inc[COLOR_NB], movestogo, depth, nodes, movetime, mate, infinite, ponder;
 };
 
@@ -88,7 +92,7 @@ struct LimitsType {
 /// typically in an async fashion e.g. to stop the search by the GUI.
 
 struct SignalsType {
-  bool stopOnPonderhit, firstRootMove, stop, failedLowAtRoot;
+  bool stop, stopOnPonderhit, firstRootMove, failedLowAtRoot;
 };
 
 typedef std::auto_ptr<std::stack<StateInfo> > StateStackPtr;
@@ -102,7 +106,7 @@ extern Time::point SearchTime;
 extern StateStackPtr SetupStates;
 
 extern void init();
-extern size_t perft(Position& pos, Depth depth);
+extern uint64_t perft(Position& pos, Depth depth);
 extern void think();
 
 } // namespace Search

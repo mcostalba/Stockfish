@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #ifndef THREAD_H_INCLUDED
 #define THREAD_H_INCLUDED
 
+#include <bitset>
 #include <vector>
 
 #include "material.h"
@@ -28,7 +29,7 @@
 #include "position.h"
 #include "search.h"
 
-const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
+const int MAX_THREADS = 128;
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
 struct Mutex {
@@ -75,8 +76,8 @@ struct SplitPoint {
 
   // Shared data
   Mutex mutex;
-  volatile uint64_t slavesMask;
-  volatile int64_t nodes;
+  std::bitset<MAX_THREADS> slavesMask;
+  volatile uint64_t nodes;
   volatile Value alpha;
   volatile Value bestValue;
   volatile Move bestMove;
@@ -162,12 +163,10 @@ struct ThreadPool : public std::vector<Thread*> {
   void read_uci_options();
   Thread* available_slave(const Thread* master) const;
   void wait_for_think_finished();
-  void start_thinking(const Position&, const Search::LimitsType&,
-                      const std::vector<Move>&, Search::StateStackPtr&);
+  void start_thinking(const Position&, const Search::LimitsType&, Search::StateStackPtr&);
 
   bool sleepWhileIdle;
   Depth minimumSplitDepth;
-  size_t maxThreadsPerSplitPoint;
   Mutex mutex;
   ConditionVariable sleepCondition;
   TimerThread* timer;

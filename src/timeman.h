@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@ class TimeManager {
 public:
   void init(const Search::LimitsType& limits, int currentPly, Color us);
   void pv_instability(double bestMoveChanges);
-  int available_time() const { return optimumSearchTime + unstablePVExtraTime; }
+  int available_time() const { return int(optimumSearchTime * unstablePvFactor * 0.71); }
   int maximum_time() const { return maximumSearchTime; }
 
 private:
   int optimumSearchTime;
   int maximumSearchTime;
-  int unstablePVExtraTime;
+  double unstablePvFactor;
 };
 
 #endif // #ifndef TIMEMAN_H_INCLUDED

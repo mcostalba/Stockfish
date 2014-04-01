@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ namespace UCI {
 void on_logger(const Option& o) { start_logger(o); }
 void on_eval(const Option&) { Eval::init(); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
-void on_hash_size(const Option& o) { TT.set_size(o); }
+void on_hash_size(const Option& o) { TT.resize(o); }
 void on_clear_hash(const Option&) { TT.clear(); }
 
 
@@ -54,38 +54,36 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 
 void init(OptionsMap& o) {
 
-  o["Write Debug Log"]             = Option(false, on_logger);
-  o["Write Search Log"]            = Option(false);
-  o["Search Log Filename"]         = Option("SearchLog.txt");
-  o["Book File"]                   = Option("book.bin");
-  o["Best Book Move"]              = Option(false);
-  o["Contempt Factor"]             = Option(0, -50,  50);
-  o["Mobility (Midgame)"]          = Option(100, 0, 200, on_eval);
-  o["Mobility (Endgame)"]          = Option(100, 0, 200, on_eval);
-  o["Pawn Structure (Midgame)"]    = Option(100, 0, 200, on_eval);
-  o["Pawn Structure (Endgame)"]    = Option(100, 0, 200, on_eval);
-  o["Passed Pawns (Midgame)"]      = Option(100, 0, 200, on_eval);
-  o["Passed Pawns (Endgame)"]      = Option(100, 0, 200, on_eval);
-  o["Space"]                       = Option(100, 0, 200, on_eval);
-  o["Aggressiveness"]              = Option(100, 0, 200, on_eval);
-  o["Cowardice"]                   = Option(100, 0, 200, on_eval);
-  o["Min Split Depth"]             = Option(0, 0, 12, on_threads);
-  o["Max Threads per Split Point"] = Option(5, 4,  8, on_threads);
-  o["Threads"]                     = Option(1, 1, MAX_THREADS, on_threads);
-  o["Idle Threads Sleep"]          = Option(true);
-  o["Hash"]                        = Option(32, 1, 8192, on_hash_size);
-  o["Clear Hash"]                  = Option(on_clear_hash);
-  o["Ponder"]                      = Option(true);
-  o["OwnBook"]                     = Option(false);
-  o["MultiPV"]                     = Option(1, 1, 500);
-  o["Skill Level"]                 = Option(20, 0, 20);
-  o["Emergency Move Horizon"]      = Option(40, 0, 50);
-  o["Emergency Base Time"]         = Option(60, 0, 30000);
-  o["Emergency Move Time"]         = Option(30, 0, 5000);
-  o["Minimum Thinking Time"]       = Option(20, 0, 5000);
-  o["Slow Mover"]                  = Option(70, 10, 1000);
-  o["UCI_Chess960"]                = Option(false);
-  o["UCI_AnalyseMode"]             = Option(false, on_eval);
+  o["Write Debug Log"]          = Option(false, on_logger);
+  o["Write Search Log"]         = Option(false);
+  o["Search Log Filename"]      = Option("SearchLog.txt");
+  o["Book File"]                = Option("book.bin");
+  o["Best Book Move"]           = Option(false);
+  o["Contempt Factor"]          = Option(0, -50,  50);
+  o["Mobility (Midgame)"]       = Option(100, 0, 200, on_eval);
+  o["Mobility (Endgame)"]       = Option(100, 0, 200, on_eval);
+  o["Pawn Structure (Midgame)"] = Option(100, 0, 200, on_eval);
+  o["Pawn Structure (Endgame)"] = Option(100, 0, 200, on_eval);
+  o["Passed Pawns (Midgame)"]   = Option(100, 0, 200, on_eval);
+  o["Passed Pawns (Endgame)"]   = Option(100, 0, 200, on_eval);
+  o["Space"]                    = Option(100, 0, 200, on_eval);
+  o["Aggressiveness"]           = Option(100, 0, 200, on_eval);
+  o["Cowardice"]                = Option(100, 0, 200, on_eval);
+  o["Min Split Depth"]          = Option(0, 0, 12, on_threads);
+  o["Threads"]                  = Option(1, 1, MAX_THREADS, on_threads);
+  o["Idle Threads Sleep"]       = Option(true);
+  o["Hash"]                     = Option(32, 1, 16384, on_hash_size);
+  o["Clear Hash"]               = Option(on_clear_hash);
+  o["Ponder"]                   = Option(true);
+  o["OwnBook"]                  = Option(false);
+  o["MultiPV"]                  = Option(1, 1, 500);
+  o["Skill Level"]              = Option(20, 0, 20);
+  o["Emergency Move Horizon"]   = Option(40, 0, 50);
+  o["Emergency Base Time"]      = Option(60, 0, 30000);
+  o["Emergency Move Time"]      = Option(30, 0, 5000);
+  o["Minimum Thinking Time"]    = Option(20, 0, 5000);
+  o["Slow Mover"]               = Option(80, 10, 1000);
+  o["UCI_Chess960"]             = Option(false);
 }
 
 
@@ -94,7 +92,7 @@ void init(OptionsMap& o) {
 
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
-  for (size_t idx = 0; idx < om.size(); ++idx)
+  for (size_t idx = 0; idx < om.size() + 1; ++idx) // idx could start from 1
       for (OptionsMap::const_iterator it = om.begin(); it != om.end(); ++it)
           if (it->second.idx == idx)
           {
@@ -113,18 +111,18 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 }
 
 
-/// Option c'tors and conversion operators
+/// Option class constructors and conversion operators
 
-Option::Option(const char* v, Fn* f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
+Option::Option(const char* v, OnChange f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = v; }
 
-Option::Option(bool v, Fn* f) : type("check"), min(0), max(0), idx(Options.size()), on_change(f)
+Option::Option(bool v, OnChange f) : type("check"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = (v ? "true" : "false"); }
 
-Option::Option(Fn* f) : type("button"), min(0), max(0), idx(Options.size()), on_change(f)
+Option::Option(OnChange f) : type("button"), min(0), max(0), idx(Options.size()), on_change(f)
 {}
 
-Option::Option(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(maxv), idx(Options.size()), on_change(f)
+Option::Option(int v, int minv, int maxv, OnChange f) : type("spin"), min(minv), max(maxv), idx(Options.size()), on_change(f)
 { std::ostringstream ss; ss << v; defaultValue = currentValue = ss.str(); }
 
 
@@ -156,7 +154,7 @@ Option& Option::operator=(const string& v) {
       currentValue = v;
 
   if (on_change)
-      (*on_change)(*this);
+      on_change(*this);
 
   return *this;
 }

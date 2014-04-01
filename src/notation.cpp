@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -70,9 +70,9 @@ const string move_to_uci(Move m, bool chess960) {
       return "0000";
 
   if (type_of(m) == CASTLING && !chess960)
-      to = (to > from ? FILE_G : FILE_C) | rank_of(from);
+      to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
 
-  string move = square_to_string(from) + square_to_string(to);
+  string move = to_string(from) + to_string(to);
 
   if (type_of(m) == PROMOTION)
       move += PieceToChar[BLACK][promotion_type(m)]; // Lower case
@@ -140,22 +140,22 @@ const string move_to_san(Position& pos, Move m) {
           if (others)
           {
               if (!(others & file_bb(from)))
-                  san += file_to_char(file_of(from));
+                  san += to_char(file_of(from));
 
               else if (!(others & rank_bb(from)))
-                  san += rank_to_char(rank_of(from));
+                  san += to_char(rank_of(from));
 
               else
-                  san += square_to_string(from);
+                  san += to_string(from);
           }
       }
       else if (pos.capture(m))
-          san = file_to_char(file_of(from));
+          san = to_char(file_of(from));
 
       if (pos.capture(m))
           san += 'x';
 
-      san += square_to_string(to);
+      san += to_string(to);
 
       if (type_of(m) == PROMOTION)
           san += string("=") + PieceToChar[WHITE][promotion_type(m)];
@@ -212,10 +212,10 @@ static string score_to_string(Value v) {
   return s.str();
 }
 
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
+string pretty_pv(Position& pos, int depth, Value value, uint64_t msecs, Move pv[]) {
 
-  const int64_t K = 1000;
-  const int64_t M = 1000000;
+  const uint64_t K = 1000;
+  const uint64_t M = 1000000;
 
   std::stack<StateInfo> st;
   Move* m = pv;

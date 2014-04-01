@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ struct Entry {
   template<Color Us>
   Score king_safety(const Position& pos, Square ksq)  {
 
-    return kingSquares[Us] == ksq && castlingFlags[Us] == pos.can_castle(Us)
+    return kingSquares[Us] == ksq && castlingRights[Us] == pos.can_castle(Us)
          ? kingSafety[Us] : update_safety<Us>(pos, ksq);
   }
 
@@ -64,7 +64,7 @@ struct Entry {
   Bitboard pawnAttacks[COLOR_NB];
   Square kingSquares[COLOR_NB];
   int minKPdistance[COLOR_NB];
-  int castlingFlags[COLOR_NB];
+  int castlingRights[COLOR_NB];
   Score value;
   int semiopenFiles[COLOR_NB];
   Score kingSafety[COLOR_NB];
