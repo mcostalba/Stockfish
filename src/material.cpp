@@ -118,10 +118,10 @@ namespace {
 
     if (   pieceCount[Us][QUEEN] == 1 && pieceCount[Them][QUEEN] == 0)
     {
-        int a = pieceCount[Us  ][KNIGHT] + pieceCount[Us  ][BISHOP] + pieceCount[Us  ][ROOK],
-            b = pieceCount[Them][KNIGHT] + pieceCount[Them][BISHOP] + pieceCount[Them][ROOK];
+        int n = pieceCount[Them][KNIGHT] - pieceCount[Us][KNIGHT],
+            b = pieceCount[Them][BISHOP] - pieceCount[Us][BISHOP];
 
-        if (b - a >= 3) value -= (b - 2) * 80 * 16;
+        if ((n == 2 && b == 1) || (n == 1 && b == 2)) value -= 66 * 16;
     }
 
     return value;
