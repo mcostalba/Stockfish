@@ -162,9 +162,7 @@ namespace {
 
   const Score Tempo            = make_score(24, 11);
   const Score RookOn7th        = make_score(11, 20);
-  const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
-  const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
@@ -514,18 +512,17 @@ Value do_evaluate(const Position& pos) {
                 score += MinorBehindPawn;
         }
 
-        if (  (Pt == ROOK || Pt == QUEEN)
-            && relative_rank(Us, s) >= RANK_5)
+        if (Pt == ROOK && relative_rank(Us, s) >= RANK_5)
         {
-            // Major piece on 7th rank and enemy king trapped on 8th
+            // Rook on 7th rank and enemy king trapped on 8th
             if (   relative_rank(Us, s) == RANK_7
                 && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += Pt == ROOK ? RookOn7th : QueenOn7th;
+                score += RookOn7th;
 
-            // Major piece attacking enemy pawns on the same rank/file
+            // Rook piece attacking enemy pawns on the same rank/file
             Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
             if (pawns)
-                score += popcount<Max15>(pawns) * (Pt == ROOK ? RookOnPawn : QueenOnPawn);
+                score += popcount<Max15>(pawns) * RookOnPawn;
         }
 
         // Special extra evaluation for rooks
