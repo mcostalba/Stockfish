@@ -204,8 +204,6 @@ namespace {
   const int BishopCheck       = 2;
   const int KnightCheck       = 3;
 
-  const int UnsupportedPinnedPiece = 2;
-
   // KingDanger[Color][attackUnits] contains the actual king danger weighted
   // scores, indexed by color and by a calculated integer number.
   Score KingDanger[COLOR_NB][128];
@@ -631,6 +629,7 @@ Value do_evaluate(const Position& pos) {
         // the pawn shelter (current 'score' value).
         attackUnits =  std::min(20, (ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]) / 2)
                      + 3 * (ei.kingAdjacentZoneAttacksCount[Them] + popcount<Max15>(undefended))
+                     + 2 * (ei.pinnedPieces[Us] != 0)
                      - mg_value(score) / 32;
 
         // Analyse the enemy's safe queen contact checks. Firstly, find the
@@ -694,10 +693,6 @@ Value do_evaluate(const Position& pos) {
         b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
         if (b)
             attackUnits += KnightCheck * popcount<Max15>(b);
-
-        // Penalty for pinned pieces not defended by a pawn
-        if (ei.pinnedPieces[Us] & ~ei.attackedBy[Us][PAWN])
-            attackUnits += UnsupportedPinnedPiece;
 
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(99, std::max(0, attackUnits));
@@ -967,8 +962,8 @@ Value do_evaluate(const Position& pos) {
     switch (idx) {
     case PST: case IMBALANCE: case PAWN: case TOTAL:
         ss << std::setw(20) << name << " |   ---   --- |   ---   --- | "
-           << std::setw(6)  << to_cp(mg_value(wScore - bScore)) << " "
-           << std::setw(6)  << to_cp(eg_value(wScore - bScore)) << " \n";
+           << std::setw(5)  << to_cp(mg_value(wScore - bScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(wScore - bScore)) << " \n";
         break;
     default:
         ss << std::setw(20) << name << " | " << std::noshowpos
@@ -976,9 +971,8 @@ Value do_evaluate(const Position& pos) {
            << std::setw(5)  << to_cp(eg_value(wScore)) << " | "
            << std::setw(5)  << to_cp(mg_value(bScore)) << " "
            << std::setw(5)  << to_cp(eg_value(bScore)) << " | "
-           << std::showpos
-           << std::setw(6)  << to_cp(mg_value(wScore - bScore)) << " "
-           << std::setw(6)  << to_cp(eg_value(wScore - bScore)) << " \n";
+           << std::setw(5)  << to_cp(mg_value(wScore - bScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(wScore - bScore)) << " \n";
     }
   }
 
@@ -987,12 +981,13 @@ Value do_evaluate(const Position& pos) {
     std::memset(terms, 0, sizeof(terms));
 
     Value v = do_evaluate<true>(pos);
+    v = pos.side_to_move() == WHITE ? v : -v; // White's point of view
 
     std::stringstream ss;
-    ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2)
-       << "           Eval term |    White    |    Black    |     Total     \n"
-       << "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
-       << "---------------------+-------------+-------------+---------------\n";
+    ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2)
+       << "           Eval term |    White    |    Black    |    Total    \n"
+       << "                     |   MG    EG  |   MG    EG  |   MG    EG  \n"
+       << "---------------------+-------------+-------------+-------------\n";
 
     format_row(ss, "Material, PST, Tempo", PST);
     format_row(ss, "Material imbalance", IMBALANCE);
@@ -1007,14 +1002,10 @@ Value do_evaluate(const Position& pos) {
     format_row(ss, "Passed pawns", PASSED);
     format_row(ss, "Space", SPACE);
 
-    ss << "---------------------+-------------+-------------+---------------\n";
+    ss << "---------------------+-------------+-------------+-------------\n";
     format_row(ss, "Total", TOTAL);
 
-    ss << "\nScaling: " << std::noshowpos
-       << std::setw(6) << 100.0 * ei.mi->game_phase() / 128.0 << "% MG, "
-       << std::setw(6) << 100.0 * (1.0 - ei.mi->game_phase() / 128.0) << "% * "
-       << std::setw(6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
-       << "Total evaluation: " << to_cp(v);
+    ss << "\nTotal Evaluation: " << to_cp(v) << " (white side)\n";
 
     return ss.str();
   }
