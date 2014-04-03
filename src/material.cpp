@@ -116,6 +116,7 @@ namespace {
         value += pc * v;
     }
 
+    // Queen vs. 3 minors slightly favours the minors
     if (   pieceCount[Us][QUEEN] == 1 && pieceCount[Them][QUEEN] == 0)
     {
         int n = pieceCount[Them][KNIGHT] - pieceCount[Us][KNIGHT],
