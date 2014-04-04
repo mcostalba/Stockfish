@@ -94,12 +94,14 @@ const TTEntry* TranspositionTable::probe(const Key key) const {
 
 void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m, Value statV) {
 
-  TTEntry *tte, *replace;
+  TTEntry *tte, *replace, *first;
   uint32_t key32 = key >> 32; // Use the high 32 bits as key inside the cluster
+  unsigned ofs = key32 & 0x3;
+  first = first_entry(key);
 
-  tte = replace = first_entry(key);
+  tte = replace = first + ofs; // Select a random first entry
 
-  for (unsigned i = 0; i < ClusterSize; ++i, ++tte)
+  for (unsigned i = 0; i < ClusterSize; ++i, tte = first + (++ofs & 0x3))
   {
       if (!tte->key32 || tte->key32 == key32) // Empty or overwrite old
       {
