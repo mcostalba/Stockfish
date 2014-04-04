@@ -123,7 +123,7 @@ namespace {
         int b = pieceCount[Them][BISHOP] - pieceCount[Us][BISHOP];
 
         if ((n == 2 && b == 1) || (n == 1 && b == 2))
-            value -= 66 * 16;
+            value -= 88 * 16;
     }
 
     return value;
