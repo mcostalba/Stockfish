@@ -538,7 +538,7 @@ namespace {
 
         // If ttMove is quiet, update killers, history, counter move and followup move on TT hit
         if (ttValue >= beta && ttMove && !pos.capture_or_promotion(ttMove) && !inCheck)
-            update_stats(pos, ss, ttMove, depth, NULL, 0);
+            update_stats(pos, ss, ttMove, depth, nullptr, 0);
 
         return ttValue;
     }
