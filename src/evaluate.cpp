@@ -91,7 +91,7 @@ namespace {
 
   // Evaluation weights, initialized from UCI options
   enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  Score Weights[6];
+  struct Weight { int mg, eg; } Weights[6];
 
   typedef Value V;
   #define S(mg, eg) make_score(mg, eg)
@@ -162,9 +162,7 @@ namespace {
 
   const Score Tempo            = make_score(24, 11);
   const Score RookOn7th        = make_score(11, 20);
-  const Score QueenOn7th       = make_score( 3,  8);
   const Score RookOnPawn       = make_score(10, 28);
-  const Score QueenOnPawn      = make_score( 4, 20);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
@@ -233,8 +231,8 @@ namespace {
   Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei);
 
   Value interpolate(const Score& v, Phase ph, ScaleFactor sf);
-  Score apply_weight(Score v, Score w);
-  Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight);
+  Score apply_weight(Score v, const Weight& w);
+  Weight weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight);
 }
 
 
@@ -514,23 +512,21 @@ Value do_evaluate(const Position& pos) {
                 score += MinorBehindPawn;
         }
 
-        if (  (Pt == ROOK || Pt == QUEEN)
-            && relative_rank(Us, s) >= RANK_5)
-        {
-            // Major piece on 7th rank and enemy king trapped on 8th
-            if (   relative_rank(Us, s) == RANK_7
-                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += Pt == ROOK ? RookOn7th : QueenOn7th;
-
-            // Major piece attacking enemy pawns on the same rank/file
-            Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
-            if (pawns)
-                score += popcount<Max15>(pawns) * (Pt == ROOK ? RookOnPawn : QueenOnPawn);
-        }
-
-        // Special extra evaluation for rooks
         if (Pt == ROOK)
         {
+            // Rook on 7th rank and enemy king trapped on 8th
+            if (   relative_rank(Us, s) == RANK_7
+                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+                score += RookOn7th;
+
+            // Rook piece attacking enemy pawns on the same rank/file
+            if (relative_rank(Us, s) >= RANK_5)
+            {
+                Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
+                if (pawns)
+                    score += popcount<Max15>(pawns) * RookOnPawn;
+            }
+
             // Give a bonus for a rook on a open or semi-open file
             if (ei.pi->semiopen(Us, file_of(s)))
                 score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
@@ -925,22 +921,19 @@ Value do_evaluate(const Position& pos) {
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
-  Score apply_weight(Score v, Score w) {
+  Score apply_weight(Score v, const Weight& w) {
 
-    return make_score((int(mg_value(v)) * mg_value(w)) / 0x100,
-                      (int(eg_value(v)) * eg_value(w)) / 0x100);
+    return make_score(mg_value(v) * w.mg / 256, eg_value(v) * w.eg / 256);
   }
 
   // weight_option() computes the value of an evaluation weight, by combining
   // two UCI-configurable weights (midgame and endgame) with an internal weight.
 
-  Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
+  Weight weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
 
-    // Scale option value from 100 to 256
-    int mg = Options[mgOpt] * 256 / 100;
-    int eg = Options[egOpt] * 256 / 100;
-
-    return apply_weight(make_score(mg, eg), internalWeight);
+    Weight w = { Options[mgOpt] * mg_value(internalWeight) / 100,
+                 Options[egOpt] * eg_value(internalWeight) / 100 };
+    return w;
   }
 
 
