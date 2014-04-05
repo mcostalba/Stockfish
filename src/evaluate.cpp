@@ -931,9 +931,8 @@ Value do_evaluate(const Position& pos) {
 
   Weight weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
 
-    Weight w = { Options[mgOpt] * mg_value(internalWeight) / 100,
-                 Options[egOpt] * eg_value(internalWeight) / 100 };
-    return w;
+    return { Options[mgOpt] * mg_value(internalWeight) / 100,
+             Options[egOpt] * eg_value(internalWeight) / 100 };
   }
 
 
