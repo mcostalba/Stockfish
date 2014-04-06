@@ -141,8 +141,7 @@ namespace {
             backward = false;
         else
         {
-            if (   (opposed && (theirPawns & (s + pawn_push(Us))))
-                || (Them == pos.side_to_move() && (pos.attacks_from<PAWN>(s, Us) & theirPawns)))
+            if (opposed && (theirPawns & (s + pawn_push(Us))))
                 backward = true;
             else
             {
