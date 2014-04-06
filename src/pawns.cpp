@@ -136,27 +136,20 @@ namespace {
         // backward. If there are friendly pawns behind on adjacent files
         // or if it can capture an enemy pawn it cannot be backward either.
         if (   (passed | isolated | connected)
-            || (ourPawns & pawn_attack_span(Them, s))
-            || (Us == pos.side_to_move() && (pos.attacks_from<PAWN>(s, Us) & theirPawns)))
+            || (ourPawns & pawn_attack_span(Them, s)))
             backward = false;
         else
         {
-            if (opposed && (theirPawns & (s + pawn_push(Us))))
-                backward = true;
-            else
-            {
-                // We now know that there are no friendly pawns beside or behind
-                // this pawn on adjacent files. If it is not doubled the pawn
-                // might still advance and reconnect. We now check whether the pawn
-                // is backward by looking in the forward direction on the adjacent
-                // files, and picking the closest pawn there.
-                b = pawn_attack_span(Us, s) & (ourPawns | theirPawns);
-                b = pawn_attack_span(Us, s) & rank_bb(backmost_sq(Us, b));
+            // We now know that there are no friendly pawns beside or behind this
+            // pawn on adjacent files. We now check whether the pawn is
+            // backward by looking in the forward direction on the adjacent
+            // files, and picking the closest pawn there.
+            b = pawn_attack_span(Us, s) & (ourPawns | theirPawns);
+            b = pawn_attack_span(Us, s) & rank_bb(backmost_sq(Us, b));
 
-                // If we have an enemy pawn in the same or next rank, the pawn is
-                // backward because it cannot advance without being captured.
-                backward = (b | shift_bb<Up>(b)) & theirPawns;
-            }
+            // If we have an enemy pawn in the same or next rank, the pawn is
+            // backward because it cannot advance without being captured.
+            backward = (b | shift_bb<Up>(b)) & theirPawns;
         }
 
         assert(opposed | passed | (pawn_attack_span(Us, s) & theirPawns));
