@@ -235,10 +235,13 @@ void Search::think() {
 
   piecesCnt = popcount<Full>(RootPos.pieces());
   TBCardinality = Options["SyzygyProbeLimit"];
-  if (TBCardinality > Tablebases::TBLargest)
-      TBCardinality = Tablebases::TBLargest;
-  TB50MoveRule = Options["Syzygy50MoveRule"];
   TBProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
+  if (TBCardinality > Tablebases::TBLargest)
+  {
+      TBCardinality = Tablebases::TBLargest;
+      TBProbeDepth = 0 * ONE_PLY;
+  }
+  TB50MoveRule = Options["Syzygy50MoveRule"];
 
   if (piecesCnt <= TBCardinality)
   {
@@ -261,10 +264,10 @@ void Search::think() {
       }
       else // If DTZ tables are missing, use WDL tables as a fallback
       {
-          // Filter out moves that do not preserve a draw or win.
+          // Filter out moves that do not preserve a draw or win
           RootInTB = Tablebases::root_probe_wdl(RootPos, TBScore);
 
-          // Only probe during search if winning.
+          // Only probe during search if winning
           if (TBScore <= VALUE_DRAW)
               TBCardinality = 0;
       }
@@ -610,9 +613,10 @@ namespace {
 
     // Step 4a. Tablebase probe
     if (   !RootNode
-        && depth >= TBProbeDepth
-        && popcount<Full>(pos.pieces()) <= TBCardinality
-        && pos.rule50_count() == 0)
+        && pos.rule50_count() == 0
+        && (      popcount<Full>(pos.pieces()) < TBCardinality
+             || (    popcount<Full>(pos.pieces()) == TBCardinality
+                  && depth >= TBProbeDepth )))
     {
         int found, v = Tablebases::probe_wdl(pos, &found);
 
