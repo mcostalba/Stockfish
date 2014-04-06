@@ -136,8 +136,13 @@ namespace {
         // backward. If there are friendly pawns behind on adjacent files
         // or if it can capture an enemy pawn it cannot be backward either.
         if (   (passed | isolated | connected)
-            || (ourPawns & pawn_attack_span(Them, s)))
+            || (ourPawns & pawn_attack_span(Them, s))
+            || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
             backward = false;
+
+        else if (opposed && ((s + pawn_push(Us)) & theirPawns))
+            backward = true;
+
         else
         {
             // We now know that there are no friendly pawns beside or behind this
