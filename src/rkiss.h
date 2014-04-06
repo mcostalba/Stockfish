@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
   (at your option) any later version.
 */
 
-#if !defined(RKISS_H_INCLUDED)
+#ifndef RKISS_H_INCLUDED
 #define RKISS_H_INCLUDED
 
 #include "types.h"
@@ -43,34 +43,39 @@
 
 class RKISS {
 
-  // Keep variables always together
-  struct S { uint64_t a, b, c, d; } s;
+  uint64_t a, b, c, d;
 
-  uint64_t rotate(uint64_t x, uint64_t k) const {
+  uint64_t rotate_L(uint64_t x, unsigned k) const {
     return (x << k) | (x >> (64 - k));
   }
 
-  // Return 64 bit unsigned integer in between [0, 2^64 - 1]
   uint64_t rand64() {
 
-    const uint64_t
-      e = s.a - rotate(s.b,  7);
-    s.a = s.b ^ rotate(s.c, 13);
-    s.b = s.c + rotate(s.d, 37);
-    s.c = s.d + e;
-    return s.d = e + s.a;
+    const uint64_t e = a - rotate_L(b,  7);
+    a = b ^ rotate_L(c, 13);
+    b = c + rotate_L(d, 37);
+    c = d + e;
+    return d = e + a;
   }
 
 public:
   RKISS(int seed = 73) {
 
-    s.a = 0xf1ea5eed;
-    s.b = s.c = s.d = 0xd4e12c77;
-    for (int i = 0; i < seed; i++) // Scramble a few rounds
+    a = 0xF1EA5EED, b = c = d = 0xD4E12C77;
+
+    for (int i = 0; i < seed; ++i) // Scramble a few rounds
         rand64();
   }
 
   template<typename T> T rand() { return T(rand64()); }
+
+  /// Special generator used to fast init magic numbers. Here the
+  /// trick is to rotate the randoms of a given quantity 's' known
+  /// to be optimal to quickly find a good magic candidate.
+  template<typename T> T magic_rand(int s) {
+    return rotate_L(rotate_L(rand<T>(), (s >> 0) & 0x3F) & rand<T>()
+                                      , (s >> 6) & 0x3F) & rand<T>();
+  }
 };
 
-#endif // !defined(RKISS_H_INCLUDED)
+#endif // #ifndef RKISS_H_INCLUDED

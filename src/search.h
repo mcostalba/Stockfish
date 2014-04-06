@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,15 +17,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(SEARCH_H_INCLUDED)
+#ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
-#include <cstring>
 #include <memory>
 #include <stack>
 #include <vector>
 
-#include "evaluate.h"
 #include "misc.h"
 #include "position.h"
 #include "types.h"
@@ -42,14 +40,12 @@ struct Stack {
   SplitPoint* splitPoint;
   int ply;
   Move currentMove;
+  Move ttMove;
   Move excludedMove;
   Move killers[2];
   Depth reduction;
   Value staticEval;
-  Value evalMargin;
   int skipNullMove;
-  int futilityMoveCount;
-  Eval::Info ei;
 };
 
 
@@ -77,22 +73,26 @@ struct RootMove {
 
 /// The LimitsType struct stores information sent by GUI about available time
 /// to search the current move, maximum depth/time, if we are in analysis mode
-/// or if we have to ponder while is our opponent's side to move.
+/// or if we have to ponder while it's our opponent's turn to move.
 
 struct LimitsType {
 
-  LimitsType() { memset(this, 0, sizeof(LimitsType)); }
+  LimitsType() { // Using memset on a std::vector is undefined behavior
+    time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = movestogo =
+    depth = nodes = movetime = mate = infinite = ponder = 0;
+  }
   bool use_time_management() const { return !(mate | movetime | depth | nodes | infinite); }
 
+  std::vector<Move> searchmoves;
   int time[COLOR_NB], inc[COLOR_NB], movestogo, depth, nodes, movetime, mate, infinite, ponder;
 };
 
 
 /// The SignalsType struct stores volatile flags updated during the search
-/// typically in an async fashion, for instance to stop the search by the GUI.
+/// typically in an async fashion e.g. to stop the search by the GUI.
 
 struct SignalsType {
-  bool stopOnPonderhit, firstRootMove, stop, failedLowAtRoot;
+  bool stop, stopOnPonderhit, firstRootMove, failedLowAtRoot;
 };
 
 typedef std::auto_ptr<std::stack<StateInfo> > StateStackPtr;
@@ -106,9 +106,9 @@ extern Time::point SearchTime;
 extern StateStackPtr SetupStates;
 
 extern void init();
-extern size_t perft(Position& pos, Depth depth);
+extern uint64_t perft(Position& pos, Depth depth);
 extern void think();
 
 } // namespace Search
 
-#endif // !defined(SEARCH_H_INCLUDED)
+#endif // #ifndef SEARCH_H_INCLUDED

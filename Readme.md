@@ -7,14 +7,10 @@ Partner or Fritz) in order to be used comfortably. Read the
 documentation for your GUI of choice for information about how to use
 Stockfish with it.
 
-This version of Stockfish supports up to 64 CPUs, but has not been
-tested thoroughly with more than 4.  The program tries to detect the
-number of CPUs on your computer and sets the number of search threads
-accordingly, but please be aware that the detection is not always
-correct. It is therefore recommended to inspect the value of the
-*Threads* UCI parameter, and to make sure it equals the number of CPU
-cores on your computer. If you are using more than eight threads, it is
-recommended to raise the value of the *Min Split Depth* UCI parameter to 7.
+This version of Stockfish supports up to 128 CPUs. The engine defaults
+to one search thread, so it is therefore recommended to inspect the value of
+the *Threads* UCI parameter, and to make sure it equals the number of CPU
+cores on your computer.
 
 
 ### Files
@@ -25,7 +21,7 @@ This distribution of Stockfish consists of the following files:
 
   * Copying.txt, a text file containing the GNU General Public License.
 
-  * src/, a subdirectory containing the full source code, including a Makefile
+  * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile Stockfish on Unix-like systems. For further
     information about how to compile Stockfish yourself read section below.
 
@@ -50,7 +46,7 @@ Stockfish has support for 32 or 64-bit CPUs, the hardware POPCNT
 instruction, big-endian machines such as Power PC, and other platforms.
 
 In general it is recommended to run `make help` to see a list of make
-targets with corresponding descriptions. When not using Makefile to
+targets with corresponding descriptions. When not using the Makefile to
 compile (for instance with Microsoft MSVC) you need to manually
 set/unset some switches in the compiler command line; see file *types.h*
 for a quick reference.

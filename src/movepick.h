@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,11 +17,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined MOVEPICK_H_INCLUDED
+#ifndef MOVEPICK_H_INCLUDED
 #define MOVEPICK_H_INCLUDED
 
 #include <algorithm> // For std::max
-#include <cstring>   // For memset
+#include <cstring>   // For std::memset
 
 #include "movegen.h"
 #include "position.h"
@@ -30,36 +30,46 @@
 
 
 /// The Stats struct stores moves statistics. According to the template parameter
-/// the class can store both History and Gains type statistics. History records
-/// how often different moves have been successful or unsuccessful during the
-/// current search and is used for reduction and move ordering decisions. Gains
-/// records the move's best evaluation gain from one ply to the next and is used
-/// for pruning decisions. Entries are stored according only to moving piece and
-/// destination square, in particular two moves with different origin but same
-/// destination and same piece will be considered identical.
-template<bool Gain>
+/// the class can store History, Gains and Countermoves. History records how often
+/// different moves have been successful or unsuccessful during the current search
+/// and is used for reduction and move ordering decisions. Gains records the move's
+/// best evaluation gain from one ply to the next and is used for pruning decisions.
+/// Countermoves store the move that refute a previous one. Entries are stored
+/// using only the moving piece and destination square, hence two moves with
+/// different origin but same destination and piece will be considered identical.
+template<bool Gain, typename T>
 struct Stats {
 
   static const Value Max = Value(2000);
 
-  const Value* operator[](Piece p) const { return &table[p][0]; }
-  void clear() { memset(table, 0, sizeof(table)); }
+  const T* operator[](Piece pc) const { return table[pc]; }
+  void clear() { std::memset(table, 0, sizeof(table)); }
 
-  void update(Piece p, Square to, Value v) {
+  void update(Piece pc, Square to, Move m) {
+
+    if (m == table[pc][to].first)
+        return;
+
+    table[pc][to].second = table[pc][to].first;
+    table[pc][to].first = m;
+  }
+
+  void update(Piece pc, Square to, Value v) {
 
     if (Gain)
-        table[p][to] = std::max(v, table[p][to] - 1);
+        table[pc][to] = std::max(v, table[pc][to] - 1);
 
-    else if (abs(table[p][to] + v) < Max)
-        table[p][to] +=  v;
+    else if (abs(table[pc][to] + v) < Max)
+        table[pc][to] +=  v;
   }
 
 private:
-  Value table[PIECE_NB][SQUARE_NB];
+  T table[PIECE_NB][SQUARE_NB];
 };
 
-typedef Stats<false> History;
-typedef Stats<true> Gains;
+typedef Stats< true, Value> GainsStats;
+typedef Stats<false, Value> HistoryStats;
+typedef Stats<false, std::pair<Move, Move> > MovesStats;
 
 
 /// MovePicker class is used to pick one pseudo legal move at a time from the
@@ -74,25 +84,29 @@ class MovePicker {
   MovePicker& operator=(const MovePicker&); // Silence a warning under MSVC
 
 public:
-  MovePicker(const Position&, Move, Depth, const History&, Search::Stack*, Value);
-  MovePicker(const Position&, Move, Depth, const History&, Square);
-  MovePicker(const Position&, Move, const History&, PieceType);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
+  MovePicker(const Position&, Move, const HistoryStats&, PieceType);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Move*, Move*, Search::Stack*);
+
   template<bool SpNode> Move next_move();
 
 private:
   template<GenType> void score();
-  void generate_next();
+  void generate_next_stage();
 
   const Position& pos;
-  const History& Hist;
+  const HistoryStats& history;
   Search::Stack* ss;
+  Move* countermoves;
+  Move* followupmoves;
   Depth depth;
   Move ttMove;
-  MoveStack killers[2];
+  ExtMove killers[6];
   Square recaptureSquare;
-  int captureThreshold, phase;
-  MoveStack *cur, *end, *endQuiets, *endBadCaptures;
-  MoveStack moves[MAX_MOVES];
+  Value captureThreshold;
+  int stage;
+  ExtMove *cur, *end, *endQuiets, *endBadCaptures;
+  ExtMove moves[MAX_MOVES];
 };
 
-#endif // !defined(MOVEPICK_H_INCLUDED)
+#endif // #ifndef MOVEPICK_H_INCLUDED

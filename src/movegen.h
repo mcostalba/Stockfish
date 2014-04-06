@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MOVEGEN_H_INCLUDED)
+#ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
 #include "types.h"
@@ -34,26 +34,25 @@ enum GenType {
 class Position;
 
 template<GenType>
-MoveStack* generate(const Position& pos, MoveStack* mlist);
+ExtMove* generate(const Position& pos, ExtMove* mlist);
 
-/// The MoveList struct is a simple wrapper around generate(), sometimes comes
-/// handy to use this class instead of the low level generate() function.
+/// The MoveList struct is a simple wrapper around generate(). It sometimes comes
+/// in handy to use this class instead of the low level generate() function.
 template<GenType T>
 struct MoveList {
 
-  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) {}
-  void operator++() { cur++; }
-  bool end() const { return cur == last; }
-  Move move() const { return cur->move; }
+  explicit MoveList(const Position& pos) : cur(mlist), last(generate<T>(pos, mlist)) { last->move = MOVE_NONE; }
+  void operator++() { ++cur; }
+  Move operator*() const { return cur->move; }
   size_t size() const { return last - mlist; }
   bool contains(Move m) const {
-    for (const MoveStack* it(mlist); it != last; ++it) if (it->move == m) return true;
+    for (const ExtMove* it(mlist); it != last; ++it) if (it->move == m) return true;
     return false;
   }
 
 private:
-  MoveStack mlist[MAX_MOVES];
-  MoveStack *cur, *last;
+  ExtMove mlist[MAX_MOVES];
+  ExtMove *cur, *last;
 };
 
-#endif // !defined(MOVEGEN_H_INCLUDED)
+#endif // #ifndef MOVEGEN_H_INCLUDED

@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2013 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(MATERIAL_H_INCLUDED)
+#ifndef MATERIAL_H_INCLUDED
 #define MATERIAL_H_INCLUDED
 
 #include "endgame.h"
@@ -39,10 +39,10 @@ namespace Material {
 struct Entry {
 
   Score material_value() const { return make_score(value, value); }
-  int space_weight() const { return spaceWeight; }
+  Score space_weight() const { return spaceWeight; }
   Phase game_phase() const { return gamePhase; }
   bool specialized_eval_exists() const { return evaluationFunction != NULL; }
-  Value evaluate(const Position& p) const { return (*evaluationFunction)(p); }
+  Value evaluate(const Position& pos) const { return (*evaluationFunction)(pos); }
   ScaleFactor scale_factor(const Position& pos, Color c) const;
 
   Key key;
@@ -50,7 +50,7 @@ struct Entry {
   uint8_t factor[COLOR_NB];
   EndgameBase<Value>* evaluationFunction;
   EndgameBase<ScaleFactor>* scalingFunction[COLOR_NB];
-  int spaceWeight;
+  Score spaceWeight;
   Phase gamePhase;
 };
 
@@ -62,7 +62,7 @@ Phase game_phase(const Position& pos);
 /// Material::scale_factor takes a position and a color as input, and
 /// returns a scale factor for the given color. We have to provide the
 /// position in addition to the color, because the scale factor need not
-/// to be a constant: It can also be a function which should be applied to
+/// be a constant: It can also be a function which should be applied to
 /// the position. For instance, in KBP vs K endgames, a scaling function
 /// which checks for draws with rook pawns and wrong-colored bishops.
 
@@ -74,4 +74,4 @@ inline ScaleFactor Entry::scale_factor(const Position& pos, Color c) const {
 
 }
 
-#endif // !defined(MATERIAL_H_INCLUDED)
+#endif // #ifndef MATERIAL_H_INCLUDED
