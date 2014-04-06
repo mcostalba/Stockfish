@@ -196,7 +196,7 @@ void Search::think() {
   TBHits = TBCardinality = 0;
   RootInTB = false;
 
-  int cf = Options["Contempt Factor"] * PawnValueMg / 100; // From centipawns
+  int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
   DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
   DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
 
@@ -230,7 +230,7 @@ void Search::think() {
           << " time: "        << Limits.time[RootColor]
           << " increment: "   << Limits.inc[RootColor]
           << " moves to go: " << Limits.movestogo
-          << std::endl;
+          << "\n" << std::endl;
   }
 
   piecesCnt = popcount<Full>(RootPos.pieces());
@@ -1438,7 +1438,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta) {
 
-    std::stringstream s;
+    std::stringstream ss;
     Time::point elapsed = Time::now() - SearchTime + 1;
     size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
     int selDepth = 0;
@@ -1466,24 +1466,24 @@ moves_loop: // When in check and at SpNode search starts from here
                 v = TBScore;
         }
 
-        if (s.rdbuf()->in_avail()) // Not at first line
-            s << "\n";
+        if (ss.rdbuf()->in_avail()) // Not at first line
+            ss << "\n";
 
-        s << "info depth " << d
-          << " seldepth "  << selDepth
-          << " score "     << ((!tb && i == PVIdx) ? score_to_uci(v, alpha, beta) : score_to_uci(v))
-          << " nodes "     << pos.nodes_searched()
-          << " nps "       << pos.nodes_searched() * 1000 / elapsed
-          << " tbhits "    << TBHits
-          << " time "      << elapsed
-          << " multipv "   << i + 1
-          << " pv";
+        ss << "info depth " << d
+           << " seldepth "  << selDepth
+           << " score "     << ((!tb && i == PVIdx) ? score_to_uci(v, alpha, beta) : score_to_uci(v))
+           << " nodes "     << pos.nodes_searched()
+           << " nps "       << pos.nodes_searched() * 1000 / elapsed
+           << " tbhits "    << TBHits
+           << " time "      << elapsed
+           << " multipv "   << i + 1
+           << " pv";
 
         for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
-            s <<  " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
+            ss << " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
     }
 
-    return s.str();
+    return ss.str();
   }
 
 } // namespace

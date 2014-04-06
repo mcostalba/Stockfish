@@ -724,12 +724,12 @@ bool Tablebases::root_probe(Position& pos, Value& TBScore)
   // Determine the score to report to the user.
   TBScore = wdl_to_Value[wdl + 2];
   // If the position is winning or losing, but too few moves left, adjust the
-  // score to show how close it is to winning or losing. Weird rounding is
-  // because of the way Stockfish converts values to printed scores.
+  // score to show how close it is to winning or losing.
+  // NOTE: int(PawnValueEg) is used as scaling factor in score_to_uci().
   if (wdl == 1 && dtz <= 100)
-    TBScore = (Value)(((200 - dtz - cnt50) + 1) & ~1);
+    TBScore = (Value)(((200 - dtz - cnt50) * int(PawnValueEg)) / 200);
   else if (wdl == -1 && dtz >= -100)
-    TBScore = -(Value)(((200 + dtz - cnt50) + 1) & ~1);
+    TBScore = -(Value)(((200 + dtz - cnt50) * int(PawnValueEg)) / 200);
 
   // Now be a bit smart about filtering out moves.
   size_t j = 0;
