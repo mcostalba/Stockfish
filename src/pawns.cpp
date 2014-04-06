@@ -132,10 +132,10 @@ namespace {
         passed      = !(theirPawns & passed_pawn_mask(Us, s));
 
         // Test for backward pawn.
-        // If the pawn is passed, isolated, connected or supported it can't
-        // be backward. If there are friendly pawns behind on adjacent files
+        // If the pawn is passed, isolated, or connected it cannot be
+        // backward. If there are friendly pawns behind on adjacent files
         // or if it can capture an enemy pawn it cannot be backward either.
-        if (   (passed | isolated | connected | !unsupported)
+        if (   (passed | isolated | connected)
             || (ourPawns & pawn_attack_span(Them, s))
             || (Us == pos.side_to_move() && (pos.attacks_from<PAWN>(s, Us) & theirPawns)))
             backward = false;
