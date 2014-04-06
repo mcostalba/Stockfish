@@ -24,6 +24,7 @@
 #include <cstddef>
 
 #include "bitboard.h"
+#include "bitcount.h"
 #include "types.h"
 
 
@@ -98,6 +99,7 @@ public:
   bool empty(Square s) const;
   template<PieceType Pt> int count(Color c) const;
   template<PieceType Pt> const Square* list(Color c) const;
+  int total_piece_count() const;
 
   // Castling
   int can_castle(Color c) const;
@@ -351,6 +353,10 @@ inline int Position::game_ply() const {
 
 inline int Position::rule50_count() const {
   return st->rule50;
+}
+
+inline int Position::total_piece_count() const {
+  return popcount<Full>(pieces());
 }
 
 inline bool Position::opposite_bishops() const {
