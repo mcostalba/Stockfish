@@ -323,7 +323,7 @@ ifeq ($(popcnt),yes)
 endif
 
 ### 3.10 pext
-ifeq ($(popcnt),yes)
+ifeq ($(pext),yes)
         CXXFLAGS += -mbmi2 -DUSE_PEXT
 endif
 
