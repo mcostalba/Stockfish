@@ -60,21 +60,22 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 #                                              with GCC and ICC 64-bit)
 # popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt x86_64 asm-instruction
 # sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
+# pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
 # at the end of the line for flag values.
 
 ### 2.1. General and architecture defaults
-debug = no
 optimize = yes
-
+debug = no
 os = any
 bits = 32
 prefetch = no
 bsfq = no
 popcnt = no
 sse = no
+pext = no
 
 ### 2.2 Architecture specific
 
@@ -112,6 +113,16 @@ ifeq ($(ARCH),x86-64-modern)
 	bsfq = yes
 	popcnt = yes
 	sse = yes
+endif
+
+ifeq ($(ARCH),x86-64-bmi2)
+	arch = x86_64
+	bits = 64
+	prefetch = yes
+	bsfq = yes
+	popcnt = yes
+	sse = yes
+	pext = yes
 endif
 
 ifeq ($(ARCH),armv7)
@@ -310,7 +321,15 @@ ifeq ($(popcnt),yes)
 	CXXFLAGS += -msse3 -DUSE_POPCNT
 endif
 
-### 3.10 Link Time Optimization, it works since gcc 4.5 but not on mingw.
+### 3.10 pext
+ifeq ($(pext),yes)
+	CXXFLAGS += -DUSE_PEXT
+	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+		CXXFLAGS += -mbmi2
+	endif
+endif
+
+### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
@@ -339,9 +358,7 @@ help:
 	@echo "Supported targets:"
 	@echo ""
 	@echo "build                   > Standard build"
-	@echo "signature-build         > Standard build with embedded signature"
 	@echo "profile-build           > PGO build"
-	@echo "signature-profile-build > PGO build with embedded signature"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
 	@echo "clean                   > Clean up"
@@ -350,6 +367,7 @@ help:
 	@echo ""
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
+	@echo "x86-64-bmi2             > x86 64-bit with pext support"
 	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "linux-ppc-64            > PPC-Linux 64 bit"
@@ -379,7 +397,7 @@ help:
 	@echo "make build ARCH=x86-32    (This is for 32-bit systems)"
 	@echo ""
 
-.PHONY: build profile-build embed-signature
+.PHONY: build profile-build
 build:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
@@ -403,18 +421,6 @@ profile-build:
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_clean)
-
-embed-signature:
-	@echo "Running benchmark for getting the signature ..."
-	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\/string Version\/s\/"\\(.*\\)"\/"sig-\1"\//p' > sign.txt
-	@sed -f sign.txt misc.cpp > misc2.cpp
-	@mv misc2.cpp misc.cpp
-	@rm sign.txt
-
-signature-build: build embed-signature
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
-
-signature-profile-build: build embed-signature profile-build
 
 strip:
 	strip $(EXE)
@@ -448,6 +454,7 @@ config-sanity:
 	@echo "bsfq: '$(bsfq)'"
 	@echo "popcnt: '$(popcnt)'"
 	@echo "sse: '$(sse)'"
+	@echo "pext: '$(pext)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
@@ -466,6 +473,7 @@ config-sanity:
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
+	@test "$(pext)" = "yes" || test "$(pext)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 $(EXE): $(OBJS)
