@@ -54,7 +54,9 @@
 #  include <nmmintrin.h> // Intel header for _mm_popcnt_u64() intrinsic
 #endif
 
-#if defined(USE_PEXT)
+#if defined(USE_PEXT) && defined(_MSC_VER)
+#  include <immintrin.h> // MSVC header for _pext_u64() intrinsic
+#elif defined(USE_PEXT)
 #  include <x86intrin.h> // Gcc header for _pext_u64() intrinsic
 #else
 #  define _pext_u64(b, m) (0)
