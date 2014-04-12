@@ -324,7 +324,10 @@ endif
 
 ### 3.10 pext
 ifeq ($(pext),yes)
-        CXXFLAGS += -mbmi2 -DUSE_PEXT
+	CXXFLAGS += -DUSE_PEXT
+	ifeq ($(comp),$(filter $(comp),gcc clang))
+		CXXFLAGS += -mbmi2
+	endif
 endif
 
 ### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.
