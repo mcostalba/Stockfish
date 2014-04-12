@@ -56,10 +56,11 @@
 
 #if defined(USE_PEXT)
 #  include <immintrin.h> // Header for _pext_u64() intrinsic
-#  include <bmiintrin.h> 
+#  include <bmiintrin.h>
 #else
 #  define _pext_u64(b, m) (0)
 #  define _bextr_u32(v, s, l) (0)
+#  define _blsr_u64(b) (0)
 #endif
 
 #  if !defined(NO_PREFETCH) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
