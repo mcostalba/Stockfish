@@ -59,6 +59,7 @@
 #  include <bmiintrin.h> 
 #else
 #  define _pext_u64(b, m) (0)
+#  define _bextr_u32(v, s, l) (0)
 #endif
 
 #  if !defined(NO_PREFETCH) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
@@ -421,7 +422,7 @@ inline Square pawn_push(Color c) {
 }
 
 inline Square from_sq(Move m) {
-  return Square(_bextr_u32(m, 6, 6)); //return Square((m >> 6) & 0x3F);
+  return Square(HasPext ? _bextr_u32(m, 6, 6) : (m >> 6) & 0x3F);
 }
 
 inline Square to_sq(Move m) {
@@ -433,7 +434,7 @@ inline MoveType type_of(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
-  return PieceType(((m >> 12) & 3) + 2);
+  return PieceType((HasPext ? Square(_bextr_u32(m, 12, 2)) : ((m >> 12) & 3)) + 2);
 }
 
 inline Move make_move(Square from, Square to) {

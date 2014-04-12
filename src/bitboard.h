@@ -109,7 +109,7 @@ inline Bitboard operator^(Bitboard b, Square s) {
 }
 
 inline bool more_than_one(Bitboard b) {
-  return b & (b - 1);
+  return HasPext ? _blsr_u64(b) : b & (b - 1);
 }
 
 inline int square_distance(Square s1, Square s2) {
@@ -320,7 +320,7 @@ FORCE_INLINE Square msb(Bitboard b) {
 
 FORCE_INLINE Square pop_lsb(Bitboard* b) {
   const Square s = lsb(*b);
-  *b &= *b - 1;
+  *b = HasPext ? _blsr_u64(*b) : *b & (*b - 1);
   return s;
 }
 
