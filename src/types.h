@@ -56,6 +56,7 @@
 
 #if defined(USE_PEXT)
 #  include <immintrin.h> // Header for _pext_u64() intrinsic
+#  include <bmiintrin.h> 
 #else
 #  define _pext_u64(b, m) (0)
 #endif
@@ -420,7 +421,7 @@ inline Square pawn_push(Color c) {
 }
 
 inline Square from_sq(Move m) {
-  return Square((m >> 6) & 0x3F);
+  return Square(_bextr_u32(m, 6, 6)); //return Square((m >> 6) & 0x3F);
 }
 
 inline Square to_sq(Move m) {
