@@ -131,10 +131,10 @@ const std::string Bitboards::pretty(Bitboard b) {
 
   std::string s = "+---+---+---+---+---+---+---+---+\n";
 
-  for (Rank rank = RANK_8; rank >= RANK_1; --rank)
+  for (Rank r = RANK_8; r >= RANK_1; --r)
   {
-      for (File file = FILE_A; file <= FILE_H; ++file)
-          s.append(b & make_square(file, rank) ? "| X " : "|   ");
+      for (File f = FILE_A; f <= FILE_H; ++f)
+          s.append(b & make_square(f, r) ? "| X " : "|   ");
 
       s.append("|\n+---+---+---+---+---+---+---+---+\n");
   }
@@ -279,7 +279,12 @@ namespace {
         b = size = 0;
         do {
             occupancy[size] = b;
-            reference[size++] = sliding_attack(deltas, s, b);
+            reference[size] = sliding_attack(deltas, s, b);
+
+            if (HasPext)
+                attacks[s][_pext_u64(b, masks[s])] = reference[size];
+
+            size++;
             b = (b - masks[s]) & masks[s];
         } while (b);
 
@@ -287,6 +292,9 @@ namespace {
         // table sizes for each square with "Fancy Magic Bitboards".
         if (s < SQ_H8)
             attacks[s + 1] = attacks[s] + size;
+
+        if (HasPext)
+            continue;
 
         booster = MagicBoosters[Is64Bit][rank_of(s)];
 
