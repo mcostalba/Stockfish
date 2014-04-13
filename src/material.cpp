@@ -133,12 +133,14 @@ namespace {
 
 namespace Material {
 
+::Endgames* Endgames; // Global object
+
 /// Material::probe() takes a position object as input, looks up a MaterialEntry
 /// object, and returns a pointer to it. If the material configuration is not
 /// already present in the table, it is computed and stored there, so we don't
 /// have to recompute everything when the same material configuration occurs again.
 
-Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
+Entry* probe(const Position& pos, Table& entries) {
 
   Key key = pos.material_key();
   Entry* e = entries[key];
@@ -157,7 +159,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   // Let's look if we have a specialized evaluation function for this particular
   // material configuration. Firstly we look for a fixed configuration one, then
   // for a generic one if the previous search failed.
-  if (endgames.probe(key, e->evaluationFunction))
+  if (Endgames->probe(key, e->evaluationFunction))
       return e;
 
   if (is_KXK<WHITE>(pos))
@@ -178,8 +180,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   // We face problems when there are several conflicting applicable
   // scaling functions and we need to decide which one to use.
   EndgameBase<ScaleFactor>* sf;
-
-  if (endgames.probe(key, sf))
+  if (Endgames->probe(key, sf))
   {
       e->scalingFunction[sf->color()] = sf;
       return e;

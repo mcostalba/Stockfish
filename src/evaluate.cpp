@@ -753,7 +753,7 @@ namespace {
     score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
 
     // Probe the material hash table
-    ei.mi = Material::probe(pos, thisThread->materialTable, thisThread->endgames);
+    ei.mi = Material::probe(pos, thisThread->materialTable);
     score += ei.mi->material_value();
 
     // If we have a specialized evaluation function for the current material
