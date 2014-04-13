@@ -846,7 +846,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // Check for legality just before making the move
-      if (!RootNode && !SpNode && !pos.legal(move, ci.pinned))
+      if (!SpNode && !pos.legal(move, ci.pinned))
       {
           moveCount--;
           continue;
@@ -1145,7 +1145,6 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Futility pruning
       if (   !PvNode
-          && !InCheck
           && !givesCheck
           &&  move != ttMove
           &&  futilityBase > -VALUE_KNOWN_WIN
@@ -1169,8 +1168,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // Detect non-capture evasions that are candidates to be pruned
-      evasionPrunable =    InCheck
-                       &&  bestValue > VALUE_MATED_IN_MAX_PLY
+      evasionPrunable =    bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.capture(move)
                        && !pos.can_castle(pos.side_to_move());
 
