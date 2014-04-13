@@ -191,10 +191,10 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   if (is_KBPsKs<WHITE>(pos))
       e->scalingFunction[WHITE] = &ScaleKBPsK[WHITE];
 
-  if (is_KBPsKs<BLACK>(pos))
+  else if (is_KBPsKs<BLACK>(pos))
       e->scalingFunction[BLACK] = &ScaleKBPsK[BLACK];
 
-  if (is_KQKRPs<WHITE>(pos))
+  else if (is_KQKRPs<WHITE>(pos))
       e->scalingFunction[WHITE] = &ScaleKQKRPs[WHITE];
 
   else if (is_KQKRPs<BLACK>(pos))
