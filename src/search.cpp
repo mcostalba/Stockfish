@@ -867,7 +867,8 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          && !(type_of(move) == CASTLE))
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
