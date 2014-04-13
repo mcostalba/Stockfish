@@ -846,7 +846,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // Check for legality just before making the move
-      if (!RootNode && !SpNode && !pos.legal(move, ci.pinned))
+      if (!SpNode && !pos.legal(move, ci.pinned))
       {
           moveCount--;
           continue;
