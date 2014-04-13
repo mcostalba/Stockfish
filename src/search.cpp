@@ -1145,7 +1145,6 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Futility pruning
       if (   !PvNode
-          && !InCheck
           && !givesCheck
           &&  move != ttMove
           &&  futilityBase > -VALUE_KNOWN_WIN
