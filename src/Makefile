@@ -61,6 +61,7 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 # popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt x86_64 asm-instruction
 # sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
 # pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
+# lzcnt = yes/no       --- -DUSE_LZCNT        ---Use lzcnt x86_64 asm-instruction
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -76,7 +77,7 @@ bsfq = no
 popcnt = no
 sse = no
 pext = no
-
+lzcnt = no
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH),general-32)
@@ -124,6 +125,18 @@ ifeq ($(ARCH),x86-64-bmi2)
 	sse = yes
 	pext = yes
 endif
+
++ifeq ($(ARCH),x86-64-SSE4a)
+	arch = x86_64
+	bits = 64
+	prefetch = yes
+	bsfq = yes
+	popcnt = yes
+	sse = yes
+	pext = no
+	lzcnt = yes
+endif
+
 
 ifeq ($(ARCH),armv7)
 	arch = armv7
@@ -297,7 +310,12 @@ ifeq ($(pext),yes)
 	endif
 endif
 
-### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.
+### 3.11 lzcnt
+ifeq ($(lzcnt),yes)
+	CXXFLAGS += -DUSE_LZCNT
+endif
+
+### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
@@ -336,6 +354,7 @@ help:
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
 	@echo "x86-64-bmi2             > x86 64-bit with pext support"
+	@echo "x86-64-SSE4a             > x86 64-bit with SSE4a support"
 	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "ppc-64                  > PPC 64-bit"
@@ -419,6 +438,7 @@ config-sanity:
 	@echo "popcnt: '$(popcnt)'"
 	@echo "sse: '$(sse)'"
 	@echo "pext: '$(pext)'"
+	@echo "lzcnt: '$(lzcnt)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "CXX: $(CXX)"
@@ -438,6 +458,7 @@ config-sanity:
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(pext)" = "yes" || test "$(pext)" = "no"
+	@test "$(lzcnt)" = "yes" || test "$(lzcnt)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 $(EXE): $(OBJS)
