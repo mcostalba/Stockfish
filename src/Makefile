@@ -61,7 +61,7 @@ OBJS = benchmark.o bitbase.o bitboard.o book.o endgame.o evaluate.o main.o \
 # popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt x86_64 asm-instruction
 # sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
 # pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
-# lzcnt = yes/no       --- -DUSE_LZCNT        ---Use lzcnt x86_64 asm-instruction
+# lzcnt = yes/no       --- -DUSE_LZCNT       --- Use lzcnt x86_64 asm-instruction
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
