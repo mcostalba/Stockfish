@@ -126,7 +126,7 @@ ifeq ($(ARCH),x86-64-bmi2)
 	pext = yes
 endif
 
-+ifeq ($(ARCH),x86-64-SSE4a)
+ifeq ($(ARCH),x86-64-SSE4a)
 	arch = x86_64
 	bits = 64
 	prefetch = yes
