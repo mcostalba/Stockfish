@@ -354,7 +354,7 @@ help:
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
 	@echo "x86-64-bmi2             > x86 64-bit with pext support"
-	@echo "x86-64-SSE4a             > x86 64-bit with SSE4a support"
+	@echo "x86-64-SSE4a            > x86 64-bit with SSE4a support"
 	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "ppc-64                  > PPC 64-bit"
