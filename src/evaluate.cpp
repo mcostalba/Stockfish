@@ -609,10 +609,6 @@ namespace {
             ebonus +=  Value(square_distance(pos.king_square(Them), blockSq) * 5 * rr)
                      - Value(square_distance(pos.king_square(Us  ), blockSq) * 2 * rr);
 
-            // If blockSq is not the queening square then consider also a second push
-            if (relative_rank(Us, blockSq) != RANK_8)
-                ebonus -= Value(rr * square_distance(pos.king_square(Us), blockSq + pawn_push(Us)));
-
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
             {
