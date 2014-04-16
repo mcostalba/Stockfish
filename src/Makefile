@@ -299,7 +299,7 @@ endif
 
 ### 3.9 popcnt
 ifeq ($(popcnt),yes)
-	CXXFLAGS += -msse3 -DUSE_PCMPEQQ -DUSE_POPCNT
+	CXXFLAGS += -msse3 -DUSE_POPCNT
 endif
 
 ### 3.10 pext
@@ -312,7 +312,7 @@ endif
 
 ### 3.11 lzcnt
 ifeq ($(lzcnt),yes)
-	CXXFLAGS += -DUSE_LZCNT
+	CXXFLAGS += -msse4a
 endif
 
 ### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw.
