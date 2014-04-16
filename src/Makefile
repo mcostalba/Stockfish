@@ -312,7 +312,7 @@ endif
 
 ### 3.11 lzcnt
 ifeq ($(lzcnt),yes)
-	CXXFLAGS += -msse4a
+	CXXFLAGS += -mtbm
 endif
 
 ### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw.
