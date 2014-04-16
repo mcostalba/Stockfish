@@ -337,7 +337,7 @@ namespace {
             {
                 bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
                 
-                bestValue > VALUE_DRAW ? cf = 15 : cf = -15;
+                bestValue > VALUE_DRAW ? cf = 30 : cf = -30;
                 DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
                 DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
 
