@@ -185,10 +185,6 @@ void Search::think() {
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
 
-  int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
-  DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
-  DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
-
   if (RootMoves.empty())
   {
       RootMoves.push_back(MOVE_NONE);
@@ -302,6 +298,8 @@ namespace {
 
     MultiPV = Options["MultiPV"];
     Skill skill(Options["Skill Level"]);
+    
+    int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
 
     // Do we have to play with skill handicap? In this case enable MultiPV search
     // that we will use behind the scenes to retrieve a set of possible moves.
@@ -338,6 +336,10 @@ namespace {
             while (true)
             {
                 bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
+                
+                bestValue > VALUE_DRAW ? cf = 15 : cf = -15;
+                DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
+                DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
