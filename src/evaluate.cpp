@@ -382,14 +382,13 @@ namespace {
             if (ei.pi->semiopen_file(Us, file_of(s)))
                 score += ei.pi->semiopen_file(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 3 || ei.pi->semiopen_file(Us, file_of(s)))
-                continue;
-
-            Square ksq = pos.king_square(Us);
-
             // Penalize rooks which are trapped by a king. Penalize more if the
             // king has lost its castling capability.
-            if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
+            Square ksq = pos.king_square(Us);
+
+            if (   mob <= 3
+                && !(ei.pi->semiopen_file(Us, file_of(s)))
+                && ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
                 && !ei.pi->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
                 score -= (TrappedRook - make_score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
