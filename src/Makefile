@@ -158,6 +158,7 @@ ifeq ($(COMP),gcc)
 	comp=gcc
 	CXX=g++
 	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
+	LDFLAGS += -Wl,--no-as-needed
 endif
 
 ifeq ($(COMP),mingw)
