@@ -657,8 +657,8 @@ namespace {
         // value if the other side has a rook or queen.
         if (file_of(s) == FILE_A || file_of(s) == FILE_H)
         {
-            int m = 4 - (pos.non_pawn_material(Us) + pos.non_pawn_material(Them)) / 2048;
-            ebonus += m * ebonus / 4;
+            int npm = pos.non_pawn_material(Us) + pos.non_pawn_material(Them);
+            ebonus -= (npm - 8192) * ebonus / 16384;
         }
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
