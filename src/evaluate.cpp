@@ -161,12 +161,10 @@ namespace {
   #undef S
 
   const Score Tempo            = make_score(24, 11);
-  const Score RookOn7th        = make_score(11, 20);
   const Score RookOnPawn       = make_score(10, 28);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
-  const Score KnightPawns      = make_score( 8,  4);
   const Score MinorBehindPawn  = make_score(16,  0);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -349,10 +347,6 @@ namespace {
             if (Pt == BISHOP)
                 score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
-            // Penalty for knight when there are few enemy pawns
-            if (Pt == KNIGHT)
-                score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
-
             // Bishop and knight outposts squares
             if (!(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
                 score += evaluate_outposts<Pt, Us>(pos, ei, s);
@@ -365,11 +359,6 @@ namespace {
 
         if (Pt == ROOK)
         {
-            // Rook on 7th rank and enemy king trapped on 8th
-            if (   relative_rank(Us, s) == RANK_7
-                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += RookOn7th;
-
             // Rook piece attacking enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
             {
