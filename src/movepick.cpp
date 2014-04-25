@@ -167,11 +167,11 @@ void MovePicker::score<CAPTURES>() {
       it->value =  PieceValue[MG][pos.piece_on(to_sq(m))]
                  - Value(type_of(pos.moved_piece(m)));
 
-      if (type_of(m) == PROMOTION)
-          it->value += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
-
-      else if (type_of(m) == ENPASSANT)
+      if (type_of(m) == ENPASSANT)
           it->value += PieceValue[MG][PAWN];
+
+      else if (type_of(m) == PROMOTION)
+          it->value += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
   }
 }
 
@@ -328,8 +328,8 @@ Move MovePicker::next_move<false>() {
       case KILLERS_S1:
           move = (cur++)->move;
           if (    move != MOVE_NONE
-              &&  pos.pseudo_legal(move)
               &&  move != ttMove
+              &&  pos.pseudo_legal(move)
               && !pos.capture(move))
               return move;
           break;

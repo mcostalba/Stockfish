@@ -72,7 +72,7 @@ namespace {
   const Value StormDanger[3][RANK_NB] = {
   { V( 0),  V(64), V(128), V(51), V(26) },
   { V(26),  V(32), V( 96), V(38), V(20) },
-  { V( 0),  V( 0), V( 64), V(25), V(13) } };
+  { V( 0),  V( 0), V(160), V(25), V(13) } };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
@@ -89,10 +89,10 @@ namespace {
     const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
-    Bitboard b, p;
+    Bitboard b, p, doubled;
     Square s;
     File f;
-    bool passed, isolated, doubled, opposed, connected, backward, candidate, unsupported;
+    bool passed, isolated, opposed, connected, backward, candidate, unsupported;
     Score value = SCORE_ZERO;
     const Square* pl = pos.list<PAWN>(Us);
 
@@ -177,7 +177,7 @@ namespace {
             value -= UnsupportedPawnPenalty;
 
         if (doubled)
-            value -= Doubled[f];
+            value -= Doubled[f] / rank_distance(s, lsb(doubled));
 
         if (backward)
             value -= Backward[opposed][f];
@@ -280,12 +280,11 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 }
 
 
-/// Entry::update_safety() calculates and caches a bonus for king safety.
-/// It is called only when king square changes, which is about 20% of total
-/// king_safety() calls.
+/// Entry::do_king_safety() calculates a bonus for king safety. It is called only
+/// when king square changes, which is about 20% of total king_safety() calls.
 
 template<Color Us>
-Score Entry::update_safety(const Position& pos, Square ksq) {
+Score Entry::do_king_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.can_castle(Us);
@@ -296,7 +295,7 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
       while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
 
   if (relative_rank(Us, ksq) > RANK_4)
-      return kingSafety[Us] = make_score(0, -16 * minKPdistance[Us]);
+      return make_score(0, -16 * minKPdistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
@@ -307,11 +306,11 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
   if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-  return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);
+  return make_score(bonus, -16 * minKPdistance[Us]);
 }
 
 // Explicit template instantiation
-template Score Entry::update_safety<WHITE>(const Position& pos, Square ksq);
-template Score Entry::update_safety<BLACK>(const Position& pos, Square ksq);
+template Score Entry::do_king_safety<WHITE>(const Position& pos, Square ksq);
+template Score Entry::do_king_safety<BLACK>(const Position& pos, Square ksq);
 
 } // namespace Pawns
