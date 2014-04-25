@@ -880,6 +880,10 @@ moves_loop: // When in check and at SpNode search starts from here
 
           else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
               ss->reduction += ONE_PLY / 2;
+              
+          if (SpNode)
+             ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
+
 
           if (move == countermoves[0] || move == countermoves[1])
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
