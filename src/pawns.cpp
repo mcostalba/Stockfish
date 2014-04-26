@@ -244,14 +244,20 @@ Entry* probe(const Position& pos, Table& entries) {
   // Closed position detector
   const unsigned mask = (1 << FILE_C) | (1 << FILE_D) | (1 << FILE_E);
 
-  if (!(e->semiopenFiles[WHITE] & mask) && !(e->semiopenFiles[BLACK] & mask))
+  if (   !(e->semiopenFiles[WHITE] & mask)  // No semiopen files?
+      && !(e->semiopenFiles[BLACK] & mask))
   {
       Bitboard mask2 = FileBB[FILE_C] | FileBB[FILE_D] | FileBB[FILE_E];
 
       Bitboard b = shift_bb<DELTA_S>(pos.pieces(BLACK, PAWN) & mask2);
 
-      if ((b & pos.pieces(WHITE, PAWN)) == b)
-          e->closedCenter = b;
+      if ((b & pos.pieces(WHITE, PAWN)) == b) // All pawns are blocked?
+      {
+          Square s = lsb(b & FileBB[FILE_D]);
+
+          if ((b & (PseudoAttacks[BISHOP][s] | s)) == b) // Diagonal chain?
+              e->closedCenter = b;
+      }
   }
 
   return e;
