@@ -280,8 +280,6 @@ Entry* probe(const Position& pos, Table& entries) {
                        || ((PseudoAttacks[BISHOP][s1] | s1) & blockedPawns) == blockedPawns;
 
           e->closenessFactor = (chain ? 2 : 1) * (size * 3 + center * 2);
-
-          e->closenessFactor = 0; // FIXME remove to enable
       }
   }
 
