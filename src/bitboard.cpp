@@ -49,6 +49,7 @@ Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
+Bitboard PawnIslands[256];
 
 int SquareDistance[SQUARE_NB][SQUARE_NB];
 

@@ -810,8 +810,8 @@ namespace {
     }
 
     // Reduce scale factors in case of a closed position
-    if (ei.pi->closed_center())
-        sf = ScaleFactor(55 * sf / SCALE_FACTOR_NORMAL);
+    if (ei.pi->closeness_factor())
+        sf = ScaleFactor((SCALE_FACTOR_NORMAL - ei.pi->closeness_factor()) * sf / SCALE_FACTOR_NORMAL);
 
     Value v = interpolate(score, ei.mi->game_phase(), sf);
 

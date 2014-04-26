@@ -215,12 +215,28 @@ void init() {
 
   const int bonusesByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
   int bonus;
+  Bitboard island = 0;
 
   for (Rank r = RANK_1; r < RANK_8; ++r)
       for (File f = FILE_A; f <= FILE_H; ++f)
       {
           bonus = r * (r-1) * (r-2) + bonusesByFile[f] * (r/2 + 1);
           Connected[f][r] = make_score(bonus, bonus);
+      }
+
+  for (unsigned closedFiles = 0; closedFiles < 256; ++closedFiles)
+      for (File f = FILE_A; f <= FILE_H; ++f)
+      {
+          island |= closedFiles & (1 << f) ? file_bb(f) : 0;
+
+          if (!(closedFiles & (1 << f)) || f == FILE_H)
+          {
+              // Island has at least 3 pawns?
+              if (island && (file_of(msb(island)) - file_of(lsb(island)) >= 2))
+                  PawnIslands[closedFiles] |= island;
+
+              island = 0;
+          }
       }
 }
 
@@ -238,25 +254,34 @@ Entry* probe(const Position& pos, Table& entries) {
       return e;
 
   e->key = key;
-  e->closedCenter = 0;
+  e->closenessFactor = 0;
   e->value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
 
   // Closed position detector
-  const unsigned mask = (1 << FILE_C) | (1 << FILE_D) | (1 << FILE_E);
+  Bitboard blockedPawns =  shift_bb<DELTA_S>(pos.pieces(BLACK, PAWN))
+                         & pos.pieces(WHITE, PAWN);
 
-  if (   !(e->semiopenFiles[WHITE] & mask)  // No semiopen files?
-      && !(e->semiopenFiles[BLACK] & mask))
+  if (blockedPawns && popcount<Max15>(blockedPawns) > 2)
   {
-      Bitboard mask2 = FileBB[FILE_C] | FileBB[FILE_D] | FileBB[FILE_E];
+      unsigned closedFiles = 0;
+      for (File f = FILE_A; f <= FILE_H; ++f)
+          closedFiles |= blockedPawns & file_bb(f) ? (1 << f) : 0;
 
-      Bitboard b = shift_bb<DELTA_S>(pos.pieces(BLACK, PAWN) & mask2);
+      blockedPawns &= PawnIslands[closedFiles];
 
-      if ((b & pos.pieces(WHITE, PAWN)) == b) // All pawns are blocked?
+      if (blockedPawns)
       {
-          Square s = lsb(b & FileBB[FILE_D]);
+          Square s0 = lsb(blockedPawns);
+          Square s1 = msb(blockedPawns);
 
-          if ((b & (PseudoAttacks[BISHOP][s] | s)) == b) // Diagonal chain?
-              e->closedCenter = b;
+          int size   = popcount<Max15>(blockedPawns);
+          int center = !!(blockedPawns & (file_bb(FILE_D) | file_bb(FILE_E)));
+          int chain  =    ((PseudoAttacks[BISHOP][s0] | s0) & blockedPawns) == blockedPawns
+                       || ((PseudoAttacks[BISHOP][s1] | s1) & blockedPawns) == blockedPawns;
+
+          e->closenessFactor = (chain ? 2 : 1) * (size * 3 + center * 2);
+
+          e->closenessFactor = 0; // FIXME remove to enable
       }
   }
 
