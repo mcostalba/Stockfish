@@ -161,12 +161,10 @@ namespace {
   #undef S
 
   const Score Tempo            = make_score(24, 11);
-  const Score RookOn7th        = make_score(11, 20);
   const Score RookOnPawn       = make_score(10, 28);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
-  const Score KnightPawns      = make_score( 8,  4);
   const Score MinorBehindPawn  = make_score(16,  0);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -348,10 +346,6 @@ namespace {
             if (Pt == BISHOP)
                 score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
-            // Penalty for knight when there are few enemy pawns
-            if (Pt == KNIGHT)
-                score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
-
             // Bishop and knight outposts squares
             if (!(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
                 score += evaluate_outposts<Pt, Us>(pos, ei, s);
@@ -364,11 +358,6 @@ namespace {
 
         if (Pt == ROOK)
         {
-            // Rook on 7th rank and enemy king trapped on 8th
-            if (   relative_rank(Us, s) == RANK_7
-                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += RookOn7th;
-
             // Rook piece attacking enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
             {
@@ -378,10 +367,10 @@ namespace {
             }
 
             // Give a bonus for a rook on a open or semi-open file
-            if (ei.pi->semiopen(Us, file_of(s)))
-                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+            if (ei.pi->semiopen_file(Us, file_of(s)))
+                score += ei.pi->semiopen_file(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
-            if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
+            if (mob > 3 || ei.pi->semiopen_file(Us, file_of(s)))
                 continue;
 
             Square ksq = pos.king_square(Us);
@@ -390,8 +379,8 @@ namespace {
             // king has lost its castling capability.
             if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
-                && !ei.pi->semiopen_on_side(Us, file_of(ksq), file_of(ksq) < FILE_E))
-                score -= (TrappedRook - make_score(mob * 8, 0)) * (pos.can_castle(Us) ? 1 : 2);
+                && !ei.pi->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
+                score -= (TrappedRook - make_score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
         }
 
         // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -582,7 +571,7 @@ namespace {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, squaresToQueen, defendedSquares, unsafeSquares, supportingPawns;
+    Bitboard b, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
 
     b = ei.pi->passed_pawns(Us);
@@ -632,32 +621,21 @@ namespace {
                 else
                     defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
 
-                // If there aren't any enemy attacks, then assign a huge bonus.
-                // The bonus will be a bit smaller if at least the block square
-                // isn't attacked, otherwise assign the smallest possible bonus.
-                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
+                // If there aren't any enemy attacks, assign a big bonus. Otherwise
+                // assign a smaller bonus if the block square isn't attacked.
+                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 0;
 
-                // Assign a big bonus if the path to the queen is fully defended,
-                // otherwise assign a bit less of a bonus if at least the block
-                // square is defended.
+                // If the path to queen is fully defended, assign a big bonus.
+                // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
                     k += 6;
 
                 else if (defendedSquares & blockSq)
-                    k += (unsafeSquares & defendedSquares) == unsafeSquares ? 4 : 2;
+                    k += 4;
 
                 mbonus += Value(k * rr), ebonus += Value(k * rr);
             }
         } // rr != 0
-
-        // Increase the bonus if the passed pawn is supported by a friendly pawn
-        // on the same rank and a bit smaller if it's on the previous rank.
-        supportingPawns = pos.pieces(Us, PAWN) & adjacent_files_bb(file_of(s));
-        if (supportingPawns & rank_bb(s))
-            ebonus += Value(r * 20);
-
-        else if (supportingPawns & rank_bb(s - pawn_push(Us)))
-            ebonus += Value(r * 12);
 
         // Rook pawns are a special case: They are sometimes worse, and
         // sometimes better than other passed pawns. It is difficult to find
