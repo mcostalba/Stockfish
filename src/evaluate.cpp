@@ -225,7 +225,7 @@ namespace {
   // interpolate() interpolates between a middlegame and an endgame score,
   // based on game phase. It also scales the return value by a ScaleFactor array.
 
-  Value interpolate(const Score& v, Phase ph, ScaleFactor sf) {
+  Value interpolate(Score v, Phase ph, ScaleFactor sf) {
 
     assert(-VALUE_INFINITE < mg_value(v) && mg_value(v) < VALUE_INFINITE);
     assert(-VALUE_INFINITE < eg_value(v) && eg_value(v) < VALUE_INFINITE);
@@ -734,7 +734,7 @@ namespace {
     ei.attackedBy[WHITE][ALL_PIECES] |= ei.attackedBy[WHITE][KING];
     ei.attackedBy[BLACK][ALL_PIECES] |= ei.attackedBy[BLACK][KING];
 
-    // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+    // Do not include in mobility squares protected by enemy pawns or occupied by our pawns or king
     Bitboard mobilityArea[] = { ~(ei.attackedBy[BLACK][PAWN] | pos.pieces(WHITE, PAWN, KING)),
                                 ~(ei.attackedBy[WHITE][PAWN] | pos.pieces(BLACK, PAWN, KING)) };
 
@@ -917,6 +917,8 @@ namespace Eval {
 
     const double MaxSlope = 30;
     const double Peak = 1280;
+
+    KingDanger[0][0] = KingDanger[1][0] = SCORE_ZERO;
 
     for (int t = 0, i = 1; i < 100; ++i)
     {
