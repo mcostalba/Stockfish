@@ -1013,8 +1013,12 @@ moves_loop: // When in check and at SpNode search starts from here
     // harmless because return value is discarded anyhow in the parent nodes.
     // If we are in a singular extension search then return a fail low score.
     // A split node has at least one move - the one tried before to be split.
-    if (!moveCount)
+    if (!moveCount && (Signals.stop || thisThread->cutoff_occurred()))
         return  excludedMove ? alpha
+              : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
+
+    if (!moveCount)
+        bestValue = excludedMove ? alpha
               : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
 
     // If we have pruned all the moves without searching return a fail-low score
