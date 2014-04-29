@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <malloc.h>
 
 #include "book.h"
 #include "misc.h"
@@ -348,9 +349,18 @@ namespace {
 
 } // namespace
 
-PolyglotBook::PolyglotBook() : rkiss(Time::now() % 10000) {}
+unsigned char* PolyglotBook::pBookData = 0;
+size_t PolyglotBook::bookSize = 0;
 
-PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
+PolyglotBook::PolyglotBook() : position(0), rkiss(Time::now() % 10000) {}
+
+PolyglotBook::~PolyglotBook() { }
+ 
+void PolyglotBook::setBookData(unsigned char* pData, size_t size) {
+   free(pBookData);
+   pBookData = pData;
+   bookSize = size;
+}
 
 
 /// operator>>() reads sizeof(T) chars from the file's binary byte stream and
@@ -360,8 +370,12 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
 
   n = 0;
-  for (size_t i = 0; i < sizeof(T); ++i)
-      n = T((n << 8) + ifstream::get());
+  for (size_t i = 0; i < sizeof(T); ++i) {
+ 	 unsigned char c = -1;
+ 	 if(position < bookSize)
+ 		 c = pBookData[position++];
+     n = T((n << 8) + c);
+  }
 
   return *this;
 }
@@ -374,16 +388,9 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 /// open() tries to open a book file with the given name after closing any
 /// existing one.
 
-bool PolyglotBook::open(const char* fName) {
-
-  if (is_open()) // Cannot close an already closed file
-      close();
-
-  ifstream::open(fName, ifstream::in | ifstream::binary);
-
-  fileName = is_open() ? fName : "";
-  ifstream::clear(); // Reset any error flag to allow a retry ifstream::open()
-  return !fileName.empty();
+bool PolyglotBook::open(const char* /*fName*/) {
+   position = 0;
+   return pBookData != 0;
 }
 
 
@@ -394,7 +401,7 @@ bool PolyglotBook::open(const char* fName) {
 
 Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) {
 
-  if (fileName != fName && !open(fName.c_str()))
+  if (!open(fName.c_str()))
       return MOVE_NONE;
 
   Entry e;
@@ -403,9 +410,9 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
   Move move = MOVE_NONE;
   Key key = polyglot_key(pos);
 
-  seekg(find_first(key) * sizeof(Entry), ios_base::beg);
+  position = find_first(key) * sizeof(Entry);
 
-  while (*this >> e, e.key == key && good())
+  while (*this >> e, e.key == key)
   {
       best = max(best, e.count);
       sum += e.count;
@@ -450,20 +457,18 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
 
 size_t PolyglotBook::find_first(Key key) {
 
-  seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size
-
-  size_t low = 0, mid, high = (size_t)tellg() / sizeof(Entry) - 1;
+  size_t low = 0, mid, high = (size_t)bookSize / sizeof(Entry) - 1;
   Entry e;
 
   assert(low <= high);
 
-  while (low < high && good())
+  while (low < high)
   {
       mid = (low + high) / 2;
 
       assert(mid >= low && mid < high);
 
-      seekg(mid * sizeof(Entry), ios_base::beg);
+      position = mid * sizeof(Entry);
       *this >> e;
 
       if (key <= e.key)

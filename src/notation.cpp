@@ -52,6 +52,18 @@ string score_to_uci(Value v, Value alpha, Value beta) {
   return ss.str();
 }
 
+/// score_to_json() converts the score to a JSON object with the properties:
+
+string score_to_json(Value v) {
+
+  stringstream s;
+  if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+      s << "{\"cp\":" << v * 100 / int(PawnValueMg) << ",\"mate\":null}";
+  else
+      s << "{\"cp\":" << VALUE_MATE_IN_MAX_PLY * ((v < 0) ? -1 : 1) << ",\"mate\":" << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2 << "}";
+
+  return s.str();
+}
 
 /// move_to_uci() converts a move to a string in coordinate notation
 /// (g1f3, a7a8q, etc.). The only special case is castling moves, where we print
@@ -96,6 +108,35 @@ Move move_from_uci(const Position& pos, string& str) {
   return MOVE_NONE;
 }
 
+/// move_to_json() is similar to move_to_uci() except it converts the move to a JSON object
+
+const string move_to_json(Move m, bool chess960) {
+
+  Square from = from_sq(m);
+  Square to = to_sq(m);
+
+  if (m == MOVE_NONE)
+      return "{\"from\":null,\"to\":null,\"promotion\":null}";
+
+  if (m == MOVE_NULL)
+      return "{\"from\":null,\"to\":null,\"promotion\":null}";
+
+  if (type_of(m) == CASTLING && !chess960)
+      to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
+
+  string move = "{\"from\":\"" + to_string(from) + "\",\"to\":\"" + to_string(to) + "\"";
+
+  if (type_of(m) == PROMOTION){
+      move += ",\"promotion\":\"";
+      move += PieceToChar[BLACK][promotion_type(m)];
+      move += "\"";
+  }
+  else{
+      move += ",\"promotion\":null";
+  }
+  move += "}";
+  return move;
+}
 
 /// move_to_san() takes a position and a legal Move as input and returns its
 /// short algebraic notation representation.

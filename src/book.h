@@ -20,26 +20,28 @@
 #ifndef BOOK_H_INCLUDED
 #define BOOK_H_INCLUDED
 
-#include <fstream>
-#include <string>
-
 #include "position.h"
 #include "rkiss.h"
 
-class PolyglotBook : private std::ifstream {
+class PolyglotBook {
 public:
   PolyglotBook();
  ~PolyglotBook();
   Move probe(const Position& pos, const std::string& fName, bool pickBest);
+  
+  static void setBookData(unsigned char* pData, size_t size);
 
 private:
   template<typename T> PolyglotBook& operator>>(T& n);
 
   bool open(const char* fName);
   size_t find_first(Key key);
-
+  
+  size_t position;
+  static unsigned char* pBookData;
+  static size_t bookSize;
+  
   RKISS rkiss;
-  std::string fileName;
 };
 
 #endif // #ifndef BOOK_H_INCLUDED

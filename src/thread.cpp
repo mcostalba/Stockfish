@@ -114,7 +114,7 @@ bool Thread::cutoff_occurred() const {
 
 bool Thread::available_to(const Thread* master) const {
 
-  if (searching)
+  //if (searching)
       return false;
 
   // Make a local copy to be sure it doesn't become zero under our feet while
@@ -346,11 +346,6 @@ template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*
 // wait_for_think_finished() waits for main thread to go to sleep then returns
 
 void ThreadPool::wait_for_think_finished() {
-
-  MainThread* t = main();
-  t->mutex.lock();
-  while (t->thinking) sleepCondition.wait(t->mutex);
-  t->mutex.unlock();
 }
 
 
@@ -380,6 +375,5 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits, S
           || std::count(limits.searchmoves.begin(), limits.searchmoves.end(), *it))
           RootMoves.push_back(RootMove(*it));
 
-  main()->thinking = true;
-  main()->notify_one(); // Starts main thread
+  Search::think();
 }

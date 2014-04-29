@@ -282,14 +282,12 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
       set_castling_right(c, rsq);
   }
 
-  // 4. En passant square. Ignore if no pawn capture is possible
+  // 4. En passant square.
   if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
       && ((ss >> row) && (row == '3' || row == '6')))
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
-      if (!(attackers_to(st->epSquare) & pieces(sideToMove, PAWN)))
-          st->epSquare = SQ_NONE;
   }
 
   // 5-6. Halfmove clock and fullmove number
@@ -695,12 +693,19 @@ void Position::do_move(Move m, StateInfo& newSt) {
   do_move(m, newSt, ci, gives_check(m, ci));
 }
 
+// TimerThread::idle_loop() is where the timer thread waits msec milliseconds
+// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+extern void check_time();
+static int check_time_counter = 0;
+
 void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) {
 
   assert(is_ok(m));
   assert(&newSt != st);
 
   ++nodes;
+  if((++check_time_counter & 31) ==0)
+  check_time();
   Key k = st->key;
 
   // Copy some fields of the old state to our new StateInfo object except the

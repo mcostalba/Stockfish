@@ -134,7 +134,7 @@ void benchmark(const Position& current, istream& is) {
   {
       Position pos(fens[i], Options["UCI_Chess960"], Threads.main());
 
-      cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
+      cerr << "{\"mtype\":\"benchinfo\",\"currentPos\":" << i + 1 << ",\"totalPos\":" << fens.size() << "}" << endl;
 
       if (limitType == "perft")
       {
@@ -154,8 +154,5 @@ void benchmark(const Position& current, istream& is) {
 
   dbg_print(); // Just before to exit
 
-  cerr << "\n==========================="
-       << "\nTotal time (ms) : " << elapsed
-       << "\nNodes searched  : " << nodes
-       << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
+  cerr << "{\"mtype\":\"benchmark\",\"time\":" << elapsed << ",\"nodes\":" << nodes << ",\"nps\":" << 1000 * nodes / elapsed << "}" << endl;
 }

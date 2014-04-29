@@ -61,7 +61,8 @@ private:
 };
 
 void init(OptionsMap&);
-void loop(int argc, char* argv[]);
+void commandInit();
+void command(const std::string&);
 
 } // namespace UCI
 
