@@ -962,7 +962,6 @@ moves_loop: // When in check and at SpNode search starts from here
 
       if (RootNode)
       {
-          Skill skill(Options["Skill Level"]);
           RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
 
           // PV move or new best move ?
