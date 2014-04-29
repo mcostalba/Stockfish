@@ -161,12 +161,10 @@ namespace {
   #undef S
 
   const Score Tempo            = make_score(24, 11);
-  const Score RookOn7th        = make_score(11, 20);
   const Score RookOnPawn       = make_score(10, 28);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
-  const Score KnightPawns      = make_score( 8,  4);
   const Score MinorBehindPawn  = make_score(16,  0);
   const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
@@ -221,20 +219,6 @@ namespace {
     Weight w = { Options[mgOpt] * mg_value(internalWeight) / 100,
                  Options[egOpt] * eg_value(internalWeight) / 100 };
     return w;
-  }
-
-
-  // interpolate() interpolates between a middlegame and an endgame score,
-  // based on game phase. It also scales the return value by a ScaleFactor array.
-
-  Value interpolate(const Score& v, Phase ph, ScaleFactor sf) {
-
-    assert(-VALUE_INFINITE < mg_value(v) && mg_value(v) < VALUE_INFINITE);
-    assert(-VALUE_INFINITE < eg_value(v) && eg_value(v) < VALUE_INFINITE);
-    assert(PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
-
-    int eg = (eg_value(v) * int(sf)) / SCALE_FACTOR_NORMAL;
-    return Value((mg_value(v) * int(ph) + eg * int(PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
   }
 
 
@@ -349,10 +333,6 @@ namespace {
             if (Pt == BISHOP)
                 score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
-            // Penalty for knight when there are few enemy pawns
-            if (Pt == KNIGHT)
-                score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
-
             // Bishop and knight outposts squares
             if (!(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
                 score += evaluate_outposts<Pt, Us>(pos, ei, s);
@@ -365,11 +345,6 @@ namespace {
 
         if (Pt == ROOK)
         {
-            // Rook on 7th rank and enemy king trapped on 8th
-            if (   relative_rank(Us, s) == RANK_7
-                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
-                score += RookOn7th;
-
             // Rook piece attacking enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
             {
@@ -583,7 +558,7 @@ namespace {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, squaresToQueen, defendedSquares, unsafeSquares, supportingPawns;
+    Bitboard b, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
 
     b = ei.pi->passed_pawns(Us);
@@ -594,24 +569,23 @@ namespace {
 
         assert(pos.pawn_passed(Us, s));
 
-        int r = int(relative_rank(Us, s) - RANK_2);
+        int r = relative_rank(Us, s) - RANK_2;
         int rr = r * (r - 1);
 
         // Base bonus based on rank
-        Value mbonus = Value(17 * rr);
-        Value ebonus = Value(7 * (rr + r + 1));
+        Value mbonus = Value(17 * rr), ebonus = Value(7 * (rr + r + 1));
 
         if (rr)
         {
             Square blockSq = s + pawn_push(Us);
 
             // Adjust bonus based on the king's proximity
-            ebonus +=  Value(square_distance(pos.king_square(Them), blockSq) * 5 * rr)
-                     - Value(square_distance(pos.king_square(Us  ), blockSq) * 2 * rr);
+            ebonus +=  square_distance(pos.king_square(Them), blockSq) * 5 * rr
+                     - square_distance(pos.king_square(Us  ), blockSq) * 2 * rr;
 
             // If blockSq is not the queening square then consider also a second push
             if (relative_rank(Us, blockSq) != RANK_8)
-                ebonus -= Value(rr * square_distance(pos.king_square(Us), blockSq + pawn_push(Us)));
+                ebonus -= square_distance(pos.king_square(Us), blockSq + pawn_push(Us)) * rr;
 
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
@@ -633,47 +607,21 @@ namespace {
                 else
                     defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
 
-                // If there aren't any enemy attacks, then assign a huge bonus.
-                // The bonus will be a bit smaller if at least the block square
-                // isn't attacked, otherwise assign the smallest possible bonus.
-                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 3;
+                // If there aren't any enemy attacks, assign a big bonus. Otherwise
+                // assign a smaller bonus if the block square isn't attacked.
+                int k = !unsafeSquares ? 15 : !(unsafeSquares & blockSq) ? 9 : 0;
 
-                // Assign a big bonus if the path to the queen is fully defended,
-                // otherwise assign a bit less of a bonus if at least the block
-                // square is defended.
+                // If the path to queen is fully defended, assign a big bonus.
+                // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
                     k += 6;
 
                 else if (defendedSquares & blockSq)
-                    k += (unsafeSquares & defendedSquares) == unsafeSquares ? 4 : 2;
+                    k += 4;
 
-                mbonus += Value(k * rr), ebonus += Value(k * rr);
+                mbonus += k * rr, ebonus += k * rr;
             }
         } // rr != 0
-
-        // Increase the bonus if the passed pawn is supported by a friendly pawn
-        // on the same rank and a bit smaller if it's on the previous rank.
-        supportingPawns = pos.pieces(Us, PAWN) & adjacent_files_bb(file_of(s));
-        if (supportingPawns & rank_bb(s))
-            ebonus += Value(r * 20);
-
-        else if (supportingPawns & rank_bb(s - pawn_push(Us)))
-            ebonus += Value(r * 12);
-
-        // Rook pawns are a special case: They are sometimes worse, and
-        // sometimes better than other passed pawns. It is difficult to find
-        // good rules for determining whether they are good or bad. For now,
-        // we try the following: Increase the value for rook pawns if the
-        // other side has no pieces apart from a knight, and decrease the
-        // value if the other side has a rook or queen.
-        if (file_of(s) == FILE_A || file_of(s) == FILE_H)
-        {
-            if (pos.non_pawn_material(Them) <= KnightValueMg)
-                ebonus += ebonus / 4;
-
-            else if (pos.pieces(Them, ROOK, QUEEN))
-                ebonus -= ebonus / 4;
-        }
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
             ebonus += ebonus / 4;
@@ -772,7 +720,7 @@ namespace {
     ei.attackedBy[WHITE][ALL_PIECES] |= ei.attackedBy[WHITE][KING];
     ei.attackedBy[BLACK][ALL_PIECES] |= ei.attackedBy[BLACK][KING];
 
-    // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+    // Do not include in mobility squares protected by enemy pawns or occupied by our pawns or king
     Bitboard mobilityArea[] = { ~(ei.attackedBy[BLACK][PAWN] | pos.pieces(WHITE, PAWN, KING)),
                                 ~(ei.attackedBy[WHITE][PAWN] | pos.pieces(BLACK, PAWN, KING)) };
 
@@ -831,7 +779,11 @@ namespace {
              sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
     }
 
-    Value v = interpolate(score, ei.mi->game_phase(), sf);
+    // Interpolate between a middlegame and a (scaled by 'sf') endgame score
+    Value v =  mg_value(score) * int(ei.mi->game_phase())
+             + eg_value(score) * int(PHASE_MIDGAME - ei.mi->game_phase()) * sf / SCALE_FACTOR_NORMAL;
+
+    v /= PHASE_MIDGAME;
 
     // In case of tracing add all single evaluation contributions for both white and black
     if (Trace)
@@ -953,12 +905,12 @@ namespace Eval {
     Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
     Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
 
-    const int MaxSlope = 30;
-    const int Peak = 1280;
+    const double MaxSlope = 30;
+    const double Peak = 1280;
 
     for (int t = 0, i = 1; i < 100; ++i)
     {
-        t = std::min(Peak, std::min(int(0.4 * i * i), t + MaxSlope));
+        t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
 
         KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
         KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
