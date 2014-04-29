@@ -380,7 +380,7 @@ namespace {
                 // the UI) before a re-search.
                 /*
                 if (  (bestValue <= alpha || bestValue >= beta)
-                    && Time::now() - SearchTime > PVSize3000)
+                    && Time::now() - SearchTime > 3000)
                     sync_cout << uci_pv(pos, depth) << sync_endl;
                     */
 
