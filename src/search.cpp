@@ -496,8 +496,8 @@ namespace {
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Used to send selDepth info to GUI
-    if (PvNode && thisThread->maxPly < ss->ply)
-        thisThread->maxPly = ss->ply;
+    if (PvNode)
+        thisThread->maxPly = std::max(thisThread->maxPly, ss->ply);
 
     if (!RootNode)
     {
