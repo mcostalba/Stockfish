@@ -139,6 +139,18 @@ ifeq ($(ARCH),ppc-64)
 	bits = 64
 endif
 
+ifeq ($(ARCH),js)
+	arch = any
+	os = any
+	bits = 32
+	prefetch = no
+	bsfq = no
+	popcnt = no
+	sse = no
+	COMP = emscripten
+	EXE = stockfish.js
+endif
+
 
 ### ==========================================================================
 ### Section 3. Low-level configuration
@@ -176,6 +188,17 @@ ifeq ($(COMP),clang)
 	comp=clang
 	CXX=clang++
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+endif
+
+ifeq ($(COMP),emscripten)
+	comp=clang
+	CXX=emcc
+	profile_prepare = gcc-profile-prepare
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+	profile_clean = gcc-profile-clean
+	CXXFLAGS += -s TOTAL_MEMORY=67108864
+	LDFLAGS += -s OUTLINING_LIMIT=12000 -s TOTAL_MEMORY=67108864 -s EXPORTED_FUNCTIONS="['_init', '_uci_command', '_set_book']" --closure 1 --pre-js main.js
 endif
 
 ifeq ($(comp),icc)
@@ -246,7 +269,13 @@ ifeq ($(optimize),yes)
 	endif
 
 	ifeq ($(comp),clang)
-		CXXFLAGS += -O3
+		### -O4 requires a linker that supports LLVM's LTO
+		ifeq ($(COMP),emscripten)
+			CXXFLAGS += -O2
+			LDFLAGS += -O2
+		else
+			CXXFLAGS += -O3
+		endif
 
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(pext),no)
@@ -342,6 +371,7 @@ help:
 	@echo "armv7                   > ARMv7 32-bit"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "general-32              > unspecified 32-bit"
+	@echo "js                      > emscripten javascript"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo ""
@@ -482,6 +512,9 @@ icc-profile-clean:
 
 -include .depend
 
+ifeq ($(COMP),emscripten)
+$(EXE): main.js
+endif
 
 ### ==========================================================================
 ### Section 6. Non-standard targets

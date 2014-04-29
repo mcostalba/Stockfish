@@ -52,23 +52,22 @@ inline int64_t system_time_to_msec() {
   return t.tv_sec * 1000LL + t.tv_usec / 1000;
 }
 
-#  include <pthread.h>
-typedef pthread_mutex_t Lock;
-typedef pthread_cond_t WaitCondition;
-typedef pthread_t NativeHandle;
+typedef void* Lock;
+typedef void* WaitCondition;
+typedef void* NativeHandle;
 typedef void*(*pt_start_fn)(void*);
 
-#  define lock_init(x) pthread_mutex_init(&(x), NULL)
-#  define lock_grab(x) pthread_mutex_lock(&(x))
-#  define lock_release(x) pthread_mutex_unlock(&(x))
-#  define lock_destroy(x) pthread_mutex_destroy(&(x))
-#  define cond_destroy(x) pthread_cond_destroy(&(x))
-#  define cond_init(x) pthread_cond_init(&(x), NULL)
-#  define cond_signal(x) pthread_cond_signal(&(x))
-#  define cond_wait(x,y) pthread_cond_wait(&(x),&(y))
-#  define cond_timedwait(x,y,z) pthread_cond_timedwait(&(x),&(y),z)
-#  define thread_create(x,f,t) pthread_create(&(x),NULL,(pt_start_fn)f,t)
-#  define thread_join(x) pthread_join(x, NULL)
+#  define lock_init(x) (x = 0)
+#  define lock_grab(x) ((void)x)
+#  define lock_release(x) ((void)x)
+#  define lock_destroy(x) ((void)x)
+#  define cond_destroy(x) ((void)x)
+#  define cond_init(x) (x = 0)
+#  define cond_signal(x) ((void)x)
+#  define cond_wait(x,y) ((void)x,(void)y)
+#  define cond_timedwait(x,y,z) ((void)x,(void)y,(void)z)
+#  define thread_create(x,f,t) (x = ((void)f,(void)t,(void*)0))
+#  define thread_join(x) ((void)x)
 
 #else // Windows and MinGW
 

@@ -160,7 +160,9 @@ public:
   bool is_chess960() const;
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
+  uint64_t depth_searched() const;
   void set_nodes_searched(uint64_t n);
+  void set_depth_searched(uint64_t d);
   bool is_draw() const;
 
   // Position consistency check, for debugging
@@ -195,6 +197,7 @@ private:
   Bitboard castlingPath[CASTLING_RIGHT_NB];
   StateInfo startState;
   uint64_t nodes;
+  int64_t depth;
   int gamePly;
   Color sideToMove;
   Thread* thisThread;
@@ -208,6 +211,14 @@ inline uint64_t Position::nodes_searched() const {
 
 inline void Position::set_nodes_searched(uint64_t n) {
   nodes = n;
+}
+
+inline uint64_t Position::depth_searched() const {
+  return depth;
+}
+
+inline void Position::set_depth_searched(uint64_t d) {
+  depth = d;
 }
 
 inline Piece Position::piece_on(Square s) const {

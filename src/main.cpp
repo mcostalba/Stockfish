@@ -20,6 +20,7 @@
 #include <iostream>
 
 #include "bitboard.h"
+#include "book.h"
 #include "evaluate.h"
 #include "position.h"
 #include "search.h"
@@ -27,9 +28,7 @@
 #include "tt.h"
 #include "ucioption.h"
 
-int main(int argc, char* argv[]) {
-
-  std::cout << engine_info() << std::endl;
+extern "C" void init() {
 
   UCI::init(Options);
   Bitboards::init();
@@ -41,7 +40,33 @@ int main(int argc, char* argv[]) {
   Threads.init();
   TT.resize(Options["Hash"]);
 
-  UCI::loop(argc, argv);
+  UCI::commandInit();
 
-  Threads.exit();
+}
+
+int main(int argc, char* argv[]) {
+  init();
+
+  std::string args;
+
+  for (int i = 1; i < argc; ++i)
+      args += std::string(argv[i]) + " ";
+
+  if(!args.empty())
+	  UCI::command(args);
+
+#ifndef EMSCRIPTEN
+  std::string cmd;
+  while(std::getline(std::cin, cmd))
+	  UCI::command(cmd);
+#endif
+}
+
+extern "C" void uci_command(const char* cmd) {
+	UCI::command(cmd);
+}
+
+extern "C" void set_book(unsigned char* pBookData, unsigned int size) {
+	PolyglotBook::setBookData(pBookData, size);
+	UCI::command("setoption name OwnBook value true");
 }

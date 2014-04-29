@@ -693,12 +693,19 @@ void Position::do_move(Move m, StateInfo& newSt) {
   do_move(m, newSt, ci, gives_check(m, ci));
 }
 
+// TimerThread::idle_loop() is where the timer thread waits msec milliseconds
+// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+extern void check_time();
+static int check_time_counter = 0;
+
 void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) {
 
   assert(is_ok(m));
   assert(&newSt != st);
 
   ++nodes;
+  if((++check_time_counter & 31) ==0)
+  check_time();
   Key k = st->key;
 
   // Copy some fields of the old state to our new StateInfo object except the

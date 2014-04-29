@@ -96,7 +96,7 @@ namespace {
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   void update_stats(Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
-  string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
+  string uci_pv(const Position& pos, int depth);
 
   struct Skill {
     Skill(int l) : level(l), best(MOVE_NONE) {}
@@ -254,8 +254,12 @@ void Search::think() {
 finalize:
 
   // When search is stopped this info is not printed
-  sync_cout << "info nodes " << RootPos.nodes_searched()
-            << " time " << Time::now() - SearchTime + 1 << sync_endl;
+  sync_cout << "{"
+  << "\"mtype\":\"srchinfo\","
+  << "\"fen\":\"" << RootPos.fen() << "\","
+  << "\"nodes\":" << RootPos.nodes_searched() << ","
+  << "\"time\":" << Time::now() - SearchTime + 1 << "}"
+  << sync_endl;
 
   // When we reach the maximum depth, we can arrive here without a raise of
   // Signals.stop. However, if we are pondering or in an infinite search,
@@ -269,9 +273,16 @@ finalize:
   }
 
   // Best move could be MOVE_NONE when searching on a stalemate position
-  sync_cout << "bestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
-            << " ponder "  << move_to_uci(RootMoves[0].pv[1], RootPos.is_chess960())
-            << sync_endl;
+  sync_cout << "{"
+  << "\"mtype\":\"bestmove\","
+  << "\"rootFen\":\"" << RootPos.fen() << "\","
+  << "\"rootTurn\":\"" << ((RootPos.side_to_move()==0) ? "w" : "b") << "\","
+  << "\"depth\":" << RootPos.depth_searched() << ","
+  << "\"score\":" << score_to_json(RootMoves[0].score) << ","
+  << "\"move\":" << move_to_json(RootMoves[0].pv[0], RootPos.is_chess960()) << ","
+  << "\"moveSan\":\"" << move_to_san(RootPos, RootMoves[0].pv[0]) << "\","
+  << "\"moveLan\":\"" << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960()) << "\"}"
+  << sync_endl;
 }
 
 
@@ -314,6 +325,9 @@ namespace {
     // Iterative deepening loop until requested to stop or target depth reached
     while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
+        // Set position current depth searched
+        pos.set_depth_searched(depth);
+        
         // Age out PV variability metric
         BestMoveChanges *= 0.5;
 
@@ -364,9 +378,11 @@ namespace {
 
                 // When failing high/low give some update (without cluttering
                 // the UI) before a re-search.
+                /*
                 if (  (bestValue <= alpha || bestValue >= beta)
-                    && Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                    && Time::now() - SearchTime > PVSize3000)
+                    sync_cout << uci_pv(pos, depth) << sync_endl;
+                    */
 
                 // In case of failing low/high increase aspiration window and
                 // re-search, otherwise exit the loop.
@@ -390,9 +406,9 @@ namespace {
 
             // Sort the PV lines searched so far and update the GUI
             std::stable_sort(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
-
+            
             if (PVIdx + 1 == MultiPV || Time::now() - SearchTime > 3000)
-                sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                sync_cout << uci_pv(pos, depth) << sync_endl;
         }
 
         // If skill levels are enabled and time is up, pick a sub-optimal best move
@@ -750,11 +766,12 @@ moves_loop: // When in check and at SpNode search starts from here
       if (RootNode)
       {
           Signals.firstRootMove = (moveCount == 1);
-
+        /*
           if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
               sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
+        */
       }
 
       ext = DEPTH_ZERO;
@@ -945,10 +962,11 @@ moves_loop: // When in check and at SpNode search starts from here
 
       if (RootNode)
       {
+          Skill skill(Options["Skill Level"]);
           RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
 
           // PV move or new best move ?
-          if (pvMove || value > alpha)
+          if (pvMove || skill.enabled() || value > alpha)
           {
               rm.score = value;
               rm.extract_pv_from_tt(pos);
@@ -1323,7 +1341,7 @@ moves_loop: // When in check and at SpNode search starts from here
         int s = RootMoves[i].score;
 
         // Don't allow crazy blunders even at very low skills
-        if (i > 0 && RootMoves[i-1].score > s + 2 * PawnValueMg)
+        if (i > 0 && RootMoves[i-1].score > s + 5 * PawnValueMg)
             break;
 
         // This is our magic formula
@@ -1344,7 +1362,7 @@ moves_loop: // When in check and at SpNode search starts from here
   // requires that all (if any) unsearched PV lines are sent using a previous
   // search score.
 
-  string uci_pv(const Position& pos, int depth, Value alpha, Value beta) {
+  string uci_pv(const Position& pos, int depth) {
 
     std::stringstream ss;
     Time::point elapsed = Time::now() - SearchTime + 1;
@@ -1368,17 +1386,29 @@ moves_loop: // When in check and at SpNode search starts from here
         if (ss.rdbuf()->in_avail()) // Not at first line
             ss << "\n";
 
-        ss << "info depth " << d
-           << " seldepth "  << selDepth
-           << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
-           << " nodes "     << pos.nodes_searched()
-           << " nps "       << pos.nodes_searched() * 1000 / elapsed
-           << " time "      << elapsed
-           << " multipv "   << i + 1
-           << " pv";
+        StateInfo st;
+        Position moveTrackingPos = RootPos;
+        ss << "{"
+          << "\"mtype\":\"srchpv\","
+          << "\"fen\":\"" << pos.fen() << "\","
+          << "\"multipv\":" << i+1 << ","
+          << "\"depth\":" << d << ","
+          << "\"score\":" << score_to_json(v) << ","
+          << "\"nodes\":" << pos.nodes_searched() << ","
+          << "\"nps\":" << pos.nodes_searched() * 1000 / elapsed << ","
+          << "\"time\":" << elapsed << ","
+          << "\"turn\":\"" << ((pos.side_to_move()==0) ? "w" : "b") << "\","
+          << "\"pv\":[\"";
 
-        for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
-            ss << " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
+
+        ss << move_to_san(moveTrackingPos, RootMoves[i].pv[0]);
+        
+          for (size_t j = 1; RootMoves[i].pv[j] != MOVE_NONE; ++j){
+            moveTrackingPos.do_move(RootMoves[i].pv[j-1], st);
+            ss << "\",\"" << move_to_san(moveTrackingPos, RootMoves[i].pv[j]);
+           }
+           
+        ss << "\"]}";
     }
 
     return ss.str();
