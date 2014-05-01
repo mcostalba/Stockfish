@@ -613,7 +613,7 @@ ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
       case RANK_4: return ScaleFactor(15);
       case RANK_5: return ScaleFactor(20);
       case RANK_6: return ScaleFactor(40);
-      default: assert(false);
+      default: unreachable(); assert(false);
       }
   }
   return SCALE_FACTOR_NONE;
