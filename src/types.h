@@ -97,6 +97,14 @@ const bool Is64Bit = true;
 const bool Is64Bit = false;
 #endif
 
+#if defined NDEBUG && (defined(__GNUC__) || defined(__clang__))
+#  define unreachable() __builtin_unreachable()
+#elif defined NDEBUG && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
+#  define unreachable() __assume(0)
+#else
+#  define unreachable() do { } while(0)
+#endif
+
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 

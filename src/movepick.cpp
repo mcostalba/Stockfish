@@ -290,6 +290,7 @@ void MovePicker::generate_next_stage() {
       return;
 
   default:
+      unreachable();
       assert(false);
   }
 }
@@ -379,6 +380,7 @@ Move MovePicker::next_move<false>() {
           return MOVE_NONE;
 
       default:
+          unreachable();
           assert(false);
       }
   }

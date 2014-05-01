@@ -83,8 +83,8 @@ inline int popcount<CNT_HW_POPCNT>(Bitboard b) {
 
 #ifndef USE_POPCNT
 
+    unreachable();
   assert(false);
-  return b != 0; // Avoid 'b not used' warning
 
 #elif defined(_MSC_VER) && defined(__INTEL_COMPILER)
 

@@ -679,6 +679,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & ci.ksq);
   }
   default:
+      unreachable();
       assert(false);
       return false;
   }

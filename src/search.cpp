@@ -1521,6 +1521,7 @@ void Thread::idle_loop() {
               search<SplitPointNonPV>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
               break;
           default:
+              unreachable();
               assert(false);
           }
 
