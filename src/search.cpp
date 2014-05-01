@@ -951,7 +951,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // value of the search cannot be trusted, and we return immediately without
       // updating best move, PV and TT.
       if (Signals.stop || thisThread->cutoff_occurred())
-          return VALUE_DRAW;
+          return VALUE_ZERO;
 
       if (RootNode)
       {
