@@ -61,13 +61,13 @@ namespace {
   enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
   // Dynamic razoring margin based on depth
-  inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
+  inline Value razor_margin(Depth d) { return Value(512 + 16 * d); }
 
   // Futility lookup tables (initialized at startup) and their access functions
   int FutilityMoveCounts[2][32]; // [improving][depth]
 
   inline Value futility_margin(Depth d) {
-    return Value(100 * int(d));
+    return Value(100 * d);
   }
 
   // Reduction lookup tables (initialized at startup) and their access function
@@ -130,8 +130,8 @@ void Search::init() {
   {
       double    pvRed = 0.00 + log(double(hd)) * log(double(mc)) / 3.00;
       double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
-      Reductions[1][1][hd][mc] = (int8_t) (   pvRed >= 1.0 ? floor(   pvRed * int(ONE_PLY)) : 0);
-      Reductions[0][1][hd][mc] = (int8_t) (nonPVRed >= 1.0 ? floor(nonPVRed * int(ONE_PLY)) : 0);
+      Reductions[1][1][hd][mc] = int8_t(   pvRed >= 1.0 ?    pvRed * int(ONE_PLY) : 0);
+      Reductions[0][1][hd][mc] = int8_t(nonPVRed >= 1.0 ? nonPVRed * int(ONE_PLY) : 0);
 
       Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
       Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
@@ -683,7 +683,7 @@ namespace {
     // Step 10. Internal iterative deepening (skipped when in check)
     if (    depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && !ttMove
-        && (PvNode || ss->staticEval + Value(256) >= beta))
+        && (PvNode || ss->staticEval + 256 >= beta))
     {
         Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
 
@@ -823,7 +823,7 @@ moves_loop: // When in check and at SpNode search starts from here
           if (predictedDepth < 7 * ONE_PLY)
           {
               futilityValue = ss->staticEval + futility_margin(predictedDepth)
-                            + Value(128) + Gains[pos.moved_piece(move)][to_sq(move)];
+                            + 128 + Gains[pos.moved_piece(move)][to_sq(move)];
 
               if (futilityValue <= alpha)
               {
@@ -936,12 +936,11 @@ moves_loop: // When in check and at SpNode search starts from here
           alpha = splitPoint->alpha;
       }
 
-      // Finished searching the move. If Signals.stop is true, the search
-      // was aborted because the user interrupted the search or because we
-      // ran out of time. In this case, the return value of the search cannot
-      // be trusted, and we don't update the best move and/or PV.
+      // Finished searching the move. If a stop or a cutoff occurred, the return
+      // value of the search cannot be trusted, and we return immediately without
+      // updating best move, PV and TT.
       if (Signals.stop || thisThread->cutoff_occurred())
-          return value; // To avoid returning VALUE_INFINITE
+          return VALUE_DRAW;
 
       if (RootNode)
       {
@@ -994,7 +993,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  Threads.available_slave(thisThread)
           &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
       {
-          assert(bestValue < beta);
+          assert(bestValue > -VALUE_INFINITE && bestValue < beta);
 
           thisThread->split<FakeSplit>(pos, ss, alpha, beta, &bestValue, &bestMove,
                                        depth, moveCount, &mp, NT, cutNode);
@@ -1006,20 +1005,21 @@ moves_loop: // When in check and at SpNode search starts from here
     if (SpNode)
         return bestValue;
 
+    // Following condition would detect a stop or a cutoff set only after move
+    // loop has been completed. But in this case bestValue is valid because we
+    // have fully searched our subtree, and we can anyhow save the result in TT.
+    /*
+       if (Signals.stop || thisThread->cutoff_occurred())
+        return VALUE_DRAW;
+    */
+
     // Step 20. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it
-    // must be mate or stalemate. Note that we can have a false positive in
-    // case of Signals.stop or thread.cutoff_occurred() are set, but this is
-    // harmless because return value is discarded anyhow in the parent nodes.
-    // If we are in a singular extension search then return a fail low score.
-    // A split node has at least one move - the one tried before to be split.
+    // must be mate or stalemate. If we are in a singular extension search then
+    // return a fail low score.
     if (!moveCount)
         return  excludedMove ? alpha
               : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
-
-    // If we have pruned all the moves without searching return a fail-low score
-    if (bestValue == -VALUE_INFINITE)
-        bestValue = alpha;
 
     TT.store(posKey, value_to_tt(bestValue, ss->ply),
              bestValue >= beta  ? BOUND_LOWER :
@@ -1128,7 +1128,7 @@ moves_loop: // When in check and at SpNode search starts from here
         if (PvNode && bestValue > alpha)
             alpha = bestValue;
 
-        futilityBase = bestValue + Value(128);
+        futilityBase = bestValue + 128;
     }
 
     // Initialize a MovePicker object for the current position, and prepare
