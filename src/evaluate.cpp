@@ -789,9 +789,9 @@ namespace {
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     Value v =  mg_value(score) * int(ei.mi->game_phase())
-             + eg_value(score) * int(PHASE_MIDGAME - ei.mi->game_phase()) * sf / SCALE_FACTOR_NORMAL;
+             + eg_value(score) * int(PHASE_MIDGAME - ei.mi->game_phase());
 
-    v /= int(PHASE_MIDGAME);
+    v = (v * sf) / (SCALE_FACTOR_NORMAL * int(PHASE_MIDGAME));
 
     // In case of tracing add all single evaluation contributions for both white and black
     if (Trace)
