@@ -467,12 +467,13 @@ namespace {
     Depth ext, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue, futilityValue;
     bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
-    bool captureOrPromotion, dangerous, doFullDepthSearch;
+    bool captureOrPromotion, dangerous, doFullDepthSearch, after_split;
     int moveCount, quietCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
+    after_split = false;
 
     if (SpNode)
     {
@@ -928,6 +929,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
+update_best_move:
+
       // Step 18. Check for new best move
       if (SpNode)
       {
@@ -989,17 +992,21 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 19. Check for splitting the search
       if (   !SpNode
+          && !after_split
           &&  depth >= Threads.minimumSplitDepth
           &&  Threads.available_slave(thisThread)
           &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
       {
           assert(bestValue > -VALUE_INFINITE && bestValue < beta);
 
-          thisThread->split<FakeSplit>(pos, ss, alpha, beta, &bestValue, &bestMove,
+          thisThread->split<FakeSplit>(pos, ss, alpha, beta, &value, &move,
                                        depth, moveCount, &mp, NT, cutNode);
-          if (bestValue >= beta)
-              break;
+
+          after_split = true; // Hack!!!
+          goto update_best_move;
       }
+
+      after_split = false;
     }
 
     if (SpNode)
