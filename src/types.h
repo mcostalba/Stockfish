@@ -255,8 +255,7 @@ enum Rank {
 
 
 /// The Score enum stores a middlegame and an endgame value in a single integer
-/// (enum). The first half stores the endgame value and the second half stores
-/// the middlegame value.
+/// (enum). One half stores the middlegame value and the other stores the endgame value.
 
 enum Score : uint32_t {
   SCORE_ZERO
@@ -265,28 +264,28 @@ enum Score : uint32_t {
 typedef union {
   uint32_t full;
   struct {
-      int16_t first;
-      int16_t second;
+      int16_t eg;
+      int16_t mg;
   } half;
 } View;
 
 inline Score make_score(int mg, int eg) {
   View v;
-  v.half.first = (int16_t)mg;
-  v.half.second = (int16_t)eg;
+  v.half.mg = (int16_t)mg;
+  v.half.eg = (int16_t)eg;
   return Score(v.full);
 }
 
 inline Value mg_value(Score s) {
   View v;
   v.full = s;
-  return Value(v.half.first);
+  return Value(v.half.mg);
 } 
 
 inline Value eg_value(Score s) {
   View v;
   v.full = s;
-  return Value(v.half.second);
+  return Value(v.half.eg);
 }
 
 
