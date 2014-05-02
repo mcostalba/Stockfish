@@ -283,6 +283,8 @@ void MovePicker::generate_next_stage() {
 
   case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT: case RECAPTURE:
       stage = STOP;
+      /* Fall through */
+
   case STOP:
       end = cur + 1; // Avoid another next_phase() call
       return;
@@ -328,8 +330,8 @@ Move MovePicker::next_move<false>() {
       case KILLERS_S1:
           move = (cur++)->move;
           if (    move != MOVE_NONE
-              &&  pos.pseudo_legal(move)
               &&  move != ttMove
+              &&  pos.pseudo_legal(move)
               && !pos.capture(move))
               return move;
           break;
