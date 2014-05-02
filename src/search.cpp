@@ -188,7 +188,7 @@ void Search::think() {
 
   DrawValue[0] = DrawValue[1] = VALUE_DRAW;
   Contempt[0] =  Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
-  Contempt[1] = (Options["Contempt Factor"] + 12) * PawnValueEg / 100;
+  Contempt[1] =  Options["Contempt Factor"] * PawnValueEg / 100;
 
   if (RootMoves.empty())
   {
