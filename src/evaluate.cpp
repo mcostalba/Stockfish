@@ -288,7 +288,6 @@ namespace {
     Square s;
     Score score = SCORE_ZERO;
 
-    const PieceType NextPt = (Us == WHITE ? Pt : PieceType(Pt + 1));
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     const Square* pl = pos.list<Pt>(Us);
 
@@ -391,14 +390,8 @@ namespace {
     if (Trace)
         Tracing::terms[Us][Pt] = score;
 
-    return score - evaluate_pieces<NextPt, Them, Trace>(pos, ei, mobility, mobilityArea);
+    return score;
   }
-
-  template<>
-  Score evaluate_pieces<KING, WHITE, false>(const Position&, EvalInfo&, Score*, Bitboard*) { return SCORE_ZERO; }
-  template<>
-  Score evaluate_pieces<KING, WHITE,  true>(const Position&, EvalInfo&, Score*, Bitboard*) { return SCORE_ZERO; }
-
 
   // evaluate_king() assigns bonuses and penalties to a king of a given color
 
@@ -733,7 +726,15 @@ namespace {
                                 ~(ei.attackedBy[WHITE][PAWN] | pos.pieces(BLACK, PAWN, KING)) };
 
     // Evaluate pieces and mobility
-    score += evaluate_pieces<KNIGHT, WHITE, Trace>(pos, ei, mobility, mobilityArea);
+    score += evaluate_pieces< KNIGHT, WHITE, Trace >(pos, ei, mobility, mobilityArea)
+           - evaluate_pieces< KNIGHT, BLACK, Trace >(pos, ei, mobility, mobilityArea)
+           + evaluate_pieces< BISHOP, WHITE, Trace >(pos, ei, mobility, mobilityArea)
+           - evaluate_pieces< BISHOP, BLACK, Trace >(pos, ei, mobility, mobilityArea)
+           + evaluate_pieces< ROOK  , WHITE, Trace >(pos, ei, mobility, mobilityArea)
+           - evaluate_pieces< ROOK  , BLACK, Trace >(pos, ei, mobility, mobilityArea)
+           + evaluate_pieces< QUEEN , WHITE, Trace >(pos, ei, mobility, mobilityArea)
+           - evaluate_pieces< QUEEN , BLACK, Trace >(pos, ei, mobility, mobilityArea);
+    
     score += apply_weight(mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
     // Evaluate kings after all other pieces because we need complete attack
