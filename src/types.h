@@ -332,6 +332,8 @@ inline Score operator/(Score s, int i) {
 #undef ENABLE_OPERATORS_ON
 #undef ENABLE_SAFE_OPERATORS_ON
 
+CACHE_LINE_ALIGNMENT
+
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 struct ExtMove {
