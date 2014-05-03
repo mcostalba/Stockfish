@@ -17,10 +17,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
 #include <iomanip>
 #include <sstream>
-#include <algorithm>
 
 #include "bitcount.h"
 #include "evaluate.h"
@@ -786,6 +786,13 @@ namespace {
             // a bit drawish, but not as drawish as with only the two bishops.
              sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
     }
+
+    // Stealmate detection
+    Color stm = pos.side_to_move();
+    if (   (ei.attackedBy[stm][ALL_PIECES] == ei.attackedBy[stm][KING])
+        && (!(ei.attackedBy[stm][KING] & ~ei.attackedBy[~stm][ALL_PIECES]))
+        && !MoveList<LEGAL>(pos).size())
+        sf = SCALE_FACTOR_DRAW;
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     Value v =  mg_value(score) * int(ei.mi->game_phase())
