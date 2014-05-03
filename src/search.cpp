@@ -1534,9 +1534,9 @@ void Thread::idle_loop() {
 
           assert(searching);
 
-          searching = false;
           activePosition = NULL;
           sp->slavesMask.reset(idx);
+          sp->allowLatejoin = false;
           sp->nodes += pos.nodes_searched();
 
           // Wake up the master thread so to allow it to return from the idle
@@ -1554,6 +1554,10 @@ void Thread::idle_loop() {
           // the sp master. Also accessing other Thread objects is unsafe because
           // if we are exiting there is a chance that they are already freed.
           sp->mutex.unlock();
+
+          // Try to late join to another splitpoint
+          if (Threads.size() <= 2 || !attempt_to_latejoin()) // FIXME: attempt_to_latejoin() is theoretically unsafe when were are exiting the program...
+              searching = false;
       }
 
       // If this thread is the master of a split point and all slaves have finished
@@ -1569,6 +1573,44 @@ void Thread::idle_loop() {
   }
 }
 
+bool Thread::attempt_to_latejoin()
+{
+    SplitPoint *sp;
+    size_t i;
+    bool success = false;
+
+    for (i = 0; i < Threads.size(); ++i)
+    {
+        int size = Threads[i]->splitPointsSize; // Make a local copy to prevent size from changing under our feet.
+
+        sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
+
+        if (   sp 
+            && sp->allowLatejoin
+            && available_to(Threads[i], true))
+            break;
+    }
+
+    if (i == Threads.size()) 
+        return false; // No suitable splitpoint found!
+
+    // Recheck conditions under lock protection
+    Threads.mutex.lock();
+    sp->mutex.lock();
+
+    if (   sp->allowLatejoin
+        && available_to(Threads[i], true))
+    {
+         activeSplitPoint = sp;
+         sp->slavesMask.set(this->idx);
+         success = true;
+    }
+
+    sp->mutex.unlock();
+    Threads.mutex.unlock();
+
+    return success;
+}
 
 /// check_time() is called by the timer thread when the timer triggers. It is
 /// used to print debug info and, more importantly, to detect when we are out of
