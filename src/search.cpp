@@ -45,7 +45,6 @@ namespace Search {
   Color RootColor;
   Time::point SearchTime;
   StateStackPtr SetupStates;
-  Value Contempt[2]; // [bestValue > VALUE_DRAW]
 }
 
 using std::string;
@@ -186,9 +185,9 @@ void Search::think() {
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
 
-  DrawValue[0] = DrawValue[1] = VALUE_DRAW;
-  Contempt[0] =  Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
-  Contempt[1] = (Options["Contempt Factor"] + 12) * PawnValueEg / 100;
+  int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
+  DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
+  DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
 
   if (RootMoves.empty())
   {
@@ -339,9 +338,6 @@ namespace {
             while (true)
             {
                 bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
-
-                DrawValue[ RootColor] = VALUE_DRAW - Contempt[bestValue > VALUE_DRAW];
-                DrawValue[~RootColor] = VALUE_DRAW + Contempt[bestValue > VALUE_DRAW];
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
@@ -940,7 +936,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // value of the search cannot be trusted, and we return immediately without
       // updating best move, PV and TT.
       if (Signals.stop || thisThread->cutoff_occurred())
-          return VALUE_DRAW;
+          return VALUE_ZERO;
 
       if (RootNode)
       {
@@ -997,6 +993,10 @@ moves_loop: // When in check and at SpNode search starts from here
 
           thisThread->split<FakeSplit>(pos, ss, alpha, beta, &bestValue, &bestMove,
                                        depth, moveCount, &mp, NT, cutNode);
+
+          if (Signals.stop || thisThread->cutoff_occurred())
+              return VALUE_ZERO;
+
           if (bestValue >= beta)
               break;
       }

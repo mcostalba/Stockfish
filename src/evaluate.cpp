@@ -17,10 +17,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cassert>
 #include <iomanip>
 #include <sstream>
-#include <algorithm>
 
 #include "bitcount.h"
 #include "evaluate.h"
