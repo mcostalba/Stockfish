@@ -256,33 +256,31 @@ enum Rank {
 };
 
 
-/* check if default constructors need initialization to 0 */
-
 struct Score {
 
 private:
-    int16_t mg;
-    int16_t eg;
+  int16_t mg;
+  int16_t eg;
 
 public:
-    Value mgValue() const { return Value(mg); }
-    Value egValue() const { return Value(eg); }
+  Value mgValue() const { return Value(mg); }
+  Value egValue() const { return Value(eg); }
 
-    Score(int mg = 0, int eg = 0) : mg(int16_t(mg)), eg(int16_t(eg)) {}
+  Score(int mg = 0, int eg = 0) : mg(int16_t(mg)), eg(int16_t(eg)) {}
 
-    Score operator+(const Score& s) const { return Score(mg + s.mg, eg + s.eg); }
-    Score operator-(const Score& s) const { return Score(mg - s.mg, eg - s.eg); }
+  Score operator+(const Score& s) const { return Score(mg + s.mg, eg + s.eg); }
+  Score operator-(const Score& s) const { return Score(mg - s.mg, eg - s.eg); }
 
-    Score& operator+=(const Score& s) { mg += s.mg; eg += s.eg; return *this; }
-    Score& operator-=(const Score& s) { mg -= s.mg; eg -= s.eg; return *this; }
+  Score& operator+=(const Score& s) { mg += s.mg; eg += s.eg; return *this; }
+  Score& operator-=(const Score& s) { mg -= s.mg; eg -= s.eg; return *this; }
 
-    bool operator==(const Score& s) const { return mg == s.mg && eg == s.eg; }
-    bool operator!=(const Score& s) const { return mg != s.mg || eg != s.eg; }
+  bool operator==(const Score& s) const { return mg == s.mg && eg == s.eg; }
+  bool operator!=(const Score& s) const { return mg != s.mg || eg != s.eg; }
 
-    Score operator*(const int i) const { return Score(mg * i, eg * i); }
-    Score operator/(const int i) const { return Score(mg / i, eg / i); }
+  Score operator*(const int i) const { return Score(mg * i, eg * i); }
+  Score operator/(const int i) const { return Score(mg / i, eg / i); }
 
-    Score operator-() const { return Score(-mg, -eg); }
+  Score operator-() const { return Score(-mg, -eg); }
 
 };
 
@@ -323,6 +321,8 @@ inline Value operator+(Value v, int i) { return Value(int(v) + i); }
 inline Value operator-(Value v, int i) { return Value(int(v) - i); }
 inline Value& operator+=(Value& v, int i) { return v = v + i; }
 inline Value& operator-=(Value& v, int i) { return v = v - i; }
+
+CACHE_LINE_ALIGNMENT
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
