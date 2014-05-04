@@ -114,7 +114,7 @@ struct Thread : public ThreadBase {
 
   Thread();
   virtual void idle_loop();
-  bool attempt_to_latejoin();
+  void attempt_to_latejoin();
   bool cutoff_occurred() const;
   bool available_to(const Thread* master, bool latejoin) const;
 
