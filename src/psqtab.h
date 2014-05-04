@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-#define S(mg, eg) Score(mg, eg)
+#define S(mg, eg) make_score(mg, eg)
 
 
 /// PSQT[PieceType][Square] contains Piece-Square scores. For each piece type on

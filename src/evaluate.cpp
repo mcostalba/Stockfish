@@ -94,7 +94,7 @@ namespace {
   struct Weight { int mg, eg; } Weights[6];
 
   typedef Value V;
-  #define S(mg, eg) Score(mg, eg)
+  #define S(mg, eg) make_score(mg, eg)
 
   // Internal evaluation weights. These are applied on top of the evaluation
   // weights read from UCI parameters. The purpose is to be able to change
@@ -163,20 +163,20 @@ namespace {
 
   #undef S
 
-  const Score Tempo            = Score(24, 11);
-  const Score RookOnPawn       = Score(10, 28);
-  const Score RookOpenFile     = Score(43, 21);
-  const Score RookSemiopenFile = Score(19, 10);
-  const Score BishopPawns      = Score( 8, 12);
-  const Score MinorBehindPawn  = Score(16,  0);
-  const Score UndefendedMinor  = Score(25, 10);
-  const Score TrappedRook      = Score(90,  0);
-  const Score Unstoppable      = Score( 0, 20);
+  const Score Tempo            = make_score(24, 11);
+  const Score RookOnPawn       = make_score(10, 28);
+  const Score RookOpenFile     = make_score(43, 21);
+  const Score RookSemiopenFile = make_score(19, 10);
+  const Score BishopPawns      = make_score( 8, 12);
+  const Score MinorBehindPawn  = make_score(16,  0);
+  const Score UndefendedMinor  = make_score(25, 10);
+  const Score TrappedRook      = make_score(90,  0);
+  const Score Unstoppable      = make_score( 0, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
-  const Score TrappedBishopA1H1 = Score(50, 50);
+  const Score TrappedBishopA1H1 = make_score(50, 50);
 
   // SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middlegame, each side is given a bonus
@@ -210,7 +210,7 @@ namespace {
 
   // apply_weight() weighs score 'v' by weight 'w' trying to prevent overflow
   Score apply_weight(Score v, const Weight& w) {
-    return Score(v.mgValue() * w.mg / 256, v.egValue() * w.eg / 256);
+    return make_score(mg_value(v) * w.mg / 256, eg_value(v) * w.eg / 256);
   }
 
 
@@ -219,8 +219,8 @@ namespace {
 
   Weight weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
 
-    Weight w = { Options[mgOpt] * internalWeight.mgValue() / 100,
-                 Options[egOpt] * internalWeight.egValue() / 100 };
+    Weight w = { Options[mgOpt] * mg_value(internalWeight) / 100,
+                 Options[egOpt] * eg_value(internalWeight) / 100 };
     return w;
   }
 
@@ -275,7 +275,7 @@ namespace {
             bonus += bonus / 2;
     }
 
-    return Score(bonus, bonus);
+    return make_score(bonus, bonus);
   }
 
 
@@ -353,7 +353,7 @@ namespace {
             {
                 Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
                 if (pawns)
-                    score += RookOnPawn * popcount<Max15>(pawns);
+                    score += popcount<Max15>(pawns) * RookOnPawn;
             }
 
             // Give a bonus for a rook on a open or semi-open file
@@ -370,7 +370,7 @@ namespace {
             if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
                 && !ei.pi->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
-                score -= (TrappedRook - Score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
+                score -= (TrappedRook - make_score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
         }
 
         // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -433,7 +433,7 @@ namespace {
         attackUnits =  std::min(20, (ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]) / 2)
                      + 3 * (ei.kingAdjacentZoneAttacksCount[Them] + popcount<Max15>(undefended))
                      + 2 * (ei.pinnedPieces[Us] != 0)
-                     - score.mgValue() / 32;
+                     - mg_value(score) / 32;
 
         // Analyse the enemy's safe queen contact checks. Firstly, find the
         // undefended squares around the king that are attacked by the enemy's
@@ -634,7 +634,7 @@ namespace {
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
             ebonus += ebonus / 4;
 
-        score += Score(mbonus, ebonus);
+        score += make_score(mbonus, ebonus);
     }
 
     if (Trace)
@@ -755,14 +755,14 @@ namespace {
                 - evaluate_unstoppable_pawns(pos, BLACK, ei);
 
     // Evaluate space for both sides, only in middlegame
-    if (ei.mi->space_weight() != SCORE_ZERO)
+    if (ei.mi->space_weight())
     {
         int s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
-        score += apply_weight(ei.mi->space_weight() * s, Weights[Space]);
+        score += apply_weight(s * ei.mi->space_weight(), Weights[Space]);
     }
 
     // Scale winning side if position is more drawish than it appears
-    ScaleFactor sf = score.egValue() > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
+    ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
                                                   : ei.mi->scale_factor(pos, BLACK);
 
     // If we don't already have an unusual scale factor, check for opposite
@@ -788,8 +788,8 @@ namespace {
     }
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
-    Value v =  score.mgValue() * int(ei.mi->game_phase())
-             + score.egValue() * int(PHASE_MIDGAME - ei.mi->game_phase()) * sf / SCALE_FACTOR_NORMAL;
+    Value v =  mg_value(score) * int(ei.mi->game_phase())
+             + eg_value(score) * int(PHASE_MIDGAME - ei.mi->game_phase()) * sf / SCALE_FACTOR_NORMAL;
 
     v /= int(PHASE_MIDGAME);
 
@@ -831,17 +831,17 @@ namespace {
     switch (idx) {
     case PST: case IMBALANCE: case PAWN: case TOTAL:
         ss << std::setw(20) << name << " |   ---   --- |   ---   --- | "
-           << std::setw(5)  << to_cp((wScore - bScore).mgValue()) << " "
-           << std::setw(5)  << to_cp((wScore - bScore).egValue()) << " \n";
+           << std::setw(5)  << to_cp(mg_value(wScore - bScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(wScore - bScore)) << " \n";
         break;
     default:
         ss << std::setw(20) << name << " | " << std::noshowpos
-           << std::setw(5)  << to_cp(wScore.mgValue()) << " "
-           << std::setw(5)  << to_cp(wScore.egValue()) << " | "
-           << std::setw(5)  << to_cp(bScore.mgValue()) << " "
-           << std::setw(5)  << to_cp(bScore.egValue()) << " | "
-           << std::setw(5)  << to_cp((wScore - bScore).mgValue()) << " "
-           << std::setw(5)  << to_cp((wScore - bScore).egValue()) << " \n";
+           << std::setw(5)  << to_cp(mg_value(wScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(wScore)) << " | "
+           << std::setw(5)  << to_cp(mg_value(bScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(bScore)) << " | "
+           << std::setw(5)  << to_cp(mg_value(wScore - bScore)) << " "
+           << std::setw(5)  << to_cp(eg_value(wScore - bScore)) << " \n";
     }
   }
 
@@ -920,8 +920,8 @@ namespace Eval {
     {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
 
-        KingDanger[1][i] = apply_weight(Score(t, 0), Weights[KingDangerUs]);
-        KingDanger[0][i] = apply_weight(Score(t, 0), Weights[KingDangerThem]);
+        KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
+        KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
     }
   }
 

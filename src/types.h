@@ -256,36 +256,39 @@ enum Rank {
 };
 
 
-struct Score {
+/// The Score enum stores a middlegame and an endgame value in a single integer
+/// (enum). One half stores the middlegame value and the other stores the endgame value.
 
-private:
-  int16_t mg;
-  int16_t eg;
-
-public:
-  Value mgValue() const { return Value(mg); }
-  Value egValue() const { return Value(eg); }
-
-  Score(int mg = 0, int eg = 0) : mg(int16_t(mg)), eg(int16_t(eg)) {}
-
-  Score operator+(const Score& s) const { return Score(mg + s.mg, eg + s.eg); }
-  Score operator-(const Score& s) const { return Score(mg - s.mg, eg - s.eg); }
-
-  Score& operator+=(const Score& s) { mg += s.mg; eg += s.eg; return *this; }
-  Score& operator-=(const Score& s) { mg -= s.mg; eg -= s.eg; return *this; }
-
-  bool operator==(const Score& s) const { return mg == s.mg && eg == s.eg; }
-  bool operator!=(const Score& s) const { return mg != s.mg || eg != s.eg; }
-
-  Score operator*(const int i) const { return Score(mg * i, eg * i); }
-  Score operator/(const int i) const { return Score(mg / i, eg / i); }
-
-  Score operator-() const { return Score(-mg, -eg); }
-
+enum Score : uint32_t {
+  SCORE_ZERO
 };
 
-const Score SCORE_ZERO = Score();
+typedef union {
+  uint32_t full;
+  struct {
+      int16_t eg;
+      int16_t mg;
+  } half;
+} View;
 
+inline Score make_score(int mg, int eg) {
+  View v;
+  v.half.mg = (int16_t)mg - (eg < 0);
+  v.half.eg = (int16_t)eg;
+  return Score(v.full);
+}
+
+inline Value mg_value(Score s) {
+  View v;
+  v.full = s;
+  return Value(v.half.mg + (uint16_t(v.half.eg) >> 15));
+} 
+
+inline Value eg_value(Score s) {
+  View v;
+  v.full = s;
+  return Value(v.half.eg);
+}
 
 #define ENABLE_BASE_OPERATORS_ON(T)                                         \
 inline T operator+(const T d1, const T d2) { return T(int(d1) + int(d2)); } \
@@ -296,6 +299,8 @@ inline T operator-(const T d) { return T(-int(d)); }                        \
 inline T& operator+=(T& d1, const T d2) { return d1 = d1 + d2; }            \
 inline T& operator-=(T& d1, const T d2) { return d1 = d1 - d2; }            \
 inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }
+
+ENABLE_BASE_OPERATORS_ON(Score)
 
 #define ENABLE_FULL_OPERATORS_ON(T)                                         \
 ENABLE_BASE_OPERATORS_ON(T)                                                 \
@@ -322,7 +327,14 @@ inline Value operator-(Value v, int i) { return Value(int(v) - i); }
 inline Value& operator+=(Value& v, int i) { return v = v + i; }
 inline Value& operator-=(Value& v, int i) { return v = v - i; }
 
-CACHE_LINE_ALIGNMENT
+/// Only declared but not defined. We don't want to multiply two scores due to
+/// a very high risk of overflow. So user should explicitly convert to integer.
+inline Score operator*(Score s1, Score s2);
+
+/// Division of a Score must be handled separately for each term
+inline Score operator/(Score s, int i) {
+  return make_score(mg_value(s) / i, eg_value(s) / i);
+}
 
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 

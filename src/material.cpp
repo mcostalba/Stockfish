@@ -231,7 +231,7 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
       int minorPieceCount =  pos.count<KNIGHT>(WHITE) + pos.count<BISHOP>(WHITE)
                            + pos.count<KNIGHT>(BLACK) + pos.count<BISHOP>(BLACK);
 
-      e->spaceWeight = Score(minorPieceCount * minorPieceCount, 0);
+      e->spaceWeight = make_score(minorPieceCount * minorPieceCount, 0);
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
