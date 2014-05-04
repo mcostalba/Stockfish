@@ -259,8 +259,9 @@ enum Rank {
 /// The Score enum stores a middlegame and an endgame value in a single integer
 /// (enum). One half stores the middlegame value and the other stores the endgame value.
 
-enum Score : uint32_t {
-  SCORE_ZERO
+enum Score {
+  SCORE_ZERO,
+  SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX
 };
 
 typedef union {
