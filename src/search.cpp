@@ -1584,17 +1584,17 @@ void Thread::attempt_to_latejoin()
 
         if (   sp
             && sp->allowLatejoin
-            && available_to(Threads[i], true))
+            && available_to(Threads[i]))
         {
             // Recheck conditions under lock protection
             Threads.mutex.lock();
             sp->mutex.lock();
 
             if (   sp->allowLatejoin
-                && available_to(Threads[i], true))
+                && available_to(Threads[i]))
             {
-                 activeSplitPoint = sp;
                  sp->slavesMask.set(this->idx);
+                 activeSplitPoint = sp;
                  searching = true;
             }
 

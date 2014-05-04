@@ -116,7 +116,7 @@ struct Thread : public ThreadBase {
   virtual void idle_loop();
   void attempt_to_latejoin();
   bool cutoff_occurred() const;
-  bool available_to(const Thread* master, bool latejoin) const;
+  bool available_to(const Thread* master) const;
 
   template <bool Fake>
   void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
