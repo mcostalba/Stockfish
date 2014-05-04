@@ -38,7 +38,7 @@ namespace Material {
 
 struct Entry {
 
-  Score material_value() const { return make_score(value, value); }
+  Score material_value() const { return Score(value, value); }
   Score space_weight() const { return spaceWeight; }
   Phase game_phase() const { return gamePhase; }
   bool specialized_eval_exists() const { return evaluationFunction != NULL; }

@@ -28,7 +28,7 @@
 namespace {
 
   #define V Value
-  #define S(mg, eg) make_score(mg, eg)
+  #define S(mg, eg) Score(mg, eg)
 
   // Doubled pawn penalty by file
   const Score Doubled[FILE_NB] = {
@@ -220,7 +220,7 @@ void init() {
       for (File f = FILE_A; f <= FILE_H; ++f)
       {
           bonus = r * (r-1) * (r-2) + bonusesByFile[f] * (r/2 + 1);
-          Connected[f][r] = make_score(bonus, bonus);
+          Connected[f][r] = Score(bonus, bonus);
       }
 }
 
@@ -295,7 +295,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
       while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
 
   if (relative_rank(Us, ksq) > RANK_4)
-      return make_score(0, -16 * minKPdistance[Us]);
+      return Score(0, -16 * minKPdistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
@@ -306,7 +306,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-  return make_score(bonus, -16 * minKPdistance[Us]);
+  return Score(bonus, -16 * minKPdistance[Us]);
 }
 
 // Explicit template instantiation
