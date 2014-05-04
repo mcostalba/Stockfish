@@ -1510,6 +1510,9 @@ void Thread::idle_loop() {
 
           sp->mutex.lock();
 
+          if (cutoff_occurred()) // With many threads happens quite enough
+              goto skip_search;
+
           assert(activePosition == NULL);
 
           activePosition = &pos;
@@ -1527,6 +1530,8 @@ void Thread::idle_loop() {
           default:
               assert(false);
           }
+
+skip_search:
 
           assert(searching);
 
