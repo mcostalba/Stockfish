@@ -274,20 +274,18 @@ typedef union {
 
 inline Score make_score(int mg, int eg) {
   View v;
-  v.half.mg = (int16_t)mg - (eg < 0);
+  v.half.mg = (int16_t)mg - (uint16_t(eg) >> 15);
   v.half.eg = (int16_t)eg;
   return Score(v.full);
 }
 
 inline Value mg_value(Score s) {
-  View v;
-  v.full = s;
+  View v = {s};
   return Value(v.half.mg + (uint16_t(v.half.eg) >> 15));
 } 
 
 inline Value eg_value(Score s) {
-  View v;
-  v.full = s;
+  View v = {s};
   return Value(v.half.eg);
 }
 
