@@ -1590,7 +1590,8 @@ void Thread::attempt_to_latejoin()
             Threads.mutex.lock();
             sp->mutex.lock();
 
-            if (   sp->allowLatejoin
+            if (  !searching
+                && sp->allowLatejoin
                 && available_to(Threads[i]))
             {
                  sp->slavesMask.set(this->idx);
