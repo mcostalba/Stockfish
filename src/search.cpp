@@ -1583,6 +1583,8 @@ void Thread::idle_loop() {
 
                       sp->mutex.unlock();
                       Threads.mutex.unlock();
+
+                      break; // Just a single attempt
                   }
               }
       }
