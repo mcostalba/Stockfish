@@ -1537,7 +1537,7 @@ void Thread::idle_loop() {
           searching = false;
           activePosition = NULL;
           sp->slavesMask.reset(idx);
-          sp->allowLatejoin = false;
+          sp->allSlavesSearching = false;
           sp->nodes += pos.nodes_searched();
 
           // Wake up the master thread so to allow it to return from the idle
@@ -1556,9 +1556,35 @@ void Thread::idle_loop() {
           // if we are exiting there is a chance that they are already freed.
           sp->mutex.unlock();
 
-          // Try to late join to another splitpoint
+          // Try to late join to another split point if none of its slaves has
+          // already finished.
           if (Threads.size() > 2)
-              attempt_to_latejoin();
+              for (size_t i = 0; i < Threads.size(); ++i)
+              {
+                  int size = Threads[i]->splitPointsSize; // Local copy
+                  sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
+
+                  if (   sp
+                      && sp->allSlavesSearching
+                      && available_to(Threads[i]))
+                  {
+                      // Recheck the conditions under lock protection
+                      Threads.mutex.lock();
+                      sp->mutex.lock();
+
+                      if (  !searching
+                          && sp->allSlavesSearching
+                          && available_to(Threads[i]))
+                      {
+                           sp->slavesMask.set(idx);
+                           activeSplitPoint = sp;
+                           searching = true;
+                      }
+
+                      sp->mutex.unlock();
+                      Threads.mutex.unlock();
+                  }
+              }
       }
 
       // If this thread is the master of a split point and all slaves have finished
@@ -1572,37 +1598,6 @@ void Thread::idle_loop() {
               return;
       }
   }
-}
-
-void Thread::attempt_to_latejoin()
-{
-    for (size_t i = 0; i < Threads.size(); ++i)
-    {
-        int size = Threads[i]->splitPointsSize; // Make a local copy to prevent size from changing under our feet.
-
-        SplitPoint* sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
-
-        if (   sp
-            && sp->allowLatejoin
-            && available_to(Threads[i]))
-        {
-            // Recheck conditions under lock protection
-            Threads.mutex.lock();
-            sp->mutex.lock();
-
-            if (  !searching
-                && sp->allowLatejoin
-                && available_to(Threads[i]))
-            {
-                 sp->slavesMask.set(this->idx);
-                 activeSplitPoint = sp;
-                 searching = true;
-            }
-
-            sp->mutex.unlock();
-            Threads.mutex.unlock();
-        }
-    }
 }
 
 
