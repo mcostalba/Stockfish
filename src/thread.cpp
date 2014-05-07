@@ -292,6 +292,7 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   Threads.mutex.lock();
   sp.mutex.lock();
 
+  sp.allSlavesSearching = true; // Must be set under lock protection
   ++splitPointsSize;
   activeSplitPoint = &sp;
   activePosition = NULL;
