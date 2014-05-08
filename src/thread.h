@@ -77,7 +77,6 @@ struct SplitPoint {
   // Shared data
   Mutex mutex;
   std::bitset<MAX_THREADS> slavesMask;
-  volatile bool allSlavesSearching;
   volatile uint64_t nodes;
   volatile Value alpha;
   volatile Value bestValue;
