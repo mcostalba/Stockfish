@@ -1544,8 +1544,7 @@ void Thread::idle_loop() {
 
           // After releasing the lock we can't access any SplitPoint related data
           // in a safe way because it could have been released under our feet by
-          // the sp master. Also accessing other Thread objects is unsafe because
-          // if we are exiting there is a chance that they are already freed.
+          // the sp master.
           sp->mutex.unlock();
       }
 
