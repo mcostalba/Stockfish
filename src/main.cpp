@@ -26,9 +26,47 @@
 #include "thread.h"
 #include "tt.h"
 #include "ucioption.h"
+#include <thread>
+
+using namespace std;
+
+void cpuID(unsigned i, unsigned regs[4]) {
+#ifdef _WIN32
+	__cpuid((int *)regs, (int)i);
+
+#else
+	asm volatile
+		("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+		: "a" (i), "c" (0));
+#endif
+}
+
+//set affinity
+void setaff()
+{
+	unsigned regs[4];
+	// Get CPU features
+	cpuID(1, regs);
+	unsigned cpuFeatures = regs[3]; // EDX
+
+	// Detect hyperthreads
+	bool hyperThreads = cpuFeatures & (1 << 28);
+
+	//may return 0 when not able to detect
+	int cores = std::thread::hardware_concurrency();
+
+	if (hyperThreads && cores > 0)
+	{
+		HANDLE process = GetCurrentProcess();
+		DWORD_PTR processAffinityMask = 0;
+		for (int i = 0; i < cores; i += 2)
+			processAffinityMask = processAffinityMask | 1 << i;
+		BOOL success = SetProcessAffinityMask(process, processAffinityMask);
+	}
+}
 
 int main(int argc, char* argv[]) {
-
+  setaff();
   std::cout << engine_info() << std::endl;
 
   UCI::init(Options);
