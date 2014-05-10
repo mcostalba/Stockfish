@@ -41,7 +41,7 @@ namespace {
     {   0,  105,   4,    0              }, // Bishop
     { -27,   -2,  46,   100,  -141      }, // Rook
     {-177,   25, 129,   142,  -137,   0 }  // Queen
-    };
+  };
     
     const int QuadraticCoefficientsOppositeSide[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
