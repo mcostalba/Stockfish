@@ -287,14 +287,12 @@ void Search::think() {
   for (size_t i = 0; i < Threads.size(); ++i)
       Threads[i]->maxPly = 0;
 
-  Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
   Threads.timer->run = true;
   Threads.timer->notify_one(); // Wake up the recurring timer
 
   id_loop(RootPos); // Let's start searching !
 
   Threads.timer->run = false; // Stop the timer
-  Threads.sleepWhileIdle = true; // Send idle threads to sleep
 
   if (RootInTB)
   {
@@ -1117,17 +1115,17 @@ moves_loop: // When in check and at SpNode search starts from here
     // must be mate or stalemate. If we are in a singular extension search then
     // return a fail low score.
     if (!moveCount)
-        return  excludedMove ? alpha
-              : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
+        bestValue = excludedMove ? alpha
+                   :     inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
+
+    // Quiet best move: update killers, history, countermoves and followupmoves
+    else if (bestValue >= beta && !pos.capture_or_promotion(bestMove) && !inCheck)
+        update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount - 1);
 
     TT.store(posKey, value_to_tt(bestValue, ss->ply),
              bestValue >= beta  ? BOUND_LOWER :
              PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
              depth, bestMove, ss->staticEval);
-
-    // Quiet best move: update killers, history, countermoves and followupmoves
-    if (bestValue >= beta && !pos.capture_or_promotion(bestMove) && !inCheck)
-        update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount - 1);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1570,7 +1568,7 @@ void Thread::idle_loop() {
   {
       // If we are not searching, wait for a condition to be signaled instead of
       // wasting CPU time polling for work.
-      while ((!searching && Threads.sleepWhileIdle) || exit)
+      while (!searching || exit)
       {
           if (exit)
           {
@@ -1645,8 +1643,7 @@ void Thread::idle_loop() {
 
           // Wake up the master thread so to allow it to return from the idle
           // loop in case we are the last slave of the split point.
-          if (    Threads.sleepWhileIdle
-              &&  this != sp->masterThread
+          if (    this != sp->masterThread
               &&  sp->slavesMask.none())
           {
               assert(!sp->masterThread->searching);
