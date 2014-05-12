@@ -196,12 +196,12 @@ namespace {
   const int KingAttackWeights[] = { 0, 0, 2, 2, 3, 5 };
 
   // Bonuses for enemy's safe checks
-  const int QueenContactCheck = 24;
-  const int RookContactCheck  = 16;
-  const int QueenCheck        = 12;
-  const int RookCheck         = 8;
-  const int BishopCheck       = 2;
-  const int KnightCheck       = 3;
+  const int QueenContactCheck[] = {0, 24, 48, 72, 96, 120, 144, 168, 192, 216};
+  const int RookContactCheck[]  = {0, 16, 32, 48, 64, 80, 96, 112, 128, 144};
+  const int QueenCheck[]        = {0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 144, 156, 168, 180, 192, 204};
+  const int RookCheck[]         = {0, 8, 16, 24, 32, 40, 48, 56, 64, 72};
+  const int BishopCheck[]       = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
+  const int KnightCheck[]       = {0, 3, 6, 9, 12, 15, 18, 21, 24};
 
   // KingDanger[Color][attackUnits] contains the actual king danger weighted
   // scores, indexed by color and by a calculated integer number.
@@ -446,8 +446,7 @@ namespace {
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
 
             if (b)
-                attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
+                attackUnits +=  QueenContactCheck[popcount<Max15>(b)]
                               * (Them == pos.side_to_move() ? 2 : 1);
         }
 
@@ -466,8 +465,7 @@ namespace {
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][QUEEN]);
 
             if (b)
-                attackUnits +=  RookContactCheck
-                              * popcount<Max15>(b)
+                attackUnits +=  RookContactCheck[popcount<Max15>(b)]
                               * (Them == pos.side_to_move() ? 2 : 1);
         }
 
@@ -480,22 +478,22 @@ namespace {
         // Enemy queen safe checks
         b = (b1 | b2) & ei.attackedBy[Them][QUEEN];
         if (b)
-            attackUnits += QueenCheck * popcount<Max15>(b);
+            attackUnits += QueenCheck[popcount<Max15>(b)];
 
         // Enemy rooks safe checks
         b = b1 & ei.attackedBy[Them][ROOK];
         if (b)
-            attackUnits += RookCheck * popcount<Max15>(b);
+            attackUnits += RookCheck[popcount<Max15>(b)];
 
         // Enemy bishops safe checks
         b = b2 & ei.attackedBy[Them][BISHOP];
         if (b)
-            attackUnits += BishopCheck * popcount<Max15>(b);
+            attackUnits += BishopCheck[popcount<Max15>(b)];
 
         // Enemy knights safe checks
         b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
         if (b)
-            attackUnits += KnightCheck * popcount<Max15>(b);
+            attackUnits += KnightCheck[popcount<Max15>(b)];
 
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(99, std::max(0, attackUnits));
