@@ -582,7 +582,7 @@ namespace {
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
-        if (depth <= ONE_PLY && eval + razor_margin(2 * ONE_PLY) <= alpha)
+        if (depth <= ONE_PLY && eval + razor_margin(3 * ONE_PLY) <= alpha)
             return qsearch<NonPV, false>(pos, ss, alpha, beta, DEPTH_ZERO);
 
         Value ralpha = alpha - razor_margin(depth);
