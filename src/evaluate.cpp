@@ -573,7 +573,7 @@ namespace {
         int rr = r * (r - 1);
 
         // Base bonus based on rank
-        Value mbonus = Value(17 * rr), ebonus = Value(7 * (rr + r + 1));
+        Value mbonus = Value(17 * rr), ebonus = Value(8 * (rr + r + 1));
 
         if (rr)
         {
@@ -622,9 +622,6 @@ namespace {
                 mbonus += k * rr, ebonus += k * rr;
             }
         } // rr != 0
-
-        if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
-            ebonus += ebonus / 4;
 
         score += make_score(mbonus, ebonus);
     }
