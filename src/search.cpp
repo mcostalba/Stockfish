@@ -1523,7 +1523,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
       expectedScore = -expectedScore;
 
   } while (   tte
-           && expectedScore == value_from_tt(tte->value(), ply)
+           && expectedScore == value_from_tt(tte->value(), ply + 1)
            && pos.pseudo_legal(m = tte->move()) // Local copy, TT could change
            && pos.legal(m, pos.pinned_pieces(pos.side_to_move()))
            && ply < MAX_PLY
