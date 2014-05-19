@@ -67,7 +67,7 @@ void init(OptionsMap& o) {
   o["Passed Pawns (Midgame)"]   << Option( 92, 0, 200, on_eval);
   o["Passed Pawns (Endgame)"]   << Option(108, 0, 200, on_eval);
   o["Space"]                    << Option(100, 0, 200, on_eval);
-  o["King Safety"]              << Option(110, 0, 200, on_eval);
+  o["King Safety"]              << Option(100, 0, 200, on_eval);
   o["Min Split Depth"]          << Option(0, 0, 12, on_threads);
   o["Threads"]                  << Option(1, 1, MAX_THREADS, on_threads);
   o["Hash"]                     << Option(32, 1, 16384, on_hash_size);
