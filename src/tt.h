@@ -71,7 +71,7 @@ private:
 
 class TranspositionTable {
 
-  static const unsigned ClusterSize = 3;
+  static const unsigned ClusterSize = 5;
 
 public:
  ~TranspositionTable() { free(mem); }
