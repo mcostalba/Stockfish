@@ -35,17 +35,6 @@
 
 struct TTEntry {
 
-  void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value ev) {
-
-    key32       = (uint32_t)k;
-    move16      = (uint16_t)m;
-    bound8      = (uint8_t)b;
-    generation8 = (uint8_t)g;
-    value16     = (int16_t)v;
-    depth16     = (int16_t)d;
-    evalValue   = (int16_t)ev;
-  }
-
   uint32_t key() const     { return key32; }
   Move move() const        { return (Move)move16; }
   Bound bound() const      { return (Bound)bound8; }
@@ -55,6 +44,17 @@ struct TTEntry {
 
 private:
   friend class TranspositionTable;
+
+  FORCE_INLINE void save(uint32_t k, Value v, Bound b, Depth d, Move m, int g, Value ev) {
+
+    key32       = (uint32_t)k;
+    move16      = (uint16_t)m;
+    bound8      = (uint8_t)b;
+    generation8 = (uint8_t)g;
+    value16     = (int16_t)v;
+    depth16     = (int16_t)d;
+    evalValue   = (int16_t)ev;
+  }
 
   uint32_t key32;
   uint16_t move16;
