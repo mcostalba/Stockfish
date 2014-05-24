@@ -37,7 +37,6 @@
 
 struct TTEntry {
 
-  uint32_t key() const     { return keyGenBound32 & ~0xFF; }
   Bound bound() const      { return (Bound)(keyGenBound32 & 0x3); }
   Move move() const        { return (Move)move16; }
   Depth depth() const      { return (Depth)depth16; }
