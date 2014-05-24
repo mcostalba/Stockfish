@@ -39,8 +39,8 @@ struct TTEntry {
 
   uint32_t key() const     { return keyGenBound32 & ~0xFF; }
   Bound bound() const      { return (Bound)(keyGenBound32 & 0x3); }
-  Depth depth() const      { return (Depth)depth16; }
   Move move() const        { return (Move)move16; }
+  Depth depth() const      { return (Depth)depth16; }
   Value value() const      { return (Value)value16; }
   Value eval_value() const { return (Value)evalValue; }
 
@@ -52,15 +52,15 @@ private:
     assert((k | g | b) == (k ^ g ^ b)); // Disjoint
 
     keyGenBound32 = (uint32_t)(k | g | b);
-    depth16       = (uint16_t)d;
     move16        = (uint16_t)m;
+    depth16       = (int16_t)d;
     value16       = (int16_t)v;
     evalValue     = (int16_t)ev;
   }
 
   uint32_t keyGenBound32;
-  uint16_t depth16, move16;
-  int16_t value16, evalValue;
+  uint16_t move16;
+  int16_t depth16, value16, evalValue;
 };
 
 
@@ -72,7 +72,7 @@ private:
 
 class TranspositionTable {
 
-  static const unsigned ClusterSize = 4; // A cluster is 64 Bytes
+  static const unsigned ClusterSize = 4;
 
 public:
  ~TranspositionTable() { free(mem); }
