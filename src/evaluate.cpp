@@ -90,8 +90,8 @@ namespace {
   }
 
   // Evaluation weights, initialized from UCI options
-  enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  struct Weight { int mg, eg; } Weights[6];
+  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
+  struct Weight { int mg, eg; } Weights[5];
 
   typedef Value V;
   #define S(mg, eg) make_score(mg, eg)
@@ -103,7 +103,7 @@ namespace {
   //
   // Values modified by Joona Kiiski
   const Score WeightsInternal[] = {
-    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
+    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(289, 0)
   };
 
   // MobilityBonus[PieceType][attacked] contains bonuses for middle and end
@@ -169,7 +169,6 @@ namespace {
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
   const Score MinorBehindPawn  = make_score(16,  0);
-  const Score UndefendedMinor  = make_score(25, 10);
   const Score TrappedRook      = make_score(90,  0);
   const Score Unstoppable      = make_score( 0, 20);
 
@@ -203,9 +202,9 @@ namespace {
   const int BishopCheck       = 2;
   const int KnightCheck       = 3;
 
-  // KingDanger[Color][attackUnits] contains the actual king danger weighted
-  // scores, indexed by color and by a calculated integer number.
-  Score KingDanger[COLOR_NB][128];
+  // KingDanger[attackUnits] contains the actual king danger weighted
+  // scores, indexed by a calculated integer number.
+  Score KingDanger[128];
 
 
   // apply_weight() weighs score 'v' by weight 'w' trying to prevent overflow
@@ -501,7 +500,7 @@ namespace {
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from evaluation.
-        score -= KingDanger[Us == Search::RootColor][attackUnits];
+        score -= KingDanger[attackUnits];
     }
 
     if (Trace)
@@ -519,15 +518,8 @@ namespace {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, undefendedMinors, weakEnemies;
+    Bitboard b, weakEnemies;
     Score score = SCORE_ZERO;
-
-    // Undefended minors get penalized even if they are not under attack
-    undefendedMinors =  pos.pieces(Them, BISHOP, KNIGHT)
-                      & ~ei.attackedBy[Them][ALL_PIECES];
-
-    if (undefendedMinors)
-        score += UndefendedMinor;
 
     // Enemies not defended by a pawn and under our attack
     weakEnemies =  pos.pieces(Them)
@@ -909,8 +901,7 @@ namespace Eval {
     Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
     Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
     Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    Weights[KingSafety]     = weight_option("King Safety", "King Safety", WeightsInternal[KingSafety]);
 
     const double MaxSlope = 30;
     const double Peak = 1280;
@@ -918,9 +909,7 @@ namespace Eval {
     for (int t = 0, i = 1; i < 100; ++i)
     {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
-
-        KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
-        KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
+        KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
     }
   }
 
