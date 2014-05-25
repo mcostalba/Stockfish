@@ -32,21 +32,21 @@ namespace {
 
   // Doubled pawn penalty by file
   const Score Doubled[FILE_NB] = {
-    S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-    S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
+    S(31, 72), S(20, 44), S(29, 46), S(41, 50),
+    S(41, 50), S(29, 46), S(20, 44), S(31, 72) };
 
   // Isolated pawn penalty by opposed flag and file
   const Score Isolated[2][FILE_NB] = {
-  { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
-    S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
-  { S(25, 30), S(36, 35), S(40, 35), S(40, 35),
-    S(40, 35), S(40, 35), S(36, 35), S(25, 30) } };
+  { S(41, 43), S(51, 54), S(51, 56), S(68, 56),
+    S(68, 56), S(51, 56), S(51, 54), S(41, 43) },
+  { S(30, 32), S(43, 40), S(37, 30), S(44, 27),
+    S(44, 27), S(37, 30), S(43, 40), S(30, 32) } };
 
   // Backward pawn penalty by opposed flag and file
   const Score Backward[2][FILE_NB] = {
-  { S(30, 42), S(43, 46), S(49, 46), S(49, 46),
-    S(49, 46), S(49, 46), S(43, 46), S(30, 42) },
-  { S(20, 28), S(29, 31), S(33, 31), S(33, 31),
+  { S(29, 57), S(44, 37), S(44, 49), S(56, 40),
+    S(56, 40), S(44, 49), S(44, 37), S(29, 57) },
+  { S(18, 35), S(27, 31), S(16, 16), S(22, 36),
     S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
 
   // Connected pawn bonus by file and rank (initialized by formula)
@@ -58,10 +58,10 @@ namespace {
     S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
   // Bonus for file distance of the two outermost pawns
-  const Score PawnsFileSpan = S(0, 15);
+  const Score PawnsFileSpan = S(5, 11);
 
   // Unsupported pawn penalty
-  const Score UnsupportedPawnPenalty = S(20, 10);
+  const Score UnsupportedPawnPenalty = S(10, 13);
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
