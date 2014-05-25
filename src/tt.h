@@ -23,7 +23,7 @@
 #include "misc.h"
 #include "types.h"
 
-/// The TTEntry is the 14 bytes transposition table entry, defined as below:
+/// The TTEntry is the 16 bytes transposition table entry, defined as below:
 ///
 /// key        32 bit
 /// move       16 bit
@@ -32,6 +32,7 @@
 /// value      16 bit
 /// depth      16 bit
 /// eval value 16 bit
+/// padding    16 bit
 
 struct TTEntry {
 
@@ -43,6 +44,7 @@ struct TTEntry {
 
 private:
   friend class TranspositionTable;
+  friend void dummy_ignore_padding(); // Silence 'padding unused' warning
 
   void save(uint32_t k, Value v, Bound b, Depth d, Move m, uint8_t g, Value ev) {
 
@@ -58,7 +60,7 @@ private:
   uint32_t key32;
   uint16_t move16;
   uint8_t bound8, generation8;
-  int16_t value16, depth16, evalValue;
+  int16_t value16, depth16, evalValue, padding;
 };
 
 
