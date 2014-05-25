@@ -47,7 +47,7 @@ namespace {
   { S(29, 57), S(44, 37), S(44, 49), S(56, 40),
     S(56, 40), S(44, 49), S(44, 37), S(29, 57) },
   { S(18, 35), S(27, 31), S(16, 16), S(22, 36),
-    S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
+    S(22, 36), S(16, 16), S(27, 31), S(18, 35) } };
 
   // Connected pawn bonus by file and rank (initialized by formula)
   Score Connected[FILE_NB][RANK_NB];
