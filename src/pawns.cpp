@@ -60,6 +60,9 @@ namespace {
   // Bonus for file distance of the two outermost pawns
   const Score PawnsFileSpan = S(0, 15);
 
+  // Unsupported pawn penalty
+  const Score UnsupportedPawnPenalty = S(20, 10);
+
   // Weakness of our pawn shelter in front of the king indexed by [rank]
   const Value ShelterWeakness[RANK_NB] =
   { V(100), V(0), V(27), V(73), V(92), V(101), V(101) };
@@ -69,7 +72,7 @@ namespace {
   const Value StormDanger[3][RANK_NB] = {
   { V( 0),  V(64), V(128), V(51), V(26) },
   { V(26),  V(32), V( 96), V(38), V(20) },
-  { V( 0),  V( 0), V( 64), V(25), V(13) } };
+  { V( 0),  V( 0), V(160), V(25), V(13) } };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
@@ -86,10 +89,10 @@ namespace {
     const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
-    Bitboard b;
+    Bitboard b, p, doubled;
     Square s;
     File f;
-    bool passed, isolated, doubled, opposed, connected, backward, candidate;
+    bool passed, isolated, opposed, connected, backward, candidate, unsupported;
     Score value = SCORE_ZERO;
     const Square* pl = pos.list<PAWN>(Us);
 
@@ -113,16 +116,20 @@ namespace {
         // This file cannot be semi-open
         e->semiopenFiles[Us] &= ~(1 << f);
 
-        // Our rank plus previous one
-        b = rank_bb(s) | rank_bb(s - pawn_push(Us));
+        // Previous rank
+        p = rank_bb(s - pawn_push(Us));
 
-        // Flag the pawn as passed, isolated, doubled or
-        // connected (but not the backward one).
-        connected =   ourPawns   & adjacent_files_bb(f) & b;
-        isolated  = !(ourPawns   & adjacent_files_bb(f));
-        doubled   =   ourPawns   & forward_bb(Us, s);
-        opposed   =   theirPawns & forward_bb(Us, s);
-        passed    = !(theirPawns & passed_pawn_mask(Us, s));
+        // Our rank plus previous one
+        b = rank_bb(s) | p;
+
+        // Flag the pawn as passed, isolated, doubled,
+        // unsupported or connected (but not the backward one).
+        connected   =   ourPawns   & adjacent_files_bb(f) & b;
+        unsupported = !(ourPawns   & adjacent_files_bb(f) & p);
+        isolated    = !(ourPawns   & adjacent_files_bb(f));
+        doubled     =   ourPawns   & forward_bb(Us, s);
+        opposed     =   theirPawns & forward_bb(Us, s);
+        passed      = !(theirPawns & passed_pawn_mask(Us, s));
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, or connected it cannot be
@@ -166,8 +173,11 @@ namespace {
         if (isolated)
             value -= Isolated[opposed][f];
 
+        if (unsupported && !isolated)
+            value -= UnsupportedPawnPenalty;
+
         if (doubled)
-            value -= Doubled[f];
+            value -= Doubled[f] / rank_distance(s, lsb(doubled));
 
         if (backward)
             value -= Backward[opposed][f];
@@ -240,6 +250,7 @@ template<Color Us>
 Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
   const Color Them = (Us == WHITE ? BLACK : WHITE);
+  static const Bitboard MiddleEdges = (FileABB | FileHBB) & (Rank2BB | Rank3BB);
 
   Value safety = MaxSafetyBonus;
   Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));
@@ -252,26 +263,31 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
   {
       b = ourPawns & file_bb(f);
       rkUs = b ? relative_rank(Us, backmost_sq(Us, b)) : RANK_1;
-      safety -= ShelterWeakness[rkUs];
 
       b  = theirPawns & file_bb(f);
       rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
-      safety -= StormDanger[rkUs == RANK_1 ? 0 : rkThem == rkUs + 1 ? 2 : 1][rkThem];
+
+      if (   (MiddleEdges & make_square(f, rkThem))
+          && file_of(ksq) == f
+          && relative_rank(Us, ksq) == rkThem - 1)
+          safety += 200;
+      else
+          safety -= ShelterWeakness[rkUs]
+                  + StormDanger[rkUs == RANK_1 ? 0 : rkThem == rkUs + 1 ? 2 : 1][rkThem];
   }
 
   return safety;
 }
 
 
-/// Entry::update_safety() calculates and caches a bonus for king safety.
-/// It is called only when king square changes, which is about 20% of total
-/// king_safety() calls.
+/// Entry::do_king_safety() calculates a bonus for king safety. It is called only
+/// when king square changes, which is about 20% of total king_safety() calls.
 
 template<Color Us>
-Score Entry::update_safety(const Position& pos, Square ksq) {
+Score Entry::do_king_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
-  castlingFlags[Us] = pos.can_castle(Us);
+  castlingRights[Us] = pos.can_castle(Us);
   minKPdistance[Us] = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
@@ -279,22 +295,22 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
       while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
 
   if (relative_rank(Us, ksq) > RANK_4)
-      return kingSafety[Us] = make_score(0, -16 * minKPdistance[Us]);
+      return make_score(0, -16 * minKPdistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
   // If we can castle use the bonus after the castling if it is bigger
-  if (pos.can_castle(make_castling_flag(Us, KING_SIDE)))
+  if (pos.can_castle(MakeCastling<Us, KING_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 
-  if (pos.can_castle(make_castling_flag(Us, QUEEN_SIDE)))
+  if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-  return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);
+  return make_score(bonus, -16 * minKPdistance[Us]);
 }
 
 // Explicit template instantiation
-template Score Entry::update_safety<WHITE>(const Position& pos, Square ksq);
-template Score Entry::update_safety<BLACK>(const Position& pos, Square ksq);
+template Score Entry::do_king_safety<WHITE>(const Position& pos, Square ksq);
+template Score Entry::do_king_safety<BLACK>(const Position& pos, Square ksq);
 
 } // namespace Pawns

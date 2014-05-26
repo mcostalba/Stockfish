@@ -38,15 +38,16 @@ typedef std::map<std::string, Option, CaseInsensitiveLess> OptionsMap;
 /// Option class implements an option as defined by UCI protocol
 class Option {
 
-  typedef void (Fn)(const Option&);
+  typedef void (*OnChange)(const Option&);
 
 public:
-  Option(Fn* = NULL);
-  Option(bool v, Fn* = NULL);
-  Option(const char* v, Fn* = NULL);
-  Option(int v, int min, int max, Fn* = NULL);
+  Option(OnChange = NULL);
+  Option(bool v, OnChange = NULL);
+  Option(const char* v, OnChange = NULL);
+  Option(int v, int min, int max, OnChange = NULL);
 
   Option& operator=(const std::string& v);
+  void operator<<(const Option& o);
   operator int() const;
   operator std::string() const;
 
@@ -56,11 +57,11 @@ private:
   std::string defaultValue, currentValue, type;
   int min, max;
   size_t idx;
-  Fn* on_change;
+  OnChange on_change;
 };
 
 void init(OptionsMap&);
-void loop(const std::string&);
+void loop(int argc, char* argv[]);
 
 } // namespace UCI
 

@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "misc.h"
+#include "notation.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
@@ -69,7 +70,7 @@ static const char* Defaults[] = {
 /// of positions for a given limit each. There are five parameters: the
 /// transposition table size, the number of search threads that should
 /// be used, the limit value spent for each position (optional, default is
-/// depth 12), an optional file name where to look for positions in FEN
+/// depth 13), an optional file name where to look for positions in FEN
 /// format (defaults are the positions defined above) and the type of the
 /// limit value: depth (default), time in secs or number of nodes.
 
@@ -126,7 +127,7 @@ void benchmark(const Position& current, istream& is) {
       file.close();
   }
 
-  int64_t nodes = 0;
+  uint64_t nodes = 0;
   Search::StateStackPtr st;
   Time::point elapsed = Time::now();
 
@@ -136,21 +137,33 @@ void benchmark(const Position& current, istream& is) {
 
       cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
 
-      if (limitType == "perft")
+      if (limitType == "divide")
+          for (MoveList<LEGAL> it(pos); *it; ++it)
+          {
+              StateInfo si;
+              pos.do_move(*it, si);
+              uint64_t cnt = limits.depth > 1 ? Search::perft(pos, (limits.depth - 1) * ONE_PLY) : 1;
+              pos.undo_move(*it);
+              cerr << move_to_uci(*it, pos.is_chess960()) << ": " << cnt << endl;
+              nodes += cnt;
+          }
+      else if (limitType == "perft")
       {
-          size_t cnt = Search::perft(pos, limits.depth * ONE_PLY);
+          uint64_t cnt = Search::perft(pos, limits.depth * ONE_PLY);
           cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << endl;
           nodes += cnt;
       }
       else
       {
-          Threads.start_thinking(pos, limits, vector<Move>(), st);
+          Threads.start_thinking(pos, limits, st);
           Threads.wait_for_think_finished();
           nodes += Search::RootPos.nodes_searched();
       }
   }
 
   elapsed = Time::now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
+
+  dbg_print(); // Just before to exit
 
   cerr << "\n==========================="
        << "\nTotal time (ms) : " << elapsed

@@ -27,7 +27,7 @@
 
 namespace {
 
-  /// Constants
+  enum TimeType { OptimumTime, MaxTime };
 
   const int MoveHorizon   = 50;   // Plan time management at most this many moves ahead
   const double MaxRatio   = 7.0;  // When in trouble, we can step over reserved time with this ratio
@@ -38,35 +38,40 @@ namespace {
   const double skewfactor = 0.172;
 
 
-  /// move_importance() is a skew-logistic function based on naive statistical
-  /// analysis of "how many games are still undecided after n half-moves". Game
-  /// is considered "undecided" as long as neither side has >275cp advantage.
-  /// Data was extracted from CCRL game database with some simple filtering criteria.
+  // move_importance() is a skew-logistic function based on naive statistical
+  // analysis of "how many games are still undecided after n half-moves". Game
+  // is considered "undecided" as long as neither side has >275cp advantage.
+  // Data was extracted from CCRL game database with some simple filtering criteria.
 
   double move_importance(int ply) {
 
     return pow((1 + exp((ply - xshift) / xscale)), -skewfactor) + DBL_MIN; // Ensure non-zero
   }
 
+  template<TimeType T>
+  int remaining(int myTime, int movesToGo, int currentPly, int slowMover)
+  {
+    const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
+    const double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
 
-  /// Function Prototypes
+    double thisMoveImportance = (move_importance(currentPly) * slowMover) / 100;
+    double otherMovesImportance = 0;
 
-  enum TimeType { OptimumTime, MaxTime };
+    for (int i = 1; i < movesToGo; ++i)
+        otherMovesImportance += move_importance(currentPly + 2 * i);
 
-  template<TimeType>
-  int remaining(int myTime, int movesToGo, int fullMoveNumber, int slowMover);
-}
+    double ratio1 = (TMaxRatio * thisMoveImportance) / (TMaxRatio * thisMoveImportance + otherMovesImportance);
+    double ratio2 = (thisMoveImportance + TStealRatio * otherMovesImportance) / (thisMoveImportance + otherMovesImportance);
 
+    return int(myTime * std::min(ratio1, ratio2));
+  }
 
-void TimeManager::pv_instability(double bestMoveChanges) {
-
-  unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
-}
+} // namespace
 
 
 void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us)
 {
-  /* We support four different kind of time controls:
+  /* We support four different kinds of time controls:
 
       increment == 0 && movesToGo == 0 means: x basetime  [sudden death!]
       increment == 0 && movesToGo != 0 means: x moves in y minutes
@@ -90,9 +95,9 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   int minThinkingTime      = Options["Minimum Thinking Time"];
   int slowMover            = Options["Slow Mover"];
 
-  // Initialize all to maximum values but unstablePVExtraTime that is reset
-  unstablePVExtraTime = 0;
-  optimumSearchTime = maximumSearchTime = limits.time[us];
+  // Initialize unstablePvFactor to 1 and search times to maximum values
+  unstablePvFactor = 1;
+  optimumSearchTime = maximumSearchTime = std::max(limits.time[us], minThinkingTime);
 
   // We calculate optimum time usage for different hypothetical "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
@@ -118,26 +123,4 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   // Make sure that maxSearchTime is not over absoluteMaxSearchTime
   optimumSearchTime = std::min(optimumSearchTime, maximumSearchTime);
-}
-
-
-namespace {
-
-  template<TimeType T>
-  int remaining(int myTime, int movesToGo, int currentPly, int slowMover)
-  {
-    const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
-    const double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
-
-    double thisMoveImportance = (move_importance(currentPly) * slowMover) / 100;
-    double otherMovesImportance = 0;
-
-    for (int i = 1; i < movesToGo; ++i)
-        otherMovesImportance += move_importance(currentPly + 2 * i);
-
-    double ratio1 = (TMaxRatio * thisMoveImportance) / (TMaxRatio * thisMoveImportance + otherMovesImportance);
-    double ratio2 = (thisMoveImportance + TStealRatio * otherMovesImportance) / (thisMoveImportance + otherMovesImportance);
-
-    return int(floor(myTime * std::min(ratio1, ratio2)));
-  }
 }

@@ -42,25 +42,25 @@ struct Stats {
 
   static const Value Max = Value(2000);
 
-  const T* operator[](Piece p) const { return table[p]; }
+  const T* operator[](Piece pc) const { return table[pc]; }
   void clear() { std::memset(table, 0, sizeof(table)); }
 
-  void update(Piece p, Square to, Move m) {
+  void update(Piece pc, Square to, Move m) {
 
-    if (m == table[p][to].first)
+    if (m == table[pc][to].first)
         return;
 
-    table[p][to].second = table[p][to].first;
-    table[p][to].first = m;
+    table[pc][to].second = table[pc][to].first;
+    table[pc][to].first = m;
   }
 
-  void update(Piece p, Square to, Value v) {
+  void update(Piece pc, Square to, Value v) {
 
     if (Gain)
-        table[p][to] = std::max(v, table[p][to] - 1);
+        table[pc][to] = std::max(v, table[pc][to] - 1);
 
-    else if (abs(table[p][to] + v) < Max)
-        table[p][to] +=  v;
+    else if (abs(table[pc][to] + v) < Max)
+        table[pc][to] +=  v;
   }
 
 private:
@@ -69,7 +69,7 @@ private:
 
 typedef Stats< true, Value> GainsStats;
 typedef Stats<false, Value> HistoryStats;
-typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
+typedef Stats<false, std::pair<Move, Move> > MovesStats;
 
 
 /// MovePicker class is used to pick one pseudo legal move at a time from the
@@ -86,23 +86,25 @@ class MovePicker {
 public:
   MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
   MovePicker(const Position&, Move, const HistoryStats&, PieceType);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, Move*, Search::Stack*);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Move*, Move*, Search::Stack*);
 
   template<bool SpNode> Move next_move();
 
 private:
   template<GenType> void score();
-  void generate_next();
+  void generate_next_stage();
 
   const Position& pos;
   const HistoryStats& history;
   Search::Stack* ss;
   Move* countermoves;
+  Move* followupmoves;
   Depth depth;
   Move ttMove;
-  ExtMove killers[4];
+  ExtMove killers[6];
   Square recaptureSquare;
-  int captureThreshold, stage;
+  Value captureThreshold;
+  int stage;
   ExtMove *cur, *end, *endQuiets, *endBadCaptures;
   ExtMove moves[MAX_MOVES];
 };

@@ -326,10 +326,10 @@ namespace {
     while (b)
     {
         Square s = pop_lsb(&b);
-        Piece p = pos.piece_on(s);
+        Piece pc = pos.piece_on(s);
 
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-        key ^= PG.Zobrist.psq[2 * (type_of(p) - 1) + (color_of(p) == WHITE)][s];
+        key ^= PG.Zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
     }
 
     b = pos.can_castle(ANY_CASTLING);
@@ -372,7 +372,7 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 
 
 /// open() tries to open a book file with the given name after closing any
-/// exsisting one.
+/// existing one.
 
 bool PolyglotBook::open(const char* fName) {
 

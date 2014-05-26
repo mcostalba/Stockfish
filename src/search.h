@@ -20,7 +20,6 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
-#include <cstring>
 #include <memory>
 #include <stack>
 #include <vector>
@@ -41,6 +40,7 @@ struct Stack {
   SplitPoint* splitPoint;
   int ply;
   Move currentMove;
+  Move ttMove;
   Move excludedMove;
   Move killers[2];
   Depth reduction;
@@ -77,9 +77,13 @@ struct RootMove {
 
 struct LimitsType {
 
-  LimitsType() { std::memset(this, 0, sizeof(LimitsType)); }
+  LimitsType() { // Using memset on a std::vector is undefined behavior
+    time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = movestogo =
+    depth = nodes = movetime = mate = infinite = ponder = 0;
+  }
   bool use_time_management() const { return !(mate | movetime | depth | nodes | infinite); }
 
+  std::vector<Move> searchmoves;
   int time[COLOR_NB], inc[COLOR_NB], movestogo, depth, nodes, movetime, mate, infinite, ponder;
 };
 
@@ -88,7 +92,7 @@ struct LimitsType {
 /// typically in an async fashion e.g. to stop the search by the GUI.
 
 struct SignalsType {
-  bool stopOnPonderhit, firstRootMove, stop, failedLowAtRoot;
+  bool stop, stopOnPonderhit, firstRootMove, failedLowAtRoot;
 };
 
 typedef std::auto_ptr<std::stack<StateInfo> > StateStackPtr;
@@ -97,12 +101,11 @@ extern volatile SignalsType Signals;
 extern LimitsType Limits;
 extern std::vector<RootMove> RootMoves;
 extern Position RootPos;
-extern Color RootColor;
 extern Time::point SearchTime;
 extern StateStackPtr SetupStates;
 
 extern void init();
-extern size_t perft(Position& pos, Depth depth);
+extern uint64_t perft(Position& pos, Depth depth);
 extern void think();
 
 } // namespace Search

@@ -18,8 +18,7 @@
 */
 
 #include <algorithm>
-#include <cstring>
-#include <sstream>
+#include <cstring> // For memset
 
 #include "bitboard.h"
 #include "bitcount.h"
@@ -130,19 +129,17 @@ Square msb(Bitboard b) {
 
 const std::string Bitboards::pretty(Bitboard b) {
 
-  std::ostringstream ss;
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
 
-  for (Rank rank = RANK_8; rank >= RANK_1; --rank)
+  for (Rank r = RANK_8; r >= RANK_1; --r)
   {
-      ss << "+---+---+---+---+---+---+---+---+" << '\n';
+      for (File f = FILE_A; f <= FILE_H; ++f)
+          s.append(b & make_square(f, r) ? "| X " : "|   ");
 
-      for (File file = FILE_A; file <= FILE_H; ++file)
-          ss << "| " << (b & (file | rank) ? "X " : "  ");
-
-      ss << "|\n";
+      s.append("|\n+---+---+---+---+---+---+---+---+\n");
   }
-  ss << "+---+---+---+---+---+---+---+---+";
-  return ss.str();
+
+  return s;
 }
 
 
@@ -246,20 +243,6 @@ namespace {
   }
 
 
-  Bitboard pick_random(RKISS& rk, int booster) {
-
-    // Values s1 and s2 are used to rotate the candidate magic of a
-    // quantity known to be optimal to quickly find the magics.
-    int s1 = booster & 63, s2 = (booster >> 6) & 63;
-
-    Bitboard m = rk.rand<Bitboard>();
-    m = (m >> s1) | (m << (64 - s1));
-    m &= rk.rand<Bitboard>();
-    m = (m >> s2) | (m << (64 - s2));
-    return m & rk.rand<Bitboard>();
-  }
-
-
   // init_magics() computes all rook and bishop attacks at startup. Magic
   // bitboards are used to look up attacks of sliding pieces. As a reference see
   // chessprogramming.wikispaces.com/Magic+Bitboards. In particular, here we
@@ -268,8 +251,9 @@ namespace {
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
                    Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
 
-    int MagicBoosters[][8] = { { 3191, 2184, 1310, 3618, 2091, 1308, 2452, 3996 },
-                               { 1059, 3608,  605, 3234, 3326,   38, 2029, 3043 } };
+    int MagicBoosters[][8] = { {  969, 1976, 2850,  542, 2069, 2852, 1708,  164 },
+                               { 3101,  552, 3555,  926,  834,   26, 2131, 1117 } };
+
     RKISS rk;
     Bitboard occupancy[4096], reference[4096], edges, b;
     int i, size, booster;
@@ -295,7 +279,12 @@ namespace {
         b = size = 0;
         do {
             occupancy[size] = b;
-            reference[size++] = sliding_attack(deltas, s, b);
+            reference[size] = sliding_attack(deltas, s, b);
+
+            if (HasPext)
+                attacks[s][_pext_u64(b, masks[s])] = reference[size];
+
+            size++;
             b = (b - masks[s]) & masks[s];
         } while (b);
 
@@ -304,12 +293,15 @@ namespace {
         if (s < SQ_H8)
             attacks[s + 1] = attacks[s] + size;
 
+        if (HasPext)
+            continue;
+
         booster = MagicBoosters[Is64Bit][rank_of(s)];
 
         // Find a magic for square 's' picking up an (almost) random number
         // until we find the one that passes the verification test.
         do {
-            do magics[s] = pick_random(rk, booster);
+            do magics[s] = rk.magic_rand<Bitboard>(booster);
             while (popcount<Max15>((magics[s] * masks[s]) >> 56) < 6);
 
             std::memset(attacks[s], 0, size * sizeof(Bitboard));
@@ -325,11 +317,11 @@ namespace {
                 if (attack && attack != reference[i])
                     break;
 
-                assert(reference[i] != 0);
+                assert(reference[i]);
 
                 attack = reference[i];
             }
-        } while (i != size);
+        } while (i < size);
     }
   }
 }

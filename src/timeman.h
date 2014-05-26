@@ -26,14 +26,14 @@
 class TimeManager {
 public:
   void init(const Search::LimitsType& limits, int currentPly, Color us);
-  void pv_instability(double bestMoveChanges);
-  int available_time() const { return optimumSearchTime + unstablePVExtraTime; }
+  void pv_instability(double bestMoveChanges) { unstablePvFactor = 1 + bestMoveChanges; }
+  int available_time() const { return int(optimumSearchTime * unstablePvFactor * 0.71); }
   int maximum_time() const { return maximumSearchTime; }
 
 private:
   int optimumSearchTime;
   int maximumSearchTime;
-  int unstablePVExtraTime;
+  double unstablePvFactor;
 };
 
 #endif // #ifndef TIMEMAN_H_INCLUDED
