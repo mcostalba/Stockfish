@@ -145,7 +145,7 @@ uniquely indentify different versions of Stockfish.
 ### Options
 
 A list of available UCI options is given below. These options can be
-toggled on/off in command-line mode (as described above) or using a GUI.
+toggled `on`/`off` in command-line mode (as described above) or using a GUI.
 
 **Option** *[Range]* : Description
 
@@ -184,7 +184,8 @@ attacking play.
 friendly king safety weights in evaluation. Higher values will lead to more
 defensive play.
 * **Min Split Depth** *[Integer, Default: 0, Min: 0, Max: 12]*: Minimum depth
-at which threads may branch out on multi-core systems.
+at which threads may branch out on multi-core systems. The optimal value may
+differ from system to system.
 * **Threads** *[Integer, Default: 1, Min: 1, Max: 64]*: The number of threads
 to use during the search. This number should be set to the number of cores
 in your CPU.
