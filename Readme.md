@@ -219,7 +219,7 @@ positions where there is only one legal move).
 which Stockfish will play its moves. Lower values will make it play faster and
 higher values will make it play slower.
 * **UCI_Chess960** *[Boolean, Default: False]*: Whether or not Stockfish
-should play using Chess 960 mode.
+should play using Chess960 mode.
 
 ### Terms of use
 
