@@ -182,10 +182,10 @@ defensive play.
 * **Min Split Depth** *[Integer, Default: 0, Min: 0, Max: 12]*: Minimum depth
 at which threads may branch out on multi-core systems. The optimal value may
 differ from system to system.
-* **Threads** *[Integer, Default: 1, Min: 1, Max: 64]*: The number of threads
+* **Threads** *[Integer, Default: 1, Min: 1, Max: 128]*: The number of threads
 to use during the search. This number should be set to the number of cores
 in your CPU.
-* **Hash** *[Integer, Default: 32, Min: 1, Max: 8192]*: The amount of memory
+* **Hash** *[Integer, Default: 32, Min: 1, Max: 16384]*: The amount of memory
 to use for the hash during search, specified in MB (megabytes). This number
 should be smaller than the amount of physical memory for your system.
 * **Clear Hash** *[Button]*: Clears the memory used for the hash. This is usually
