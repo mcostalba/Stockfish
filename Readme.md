@@ -121,7 +121,7 @@ Obtain the position, material and pawn hash keys:
 
 `key`
 
-Obtain the static evaluation of a given position:
+Obtain the static evaluation (depth=0) of a given position:
 
 `eval`
 
@@ -203,13 +203,17 @@ is best/strongest play.
 * **Emergency Move Horizon** *[Integer, Default: 40, Min: 0, Max: 50]*: Be
 prepared to always play at least this many moves.
 * **Emergency Base Time** *[Integer, Default: 60, Min: 0, Max: 30000]*: Always
-attempt to keep at least this much time (in ms) at the clock.
+attempt to keep at least this much time (in ms) at the clock. Increase this
+value if there is high lag between the engine and the GUI resulting in many
+time losses.
 * **Emergency Move Time** *[Integer, Default: 30, Min: 0, Max: 5000]*: Attempt
 to keep at least this much time (in ms) for each remaining emergency move. (See 
 "Emergency Move Horizon").
 * **Minimum Thinking Time** *[Integer, Default: 20, Min: 0, Max: 5000]*:
 No matter what, use at least this much thinking time (in ms) before doing a move
-(except in positions where there is only one legal move).
+(except in positions where there is only one legal move). The default value "20"
+ensures that Stockfish always analyzes a given position till at least depth 1.
+Decreasing this value may lead to unstable behavior.
 * **Slow Mover** *[Integer, Default: 80, Min: 10, Max: 1000]*: General speed at
 which Stockfish will play its moves. Lower values will make it play faster and
 higher values will make it play slower.
