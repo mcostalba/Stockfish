@@ -97,10 +97,6 @@ Use 4 threads (default is 1):
 
 Clear hash tables before starting a new analysis session:
 
-`ucinewgame`
-
-Analyze given position till depth 20:
-
 `go depth 20`
 
 Analyze given position for 10 seconds (10000 ms):
@@ -192,9 +188,8 @@ in your CPU.
 * **Hash** *[Integer, Default: 32, Min: 1, Max: 8192]*: The amount of memory
 to use for the hash during search, specified in MB (megabytes). This number
 should be smaller than the amount of physical memory for your system.
-* **Clear Hash**: Clears the memory used for the hash. This is usually
-automatically done after a new game is started. You can also force-clear the
-hash from the command-line (see above).
+* **Clear Hash** *[Button]*: Clears the memory used for the hash. This is usually
+automatically done after a new game is started.
 * **Ponder** *[Boolean, Default: True]*: Whether or not the engine should
 analyze when it is the opponent's turn to move.
 * **OwnBook** *[Boolean, Default: False]*:  Whether or not the engine should
@@ -210,11 +205,11 @@ prepared to always play at least this many moves.
 * **Emergency Base Time** *[Integer, Default: 60, Min: 0, Max: 30000]*: Always
 attempt to keep at least this much time (in ms) at the clock.
 * **Emergency Move Time** *[Integer, Default: 30, Min: 0, Max: 5000]*: Attempt
-to keep at least this much time for each remaining emergency move. (See 
+to keep at least this much time (in ms) for each remaining emergency move. (See 
 "Emergency Move Horizon").
 * **Minimum Thinking Time** *[Integer, Default: 20, Min: 0, Max: 5000]*:
-No matter what, use at least this much thinking before doing a move (except in
-positions where there is only one legal move).
+No matter what, use at least this much thinking time (in ms) before doing a move
+(except in positions where there is only one legal move).
 * **Slow Mover** *[Integer, Default: 80, Min: 10, Max: 1000]*: General speed at
 which Stockfish will play its moves. Lower values will make it play faster and
 higher values will make it play slower.
