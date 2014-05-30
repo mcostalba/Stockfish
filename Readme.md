@@ -62,15 +62,15 @@ in the terminal: `./stockfish` (for Unix-like systems) or `stockfish`
 Stockfish uses the UCI protocol to communicate with a GUI. The complete
 documentation can be obtained from http://download.shredderchess.com/div/uci.zip.
 
-Some examples of useful UCI commands are given below.
+Some examples of useful commands are given below.
 
 #### Setting up the position
 
-Set the position with a FEN string
+Set the position with a FEN string:
 
 `position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
 
-Set the position with moves starting from the start position.
+Set the position with moves starting from the start position:
 
 `position startpos moves e2e4 e7e5 d2d4`
 
@@ -80,35 +80,67 @@ like the 50-move rule or threefold repetition.
 
 #### Changing UCI settings
 
-Output a list of available options
+Output a list of available options:
 
 `uci`
 
-Set the hash size to 1 GB
+Set the hash size to 1 GB:
 
 `setoption name Hash value 1024`
 
-Use 4 threads (default is 1)
+Use 4 threads (default is 1):
 
 `setoption name Threads value 4`
 
 
 #### Starting Analysis
 
-Analyze given position till depth 20
+Clear hash tables before starting a new analysis session:
+
+`ucinewgame`
+
+Analyze given position till depth 20:
 
 `go depth 20`
 
-Analyze given position for 10 seconds (10000 ms)
+Analyze given position for 10 seconds (10000 ms):
 
 `go movetime 10000`
 
-Start infinite analysis of given position
+Start infinite analysis of given position:
 
 `go infinite`
 
 You can stop the analysis at any time by typing `stop` or pressing 
 `CONTROL + C` to quit the program.
+
+
+#### Debugging
+
+Print the ASCII representation of the board position:
+
+`d`
+
+Obtain the position, material and pawn hash keys:
+
+`key`
+
+Obtain the static evaluation of a given position:
+
+`eval`
+
+Run the internal benchmark suite:
+
+`bench`
+
+This command will output 3 final values, for example:
+```
+Total time (ms) : 6322
+Nodes searched  : 8732553
+Nodes/second    : 1381295
+```
+The **bench** number is given by the *Nodes Searched*. It is used to 
+uniquely indentify different versions of Stockfish.
 
 
 ### Terms of use
