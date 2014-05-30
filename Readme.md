@@ -56,7 +56,8 @@ for a quick reference.
 
 If you are not using a GUI, you can run Stockfish in command-line mode 
 by changing to the directory where the binary is stored and then typing
-`./stockfish` (for Unix-like systems) or `stockfish` (for Windows systems).
+in the terminal: `./stockfish` (for Unix-like systems) or `stockfish` 
+(for Windows systems).
 
 Stockfish uses the UCI protocol to communicate with a GUI. The complete
 documentation can be obtained from http://download.shredderchess.com/div/uci.zip.
@@ -73,8 +74,8 @@ Set the position with moves starting from the start position.
 
 `position startpos moves e2e4 e7e5 d2d4`
 
-This notation is preferred so that the engine can take into account such 
-things as the 50-move rule or threefold repetition.
+This notation is preferred so that the engine can take into account things
+like the 50-move rule or threefold repetition.
 
 
 #### Changing UCI settings
@@ -92,7 +93,7 @@ Use 4 threads (default is 1)
 `setoption name Threads value 4`
 
 
-#### Analysis
+#### Starting Analysis
 
 Analyze given position till depth 20
 
