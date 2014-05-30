@@ -7,7 +7,7 @@ Partner or Fritz) in order to be used comfortably. Read the
 documentation for your GUI of choice for information about how to use
 Stockfish with it.
 
-This version of Stockfish supports up to 128 CPUs. The engine defaults
+This version of Stockfish supports up to 128 CPU cores. The engine defaults
 to one search thread, so it is therefore recommended to inspect the value of
 the *Threads* UCI parameter, and to make sure it equals the number of CPU
 cores on your computer.
@@ -50,6 +50,64 @@ targets with corresponding descriptions. When not using the Makefile to
 compile (for instance with Microsoft MSVC) you need to manually
 set/unset some switches in the compiler command line; see file *types.h*
 for a quick reference.
+
+
+### Using Stockfish
+
+If you are not using a GUI, you can run Stockfish in command-line mode 
+by changing to the directory where the binary is stored and then typing
+`./stockfish` (for Unix-like systems) or `stockfish` (for Windows systems).
+
+Stockfish uses the UCI protocol to communicate with a GUI. The complete
+documentation can be obtained from http://download.shredderchess.com/div/uci.zip.
+
+Some examples of useful UCI commands are given below.
+
+#### Setting up the position
+
+Set the position with a FEN string
+
+`position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`
+
+Set the position with moves starting from the start position.
+
+`position startpos moves e2e4 e7e5 d2d4`
+
+This notation is preferred so that the engine can take into account such 
+things as the 50-move rule or threefold repetition.
+
+
+#### Changing UCI settings
+
+Output a list of available options
+
+`uci`
+
+Set the hash size to 1 GB
+
+`setoption name Hash value 1024`
+
+Use 4 threads (default is 1)
+
+`setoption name Threads value 4`
+
+
+#### Analysis
+
+Analyze given position till depth 20
+
+`go depth 20`
+
+Analyze given position for 10 seconds (10000 ms)
+
+`go movetime 10000`
+
+Start infinite analysis of given position
+
+`go infinite`
+
+You can stop the analysis at any time by typing `stop` or pressing 
+`CONTROL + C` to quit the program.
 
 
 ### Terms of use
