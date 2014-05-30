@@ -142,6 +142,83 @@ Nodes/second    : 1381295
 The **bench** number is given by the *Nodes Searched*. It is used to 
 uniquely indentify different versions of Stockfish.
 
+### Options
+
+A list of available UCI options is given below. These options can be
+toggled on/off in command-line mode (as described above) or using a GUI.
+
+**Option** *[Range]* : Description
+
+* **Write Debug Log** *[Boolean, Default: False]*: Whether or not to
+write the debug log.
+* **Write Search Log** *[Boolean, Default: False]*: Whether or not to
+write the search log.
+* **Search Log Filename** *[String, Default: SearchLog.txt]*: The file
+name of the search log.
+* **Book File** *[String, Default: book.bin]*: The file name of the
+opening book file. (Also see the "OwnBook" option.)
+* **Best Book Move** *[Boolean, Default: False]*: Whether or not to
+always play the best move from the opening book. `False` will lead
+to more variety in opening play.
+* **Contempt Factor** *[Integer, Default: 0, Min: -50, Max: 50]*: Roughly 
+equivalent to *"optimism"*. Positive values of contempt favor more "risky" 
+play, while negative values will favor draws. Zero is neutral.
+* **Mobility (Midgame)** *[Integer, Default: 100, Min: 0, Max: 200]*: 
+Change middlegame mobility weights in evaluation.
+* **Mobility (Endgame)** *[Integer, Default: 100, Min: 0, Max: 200]*:
+Change endgame mobility weights in evaluation.
+* **Pawn Structure (Midgame)** *[Integer, Default: 100, Min: 0, Max: 200]*:
+Change middlegame pawn structure weights in evaluation.
+* **Pawn Structure (Endgame)** *[Integer, Default: 100, Min: 0, Max: 200]*:
+Change endgame pawn structure weights in evaluation.
+* **Passed Pawns (Midgame)** *[Integer, Default: 100, Min: 0, Max: 200]*:
+Change middlegame passed pawns weights in evaluation.
+* **Passed Pawns (Endgame)** *[Integer, Default: 100, Min: 0, Max: 200]*:
+Change endgame passed pawns weights in evaluation.
+* **Space** *[Integer, Default: 100, Min: 0, Max: 200]*: Change space weights
+in evaluation.
+* **Aggressiveness** *[Integer, Default: 100, Min: 0, Max: 200]*: Change
+enemy king safety weights in evaluation. Higher values will lead to more
+attacking play.
+* **Cowardice** *[Integer, Default: 100, Min: 0, Max: 200]*: Change
+friendly king safety weights in evaluation. Higher values will lead to more
+defensive play.
+* **Min Split Depth** *[Integer, Default: 0, Min: 0, Max: 12]*: Minimum depth
+at which threads may branch out on multi-core systems.
+* **Threads** *[Integer, Default: 1, Min: 1, Max: 64]*: The number of threads
+to use during the search. This number should be set to the number of cores
+in your CPU.
+* **Hash** *[Integer, Default: 32, Min: 1, Max: 8192]*: The amount of memory
+to use for the hash during search, specified in MB (megabytes). This number
+should be smaller than the amount of physical memory for your system.
+* **Clear Hash**: Clears the memory used for the hash. This is usually
+automatically done after a new game is started. You can also force-clear the
+hash from the command-line (see above).
+* **Ponder** *[Boolean, Default: True]*: Whether or not the engine should
+analyze when it is the opponent's turn to move.
+* **OwnBook** *[Boolean, Default: False]*:  Whether or not the engine should
+use the opening book. (Also see the "Book File" option.)
+* **MultiPV** *[Integer, Default: 1, Min: 1, Max: 500]*: The number of
+alternate lines of analysis to display. Specify 1 to just get the best line.
+Asking for more lines slows down the search.
+* **Skill Level** *[Integer, Default: 20, Min: 0, Max: 20]*:  How well you
+want Stockfish to play. At level 0, Stockfish will make dumb moves. Level 20
+is best/strongest play.
+* **Emergency Move Horizon** *[Integer, Default: 40, Min: 0, Max: 50]*: Be
+prepared to always play at least this many moves.
+* **Emergency Base Time** *[Integer, Default: 60, Min: 0, Max: 30000]*: Always
+attempt to keep at least this much time (in ms) at the clock.
+* **Emergency Move Time** *[Integer, Default: 30, Min: 0, Max: 5000]*: Attempt
+to keep at least this much time for each remaining emergency move. (See 
+"Emergency Move Horizon").
+* **Minimum Thinking Time** *[Integer, Default: 20, Min: 0, Max: 5000]*:
+No matter what, use at least this much thinking before doing a move (except in
+positions where there is only one legal move).
+* **Slow Mover** *[Integer, Default: 80, Min: 10, Max: 1000]*: General speed at
+which Stockfish will play its moves. Lower values will make it play faster and
+higher values will make it play slower.
+* **UCI_Chess960** *[Boolean, Default: False]*: Whether or not Stockfish
+should play using Chess 960 mode.
 
 ### Terms of use
 
