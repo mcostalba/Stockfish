@@ -66,7 +66,12 @@ namespace {
         while (is >> token && token != "moves")
             fen += token + " ";
     else
+    {
+        sync_cout << "info string " << token
+                  << " not understood"
+                  << "\nuciok"  << sync_endl;
         return;
+    }
 
     pos.set(fen, Options["UCI_Chess960"], Threads.main());
     SetupStates = Search::StateStackPtr(new std::stack<StateInfo>());
@@ -130,6 +135,13 @@ namespace {
         else if (token == "mate")      is >> limits.mate;
         else if (token == "infinite")  limits.infinite = true;
         else if (token == "ponder")    limits.ponder = true;
+	else
+        {
+            sync_cout << "info string " << token
+                      << " not understood"
+                      << "\nuciok"  << sync_endl;
+            return;
+        }
     }
 
     Threads.start_thinking(pos, limits, SetupStates);
