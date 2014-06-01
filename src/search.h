@@ -46,6 +46,7 @@ struct Stack {
   Depth reduction;
   Value staticEval;
   int skipNullMove;
+  bool nullChild;
 };
 
 
@@ -101,7 +102,6 @@ extern volatile SignalsType Signals;
 extern LimitsType Limits;
 extern std::vector<RootMove> RootMoves;
 extern Position RootPos;
-extern Color RootColor;
 extern Time::point SearchTime;
 extern StateStackPtr SetupStates;
 

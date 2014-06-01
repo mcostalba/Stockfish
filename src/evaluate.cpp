@@ -90,8 +90,8 @@ namespace {
   }
 
   // Evaluation weights, initialized from UCI options
-  enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  struct Weight { int mg, eg; } Weights[6];
+  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
+  struct Weight { int mg, eg; } Weights[5];
 
   typedef Value V;
   #define S(mg, eg) make_score(mg, eg)
@@ -103,7 +103,7 @@ namespace {
   //
   // Values modified by Joona Kiiski
   const Score WeightsInternal[] = {
-    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
+    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(289, 0)
   };
 
   // MobilityBonus[PieceType][attacked] contains bonuses for middle and end
@@ -158,12 +158,11 @@ namespace {
     S(0, 0), S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118)
   };
 
-  // Hanging[side to move] contains a bonus for each enemy hanging piece
-  const Score Hanging[2] = { S(23, 20) , S(35, 45) };
+  // Hanging contains a bonus for each enemy hanging piece
+  const Score Hanging = S(23, 20);
 
   #undef S
 
-  const Score Tempo            = make_score(24, 11);
   const Score RookOnPawn       = make_score(10, 28);
   const Score RookOpenFile     = make_score(43, 21);
   const Score RookSemiopenFile = make_score(19, 10);
@@ -202,9 +201,9 @@ namespace {
   const int BishopCheck       = 2;
   const int KnightCheck       = 3;
 
-  // KingDanger[Color][attackUnits] contains the actual king danger weighted
-  // scores, indexed by color and by a calculated integer number.
-  Score KingDanger[COLOR_NB][128];
+  // KingDanger[attackUnits] contains the actual king danger weighted
+  // scores, indexed by a calculated integer number.
+  Score KingDanger[128];
 
 
   // apply_weight() weighs score 'v' by weight 'w' trying to prevent overflow
@@ -445,9 +444,7 @@ namespace {
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
 
             if (b)
-                attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
+                attackUnits += QueenContactCheck * popcount<Max15>(b);
         }
 
         // Analyse the enemy's safe rook contact checks. Firstly, find the
@@ -465,9 +462,7 @@ namespace {
                   | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][QUEEN]);
 
             if (b)
-                attackUnits +=  RookContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
+                attackUnits +=  RookContactCheck * popcount<Max15>(b);
         }
 
         // Analyse the enemy's safe distance checks for sliders and knights
@@ -501,7 +496,7 @@ namespace {
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from evaluation.
-        score -= KingDanger[Us == Search::RootColor][attackUnits];
+        score -= KingDanger[attackUnits];
     }
 
     if (Trace)
@@ -540,8 +535,7 @@ namespace {
 
         b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
         if (b)
-            score += more_than_one(b) ? Hanging[Us != pos.side_to_move()] * popcount<Max15>(b)
-                                      : Hanging[Us == pos.side_to_move()];
+            score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
     }
 
     if (Trace)
@@ -696,9 +690,8 @@ namespace {
     Thread* thisThread = pos.this_thread();
 
     // Initialize score by reading the incrementally updated scores included
-    // in the position object (material + piece square tables) and adding a
-    // Tempo bonus. Score is computed from the point of view of white.
-    score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
+    // in the position object (material + piece square tables)
+    score = pos.psq_score();
 
     // Probe the material hash table
     ei.mi = Material::probe(pos, thisThread->materialTable, thisThread->endgames);
@@ -850,7 +843,7 @@ namespace {
        << "                     |   MG    EG  |   MG    EG  |   MG    EG  \n"
        << "---------------------+-------------+-------------+-------------\n";
 
-    format_row(ss, "Material, PST, Tempo", PST);
+    format_row(ss, "Material, PST", PST);
     format_row(ss, "Material imbalance", IMBALANCE);
     format_row(ss, "Pawns", PAWN);
     format_row(ss, "Knights", KNIGHT);
@@ -902,8 +895,7 @@ namespace Eval {
     Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
     Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
     Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    Weights[KingSafety]     = weight_option("King Safety", "King Safety", WeightsInternal[KingSafety]);
 
     const double MaxSlope = 30;
     const double Peak = 1280;
@@ -911,9 +903,7 @@ namespace Eval {
     for (int t = 0, i = 1; i < 100; ++i)
     {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
-
-        KingDanger[1][i] = apply_weight(make_score(t, 0), Weights[KingDangerUs]);
-        KingDanger[0][i] = apply_weight(make_score(t, 0), Weights[KingDangerThem]);
+        KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
     }
   }
 
