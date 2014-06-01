@@ -25,11 +25,11 @@
 #include <iostream>
 #include <sstream>
 
-#include "book.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "notation.h"
+#include "rkiss.h"
 #include "search.h"
 #include "tbprobe.h"
 #include "timeman.h"
@@ -187,11 +187,9 @@ uint64_t Search::perft(Position& pos, Depth depth) {
 
 void Search::think() {
 
-  static PolyglotBook book; // Defined static to initialize the PRNG only once
-  int piecesCnt;
-
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
+  int piecesCnt;
   TBHits = TBCardinality = 0;
   RootInTB = false;
 
@@ -207,17 +205,6 @@ void Search::think() {
                 << sync_endl;
 
       goto finalize;
-  }
-
-  if (Options["OwnBook"] && !Limits.infinite && !Limits.mate)
-  {
-      Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
-
-      if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
-      {
-          std::swap(RootMoves[0], *std::find(RootMoves.begin(), RootMoves.end(), bookMove));
-          goto finalize;
-      }
   }
 
   if (Options["Write Search Log"])
