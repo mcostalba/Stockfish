@@ -282,7 +282,7 @@ void Tablebases::init(const std::string& path)
   }
 
   const char *p = path.c_str();
-  if (strlen(p) == 0) return;
+  if (strlen(p) == 0 || !strcmp(p, "<empty>")) return;
   path_string = (char *)malloc(strlen(p) + 1);
   strcpy(path_string, p);
   num_paths = 0;
