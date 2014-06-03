@@ -226,7 +226,8 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
       incremented after Black's move.
 */
 
-  char col, row, token;
+  unsigned char token;
+  char col, row;
   size_t idx;
   Square sq = SQ_A8;
   std::istringstream ss(fenStr);
@@ -1133,12 +1134,13 @@ bool Position::is_draw() const {
 }
 
 
+static unsigned char toggle_case(unsigned char c) {
+  return unsigned char(islower(c) ? toupper(c) : tolower(c));
+}
+
+
 /// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging e.g. for finding evaluation symmetry bugs.
-
-static char toggle_case(char c) {
-  return char(islower(c) ? toupper(c) : tolower(c));
-}
 
 void Position::flip() {
 
