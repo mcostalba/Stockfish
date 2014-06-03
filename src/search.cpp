@@ -871,7 +871,6 @@ moves_loop: // When in check and at SpNode search starts from here
           // Decrease reduction for moves that escape a capture
           if (   ss->reduction
               && type_of(move) == NORMAL
-              && type_of(pos.piece_on(to_sq(move))) != PAWN
               && pos.see(make_move(to_sq(move), from_sq(move))) < 0)
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
