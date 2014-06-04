@@ -25,9 +25,6 @@ This distribution of Stockfish consists of the following files:
     that can be used to compile Stockfish on Unix-like systems. For further
     information about how to compile Stockfish yourself read section below.
 
-  * polyglot.ini, for using Stockfish with Fabien Letouzey's PolyGlot
-    adapter.
-
 
 ### Opening books
 
