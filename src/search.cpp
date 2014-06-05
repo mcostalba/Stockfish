@@ -765,10 +765,10 @@ moves_loop: // When in check and at SpNode search starts from here
       if (    singularExtensionNode
           &&  move == ttMove
           && !ext
-          &&  pos.legal(move, ci.pinned)
           &&  abs(ttValue) < VALUE_KNOWN_WIN)
       {
           assert(ttValue != VALUE_NONE);
+          assert(pos.legal(move, ci.pinned));
 
           Value rBeta = ttValue - int(depth);
           ss->excludedMove = move;
