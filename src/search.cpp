@@ -83,9 +83,6 @@ namespace {
     return (Depth) Reductions[PvNode][i][std::min(int(d) / ONE_PLY, 63)][std::min(mn, 63)];
   }
 
-  // Tempo bonus. Must be handled by search to preserve eval symmetry.
-  const int Tempo = 17;
-
   size_t MultiPV, PVIdx;
   TimeManager TimeMgr;
   double BestMoveChanges;
@@ -340,7 +337,6 @@ namespace {
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
-    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = 0;
     BestMoveChanges = 0;
@@ -540,7 +536,7 @@ namespace {
     bestValue = -VALUE_INFINITE;
     ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
-    (ss+1)->skipNullMove = (ss+1)->nullChild = false; (ss+1)->reduction = DEPTH_ZERO;
+    (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Used to send selDepth info to GUI
@@ -551,7 +547,7 @@ namespace {
     {
         // Step 2. Check for aborted search and immediate draw
         if (Signals.stop || pos.is_draw() || ss->ply > MAX_PLY)
-            return ss->ply > MAX_PLY && !inCheck ? evaluate(pos) + Tempo : DrawValue[pos.side_to_move()];
+            return ss->ply > MAX_PLY && !inCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -637,7 +633,7 @@ namespace {
     {
         // Never assume anything on values stored in TT
         if ((ss->staticEval = eval = tte->eval_value()) == VALUE_NONE)
-            eval = ss->staticEval = evaluate(pos) + Tempo;
+            eval = ss->staticEval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
         if (ttValue != VALUE_NONE)
@@ -646,7 +642,9 @@ namespace {
     }
     else
     {
-        eval = ss->staticEval = ss->nullChild ? -(ss-1)->staticEval + 2 * Tempo : evaluate(pos) + Tempo;
+        eval = ss->staticEval =
+        (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
+
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 
@@ -654,6 +652,7 @@ namespace {
         &&  ss->staticEval != VALUE_NONE
         && (ss-1)->staticEval != VALUE_NONE
         && (move = (ss-1)->currentMove) != MOVE_NULL
+        &&  move != MOVE_NONE
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
@@ -706,10 +705,10 @@ namespace {
                  + int(eval - beta) / PawnValueMg * ONE_PLY;
 
         pos.do_null_move(st);
-        (ss+1)->skipNullMove = (ss+1)->nullChild = true;
+        (ss+1)->skipNullMove = true;
         nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -beta+1, DEPTH_ZERO)
                                       : - search<NonPV, false>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
-        (ss+1)->skipNullMove = (ss+1)->nullChild = false;
+        (ss+1)->skipNullMove = false;
         pos.undo_null_move();
 
         if (nullValue >= beta)
@@ -1164,7 +1163,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Check for an instant draw or if the maximum ply has been reached
     if (pos.is_draw() || ss->ply > MAX_PLY)
-        return ss->ply > MAX_PLY && !InCheck ? evaluate(pos) + Tempo : DrawValue[pos.side_to_move()];
+        return ss->ply > MAX_PLY && !InCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
 
     // Decide whether or not to include checks: this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
@@ -1201,7 +1200,7 @@ moves_loop: // When in check and at SpNode search starts from here
         {
             // Never assume anything on values stored in TT
             if ((ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE)
-                ss->staticEval = bestValue = evaluate(pos) + Tempo;
+                ss->staticEval = bestValue = evaluate(pos);
 
             // Can ttValue be used as a better position evaluation?
             if (ttValue != VALUE_NONE)
@@ -1209,7 +1208,8 @@ moves_loop: // When in check and at SpNode search starts from here
                     bestValue = ttValue;
         }
         else
-            ss->staticEval = bestValue = ss->nullChild ? -(ss-1)->staticEval + 2 * Tempo : evaluate(pos) + Tempo;
+            ss->staticEval = bestValue =
+            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
