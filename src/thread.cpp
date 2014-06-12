@@ -84,7 +84,7 @@ void ThreadBase::wait_for(volatile const bool& b) {
 
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
-  searching = false;
+  searching = true;
   maxPly = splitPointsSize = 0;
   activeSplitPoint = NULL;
   activePosition = NULL;
