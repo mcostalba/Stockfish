@@ -422,7 +422,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei) {
 
-    const Color  Them = (Us == WHITE ? BLACK : WHITE);
+    const Color  Them = ~Us;
     const Square Down = (Us == WHITE ? DELTA_S : DELTA_N);
 
     ei.pinnedPieces[Us] = pos.pinned_pieces(Us);
@@ -448,7 +448,7 @@ Value do_evaluate(const Position& pos) {
   template<PieceType Piece, Color Us>
   Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     assert (Piece == BISHOP || Piece == KNIGHT);
 
@@ -479,7 +479,7 @@ Value do_evaluate(const Position& pos) {
     Square s;
     Score score = SCORE_ZERO;
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
     const Square* pl = pos.list<Piece>(Us);
 
     ei.attackedBy[Us][Piece] = 0;
@@ -605,7 +605,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us, bool Trace>
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
     const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us, PAWN, KING));
@@ -631,7 +631,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us, bool Trace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     Bitboard undefended, b, b1, b2, safe;
     int attackUnits;
@@ -741,7 +741,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us, bool Trace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     Bitboard b, undefendedMinors, weakEnemies;
     Score score = SCORE_ZERO;
@@ -783,7 +783,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us, bool Trace>
   Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     Bitboard b, squaresToQueen, defendedSquares, unsafeSquares, supportingPawns;
     Score score = SCORE_ZERO;
@@ -914,7 +914,7 @@ Value do_evaluate(const Position& pos) {
   template<Color Us>
   int evaluate_space(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     // Find the safe squares for our pieces inside the area defined by
     // SpaceMask[]. A square is unsafe if it is attacked by an enemy

@@ -72,7 +72,7 @@ namespace {
 
   // Helper templates used to detect a given material distribution
   template<Color Us> bool is_KXK(const Position& pos) {
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
     return  !pos.count<PAWN>(Them)
           && pos.non_pawn_material(Them) == VALUE_ZERO
           && pos.non_pawn_material(Us) >= RookValueMg;
@@ -85,7 +85,7 @@ namespace {
   }
 
   template<Color Us> bool is_KQKRPs(const Position& pos) {
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
     return  !pos.count<PAWN>(Us)
           && pos.non_pawn_material(Us) == QueenValueMg
           && pos.count<QUEEN>(Us)  == 1
@@ -99,7 +99,7 @@ namespace {
   template<Color Us>
   int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     int pt1, pt2, pc, v;
     int value = 0;

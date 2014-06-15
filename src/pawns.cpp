@@ -228,7 +228,7 @@ Entry* probe(const Position& pos, Table& entries) {
 template<Color Us>
 Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
-  const Color Them = (Us == WHITE ? BLACK : WHITE);
+  const Color Them = ~Us;
 
   Value safety = MaxSafetyBonus;
   Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));

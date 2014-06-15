@@ -146,7 +146,7 @@ namespace {
     // as WIN, the position is classified WIN otherwise the current position is
     // classified UNKNOWN.
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = ~Us;
 
     Result r = INVALID;
     Bitboard b = StepAttacksBB[KING][Us == WHITE ? wksq : bksq];
