@@ -1,0 +1,4 @@
+src/*.o
+.tags
+src/stockfish
+src/.depend
