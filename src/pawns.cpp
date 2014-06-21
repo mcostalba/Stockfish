@@ -57,6 +57,11 @@ namespace {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
     S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
+    // Levers bonus by rank
+  const Score Lever[RANK_NB] = {
+    S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
+    S(20,20), S(40,40), S(0, 0), S(0, 0) };
+
   // Bonus for file distance of the two outermost pawns
   const Score PawnsFileSpan = S(0, 15);
 
@@ -92,9 +97,10 @@ namespace {
     Bitboard b, p, doubled;
     Square s;
     File f;
-    bool passed, isolated, opposed, connected, backward, candidate, unsupported;
+    bool passed, isolated, opposed, connected, backward, candidate, unsupported, lever;
     Score value = SCORE_ZERO;
     const Square* pl = pos.list<PAWN>(Us);
+    const Bitboard* pawnAttacksBB = StepAttacksBB[make_piece(Us, PAWN)];
 
     Bitboard ourPawns = pos.pieces(Us, PAWN);
     Bitboard theirPawns = pos.pieces(Them, PAWN);
@@ -130,6 +136,7 @@ namespace {
         doubled     =   ourPawns   & forward_bb(Us, s);
         opposed     =   theirPawns & forward_bb(Us, s);
         passed      = !(theirPawns & passed_pawn_mask(Us, s));
+        lever       =   theirPawns & pawnAttacksBB[s];
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, or connected it cannot be
@@ -184,6 +191,9 @@ namespace {
 
         if (connected)
             value += Connected[f][relative_rank(Us, s)];
+
+        if (lever)
+           value += Lever[relative_rank(Us, s)];
 
         if (candidate)
         {

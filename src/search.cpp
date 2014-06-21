@@ -25,11 +25,11 @@
 #include <iostream>
 #include <sstream>
 
-#include "book.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "notation.h"
+#include "rkiss.h"
 #include "search.h"
 #include "timeman.h"
 #include "thread.h"
@@ -179,8 +179,6 @@ uint64_t Search::perft(Position& pos, Depth depth) {
 
 void Search::think() {
 
-  static PolyglotBook book; // Defined static to initialize the PRNG only once
-
   TimeMgr.init(Limits, RootPos.game_ply(), RootPos.side_to_move());
 
   int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
@@ -195,17 +193,6 @@ void Search::think() {
                 << sync_endl;
 
       goto finalize;
-  }
-
-  if (Options["OwnBook"] && !Limits.infinite && !Limits.mate)
-  {
-      Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
-
-      if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
-      {
-          std::swap(RootMoves[0], *std::find(RootMoves.begin(), RootMoves.end(), bookMove));
-          goto finalize;
-      }
   }
 
   if (Options["Write Search Log"])
@@ -283,7 +270,6 @@ namespace {
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
-    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = 0;
     BestMoveChanges = 0;
@@ -558,7 +544,9 @@ namespace {
     }
     else
     {
-        eval = ss->staticEval = evaluate(pos);
+        eval = ss->staticEval =
+        (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
+
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 
@@ -566,6 +554,7 @@ namespace {
         &&  ss->staticEval != VALUE_NONE
         && (ss-1)->staticEval != VALUE_NONE
         && (move = (ss-1)->currentMove) != MOVE_NULL
+        &&  move != MOVE_NONE
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
@@ -577,7 +566,6 @@ namespace {
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin(depth) <= alpha
         &&  ttMove == MOVE_NONE
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
         if (   depth <= ONE_PLY
@@ -605,7 +593,6 @@ namespace {
         && !ss->skipNullMove
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
@@ -615,7 +602,8 @@ namespace {
         // Null move dynamic reduction based on depth and value
         Depth R =  3 * ONE_PLY
                  + depth / 4
-                 + int(eval - beta) / PawnValueMg * ONE_PLY;
+                 + (abs(beta) < VALUE_KNOWN_WIN ? int(eval - beta) / PawnValueMg * ONE_PLY
+                                                : DEPTH_ZERO);
 
         pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
@@ -630,7 +618,7 @@ namespace {
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
                 nullValue = beta;
 
-            if (depth < 12 * ONE_PLY)
+            if (depth < 12 * ONE_PLY && abs(beta) < VALUE_KNOWN_WIN)
                 return nullValue;
 
             // Do verification search at high depths
@@ -710,7 +698,9 @@ moves_loop: // When in check and at SpNode search starts from here
     singularExtensionNode =   !RootNode
                            && !SpNode
                            &&  depth >= 8 * ONE_PLY
+                           &&  abs(beta) < VALUE_KNOWN_WIN
                            &&  ttMove != MOVE_NONE
+                           &&  ttValue != VALUE_NONE
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
@@ -775,11 +765,8 @@ moves_loop: // When in check and at SpNode search starts from here
       if (    singularExtensionNode
           &&  move == ttMove
           && !ext
-          &&  pos.legal(move, ci.pinned)
-          &&  abs(ttValue) < VALUE_KNOWN_WIN)
+          &&  pos.legal(move, ci.pinned))
       {
-          assert(ttValue != VALUE_NONE);
-
           Value rBeta = ttValue - int(depth);
           ss->excludedMove = move;
           ss->skipNullMove = true;
@@ -877,6 +864,13 @@ moves_loop: // When in check and at SpNode search starts from here
               ss->reduction += ONE_PLY / 2;
 
           if (move == countermoves[0] || move == countermoves[1])
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
+
+          // Decrease reduction for moves that escape a capture
+          if (   ss->reduction
+              && type_of(move) == NORMAL
+              && type_of(pos.piece_on(to_sq(move))) != PAWN
+              && pos.see(make_move(to_sq(move), from_sq(move))) < 0)
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
@@ -984,8 +978,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 19. Check for splitting the search
       if (   !SpNode
-          &&  Threads.size() >= 2
           &&  depth >= Threads.minimumSplitDepth
+          &&  Threads.available_slave(thisThread)
           &&  (   !thisThread->activeSplitPoint
                || !thisThread->activeSplitPoint->allSlavesSearching)
           &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
@@ -1114,7 +1108,8 @@ moves_loop: // When in check and at SpNode search starts from here
                     bestValue = ttValue;
         }
         else
-            ss->staticEval = bestValue = evaluate(pos);
+            ss->staticEval = bestValue =
+            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
@@ -1557,7 +1552,7 @@ void Thread::idle_loop() {
           if (Threads.size() > 2)
               for (size_t i = 0; i < Threads.size(); ++i)
               {
-                  int size = Threads[i]->splitPointsSize; // Local copy
+                  const int size = Threads[i]->splitPointsSize; // Local copy
                   sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
 
                   if (   sp
