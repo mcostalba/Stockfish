@@ -20,25 +20,28 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
+#include <cassert>
+
 #include "misc.h"
 #include "types.h"
 
-/// The TTEntry is the 14 bytes transposition table entry, defined as below:
+/// The TTEntry is the 12 bytes transposition table entry, defined as below:
 ///
-/// key        32 bit
-/// move       16 bit
-/// bound type  8 bit
-/// generation  8 bit
-/// value      16 bit
-/// depth      16 bit
-/// eval value 16 bit
+/// key:        24 bit
+/// generation:  6 bit
+/// bound type:  2 bit
+/// depth:      16 bit
+/// move:       16 bit
+/// value:      16 bit
+/// eval value: 16 bit
 
 struct TTEntry {
 
-  Move  move()  const      { return (Move )move16; }
-  Bound bound() const      { return (Bound)bound8; }
-  Value value() const      { return (Value)value16; }
+  uint32_t key() const     { return keyGenBound32 & ~0xFF; }
+  Bound bound() const      { return (Bound)(keyGenBound32 & 0x3); }
+  Move move() const        { return (Move)move16; }
   Depth depth() const      { return (Depth)depth16; }
+  Value value() const      { return (Value)value16; }
   Value eval_value() const { return (Value)evalValue; }
 
 private:
@@ -46,19 +49,18 @@ private:
 
   void save(uint32_t k, Value v, Bound b, Depth d, Move m, uint8_t g, Value ev) {
 
-    key32       = (uint32_t)k;
-    move16      = (uint16_t)m;
-    bound8      = (uint8_t)b;
-    generation8 = (uint8_t)g;
-    value16     = (int16_t)v;
-    depth16     = (int16_t)d;
-    evalValue   = (int16_t)ev;
+    assert((k | g | b) == (k ^ g ^ b)); // Disjoint
+
+    keyGenBound32 = (uint32_t)(k | g | b);
+    move16        = (uint16_t)m;
+    depth16       = (int16_t)d;
+    value16       = (int16_t)v;
+    evalValue     = (int16_t)ev;
   }
 
-  uint32_t key32;
+  uint32_t keyGenBound32;
   uint16_t move16;
-  uint8_t bound8, generation8;
-  int16_t value16, depth16, evalValue;
+  int16_t depth16, value16, evalValue;
 };
 
 
@@ -70,11 +72,11 @@ private:
 
 class TranspositionTable {
 
-  static const unsigned ClusterSize = 3;
+  static const unsigned ClusterSize = 4;
 
 public:
  ~TranspositionTable() { free(mem); }
-  void new_search() { ++generation; }
+  void new_search() { generation += 4; } // Lower 2 bits are used by Bound
 
   const TTEntry* probe(const Key key) const;
   TTEntry* first_entry(const Key key) const;
