@@ -45,7 +45,7 @@ struct Stack {
   Move killers[2];
   Depth reduction;
   Value staticEval;
-  int skipNullMove;
+  bool skipNullMove;
 };
 
 
