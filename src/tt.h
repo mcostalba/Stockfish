@@ -20,47 +20,44 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
-#include <cassert>
-
 #include "misc.h"
 #include "types.h"
 
-/// The TTEntry is the 12 bytes transposition table entry, defined as below:
+/// The TTEntry is the 10 bytes transposition table entry, defined as below:
 ///
-/// key:        24 bit
+/// key:        16 bit
 /// generation:  6 bit
 /// bound type:  2 bit
-/// depth:      16 bit
+/// depth:       8 bit
 /// move:       16 bit
 /// value:      16 bit
 /// eval value: 16 bit
 
 struct TTEntry {
 
-  uint32_t key() const     { return keyGenBound32 & ~0xFF; }
-  Bound bound() const      { return (Bound)(keyGenBound32 & 0x3); }
+  Bound bound() const      { return (Bound)(genBound8 & 0x3); }
+  Depth depth() const      { return (Depth)(depth8 + DEPTH_NONE); }
   Move move() const        { return (Move)move16; }
-  Depth depth() const      { return (Depth)depth16; }
   Value value() const      { return (Value)value16; }
-  Value eval_value() const { return (Value)evalValue; }
+  Value eval_value() const { return (Value)evalValue16; }
 
 private:
   friend class TranspositionTable;
 
-  void save(uint32_t k, Value v, Bound b, Depth d, Move m, uint8_t g, Value ev) {
+  void save(uint16_t k, Value v, Bound b, Depth d, Move m, uint8_t g, Value ev) {
 
-    assert((k | g | b) == (k ^ g ^ b)); // Disjoint
-
-    keyGenBound32 = (uint32_t)(k | g | b);
-    move16        = (uint16_t)m;
-    depth16       = (int16_t)d;
-    value16       = (int16_t)v;
-    evalValue     = (int16_t)ev;
+    key16       = k;
+    genBound8   = (uint8_t)(g | b);
+    depth8      = (uint8_t)(d - DEPTH_NONE);
+    move16      = (uint16_t)m;
+    value16     = (int16_t)v;
+    evalValue16 = (int16_t)ev;
   }
 
-  uint32_t keyGenBound32;
+  uint16_t key16;
+  uint8_t genBound8, depth8;
   uint16_t move16;
-  int16_t depth16, value16, evalValue;
+  int16_t value16, evalValue16;
 };
 
 
@@ -72,7 +69,7 @@ private:
 
 class TranspositionTable {
 
-  static const unsigned ClusterSize = 4;
+  static const unsigned ClusterSize = 3;
 
 public:
  ~TranspositionTable() { free(mem); }
