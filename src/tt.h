@@ -71,6 +71,11 @@ class TranspositionTable {
 
   static const unsigned ClusterSize = 3;
 
+  struct Cluster {
+    TTEntry entries[3];
+    char padding[2];
+  };
+
 public:
  ~TranspositionTable() { free(mem); }
   void new_search() { generation += 4; } // Lower 2 bits are used by Bound
@@ -83,7 +88,7 @@ public:
 
 private:
   uint32_t hashMask;
-  TTEntry* table;
+  Cluster* table;
   void* mem;
   uint8_t generation; // Size must be not bigger than TTEntry::generation8
 };
@@ -97,7 +102,7 @@ extern TranspositionTable TT;
 
 inline TTEntry* TranspositionTable::first_entry(const Key key) const {
 
-  return table + ((uint32_t)key & hashMask);
+  return (TTEntry*)(table + ((uint32_t)key & hashMask));
 }
 
 #endif // #ifndef TT_H_INCLUDED

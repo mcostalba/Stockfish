@@ -32,16 +32,18 @@ TranspositionTable TT; // Our global transposition table
 
 void TranspositionTable::resize(uint64_t mbSize) {
 
-  assert(msb((mbSize << 20) / sizeof(TTEntry)) < 32);
+  assert(!more_than_one(sizeof(Cluster))); // Power of 2
+  assert(msb((mbSize << 20) / sizeof(Cluster)) < 32);
 
-  uint32_t size = ClusterSize << msb((mbSize << 20) / sizeof(TTEntry[ClusterSize]));
+  uint32_t size = 1 << msb((mbSize << 20) / sizeof(Cluster));
 
-  if (hashMask == size - ClusterSize)
+  if (hashMask == size - 1)
       return;
 
-  hashMask = size - ClusterSize;
+  hashMask = size - 1;
+
   free(mem);
-  mem = calloc(size * sizeof(TTEntry) + CACHE_LINE_SIZE - 1, 1);
+  mem = calloc(size * sizeof(Cluster) + CACHE_LINE_SIZE - 1, 1);
 
   if (!mem)
   {
@@ -50,7 +52,7 @@ void TranspositionTable::resize(uint64_t mbSize) {
       exit(EXIT_FAILURE);
   }
 
-  table = (TTEntry*)((uintptr_t(mem) + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1));
+  table = (Cluster*)((uintptr_t(mem) + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1));
 }
 
 
@@ -60,7 +62,7 @@ void TranspositionTable::resize(uint64_t mbSize) {
 
 void TranspositionTable::clear() {
 
-  std::memset(table, 0, (hashMask + ClusterSize) * sizeof(TTEntry));
+  std::memset(table, 0, (hashMask + 1) * sizeof(Cluster));
 }
 
 
