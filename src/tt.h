@@ -46,7 +46,7 @@ private:
 
   void save(uint16_t k, Value v, Bound b, Depth d, Move m, uint8_t g, Value ev) {
 
-    key16       = k;
+    key16       = (uint16_t)k;
     genBound8   = (uint8_t)(g | b);
     depth8      = (uint8_t)(d - DEPTH_NONE);
     move16      = (uint16_t)m;
@@ -63,18 +63,21 @@ private:
 
 /// A TranspositionTable consists of a power of 2 number of clusters and each
 /// cluster consists of ClusterSize number of TTEntry. Each non-empty entry
-/// contains information of exactly one position. The size of a cluster should
-/// not be bigger than a cache line size. In case it is less, it should be padded
-/// to guarantee always aligned accesses.
+/// contains information of exactly one position. The size of a Cluster should
+/// not be bigger than a cache line size and shoud be a power of 2 to guarantee
+/// always aligned accesses.
 
 class TranspositionTable {
 
   static const unsigned ClusterSize = 3;
 
   struct Cluster {
-    TTEntry entries[3];
-    char padding[2];
+    TTEntry entries[ClusterSize];
+    char padding[2]; // Padding to 32 bytes
   };
+
+  // Ensure at compile time Cluster size is a power of 2
+  typedef char isPowerOf2[-(sizeof(Cluster) & (sizeof(Cluster) - 1))];
 
 public:
  ~TranspositionTable() { free(mem); }
@@ -90,15 +93,15 @@ private:
   uint32_t hashMask;
   Cluster* table;
   void* mem;
-  uint8_t generation; // Size must be not bigger than TTEntry::generation8
+  uint8_t generation; // Size must be not bigger than TTEntry::genBound8
 };
 
 extern TranspositionTable TT;
 
 
 /// TranspositionTable::first_entry() returns a pointer to the first entry of
-/// a cluster given a position. The lowest order bits of the key are used to
-/// get the index of the cluster.
+/// a Cluster given a position. The lowest order bits of the key are used to
+/// get the index of the cluster inside the table.
 
 inline TTEntry* TranspositionTable::first_entry(const Key key) const {
 

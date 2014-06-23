@@ -32,10 +32,9 @@ TranspositionTable TT; // Our global transposition table
 
 void TranspositionTable::resize(uint64_t mbSize) {
 
-  assert(!more_than_one(sizeof(Cluster))); // Power of 2
-  assert(msb((mbSize << 20) / sizeof(Cluster)) < 32);
+  assert(msb((mbSize * 1024 * 1024) / sizeof(Cluster)) < 32);
 
-  uint32_t size = 1 << msb((mbSize << 20) / sizeof(Cluster));
+  uint32_t size = 1 << msb((mbSize * 1024 * 1024) / sizeof(Cluster));
 
   if (hashMask == size - 1)
       return;
@@ -73,7 +72,7 @@ void TranspositionTable::clear() {
 const TTEntry* TranspositionTable::probe(const Key key) const {
 
   TTEntry* tte = first_entry(key);
-  uint32_t key16 = key >> 48;
+  uint16_t key16 = key >> 48;
 
   for (unsigned i = 0; i < ClusterSize; ++i, ++tte)
       if (tte->key16 == key16)
