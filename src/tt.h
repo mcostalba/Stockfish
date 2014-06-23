@@ -36,7 +36,7 @@
 struct TTEntry {
 
   Bound bound() const      { return (Bound)(genBound8 & 0x3); }
-  Depth depth() const      { return (Depth)(depth8 + DEPTH_NONE); }
+  Depth depth() const      { return (Depth)(depth8) + DEPTH_NONE; }
   Move move() const        { return (Move)move16; }
   Value value() const      { return (Value)value16; }
   Value eval_value() const { return (Value)evalValue16; }
