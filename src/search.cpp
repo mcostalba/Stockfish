@@ -700,7 +700,6 @@ moves_loop: // When in check and at SpNode search starts from here
                            &&  depth >= 8 * ONE_PLY
                            &&  abs(beta) < VALUE_KNOWN_WIN
                            &&  ttMove != MOVE_NONE
-                           &&  ttValue != VALUE_NONE
                            &&  abs(ttValue) < VALUE_KNOWN_WIN
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
