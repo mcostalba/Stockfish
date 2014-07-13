@@ -212,7 +212,7 @@ static string format(Value v) {
   return ss.str();
 }
 
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
+string pretty_pv(Position& pos, int depth, Value value, uint64_t msecs, Move pv[]) {
 
   const uint64_t K = 1000;
   const uint64_t M = 1000000;
