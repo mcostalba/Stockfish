@@ -42,7 +42,7 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 
-static Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+static Score psq[PIECE_NB][SQUARE_NB];
 
 namespace Zobrist {
 
@@ -141,15 +141,18 @@ void Position::init() {
 
   for (PieceType pt = PAWN; pt <= KING; ++pt)
   {
-      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
-      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
+      Piece wpc = make_piece(WHITE, pt);
+      Piece bpc = make_piece(BLACK, pt);
+
+      PieceValue[MG][bpc] = PieceValue[MG][pt];
+      PieceValue[EG][bpc] = PieceValue[EG][pt];
 
       Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-         psq[WHITE][pt][ s] =  (v + PSQT[pt][s]);
-         psq[BLACK][pt][~s] = -(v + PSQT[pt][s]);
+         psq[wpc][ s] =  (v + PSQT[pt][s]);
+         psq[bpc][~s] = -(v + PSQT[pt][s]);
       }
   }
 }
@@ -352,7 +355,7 @@ void Position::set_state(StateInfo* si) const {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[color_of(pc)][type_of(pc)][s];
-      si->psq += psq[color_of(pc)][type_of(pc)][s];
+      si->psq += psq[pc][s];
   }
 
   if (ep_square() != SQ_NONE)
@@ -753,7 +756,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       do_castling<true>(from, to, rfrom, rto);
 
       captured = NO_PIECE_TYPE;
-      st->psq += psq[us][ROOK][rto] - psq[us][ROOK][rfrom];
+      Piece rook = make_piece(us, ROOK);
+      st->psq += psq[rook][rto] - psq[rook][rfrom];
       k ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
   }
 
@@ -792,7 +796,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
       prefetch((char*)thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
-      st->psq -= psq[them][captured][capsq];
+      st->psq -= psq[make_piece(them, captured)][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -851,7 +855,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
-          st->psq += psq[us][promotion][to] - psq[us][PAWN][to];
+          st->psq += psq[make_piece(us, promotion)][to] - psq[make_piece(us, PAWN)][to];
 
           // Update material
           st->npMaterial[us] += PieceValue[MG][promotion];
@@ -866,7 +870,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   }
 
   // Update incremental scores
-  st->psq += psq[us][pt][to] - psq[us][pt][from];
+  st->psq += psq[pc][to] - psq[pc][from];
 
   // Set capture piece
   st->capturedType = captured;
