@@ -488,36 +488,34 @@ namespace {
 
 
   // evaluate_threats() assigns bonuses according to the type of attacking piece
-  // and the type of attacked one.
 
   template<Color Us, bool Trace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, weakEnemies;
-    Score score = SCORE_ZERO;
+    enum { Minor, Major };
 
     // Enemies not defended by a pawn and under our attack
-    weakEnemies =  pos.pieces(Them)
-                 & ~ei.attackedBy[Them][PAWN]
-                 & ei.attackedBy[Us][ALL_PIECES];
+    Bitboard b, weakEnemies =   pos.pieces(Them)
+                             & ~ei.attackedBy[Them][PAWN]
+                             &  ei.attackedBy[Us][ALL_PIECES];
+    if (!weakEnemies)
+        return SCORE_ZERO;
 
-    // Add a bonus according if the attacking pieces are minor or major
-    if (weakEnemies)
-    {
-        b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
-        if (b)
-            score += Threat[0][type_of(pos.piece_on(lsb(b)))];
+    Score score = SCORE_ZERO;
 
-        b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
-        if (b)
-            score += Threat[1][type_of(pos.piece_on(lsb(b)))];
+    b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
+    if (b)
+        score += Threat[Minor][type_of(pos.piece_on(lsb(b)))];
 
-        b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
-        if (b)
-            score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
-    }
+    b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
+    if (b)
+        score += Threat[Major][type_of(pos.piece_on(lsb(b)))];
+
+    b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
+    if (b)
+        score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
 
     if (Trace)
         Tracing::terms[Us][Tracing::THREAT] = score;
