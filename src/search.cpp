@@ -101,9 +101,9 @@ namespace {
   string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 
   struct Skill {
-    Skill(int l, int rootSize) : level(l),
-                                 candidates(l < 20 ? std::min(4, rootSize) : 0),
-                                 best(MOVE_NONE) {}
+    Skill(int l, size_t rootSize) : level(l),
+                                    candidates(l < 20 ? std::min(4, (int)rootSize) : 0),
+                                    best(MOVE_NONE) {}
    ~Skill() {
       if (candidates) // Swap best PV line with the sub-optimal one
           std::swap(RootMoves[0], *std::find(RootMoves.begin(),
@@ -425,7 +425,7 @@ namespace {
                 else
                     break;
 
-                delta += delta / 2;
+                delta += 3 * delta / 8;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
