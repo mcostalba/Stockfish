@@ -256,6 +256,15 @@ void MovePicker::generate_next_stage() {
       score<QUIETS>();
       end = std::partition(cur, end, has_positive_value);
       insertion_sort(cur, end);
+
+      // Init killers bitboards to shortcut move's validity check later on
+      killersFrom = killersTo = 0;
+      if (ttMove != MOVE_NONE)
+          killersFrom |= from_sq(ttMove), killersTo |= to_sq(ttMove);
+
+      for (int i = 0; i < 6; i++)
+          if (killers[i].move != MOVE_NONE)
+              killersFrom |= from_sq(killers[i].move), killersTo |= to_sq(killers[i].move);
       return;
 
   case QUIETS_2_S1:
@@ -338,6 +347,9 @@ Move MovePicker::next_move<false>() {
 
       case QUIETS_1_S1: case QUIETS_2_S1:
           move = (cur++)->move;
+          if (!(killersTo & to_sq(move)) || !(killersFrom & from_sq(move)))
+              return move;
+
           if (   move != ttMove
               && move != killers[0].move
               && move != killers[1].move

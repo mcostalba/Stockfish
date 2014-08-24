@@ -102,6 +102,7 @@ private:
   Depth depth;
   Move ttMove;
   ExtMove killers[6];
+  Bitboard killersFrom, killersTo;
   Square recaptureSquare;
   Value captureThreshold;
   int stage;
