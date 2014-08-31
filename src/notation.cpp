@@ -18,9 +18,7 @@
 */
 
 #include <cassert>
-#include <iomanip>
 #include <sstream>
-#include <stack>
 
 #include "movegen.h"
 #include "notation.h"
@@ -170,87 +168,4 @@ const string move_to_san(Position& pos, Move m) {
   }
 
   return san;
-}
-
-
-/// pretty_pv() formats human-readable search information, typically to be
-/// appended to the search log file. It uses the two helpers below to pretty
-/// format the time and score respectively.
-
-static string format(int64_t msecs) {
-
-  const int MSecMinute = 1000 * 60;
-  const int MSecHour   = 1000 * 60 * 60;
-
-  int64_t hours   =   msecs / MSecHour;
-  int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-  int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
-
-  stringstream ss;
-
-  if (hours)
-      ss << hours << ':';
-
-  ss << setfill('0') << setw(2) << minutes << ':' << setw(2) << seconds;
-
-  return ss.str();
-}
-
-static string format(Value v) {
-
-  stringstream ss;
-
-  if (v >= VALUE_MATE_IN_MAX_PLY)
-      ss << "#" << (VALUE_MATE - v + 1) / 2;
-
-  else if (v <= VALUE_MATED_IN_MAX_PLY)
-      ss << "-#" << (VALUE_MATE + v) / 2;
-
-  else
-      ss << setprecision(2) << fixed << showpos << double(v) / PawnValueEg;
-
-  return ss.str();
-}
-
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
-
-  const uint64_t K = 1000;
-  const uint64_t M = 1000000;
-
-  std::stack<StateInfo> st;
-  Move* m = pv;
-  string san, str, padding;
-  stringstream ss;
-
-  ss << setw(2) << depth << setw(8) << format(value) << setw(8) << format(msecs);
-
-  if (pos.nodes_searched() < M)
-      ss << setw(8) << pos.nodes_searched() / 1 << "  ";
-
-  else if (pos.nodes_searched() < K * M)
-      ss << setw(7) << pos.nodes_searched() / K << "K  ";
-
-  else
-      ss << setw(7) << pos.nodes_searched() / M << "M  ";
-
-  str = ss.str();
-  padding = string(str.length(), ' ');
-
-  while (*m != MOVE_NONE)
-  {
-      san = move_to_san(pos, *m) + ' ';
-
-      if ((str.length() + san.length()) % 80 <= san.length()) // Exceed 80 cols
-          str += "\n" + padding;
-
-      str += san;
-
-      st.push(StateInfo());
-      pos.do_move(*m++, st.top());
-  }
-
-  while (m != pv)
-      pos.undo_move(*--m);
-
-  return str;
 }
