@@ -1533,7 +1533,7 @@ void Thread::idle_loop() {
   while (!exit)
   {
       // If this thread has been assigned work, launch a search
-      if (searching)
+      while (searching)
       {
           Threads.mutex.lock();
 
