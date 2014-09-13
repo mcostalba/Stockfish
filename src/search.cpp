@@ -1017,7 +1017,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Key posKey;
     Move ttMove, move, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool givesCheck, evasionPrunable;
+    bool givesCheck, LateEndgame, evasionPrunable;
     Depth ttDepth;
 
     // To flag BOUND_EXACT a node with eval above alpha and no available moves
@@ -1109,10 +1109,14 @@ moves_loop: // When in check and at SpNode search starts from here
                   ? ci.checkSq[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
                   : pos.gives_check(move, ci);
 
+      LateEndgame =  pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) <= 2 * BishopValueMg;
+
+
       // Futility pruning
       if (   !PvNode
           && !InCheck
           && !givesCheck
+          && !LateEndgame
           &&  move != ttMove
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
