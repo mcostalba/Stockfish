@@ -160,7 +160,7 @@ namespace {
   const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
   const Score MinorBehindPawn  = make_score(16,  0);
-  const Score TrappedRook      = make_score(90,  0);
+  const Score TrappedRook      = make_score(92,  0);
   const Score Unstoppable      = make_score( 0, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
@@ -254,7 +254,7 @@ namespace {
             bonus += bonus / 2;
     }
 
-    return make_score(bonus, bonus);
+    return make_score(bonus * 2, bonus / 2);
   }
 
 
@@ -349,7 +349,7 @@ namespace {
             if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
                 && !ei.pi->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
-                score -= (TrappedRook - make_score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
+                score -= (TrappedRook - make_score(mob * 22, 0)) * (1 + !pos.can_castle(Us));
         }
 
         // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -488,36 +488,34 @@ namespace {
 
 
   // evaluate_threats() assigns bonuses according to the type of attacking piece
-  // and the type of attacked one.
 
   template<Color Us, bool Trace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    Bitboard b, weakEnemies;
-    Score score = SCORE_ZERO;
+    enum { Minor, Major };
 
     // Enemies not defended by a pawn and under our attack
-    weakEnemies =  pos.pieces(Them)
-                 & ~ei.attackedBy[Them][PAWN]
-                 & ei.attackedBy[Us][ALL_PIECES];
+    Bitboard b, weakEnemies =   pos.pieces(Them)
+                             & ~ei.attackedBy[Them][PAWN]
+                             &  ei.attackedBy[Us][ALL_PIECES];
+    if (!weakEnemies)
+        return SCORE_ZERO;
 
-    // Add a bonus according if the attacking pieces are minor or major
-    if (weakEnemies)
-    {
-        b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
-        if (b)
-            score += Threat[0][type_of(pos.piece_on(lsb(b)))];
+    Score score = SCORE_ZERO;
 
-        b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
-        if (b)
-            score += Threat[1][type_of(pos.piece_on(lsb(b)))];
+    b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
+    if (b)
+        score += Threat[Minor][type_of(pos.piece_on(lsb(b)))];
 
-        b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
-        if (b)
-            score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
-    }
+    b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
+    if (b)
+        score += Threat[Major][type_of(pos.piece_on(lsb(b)))];
+
+    b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
+    if (b)
+        score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
 
     if (Trace)
         Tracing::terms[Us][Tracing::THREAT] = score;
@@ -565,22 +563,18 @@ namespace {
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
             {
-                squaresToQueen = forward_bb(Us, s);
+                // If there is a rook or queen attacking/defending the pawn from behind,
+                // consider all the squaresToQueen. Otherwise consider only the squares
+                // in the pawn's path attacked or occupied by the enemy.
+                defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
-                // If there is an enemy rook or queen attacking the pawn from behind,
-                // add all X-ray attacks by the rook or queen. Otherwise consider only
-                // the squares in the pawn's path attacked or occupied by the enemy.
-                if (    unlikely(forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN))
-                    && (forward_bb(Them, s) & pos.pieces(Them, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
-                    unsafeSquares = squaresToQueen;
-                else
-                    unsafeSquares = squaresToQueen & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
+                Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
 
-                if (    unlikely(forward_bb(Them, s) & pos.pieces(Us, ROOK, QUEEN))
-                    && (forward_bb(Them, s) & pos.pieces(Us, ROOK, QUEEN) & pos.attacks_from<ROOK>(s)))
-                    defendedSquares = squaresToQueen;
-                else
-                    defendedSquares = squaresToQueen & ei.attackedBy[Us][ALL_PIECES];
+                if (!(pos.pieces(Us) & bb))
+                    defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
+
+                if (!(pos.pieces(Them) & bb))
+                    unsafeSquares &= ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
@@ -596,6 +590,9 @@ namespace {
 
                 mbonus += k * rr, ebonus += k * rr;
             }
+            else if (pos.pieces(Us) & blockSq)
+                mbonus += rr * 3 + r * 2 + 3, ebonus += rr + r * 2;
+
         } // rr != 0
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))

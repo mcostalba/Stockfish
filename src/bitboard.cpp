@@ -149,7 +149,10 @@ const std::string Bitboards::pretty(Bitboard b) {
 void Bitboards::init() {
 
   for (Square s = SQ_A1; s <= SQ_H8; ++s)
-      BSFTable[bsf_index(SquareBB[s] = 1ULL << s)] = s;
+  {
+      SquareBB[s] = 1ULL << s;
+      BSFTable[bsf_index(SquareBB[s])] = s;
+  }
 
   for (Bitboard b = 1; b < 256; ++b)
       MS1BTable[b] = more_than_one(b) ? MS1BTable[b - 1] : lsb(b);
@@ -251,9 +254,8 @@ namespace {
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
                    Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
 
-    int MagicBoosters[][8] = { {  969, 1976, 2850,  542, 2069, 2852, 1708,  164 },
-                               { 3101,  552, 3555,  926,  834,   26, 2131, 1117 } };
-
+    int MagicBoosters[][RANK_NB] = { {  969, 1976, 2850,  542, 2069, 2852, 1708,  164 },
+                                     { 3101,  552, 3555,  926,  834,   26, 2131, 1117 } };
     RKISS rk;
     Bitboard occupancy[4096], reference[4096], edges, b;
     int i, size, booster;
@@ -301,7 +303,8 @@ namespace {
         // Find a magic for square 's' picking up an (almost) random number
         // until we find the one that passes the verification test.
         do {
-            do magics[s] = rk.magic_rand<Bitboard>(booster);
+            do
+                magics[s] = rk.magic_rand<Bitboard>(booster);
             while (popcount<Max15>((magics[s] * masks[s]) >> 56) < 6);
 
             std::memset(attacks[s], 0, size * sizeof(Bitboard));

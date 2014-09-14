@@ -31,6 +31,7 @@
 #include "rkiss.h"
 #include "thread.h"
 #include "tt.h"
+#include "notation.h"
 
 using std::string;
 
@@ -1125,10 +1126,6 @@ Value Position::see(Move m) const {
 /// rule or repetition. It does not detect stalemates.
 
 bool Position::is_draw() const {
-
-  if (   !pieces(PAWN)
-      && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
-      return true;
 
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
