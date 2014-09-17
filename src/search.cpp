@@ -197,7 +197,7 @@ void Search::think() {
   TBHits = TBCardinality = 0;
   RootInTB = false;
 
-  int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
+  int cf = Options["Contempt"] * PawnValueEg / 100; // From centipawns
   DrawValue[ RootPos.side_to_move()] = VALUE_DRAW - Value(cf);
   DrawValue[~RootPos.side_to_move()] = VALUE_DRAW + Value(cf);
 
