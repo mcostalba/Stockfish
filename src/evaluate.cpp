@@ -150,23 +150,24 @@ namespace {
     S(0, 0), S(0, 0), S(80, 119), S(80, 119), S(117, 199), S(127, 218)
   };
 
-  // Hanging contains a bonus for each enemy hanging piece
-  const Score Hanging = S(23, 20);
-
-  #undef S
-
-  const Score RookOnPawn       = make_score(10, 28);
-  const Score RookOpenFile     = make_score(43, 21);
-  const Score RookSemiopenFile = make_score(19, 10);
-  const Score BishopPawns      = make_score( 8, 12);
-  const Score MinorBehindPawn  = make_score(16,  0);
-  const Score TrappedRook      = make_score(92,  0);
-  const Score Unstoppable      = make_score( 0, 20);
+  // Assorted bonuses and penalties used by evaluation
+  const Score KingOnPawnOne    = S(0 , 64);
+  const Score KingOnPawnMany   = S(0 ,128);
+  const Score RookOnPawn       = S(10, 28);
+  const Score RookOpenFile     = S(43, 21);
+  const Score RookSemiOpenFile = S(19, 10);
+  const Score BishopPawns      = S( 8, 12);
+  const Score MinorBehindPawn  = S(16,  0);
+  const Score TrappedRook      = S(92,  0);
+  const Score Unstoppable      = S( 0, 20);
+  const Score Hanging          = S(23, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
-  const Score TrappedBishopA1H1 = make_score(50, 50);
+  const Score TrappedBishopA1H1 = S(50, 50);
+
+  #undef S
 
   // SpaceMask[Color] contains the area of the board which is considered
   // by the space evaluation. In the middlegame, each side is given a bonus
@@ -220,7 +221,7 @@ namespace {
     ei.attackedBy[Us][ALL_PIECES] = ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
     // Init king safety tables only if we are going to use them
-    if (pos.count<QUEEN>(Us) && pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
+    if (pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
@@ -338,7 +339,7 @@ namespace {
 
             // Give a bonus for a rook on a open or semi-open file
             if (ei.pi->semiopen_file(Us, file_of(s)))
-                score += ei.pi->semiopen_file(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+                score += ei.pi->semiopen_file(Them, file_of(s)) ? RookOpenFile : RookSemiOpenFile;
 
             if (mob > 3 || ei.pi->semiopen_file(Us, file_of(s)))
                 continue;
@@ -413,7 +414,8 @@ namespace {
         attackUnits =  std::min(20, (ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]) / 2)
                      + 3 * (ei.kingAdjacentZoneAttacksCount[Them] + popcount<Max15>(undefended))
                      + 2 * (ei.pinnedPieces[Us] != 0)
-                     - mg_value(score) / 32;
+                     - mg_value(score) / 32
+                     - !pos.count<QUEEN>(Them) * 15;
 
         // Analyse the enemy's safe queen contact checks. Firstly, find the
         // undefended squares around the king that are attacked by the enemy's
@@ -527,6 +529,10 @@ namespace {
         b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
         if (b)
             score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
+
+        b = weakEnemies & pos.pieces(Them, PAWN) & ei.attackedBy[Us][KING];
+        if (b)
+            score += more_than_one(b) ? KingOnPawnMany : KingOnPawnOne;
     }
 
     if (Trace)
