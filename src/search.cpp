@@ -939,7 +939,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 19. Check for splitting the search
       if (   !SpNode
           &&  Threads.size() >= 2
-          &&  (depth*2) >= Threads.minimumSplitDepth
+          &&  depth >= Threads.minimumSplitDepth
           &&  (   !thisThread->activeSplitPoint
                || !thisThread->activeSplitPoint->allSlavesSearching)
           &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
@@ -947,7 +947,7 @@ moves_loop: // When in check and at SpNode search starts from here
           assert(bestValue > -VALUE_INFINITE && bestValue < beta);
 
           thisThread->split(pos, ss, alpha, beta, &bestValue, &bestMove,
-                            (depth*2), moveCount, &mp, NT, cutNode);
+                            depth, moveCount, &mp, NT, cutNode);
 
           if (Signals.stop || thisThread->cutoff_occurred())
               return VALUE_ZERO;
@@ -1441,13 +1441,13 @@ void Thread::idle_loop() {
           activePosition = &pos;
 
           if (sp->nodeType == NonPV)
-              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
 
           else if (sp->nodeType == PV)
-              search<PV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<PV, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
 
           else if (sp->nodeType == Root)
-              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<Root, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
 
           else
               assert(false);
