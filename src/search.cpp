@@ -126,14 +126,14 @@ void Search::init() {
   {
       double    pvRed = 0.00 + log(double(hd)) * log(double(mc)) / 3.00;
       double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
-      Reductions[1][1][hd][mc] = int8_t(   pvRed >= 1.0 ?    pvRed + 0.5: 0) * 2;
-      Reductions[0][1][hd][mc] = int8_t(nonPVRed >= 1.0 ? nonPVRed + 0.5: 0) * 2;
+      Reductions[1][1][hd][mc] = int8_t(   pvRed >= 1.0 ?    pvRed + 0.5: 0);
+      Reductions[0][1][hd][mc] = int8_t(nonPVRed >= 1.0 ? nonPVRed + 0.5: 0);
 
       Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
       Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
 
-      if (Reductions[0][0][hd][mc] >= 4)
-          Reductions[0][0][hd][mc] += 2;
+      if (Reductions[0][0][hd][mc] >= 2)
+          Reductions[0][0][hd][mc] += 1;
   }
 
   // Init futility move count array
@@ -744,8 +744,6 @@ moves_loop: // When in check and at SpNode search starts from here
       // Update the current move (this must be done after singular extension search)
       newDepth = depth - ONE_PLY + ext;
 
-      newDepth = newDepth * 2; // FIXME: Remove once ONE_PLY is 1
-
       // Step 13. Pruning at shallow depth (exclude PV nodes)
       if (   !PvNode
           && !captureOrPromotion
@@ -766,10 +764,10 @@ moves_loop: // When in check and at SpNode search starts from here
           predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 
           // Futility pruning: parent node
-          if (predictedDepth < 7 * (ONE_PLY*2))
+          if (predictedDepth < 7 * ONE_PLY)
           {
-              futilityValue = ss->staticEval + futility_margin(predictedDepth / 2) // Fixme
-                            + 128 + Gains[pos.moved_piece(move)][to_sq(move)];
+              futilityValue =  ss->staticEval + futility_margin(predictedDepth)
+                             + 128 + Gains[pos.moved_piece(move)][to_sq(move)];
 
               if (futilityValue <= alpha)
               {
@@ -786,7 +784,7 @@ moves_loop: // When in check and at SpNode search starts from here
           }
 
           // Prune moves with negative SEE at low depths
-          if (predictedDepth < 4 * (ONE_PLY*2) && pos.see_sign(move) < VALUE_ZERO)
+          if (predictedDepth < 4 * ONE_PLY && pos.see_sign(move) < VALUE_ZERO)
           {
               if (SpNode)
                   splitPoint->mutex.lock();
@@ -822,29 +820,29 @@ moves_loop: // When in check and at SpNode search starts from here
 
           if (   (!PvNode && cutNode)
               ||  History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
-              ss->reduction += (ONE_PLY*2);
+              ss->reduction += ONE_PLY;
 
           if (move == countermoves[0] || move == countermoves[1])
-              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - (ONE_PLY*2));
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           // Decrease reduction for moves that escape a capture
           if (   ss->reduction
               && type_of(move) == NORMAL
               && type_of(pos.piece_on(to_sq(move))) != PAWN
               && pos.see(make_move(to_sq(move), from_sq(move))) < 0)
-              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - (ONE_PLY*2));
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
-          Depth d = std::max(newDepth - ss->reduction, (ONE_PLY*2));
+          Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
           if (SpNode)
               alpha = splitPoint->alpha;
 
-          value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (d*2), true); // FIXME
 
           // Re-search at intermediate depth if reduction is very high
-          if (value > alpha && ss->reduction >= 4 * (ONE_PLY*2))
+          if (value > alpha && ss->reduction >= 4 * ONE_PLY)
           {
-              Depth d2 = std::max(newDepth - 2 * (ONE_PLY*2), (ONE_PLY*2));
-              value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, d2, true);
+              Depth d2 = std::max(newDepth - 2 * ONE_PLY, ONE_PLY);
+              value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (d2*2), true); // FIXME
           }
 
           doFullDepthSearch = (value > alpha && ss->reduction != DEPTH_ZERO);
@@ -859,20 +857,20 @@ moves_loop: // When in check and at SpNode search starts from here
           if (SpNode)
               alpha = splitPoint->alpha;
 
-          value = newDepth < (ONE_PLY*2) ?
-                          givesCheck ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                                     : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                                     : - search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+          value = newDepth <   ONE_PLY ?
+                            givesCheck ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                                       : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                                       : - search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (newDepth*2), !cutNode); // FIXME
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and to try another move.
       if (PvNode && (pvMove || (value > alpha && (RootNode || value < beta))))
-          value = newDepth < (ONE_PLY*2) ?
-                          givesCheck ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                                     : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                                     : - search<PV, false>(pos, ss+1, -beta, -alpha, newDepth, false);
+          value = newDepth <   ONE_PLY ?
+                            givesCheck ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                                       : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                                       : - search<PV, false>(pos, ss+1, -beta, -alpha, (newDepth*2), false); // FIXME
       // Step 17. Undo move
       pos.undo_move(move);
 
