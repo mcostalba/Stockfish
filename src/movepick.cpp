@@ -261,7 +261,7 @@ void MovePicker::generate_next_stage() {
   case QUIETS_2_S1:
       cur = end;
       end = endQuiets;
-      if (depth >= 3 * (ONE_PLY*2))
+      if (depth >= 3 * ONE_PLY)
           insertion_sort(cur, end);
       return;
 

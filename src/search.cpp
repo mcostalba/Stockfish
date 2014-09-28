@@ -474,7 +474,7 @@ namespace {
     // we should also update RootMoveList to avoid bogus output.
     if (   !RootNode
         && tte
-        && tte->depth() >= (depth*2) // FIXME !!
+        && tte->depth() >= depth
         && ttValue != VALUE_NONE // Only in case of TT access race
         && (           PvNode ?  tte->bound() == BOUND_EXACT
             : ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
@@ -650,7 +650,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Move followupmoves[] = { Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].first,
                              Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].second };
 
-    MovePicker mp(pos, ttMove, (depth*2), History, countermoves, followupmoves, ss); // FIXME: Remove once ONE_PLY is 1
+    MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -666,7 +666,7 @@ moves_loop: // When in check and at SpNode search starts from here
                            &&  abs(ttValue) < VALUE_KNOWN_WIN
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
-                           &&  tte->depth() >= (depth - 3 * ONE_PLY) * 2; // FIXME: Remove once ONE_PLY is 1
+                           &&  tte->depth() >= depth - 3 * ONE_PLY;
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -981,7 +981,7 @@ moves_loop: // When in check and at SpNode search starts from here
     TT.store(posKey, value_to_tt(bestValue, ss->ply),
              bestValue >= beta  ? BOUND_LOWER :
              PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
-             (depth*2), bestMove, ss->staticEval);
+             depth, bestMove, ss->staticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1148,8 +1148,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Make and search the move
       pos.do_move(move, st, ci, givesCheck);
-      value = givesCheck ? -qsearch<NT,  true>(pos, ss+1, -beta, -alpha, depth - (ONE_PLY*2))
-                         : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - (ONE_PLY*2));
+      value = givesCheck ? -qsearch<NT,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
+                         : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
