@@ -213,14 +213,14 @@ void ThreadPool::exit() {
 
 void ThreadPool::read_uci_options() {
 
-  minimumSplitDepth = Options["Min Split Depth"] * ONE_PLY;
+  minimumSplitDepth = Options["Min Split Depth"] * (ONE_PLY*2);
   size_t requested  = Options["Threads"];
 
   assert(requested > 0);
 
   // If zero (default) then set best minimum split depth automatically
   if (!minimumSplitDepth)
-      minimumSplitDepth = requested < 8 ? 4 * ONE_PLY : 7 * ONE_PLY;
+      minimumSplitDepth = requested < 8 ? 4 * (ONE_PLY*2) : 7 * (ONE_PLY*2);
 
   while (size() < requested)
       push_back(new_thread<Thread>());
