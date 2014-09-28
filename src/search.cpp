@@ -291,7 +291,7 @@ namespace {
             // high/low anymore.
             while (true)
             {
-                bestValue = search<Root, false>(pos, ss, alpha, beta, depth * (ONE_PLY*2), false);
+                bestValue = search<Root, false>(pos, ss, alpha, beta, depth * ONE_PLY, false);
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
@@ -391,10 +391,6 @@ namespace {
 
     const bool RootNode = NT == Root;
     const bool PvNode   = NT == PV || NT == Root;
-
-    assert(depth % 2 == 0); // FIXME: Remove once ONE_PLY is 1
-
-    depth = depth / 2;
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -570,7 +566,7 @@ namespace {
         pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
         nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -beta+1, DEPTH_ZERO)
-                                      : - search<NonPV, false>(pos, ss+1, -beta, -beta+1, (depth-R)*2, !cutNode); // FIXME: Remove once ONE_PLY is 1
+                                      : - search<NonPV, false>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
         (ss+1)->skipNullMove = false;
         pos.undo_null_move();
 
@@ -586,7 +582,7 @@ namespace {
             // Do verification search at high depths
             ss->skipNullMove = true;
             Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
-                                        :  search<NonPV, false>(pos, ss, beta-1, beta, (depth-R)*2, false); // FIXME: Remove once ONE_PLY is 1
+                                        :  search<NonPV, false>(pos, ss, beta-1, beta, depth-R, false);
             ss->skipNullMove = false;
 
             if (v >= beta)
@@ -618,7 +614,7 @@ namespace {
             {
                 ss->currentMove = move;
                 pos.do_move(move, st, ci, pos.gives_check(move, ci));
-                value = -search<NonPV, false>(pos, ss+1, -rbeta, -rbeta+1, (rdepth*2), !cutNode); // FIXME: Remove once ONE_PLY is 1
+                value = -search<NonPV, false>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cutNode);
                 pos.undo_move(move);
                 if (value >= rbeta)
                     return value;
@@ -631,9 +627,8 @@ namespace {
         && (PvNode || ss->staticEval + 256 >= beta))
     {
         Depth d = 2 * (depth - 2 * ONE_PLY) - (PvNode ? DEPTH_ZERO : depth / 2);
-        d = (d / 2) * 2;  // Round to nearest full-ply
         ss->skipNullMove = true;
-        search<PvNode ? PV : NonPV, false>(pos, ss, alpha, beta, d, true);
+        search<PvNode ? PV : NonPV, false>(pos, ss, alpha, beta, d / 2, true);
         ss->skipNullMove = false;
 
         tte = TT.probe(posKey);
@@ -733,7 +728,7 @@ moves_loop: // When in check and at SpNode search starts from here
           Value rBeta = ttValue - int(2 * depth);
           ss->excludedMove = move;
           ss->skipNullMove = true;
-          value = search<NonPV, false>(pos, ss, rBeta - 1, rBeta, (depth / 2) * 2, cutNode);
+          value = search<NonPV, false>(pos, ss, rBeta - 1, rBeta, depth / 2, cutNode);
           ss->skipNullMove = false;
           ss->excludedMove = MOVE_NONE;
 
@@ -758,6 +753,7 @@ moves_loop: // When in check and at SpNode search starts from here
           {
               if (SpNode)
                   splitPoint->mutex.lock();
+
               continue;
           }
 
@@ -788,6 +784,7 @@ moves_loop: // When in check and at SpNode search starts from here
           {
               if (SpNode)
                   splitPoint->mutex.lock();
+
               continue;
           }
       }
@@ -836,13 +833,13 @@ moves_loop: // When in check and at SpNode search starts from here
           if (SpNode)
               alpha = splitPoint->alpha;
 
-          value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (d*2), true); // FIXME
+          value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
           // Re-search at intermediate depth if reduction is very high
           if (value > alpha && ss->reduction >= 4 * ONE_PLY)
           {
               Depth d2 = std::max(newDepth - 2 * ONE_PLY, ONE_PLY);
-              value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (d2*2), true); // FIXME
+              value = -search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, d2, true);
           }
 
           doFullDepthSearch = (value > alpha && ss->reduction != DEPTH_ZERO);
@@ -860,7 +857,7 @@ moves_loop: // When in check and at SpNode search starts from here
           value = newDepth <   ONE_PLY ?
                             givesCheck ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                                        : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                                       : - search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, (newDepth*2), !cutNode); // FIXME
+                                       : - search<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
@@ -870,7 +867,7 @@ moves_loop: // When in check and at SpNode search starts from here
           value = newDepth <   ONE_PLY ?
                             givesCheck ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                                        : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                                       : - search<PV, false>(pos, ss+1, -beta, -alpha, (newDepth*2), false); // FIXME
+                                       : - search<PV, false>(pos, ss+1, -beta, -alpha, newDepth, false);
       // Step 17. Undo move
       pos.undo_move(move);
 
@@ -929,6 +926,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
                   if (SpNode)
                       splitPoint->cutoff = true;
+
                   break;
               }
           }
@@ -1439,13 +1437,13 @@ void Thread::idle_loop() {
           activePosition = &pos;
 
           if (sp->nodeType == NonPV)
-              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
+              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
           else if (sp->nodeType == PV)
-              search<PV, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
+              search<PV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
           else if (sp->nodeType == Root)
-              search<Root, true>(pos, ss, sp->alpha, sp->beta, (sp->depth*2), sp->cutNode); // Fixme
+              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
           else
               assert(false);
