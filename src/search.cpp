@@ -1329,8 +1329,9 @@ moves_loop: // When in check and at SpNode search starts from here
            << " seldepth "  << selDepth
            << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
            << " nodes "     << pos.nodes_searched()
-           << " nps "       << pos.nodes_searched() * 1000 / elapsed
-           << " time "      << elapsed
+           << " nps "       << pos.nodes_searched() * 1000 / elapsed;
+		if(Time::now() - SearchTime > 1000) { ss << " hashfull " <<  TT.full(); }
+        ss << " time "      << elapsed
            << " multipv "   << i + 1
            << " pv";
 

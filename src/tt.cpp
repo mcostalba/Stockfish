@@ -120,3 +120,13 @@ void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m,
 
   replace->save(key16, v, b, d, m, generation, statV);
 }
+
+/// Returns an approximation of the hashtable occupation during a search
+/// (the hash is x permill full)
+
+uint16_t TranspositionTable::full() const {
+  uint16_t full_count = 0;
+  for (unsigned i = 0; i < 1000; i++)
+    if ( table[i].generation8 == generation ) full_count++;
+  return full_count;
+}
