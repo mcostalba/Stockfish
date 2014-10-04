@@ -498,30 +498,30 @@ namespace {
 
     enum { Minor, Major };
 
+    Score score = SCORE_ZERO;
+
     // Enemies not defended by a pawn and under our attack
     Bitboard b, weakEnemies =   pos.pieces(Them)
                              & ~ei.attackedBy[Them][PAWN]
                              &  ei.attackedBy[Us][ALL_PIECES];
-    if (!weakEnemies)
-        return SCORE_ZERO;
+    if (weakEnemies)
+    {
+        b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
+        if (b)
+            score += Threat[Minor][type_of(pos.piece_on(lsb(b)))];
 
-    Score score = SCORE_ZERO;
+        b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
+        if (b)
+            score += Threat[Major][type_of(pos.piece_on(lsb(b)))];
 
-    b = weakEnemies & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]);
-    if (b)
-        score += Threat[Minor][type_of(pos.piece_on(lsb(b)))];
+        b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
+        if (b)
+            score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
 
-    b = weakEnemies & (ei.attackedBy[Us][ROOK] | ei.attackedBy[Us][QUEEN]);
-    if (b)
-        score += Threat[Major][type_of(pos.piece_on(lsb(b)))];
-
-    b = weakEnemies & ~ei.attackedBy[Them][ALL_PIECES];
-    if (b)
-        score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
-
-    b = weakEnemies & pos.pieces(Them, PAWN) & ei.attackedBy[Us][KING];
-    if (b)
-        score += more_than_one(b) ? KingOnPawnMany : KingOnPawnOne;
+        b = weakEnemies & pos.pieces(Them, PAWN) & ei.attackedBy[Us][KING];
+        if (b)
+            score += more_than_one(b) ? KingOnPawnMany : KingOnPawnOne;
+    }
 
     if (Trace)
         Tracing::terms[Us][Tracing::THREAT] = score;
@@ -598,7 +598,6 @@ namespace {
             }
             else if (pos.pieces(Us) & blockSq)
                 mbonus += rr * 3 + r * 2 + 3, ebonus += rr + r * 2;
-
         } // rr != 0
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
