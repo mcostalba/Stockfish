@@ -29,6 +29,7 @@ class Position;
 std::string score_to_uci(Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 Move move_from_uci(const Position& pos, std::string& str);
 const std::string move_to_uci(Move m, bool chess960);
+const std::string move_to_san(Position& pos, Move m);
 
 inline char to_char(File f, bool tolower = true) {
   return char(f - FILE_A + (tolower ? 'a' : 'A'));

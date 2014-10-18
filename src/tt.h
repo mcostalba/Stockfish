@@ -88,12 +88,12 @@ public:
 
   const TTEntry* probe(const Key key) const;
   TTEntry* first_entry(const Key key) const;
-  void resize(size_t mbSize);
+  void resize(uint64_t mbSize);
   void clear();
   void store(const Key key, Value v, Bound type, Depth d, Move m, Value statV);
 
 private:
-  size_t clusterCount;
+  uint32_t clusterCount;
   TTCluster* table;
   void* mem;
   uint8_t generation; // Size must be not bigger than TTEntry::genBound8
@@ -108,7 +108,7 @@ extern TranspositionTable TT;
 
 inline TTEntry* TranspositionTable::first_entry(const Key key) const {
 
-  return &table[(size_t)key & (clusterCount - 1)].entry[0];
+  return &table[(uint32_t)key & (clusterCount - 1)].entry[0];
 }
 
 #endif // #ifndef TT_H_INCLUDED
