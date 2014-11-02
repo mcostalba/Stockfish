@@ -27,7 +27,6 @@
 #include "material.h"
 #include "pawns.h"
 #include "thread.h"
-#include "uci.h"
 
 namespace {
 
@@ -751,7 +750,7 @@ namespace {
         else
             // Endgame with opposite-colored bishops, but also other pieces. Still
             // a bit drawish, but not as drawish as with only the two bishops.
-             sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
+            sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
     }
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
@@ -870,8 +869,7 @@ namespace Eval {
   }
 
 
-  /// init() computes evaluation weights from the corresponding UCI parameters
-  /// and setup king tables.
+  /// init() computes evaluation weights.
 
   void init() {
 
