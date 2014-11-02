@@ -25,24 +25,20 @@
 
 #include "bitcount.h"
 #include "movegen.h"
-#include "notation.h"
 #include "position.h"
 #include "psqtab.h"
 #include "rkiss.h"
 #include "thread.h"
 #include "tt.h"
+#include "uci.h"
 
 using std::string;
-
-static const string PieceToChar(" PNBRQK  pnbrqk");
 
 CACHE_LINE_ALIGNMENT
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
-
-static Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 
 namespace Zobrist {
 
@@ -56,6 +52,9 @@ namespace Zobrist {
 Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion;}
 
 namespace {
+
+const string PieceToChar(" PNBRQK  pnbrqk");
+Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 
 // min_attacker() is a helper function used by see() to locate the least
 // valuable attacker for the side to move, remove the attacker we just found
@@ -105,6 +104,30 @@ CheckInfo::CheckInfo(const Position& pos) {
   checkSq[ROOK]   = pos.attacks_from<ROOK>(ksq);
   checkSq[QUEEN]  = checkSq[BISHOP] | checkSq[ROOK];
   checkSq[KING]   = 0;
+}
+
+
+/// operator<<(Position) returns an ASCII representation of the position
+
+std::ostream& operator<<(std::ostream& os, const Position& pos) {
+
+  os << "\n +---+---+---+---+---+---+---+---+\n";
+
+  for (Rank r = RANK_8; r >= RANK_1; --r)
+  {
+      for (File f = FILE_A; f <= FILE_H; ++f)
+          os << " | " << PieceToChar[pos.piece_on(make_square(f, r))];
+
+      os << " |\n +---+---+---+---+---+---+---+---+\n";
+  }
+
+  os << "\nFen: " << pos.fen() << "\nKey: " << std::hex << std::uppercase
+     << std::setfill('0') << std::setw(16) << pos.st->key << std::dec << "\nCheckers: ";
+
+  for (Bitboard b = pos.checkers(); b; )
+      os << UCI::format_square(pop_lsb(&b)) << " ";
+
+  return os;
 }
 
 
@@ -409,57 +432,22 @@ const string Position::fen() const {
   ss << (sideToMove == WHITE ? " w " : " b ");
 
   if (can_castle(WHITE_OO))
-      ss << (chess960 ? to_char(file_of(castling_rook_square(WHITE |  KING_SIDE)), false) : 'K');
+      ss << (chess960 ? 'A' + file_of(castling_rook_square(WHITE |  KING_SIDE)) : 'K');
 
   if (can_castle(WHITE_OOO))
-      ss << (chess960 ? to_char(file_of(castling_rook_square(WHITE | QUEEN_SIDE)), false) : 'Q');
+      ss << (chess960 ? 'A' + file_of(castling_rook_square(WHITE | QUEEN_SIDE)) : 'Q');
 
   if (can_castle(BLACK_OO))
-      ss << (chess960 ? to_char(file_of(castling_rook_square(BLACK |  KING_SIDE)),  true) : 'k');
+      ss << (chess960 ? 'a' + file_of(castling_rook_square(BLACK |  KING_SIDE)) : 'k');
 
   if (can_castle(BLACK_OOO))
-      ss << (chess960 ? to_char(file_of(castling_rook_square(BLACK | QUEEN_SIDE)),  true) : 'q');
+      ss << (chess960 ? 'a' + file_of(castling_rook_square(BLACK | QUEEN_SIDE)) : 'q');
 
   if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + to_string(ep_square()) + " ")
+  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::format_square(ep_square()) + " ")
      << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
-
-  return ss.str();
-}
-
-
-/// Position::pretty() returns an ASCII representation of the position to be
-/// printed to the standard output together with the move's san notation.
-
-const string Position::pretty(Move m) const {
-
-  std::ostringstream ss;
-
-  if (m)
-      ss << "\nMove: " << (sideToMove == BLACK ? ".." : "")
-         << move_to_san(*const_cast<Position*>(this), m);
-
-  ss << "\n +---+---+---+---+---+---+---+---+\n";
-
-  for (Rank r = RANK_8; r >= RANK_1; --r)
-  {
-      for (File f = FILE_A; f <= FILE_H; ++f)
-          ss << " | " << PieceToChar[piece_on(make_square(f, r))];
-
-      ss << " |\n +---+---+---+---+---+---+---+---+\n";
-  }
-
-  ss << "\nFen: " << fen() << "\nKey: " << std::hex << std::uppercase
-     << std::setfill('0') << std::setw(16) << st->key << "\nCheckers: ";
-
-  for (Bitboard b = checkers(); b; )
-      ss << to_string(pop_lsb(&b)) << " ";
-
-  ss << "\nLegal moves: ";
-  for (const ExtMove& ms : MoveList<LEGAL>(*this))
-      ss << move_to_san(*const_cast<Position*>(this), ms.move) << " ";
 
   return ss.str();
 }
