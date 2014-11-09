@@ -57,8 +57,6 @@ const Bitboard Rank6BB = Rank1BB << (8 * 5);
 const Bitboard Rank7BB = Rank1BB << (8 * 6);
 const Bitboard Rank8BB = Rank1BB << (8 * 7);
 
-CACHE_LINE_ALIGNMENT
-
 extern Bitboard RMasks[SQUARE_NB];
 extern Bitboard RMagics[SQUARE_NB];
 extern Bitboard* RAttacks[SQUARE_NB];
@@ -119,11 +117,11 @@ inline int square_distance(Square s1, Square s2) {
 }
 
 inline int file_distance(Square s1, Square s2) {
-  return abs(file_of(s1) - file_of(s2));
+  return dist(file_of(s1), file_of(s2));
 }
 
 inline int rank_distance(Square s1, Square s2) {
-  return abs(rank_of(s1) - rank_of(s2));
+  return dist(rank_of(s1), rank_of(s2));
 }
 
 
