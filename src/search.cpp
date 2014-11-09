@@ -116,28 +116,26 @@ namespace {
 
 void Search::init() {
 
-  int d;  // depth (ONE_PLY == 2)
-  int hd; // half depth (ONE_PLY == 1)
-  int mc; // moveCount
-
   // Init reductions array
-  for (hd = 1; hd < 64; ++hd) for (mc = 1; mc < 64; ++mc)
-  {
-      double    pvRed = 0.00 + log(double(hd)) * log(double(mc)) / 3.00;
-      double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
+  for (int d = 1; d < 64; ++d)
+      for (int mc = 1; mc < 64; ++mc)
+      {
+          double    pvRed = 0.00 + log(double(d)) * log(double(mc)) / 3.00;
+          double nonPVRed = 0.33 + log(double(d)) * log(double(mc)) / 2.25;
 
-      Reductions[1][1][hd][mc] = int8_t(   pvRed >= 1.0 ?    pvRed + 0.5: 0);
-      Reductions[0][1][hd][mc] = int8_t(nonPVRed >= 1.0 ? nonPVRed + 0.5: 0);
+          Reductions[1][1][d][mc] = int8_t(   pvRed >= 1.0 ?    pvRed + 0.5: 0);
+          Reductions[0][1][d][mc] = int8_t(nonPVRed >= 1.0 ? nonPVRed + 0.5: 0);
 
-      Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
-      Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
+          Reductions[1][0][d][mc] = Reductions[1][1][d][mc];
+          Reductions[0][0][d][mc] = Reductions[0][1][d][mc];
 
-      if (Reductions[0][0][hd][mc] >= 2)
-          Reductions[0][0][hd][mc] += 1;
-  }
+          // Increase reduction when eval is not improving
+          if (Reductions[0][0][d][mc] >= 2)
+              Reductions[0][0][d][mc] += 1;
+      }
 
   // Init futility move count array
-  for (d = 0; d < 32; ++d)
+  for (int d = 0; d < 32; ++d)
   {
       FutilityMoveCounts[0][d] = int(2.4 + 0.773 * pow(d + 0.00, 1.8));
       FutilityMoveCounts[1][d] = int(2.9 + 1.045 * pow(d + 0.49, 1.8));
@@ -240,7 +238,7 @@ namespace {
 
   void id_loop(Position& pos) {
 
-    Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
+    Stack stack[MAX_PLY+4], *ss = stack+2; // To allow referencing (ss-2) and (ss+2)
     int depth;
     Value bestValue, alpha, beta, delta;
 
@@ -265,7 +263,7 @@ namespace {
     multiPV = std::max(multiPV, skill.candidates_size());
 
     // Iterative deepening loop until requested to stop or target depth reached
-    while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
+    while (++depth < MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
     {
         // Age out PV variability metric
         BestMoveChanges *= 0.5;
@@ -322,18 +320,22 @@ namespace {
                 // re-search, otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
+                    beta = (alpha + beta) / 2;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     Signals.failedLowAtRoot = true;
                     Signals.stopOnPonderhit = false;
                 }
                 else if (bestValue >= beta)
+                {
+                    alpha = (alpha + beta) / 2;
                     beta = std::min(bestValue + delta, VALUE_INFINITE);
+                }
 
                 else
                     break;
 
-                delta += 3 * delta / 8;
+                delta += delta / 2;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
@@ -430,10 +432,7 @@ namespace {
 
     moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
-    ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
-    (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
-    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Used to send selDepth info to GUI
     if (PvNode && thisThread->maxPly < ss->ply)
@@ -442,8 +441,8 @@ namespace {
     if (!RootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (Signals.stop || pos.is_draw() || ss->ply > MAX_PLY)
-            return ss->ply > MAX_PLY && !inCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
+        if (Signals.stop || pos.is_draw() || ss->ply >= MAX_PLY)
+            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -456,6 +455,12 @@ namespace {
         if (alpha >= beta)
             return alpha;
     }
+
+    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+
+    ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
+    (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
+    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Step 4. Transposition table lookup
     // We don't want the score of a partial search to overwrite a previous full search
@@ -744,7 +749,6 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           && !inCheck
           && !dangerous
-       /* &&  move != ttMove Already implicit in the next condition */
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
@@ -810,9 +814,8 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
       if (    depth >= 3 * ONE_PLY
-          && !pvMove
+          &&  moveCount > 1
           && !captureOrPromotion
-          &&  move != ttMove
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
       {
@@ -1021,8 +1024,10 @@ moves_loop: // When in check and at SpNode search starts from here
     ss->ply = (ss-1)->ply + 1;
 
     // Check for an instant draw or if the maximum ply has been reached
-    if (pos.is_draw() || ss->ply > MAX_PLY)
-        return ss->ply > MAX_PLY && !InCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
+    if (pos.is_draw() || ss->ply >= MAX_PLY)
+        return ss->ply >= MAX_PLY && !InCheck ? evaluate(pos) : DrawValue[pos.side_to_move()];
+
+    assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Decide whether or not to include checks: this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
@@ -1106,7 +1111,6 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !PvNode
           && !InCheck
           && !givesCheck
-          &&  move != ttMove
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
@@ -1136,7 +1140,6 @@ moves_loop: // When in check and at SpNode search starts from here
       // Don't search moves with negative SEE values
       if (   !PvNode
           && (!InCheck || evasionPrunable)
-          &&  move != ttMove
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < VALUE_ZERO)
           continue;
@@ -1352,7 +1355,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
 void RootMove::extract_pv_from_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_6], *st = state;
+  StateInfo state[MAX_PLY], *st = state;
   const TTEntry* tte;
   int ply = 1;    // At root ply is 1...
   Move m = pv[0]; // ...instead pv[] array starts from 0
@@ -1388,7 +1391,7 @@ void RootMove::extract_pv_from_tt(Position& pos) {
 
 void RootMove::insert_pv_in_tt(Position& pos) {
 
-  StateInfo state[MAX_PLY_PLUS_6], *st = state;
+  StateInfo state[MAX_PLY], *st = state;
   const TTEntry* tte;
   int idx = 0; // Ply starts from 1, we need to start from 0
 
@@ -1430,7 +1433,7 @@ void Thread::idle_loop() {
 
           Threads.mutex.unlock();
 
-          Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
+          Stack stack[MAX_PLY+4], *ss = stack+2; // To allow referencing (ss-2) and (ss+2)
           Position pos(*sp->pos, this);
 
           std::memcpy(ss-2, sp->ss-2, 5 * sizeof(Stack));
@@ -1561,7 +1564,7 @@ void check_time() {
   {
       Threads.mutex.lock();
 
-      int nodes = RootPos.nodes_searched();
+      int64_t nodes = RootPos.nodes_searched();
 
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active positions nodes.
