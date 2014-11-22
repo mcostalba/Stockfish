@@ -165,7 +165,7 @@ namespace {
             value -= UnsupportedPawnPenalty;
 
         if (doubled)
-            value -= Doubled[f] / distance<Rank>(s, Square(lsb(doubled)));
+            value -= Doubled[f] / distance<Rank>(s, frontmost_sq(Us, doubled));
 
         if (backward)
             value -= Backward[opposed][f];
@@ -176,6 +176,9 @@ namespace {
         if (lever)
             value += Lever[relative_rank(Us, s)];
     }
+
+    b = e->semiopenFiles[Us] ^ 0xFF;
+    e->pawnSpan[Us] = b ? int(msb(b) - lsb(b)) : 0;
 
     return value;
   }

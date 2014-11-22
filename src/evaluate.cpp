@@ -57,9 +57,8 @@ namespace {
 
     // kingAttackersWeight[color] is the sum of the "weight" of the pieces of the
     // given color which attack a square in the kingRing of the enemy king. The
-    // weights of the individual piece types are given by the variables
-    // QueenAttackWeight, RookAttackWeight, BishopAttackWeight and
-    // KnightAttackWeight in evaluate.cpp
+    // weights of the individual piece types are given by the elements in the
+    // KingAttackWeights array.
     int kingAttackersWeight[COLOR_NB];
 
     // kingAdjacentZoneAttacksCount[color] is the number of attacks to squares
@@ -199,7 +198,6 @@ namespace {
   // KingDanger[attackUnits] contains the actual king danger weighted
   // scores, indexed by a calculated integer number.
   Score KingDanger[128];
-
 
   // apply_weight() weighs score 'v' by weight 'w' trying to prevent overflow
   Score apply_weight(Score v, const Weight& w) {
@@ -505,10 +503,9 @@ namespace {
     Bitboard b, weak, defended;
     Score score = SCORE_ZERO;
 
-    // Non-pawn enemies defended by a pawn and under our attack
+    // Non-pawn enemies defended by a pawn
     defended =  (pos.pieces(Them) ^ pos.pieces(Them, PAWN))
-              &  ei.attackedBy[Them][PAWN]
-              & (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]);
+              &  ei.attackedBy[Them][PAWN];
 
     // Add a bonus according to the kind of attacking pieces
     if (defended)
@@ -752,29 +749,33 @@ namespace {
     }
 
     // Scale winning side if position is more drawish than it appears
-    ScaleFactor sf = eg_value(score) > VALUE_DRAW ? ei.mi->scale_factor(pos, WHITE)
-                                                  : ei.mi->scale_factor(pos, BLACK);
+    Color strongSide = eg_value(score) > VALUE_DRAW ? WHITE : BLACK;
+    ScaleFactor sf = ei.mi->scale_factor(pos, strongSide);
 
-    // If we don't already have an unusual scale factor, check for opposite
-    // colored bishop endgames, and use a lower scale for those.
+    // If we don't already have an unusual scale factor, check for certain
+    // types of endgames, and use a lower scale for those.
     if (    ei.mi->game_phase() < PHASE_MIDGAME
-        &&  pos.opposite_bishops()
         && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
     {
-        // Ignoring any pawns, do both sides only have a single bishop and no
-        // other pieces?
-        if (   pos.non_pawn_material(WHITE) == BishopValueMg
-            && pos.non_pawn_material(BLACK) == BishopValueMg)
+        if (pos.opposite_bishops())
         {
-            // Check for KBP vs KB with only a single pawn that is almost
-            // certainly a draw or at least two pawns.
-            bool one_pawn = (pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK) == 1);
-            sf = one_pawn ? ScaleFactor(8) : ScaleFactor(32);
-        }
-        else
+            // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
+            // is almost a draw, in case of KBP vs KB is even more a draw.
+            if (   pos.non_pawn_material(WHITE) == BishopValueMg
+                && pos.non_pawn_material(BLACK) == BishopValueMg)
+                sf = more_than_one(pos.pieces(PAWN)) ? ScaleFactor(32) : ScaleFactor(8);
+
             // Endgame with opposite-colored bishops, but also other pieces. Still
             // a bit drawish, but not as drawish as with only the two bishops.
-            sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
+            else
+                 sf = ScaleFactor(50 * sf / SCALE_FACTOR_NORMAL);
+        }
+        // Endings where weaker side can place his king in front of the opponent's
+        // pawns are drawish.
+        else if (    abs(eg_value(score)) <= BishopValueEg
+                 &&  ei.pi->pawn_span(strongSide) <= 1
+                 && !pos.pawn_passed(~strongSide, pos.king_square(~strongSide)))
+                 sf = ei.pi->pawn_span(strongSide) ? ScaleFactor(56) : ScaleFactor(38);
     }
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
