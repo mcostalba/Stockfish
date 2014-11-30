@@ -40,7 +40,7 @@ PGOBENCH = ./$(EXE) bench 16 1 1 default time
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
 	material.o misc.o movegen.o movepick.o pawns.o position.o \
-	search.o thread.o timeman.o tt.o uci.o ucioption.o
+	search.o thread.o timeman.o tt.o uci.o ucioption.o syzygy/tbprobe.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -354,10 +354,6 @@ help:
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
-	@echo "Non-standard targets:"
-	@echo ""
-	@echo "make hpux               >  Compile for HP-UX. Compiler = aCC"
-	@echo ""
 	@echo "Examples. If you don't know what to do, you likely want to run: "
 	@echo ""
 	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
@@ -398,7 +394,7 @@ install:
 	-strip $(BINDIR)/$(EXE)
 
 clean:
-	$(RM) $(EXE) $(EXE).exe *.o .depend *~ core bench.txt *.gcda
+	$(RM) $(EXE) $(EXE).exe *.o .depend *~ core bench.txt *.gcda ./syzygy/*.o ./syzygy/*.gcda
 
 default:
 	help
@@ -462,7 +458,7 @@ gcc-profile-use:
 	all
 
 gcc-profile-clean:
-	@rm -rf *.gcda *.gcno bench.txt
+	@rm -rf *.gcda *.gcno syzygy/*.gcda syzygy/*.gcno bench.txt
 
 icc-profile-prepare:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean
@@ -485,16 +481,4 @@ icc-profile-clean:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(OBJS:.o=.cpp) > $@ 2> /dev/null
 
 -include .depend
-
-
-### ==========================================================================
-### Section 6. Non-standard targets
-### ==========================================================================
-
-hpux:
-	$(MAKE) \
-	CXX='/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG -DNO_PREFETCH' \
-	CXXFLAGS="" \
-	LDFLAGS="" \
-	all
 

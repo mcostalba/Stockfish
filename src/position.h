@@ -166,6 +166,7 @@ public:
   uint64_t nodes_searched() const;
   void set_nodes_searched(uint64_t n);
   bool is_draw() const;
+  int rule50_count() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok(int* step = NULL) const;
@@ -352,6 +353,10 @@ inline int Position::game_ply() const {
   return gamePly;
 }
 
+inline int Position::rule50_count() const {
+  return st->rule50;
+}
+
 inline bool Position::opposite_bishops() const {
 
   return   pieceCount[WHITE][BISHOP] == 1
@@ -402,6 +407,7 @@ inline void Position::put_piece(Square s, Color c, PieceType pt) {
   byColorBB[c] |= s;
   index[s] = pieceCount[c][pt]++;
   pieceList[c][pt][index[s]] = s;
+  pieceCount[c][ALL_PIECES]++;
 }
 
 inline void Position::move_piece(Square from, Square to, Color c, PieceType pt) {
@@ -432,6 +438,7 @@ inline void Position::remove_piece(Square s, Color c, PieceType pt) {
   index[lastSquare] = index[s];
   pieceList[c][pt][index[lastSquare]] = lastSquare;
   pieceList[c][pt][pieceCount[c][pt]] = SQ_NONE;
+  pieceCount[c][ALL_PIECES]--;
 }
 
 #endif // #ifndef POSITION_H_INCLUDED
