@@ -33,16 +33,29 @@
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "syzygy/tbprobe.h"
 
 namespace Search {
 
   volatile SignalsType Signals;
   LimitsType Limits;
-  std::vector<RootMove> RootMoves;
+  RootMoveVector RootMoves;
   Position RootPos;
   Time::point SearchTime;
   StateStackPtr SetupStates;
 }
+
+namespace Tablebases {
+
+  int Cardinality;
+  uint64_t Hits;
+  bool RootInTB;
+  bool UseRule50;
+  Depth ProbeDepth;
+  Value Score;
+}
+
+namespace TB = Tablebases;
 
 using std::string;
 using Eval::evaluate;
@@ -102,7 +115,7 @@ namespace {
     }
 
     size_t candidates_size() const { return candidates; }
-    bool time_to_pick(Depth depth) const { return depth == 1 + level; }
+    bool time_to_pick(Depth depth) const { return depth / ONE_PLY == 1 + level; }
     Move pick_move();
 
     int level;
@@ -186,6 +199,19 @@ void Search::think() {
   DrawValue[ RootPos.side_to_move()] = VALUE_DRAW - Value(cf);
   DrawValue[~RootPos.side_to_move()] = VALUE_DRAW + Value(cf);
 
+  TB::Hits = 0;
+  TB::RootInTB = false;
+  TB::UseRule50 = Options["Syzygy50MoveRule"];
+  TB::ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
+  TB::Cardinality = Options["SyzygyProbeLimit"];
+
+  // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
+  if (TB::Cardinality > TB::MaxCardinality)
+  {
+      TB::Cardinality = TB::MaxCardinality;
+      TB::ProbeDepth = DEPTH_ZERO;
+  }
+
   if (RootMoves.empty())
   {
       RootMoves.push_back(MOVE_NONE);
@@ -195,6 +221,37 @@ void Search::think() {
   }
   else
   {
+      if (TB::Cardinality >=  RootPos.count<ALL_PIECES>(WHITE)
+                            + RootPos.count<ALL_PIECES>(BLACK))
+      {
+          // If the current root position is in the tablebases then RootMoves
+          // contains only moves that preserve the draw or win.
+          TB::RootInTB = Tablebases::root_probe(RootPos, RootMoves, TB::Score);
+
+          if (TB::RootInTB)
+              TB::Cardinality = 0; // Do not probe tablebases during the search
+
+          else // If DTZ tables are missing, use WDL tables as a fallback
+          {
+              // Filter out moves that do not preserve a draw or win
+              TB::RootInTB = Tablebases::root_probe_wdl(RootPos, RootMoves, TB::Score);
+
+              // Only probe during search if winning
+              if (TB::Score <= VALUE_DRAW)
+                  TB::Cardinality = 0;
+          }
+
+          if (TB::RootInTB)
+          {
+              TB::Hits = RootMoves.size();
+
+              if (!TB::UseRule50)
+                  TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
+                             : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
+                                                      :  VALUE_DRAW;
+          }
+      }
+
       for (size_t i = 0; i < Threads.size(); ++i)
           Threads[i]->maxPly = 0;
 
@@ -217,9 +274,12 @@ void Search::think() {
       RootPos.this_thread()->wait_for(Signals.stop);
   }
 
-  sync_cout << "bestmove " << UCI::format_move(RootMoves[0].pv[0], RootPos.is_chess960())
-            << " ponder "  << UCI::format_move(RootMoves[0].pv[1], RootPos.is_chess960())
-            << sync_endl;
+  sync_cout << "bestmove " << UCI::format_move(RootMoves[0].pv[0], RootPos.is_chess960());
+
+  if (RootMoves[0].pv.size() > 1)
+      std::cout << " ponder " << UCI::format_move(RootMoves[0].pv[1], RootPos.is_chess960());
+
+  std::cout << sync_endl;
 }
 
 
@@ -483,6 +543,36 @@ namespace {
         return ttValue;
     }
 
+    // Step 4a. Tablebase probe
+    if (!RootNode && TB::Cardinality)
+    {
+        int piecesCnt = pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK);
+
+        if (    piecesCnt <= TB::Cardinality
+            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
+            &&  pos.rule50_count() == 0)
+        {
+            int found, v = Tablebases::probe_wdl(pos, &found);
+
+            if (found)
+            {
+                TB::Hits++;
+
+                int drawScore = TB::UseRule50 ? 1 : 0;
+
+                value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
+                       : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
+                                        :  VALUE_DRAW + 2 * v * drawScore;
+
+                TT.store(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
+                         std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
+                         MOVE_NONE, VALUE_NONE);
+
+                return value;
+            }
+        }
+    }
+
     // Step 5. Evaluate the position statically and update parent's gain statistics
     if (inCheck)
     {
@@ -558,7 +648,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (3 + depth / 4 + std::min(int(eval - beta) / PawnValueMg, 3)) * ONE_PLY;
+        Depth R = (3 + depth / 4 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
 
         pos.do_null_move(st);
         (ss+1)->skipNullMove = true;
@@ -691,7 +781,7 @@ moves_loop: // When in check and at SpNode search starts from here
           Signals.firstRootMove = (moveCount == 1);
 
           if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
-              sync_cout << "info depth " << depth
+              sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << UCI::format_move(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
       }
@@ -724,7 +814,7 @@ moves_loop: // When in check and at SpNode search starts from here
           && !ext
           &&  pos.legal(move, ci.pinned))
       {
-          Value rBeta = ttValue - int(2 * depth);
+          Value rBeta = ttValue - 2 * depth / ONE_PLY;
           ss->excludedMove = move;
           ss->skipNullMove = true;
           value = search<NonPV, false>(pos, ss, rBeta - 1, rBeta, depth / 2, cutNode);
@@ -1260,7 +1350,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Increase history value of the cut-off move and decrease all the other
     // played quiet moves.
-    Value bonus = Value(int(depth) * int(depth));
+    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY));
     History.update(pos.moved_piece(move), to_sq(move), bonus);
     for (int i = 0; i < quietsCnt; ++i)
     {
@@ -1343,11 +1433,14 @@ moves_loop: // When in check and at SpNode search starts from here
     {
         bool updated = (i <= PVIdx);
 
-        if (depth == 1 && !updated)
+        if (depth == ONE_PLY && !updated)
             continue;
 
         Depth d = updated ? depth : depth - ONE_PLY;
         Value v = updated ? RootMoves[i].score : RootMoves[i].prevScore;
+
+        bool tb = TB::RootInTB && abs(v) < VALUE_MATE - MAX_PLY;
+        v = tb ? TB::Score : v;
 
         if (ss.rdbuf()->in_avail()) // Not at first line
             ss << "\n";
@@ -1355,9 +1448,10 @@ moves_loop: // When in check and at SpNode search starts from here
         ss << "info depth " << d / ONE_PLY
            << " seldepth "  << selDepth
            << " multipv "   << i + 1
-           << " score "     << (i == PVIdx ? UCI::format_value(v, alpha, beta) : UCI::format_value(v))
+           << " score "     << ((!tb && i == PVIdx) ? UCI::format_value(v, alpha, beta) : UCI::format_value(v))
            << " nodes "     << pos.nodes_searched()
            << " nps "       << pos.nodes_searched() * 1000 / elapsed
+           << " tbhits "    << TB::Hits
            << " time "      << elapsed
            << " pv";
 
@@ -1533,7 +1627,11 @@ void check_time() {
       dbg_print();
   }
 
-  if (Limits.use_time_management() && !Limits.ponder)
+  // An engine may not stop pondering until told so by the GUI
+  if (Limits.ponder)
+      return;
+
+  if (Limits.use_time_management())
   {
       bool stillAtFirstMove =    Signals.firstRootMove
                              && !Signals.failedLowAtRoot
