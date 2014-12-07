@@ -36,7 +36,7 @@ PGOBENCH = ./$(EXE) bench 16 1 1 default time
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
 	material.o misc.o movegen.o movepick.o pawns.o position.o \
-	search.o thread.o timeman.o tt.o uci.o ucioption.o syzygy/tbprobe.o
+	search.o thread.o timeman.o tt.o uci.o ucioption.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -390,7 +390,7 @@ install:
 	-strip $(BINDIR)/$(EXE)
 
 clean:
-	$(RM) $(EXE) $(EXE).exe *.o .depend *~ core bench.txt *.gcda ./syzygy/*.o ./syzygy/*.gcda
+	$(RM) $(EXE) $(EXE).exe *.o .depend *~ core bench.txt *.gcda
 
 default:
 	help
@@ -454,7 +454,7 @@ gcc-profile-use:
 	all
 
 gcc-profile-clean:
-	@rm -rf *.gcda *.gcno syzygy/*.gcda syzygy/*.gcno bench.txt
+	@rm -rf *.gcda *.gcno bench.txt
 
 icc-profile-prepare:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean
