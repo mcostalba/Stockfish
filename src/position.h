@@ -402,6 +402,7 @@ inline void Position::put_piece(Square s, Color c, PieceType pt) {
   byColorBB[c] |= s;
   index[s] = pieceCount[c][pt]++;
   pieceList[c][pt][index[s]] = s;
+  pieceCount[c][ALL_PIECES]++;
 }
 
 inline void Position::move_piece(Square from, Square to, Color c, PieceType pt) {
@@ -432,6 +433,7 @@ inline void Position::remove_piece(Square s, Color c, PieceType pt) {
   index[lastSquare] = index[s];
   pieceList[c][pt][index[lastSquare]] = lastSquare;
   pieceList[c][pt][pieceCount[c][pt]] = SQ_NONE;
+  pieceCount[c][ALL_PIECES]--;
 }
 
 #endif // #ifndef POSITION_H_INCLUDED
