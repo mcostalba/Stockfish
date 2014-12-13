@@ -65,11 +65,14 @@ namespace {
   { V(100), V(0), V(27), V(73), V(92), V(101), V(101) };
 
   // Danger of enemy pawns moving toward our king indexed by
-  // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-  const Value StormDanger[][RANK_NB] = {
-  { V( 0),  V(64), V(128), V(51), V(26) },
-  { V(26),  V(32), V( 96), V(38), V(20) },
-  { V( 0),  V( 0), V(160), V(25), V(13) } };
+  // [edge files][no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
+  const Value StormDanger[][3][RANK_NB] = {
+  { { V( 0),  V(64), V(128), V(51), V(26) },
+    { V(26),  V(32), V( 96), V(38), V(20) },
+    { V( 0),  V( 0), V(160), V(25), V(13) } },
+  { { V( 0),  V(64), V(128), V(51), V(26) },
+    { V(26),  V(32), V( 96), V(38), V(20) },
+    { V( 0),  V( 0), V( 80), V(13), V( 7) } } };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
@@ -252,7 +255,8 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
           safety += 200;
       else
           safety -=  ShelterWeakness[rkUs]
-                   + StormDanger[rkUs   == RANK_1   ? 0 :
+                   + StormDanger[f == FILE_A || f == FILE_H]
+                                [rkUs   == RANK_1   ? 0 :
                                  rkThem != rkUs + 1 ? 1 : 2][rkThem];
   }
 
@@ -268,14 +272,14 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
 
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.can_castle(Us);
-  minKPdistance[Us] = 0;
+  minKingPawnDistance[Us] = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
   if (pawns)
-      while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
+      while (!(DistanceRingsBB[ksq][minKingPawnDistance[Us]++] & pawns)) {}
 
   if (relative_rank(Us, ksq) > RANK_4)
-      return make_score(0, -16 * minKPdistance[Us]);
+      return make_score(0, -16 * minKingPawnDistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
@@ -286,7 +290,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-  return make_score(bonus, -16 * minKPdistance[Us]);
+  return make_score(bonus, -16 * minKingPawnDistance[Us]);
 }
 
 // Explicit template instantiation
