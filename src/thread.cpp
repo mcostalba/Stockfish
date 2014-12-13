@@ -62,12 +62,12 @@ void ThreadBase::notify_one() {
 }
 
 
-// wait_for() set the thread to sleep until condition 'b' turns true
+// wait_for() set the thread to sleep until 'condition' turns true
 
-void ThreadBase::wait_for(volatile const bool& b) {
+void ThreadBase::wait_for(volatile const bool& condition) {
 
   std::unique_lock<std::mutex> lk(mutex);
-  sleepCondition.wait(lk, [&]{ return b; });
+  sleepCondition.wait(lk, [&]{ return condition; });
 }
 
 
