@@ -701,7 +701,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       if (PvNode)
-          (ss+1)->pv = NULL;
+          (ss+1)->pv = nullptr;
 
       extension = DEPTH_ZERO;
       captureOrPromotion = pos.capture_or_promotion(move);
@@ -1472,7 +1472,7 @@ void Thread::idle_loop() {
               for (size_t i = 0; i < Threads.size(); ++i)
               {
                   const int size = Threads[i]->splitPointsSize; // Local copy
-                  sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
+                  sp = size ? &Threads[i]->splitPoints[size - 1] : nullptr;
 
                   if (   sp
                       && sp->allSlavesSearching
