@@ -27,6 +27,7 @@
 #include "material.h"
 #include "pawns.h"
 #include "thread.h"
+#include "uci.h"
 
 namespace {
 
@@ -153,9 +154,11 @@ namespace {
 
   // Passed[relative rank] contains the base bonus for passed pawn. It will be
   // further adjusted in passed pawn evaluation.
-  const Score Passed[] = {
-    S(0, 0), S(0, 7), S(0, 14), S(34, 35), S(102, 70), S(204, 119), S(340, 182)
-  };
+
+  //    const Score Passed[] = {
+  //      S(0, 0), S(0, 7), S(0, 14), S(34, 35), S(102, 70), S(204, 119), S(340, 182)
+  //    };
+  Score Passed[8];
 
   const Score PassedDoubled[] = {
     S(0, 0), S(3, 0), S(5, 2), S(13, 6), S(27, 12), S(47, 20), S(73, 30)
@@ -916,6 +919,13 @@ namespace Eval {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
         KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
     }
+
+    Passed[RANK_2] = make_score(Options["r2m"], Options["r2e"]);
+    Passed[RANK_3] = make_score(Options["r3m"], Options["r3e"]);
+    Passed[RANK_4] = make_score(Options["r4m"], Options["r4e"]);
+    Passed[RANK_5] = make_score(Options["r5m"], Options["r5e"]);
+    Passed[RANK_6] = make_score(Options["r6m"], Options["r6e"]);
+    Passed[RANK_7] = make_score(Options["r7m"], Options["r7e"]);
   }
 
 } // namespace Eval

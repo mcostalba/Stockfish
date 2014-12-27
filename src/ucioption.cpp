@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <sstream>
 
+#include "evaluate.h"
 #include "misc.h"
 #include "thread.h"
 #include "tt.h"
@@ -40,6 +41,7 @@ void on_hash_size(const Option& o) { TT.resize(o); }
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+void on_eval(const Option&) { Eval::init(); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
@@ -71,6 +73,17 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
+
+  // SPSA
+  //    const Score Passed[] = {
+  //      S(0, 0), S(0, 7), S(0, 14), S(34, 35), S(102, 70), S(204, 119), S(340, 182)
+  //    };
+  o["r2m"] << Option(  0, -50, 50, on_eval), o["r2e"] << Option(  7, -50, 50, on_eval);
+  o["r3m"] << Option(  0, -50, 50, on_eval), o["r3e"] << Option( 14, -50, 50, on_eval);
+  o["r4m"] << Option( 34, -50,100, on_eval), o["r4e"] << Option( 35, -50,100, on_eval);
+  o["r5m"] << Option(102,  50,150, on_eval), o["r5e"] << Option( 70,  50,150, on_eval);
+  o["r6m"] << Option(204, 150,250, on_eval), o["r6e"] << Option(119,  50,150, on_eval);
+  o["r7m"] << Option(340, 250,400, on_eval), o["r7e"] << Option(182, 150,250, on_eval);
 }
 
 
