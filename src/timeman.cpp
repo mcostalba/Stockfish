@@ -35,7 +35,7 @@ namespace {
 
   const double xscale     = 9.3;
   const double xshift     = 59.8;
-  const double skewfactor = 0.169;
+  const double skewfactor = 0.175;
 
 
   // move_importance() is a skew-logistic function based on naive statistical
