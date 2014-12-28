@@ -35,7 +35,7 @@ namespace {
 
   const double xscale     = 9.3;
   const double xshift     = 59.8;
-  const double skewfactor = 0.172;
+  const double skewfactor = 0.169;
 
 
   // move_importance() is a skew-logistic function based on naive statistical
@@ -89,6 +89,15 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   // Initialize unstablePvFactor to 1 and search times to maximum values
   unstablePvFactor = 1;
   optimumSearchTime = maximumSearchTime = std::max(limits.time[us], minThinkingTime);
+
+//  for (int i = 1; i < 50; i++)
+//  {
+//      std::cerr <<  move_importance(i, skewfactor) << ", "
+//                <<  move_importance(i, 0.169) << ", "
+//                <<  move_importance(i, 0.175) << ", " << std::endl;
+//  }
+
+//  exit(0);
 
   // We calculate optimum time usage for different hypothetical "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
