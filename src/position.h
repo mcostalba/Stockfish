@@ -85,6 +85,7 @@ public:
 
   // FEN string input/output
   void set(const std::string& fenStr, bool isChess960, Thread* th);
+  void set_random(std::string code, Thread* th);
   const std::string fen() const;
 
   // Position representation

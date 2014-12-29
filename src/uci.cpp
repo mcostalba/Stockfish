@@ -135,6 +135,29 @@ namespace {
     Threads.start_thinking(pos, limits, SetupStates);
   }
 
+
+  // generate() is called when engine receives "generate" command. The function
+  // will generate a given number of random positions with pieces defined by
+  // endgame-like code (KBBKN, KPPPKNP).
+  //
+  // Usage: stockfish generate KBBKNP 10000
+
+  void generate(istringstream& is) {
+
+    Position pos;
+    string code;
+    int count;
+
+    is >> code;
+    is >> count;
+
+    for (int i = 0; i < count; i++)
+    {
+        pos.set_random(code, Threads.main());
+        sync_cout << pos.fen() << sync_endl;
+    }
+  }
+
 } // namespace
 
 
@@ -204,6 +227,7 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "setoption")  setoption(is);
       else if (token == "flip")       pos.flip();
       else if (token == "bench")      benchmark(pos, is);
+      else if (token == "generate")   generate(is);
       else if (token == "d")          sync_cout << pos << sync_endl;
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
       else if (token == "eval")       sync_cout << Eval::trace(pos) << sync_endl;

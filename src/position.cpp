@@ -328,6 +328,64 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 }
 
 
+/// Position::set_random() set a position out of a piece list code written like
+/// an endgame (KBBKN, KPPPKNP). Position is guaranteed to be legal and with
+/// pieces randomly placed on the board. Limited sanity check is done on the
+/// code string, so it's up to the user to get it right.
+
+void Position::set_random(std::string code, Thread* th)
+{
+    thisThread = th;
+
+    static PRNG rng(1070372);
+
+    // Normalize to upper case
+    std::transform(code.begin(), code.end(), code.begin(), toupper);
+
+    if (code.length() < 1 || code.length() > 16 || code[0] != 'K')
+        exit(0); // Should start with K and represent a legal number of pieces
+
+    if (std::count(code.begin(), code.end(), 'K') != 2)
+        exit(0); // Incorrect number of kings
+
+    for (size_t i = 0; i < code.size(); i++)
+        if (PieceToChar.find(code[i]) == string::npos)
+            exit(0); // Incorrect piece character
+
+    do // Loop until we generate a legal position
+    {
+        clear();
+        sideToMove = (rng.rand<unsigned>() & 1) ? WHITE : BLACK;
+
+        for (size_t i = 0; i < code.size(); i++)
+        {
+            Square sq;
+            PieceType pt = PieceType(PieceToChar.find(code[i]));
+
+            if (pt == KING)
+                sideToMove = ~sideToMove; // Toggle color upon reading the king
+
+            do
+                sq = Square(rng.rand<unsigned>() & 63);
+            while (   board[sq] != NO_PIECE
+                   || (pt == PAWN && (rank_of(sq) == RANK_1 || rank_of(sq) == RANK_8)));
+
+            put_piece(sq, sideToMove, pt);
+        }
+
+        // Ensure sideToMove is not always the weaker side. Note that there is
+        // anyhow some bias toward side to move to be the weaker side due to
+        // legality check that on average fails more when stronger side is
+        // the side to move.
+        if (rng.rand<unsigned>() & 1)
+            sideToMove = ~sideToMove;
+
+    } while (attackers_to(king_square(~sideToMove)) & pieces(sideToMove));
+
+    set_state(st);
+}
+
+
 /// Position::set_castling_right() is a helper function used to set castling
 /// rights given the corresponding color and the rook starting square.
 
