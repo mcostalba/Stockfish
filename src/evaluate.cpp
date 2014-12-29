@@ -627,8 +627,8 @@ namespace {
                              + (defended == squaresToQueen ? AllDefended   :
                                 defended & blockSq         ? BlockDefended : SCORE_ZERO));
             }
-            else if (pos.pieces(Us) & blockSq)
-                score += PassedDoubled[rr];
+//            else if (pos.pieces(Us) & blockSq)
+//                score += PassedDoubled[rr];
         }
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
