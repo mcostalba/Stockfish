@@ -27,6 +27,7 @@
 #include "material.h"
 #include "pawns.h"
 #include "thread.h"
+#include "uci.h"
 
 namespace {
 
@@ -174,10 +175,11 @@ namespace {
   const Score TrappedRook      = S(92,  0);
   const Score Unstoppable      = S( 0, 20);
   const Score Hanging          = S(31, 26);
-  const Score AllSafe          = S(15, 15);
-  const Score BlockSafe        = S( 9,  9);
-  const Score AllDefended      = S( 6,  6);
-  const Score BlockDefended    = S( 4,  4);
+
+  Score AllSafe;
+  Score BlockSafe;
+  Score AllDefended;
+  Score BlockDefended;
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -916,6 +918,11 @@ namespace Eval {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
         KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
     }
+
+    AllSafe       = make_score(Options["mAllSafe"],       Options["eAllSafe"]);
+    BlockSafe     = make_score(Options["mBlockSafe"],     Options["eBlockSafe"]);
+    AllDefended   = make_score(Options["mAllDefended"],   Options["eAllDefended"]);
+    BlockDefended = make_score(Options["mBlockDefended"], Options["eBlockDefended"]);
   }
 
 } // namespace Eval
