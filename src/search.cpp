@@ -415,15 +415,15 @@ namespace {
         //
         // Limit on depth >= minimumSplitDepth + x
         //
-        // +5 -> 18346-21108-18308
+        // +5 -> 18346-21108-18308 with efficency 18039-15405-18438
         // +3 -> 21955-18831-21079
         // +1 -> 21979-22498-20562
         //
         // Limit on depth >= Depth(x)
         //
-        // 16 -> 17797-16280-18631
-        // 14 -> 18260-16409-17727
-        // 12 -> 16313-18541-17216
+        // 16 -> 17797-16280-18631 with efficency 80% 16242-16597-15661
+        // 14 -> 18260-16409-17727 with efficency 80% 16470-16148-16567
+        // 12 -> 16313-18541-17216 with efficency 80% 16832-14499-16822
         // 10 -> 19617-17231-18519
         //
         // ./stockfish bench 128 4 20 > /dev/null
@@ -434,18 +434,31 @@ namespace {
         //
         // Limit on depth >= minimumSplitDepth + x
         //
-        // +5 -> 38316-41746-34335
+        // +5 -> 38316-41746-34335 with efficency 80% 37183-33299-39057
         //
         // Limit on depth >= Depth(x)
         //
         // 18 -> 35767-35282-39858
         // 16 -> 35144-32703-30031
-        // 14 -> 33643-37032-38256
-        // 12 -> 38193-36801-41000
+        // 14 -> 33643-37032-38256 with efficency 80% 36903-36261-34275
+        // 12 -> 38193-36801-41000 with efficency 80% 37936-35795-37233
+        //
+        // ./stockfish bench 128 4 22 > /dev/null
+        //
+        // Time to bench in msec:
+        //
+        // default -> 70261
+        //
+        // Limit on depth >= Depth(x)
+        //
+        // 12 -> 38193-36801-41000 with efficency 90% 77334-79548
+        // 12 -> 38193-36801-41000 with efficency 85% 75940-82369
 
         // Dynamic minimum split depth
-        if (Threads.size() >= 2 && depth >= Threads.minimumSplitDepth + 5)
+        if (Threads.size() >= 2 && depth >= 12)
         {
+            const double efficency = 0.85;
+
             // Store last iteration nps
             Time::point elapsed = Time::now() - SearchTime + 1;
             uint64_t nps = pos.nodes_searched() * 1000 / elapsed;
@@ -453,14 +466,16 @@ namespace {
 
             // Throttle back?
             if (   Threads.minimumSplitDepth > ONE_PLY
-                && msdNPS[Threads.minimumSplitDepth - ONE_PLY] > nps)
+                && msdNPS[Threads.minimumSplitDepth - ONE_PLY] > nps * efficency)
                 Threads.minimumSplitDepth -= ONE_PLY;
 
             // Increase MSD?
             else if (   Threads.minimumSplitDepth < Depth(18)
                      && (   msdNPS[Threads.minimumSplitDepth + ONE_PLY] == 0
-                         || msdNPS[Threads.minimumSplitDepth + ONE_PLY] > nps))
+                         || msdNPS[Threads.minimumSplitDepth + ONE_PLY] > nps / efficency))
                 Threads.minimumSplitDepth += ONE_PLY;
+
+//            std::cerr << "minimumSplitDepth: " << Threads.minimumSplitDepth << std::endl;
         }
 
         // If skill levels are enabled and time is up, pick a sub-optimal best move
