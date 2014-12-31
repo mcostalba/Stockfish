@@ -407,6 +407,42 @@ namespace {
                 sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
         }
 
+        // ./stockfish bench 128 4 18 > /dev/null
+        //
+        // Time to bench in msec:
+        //
+        // default -> 17081-16559-17472
+        //
+        // Limit on depth >= minimumSplitDepth + x
+        //
+        // +5 -> 18346-21108-18308
+        // +3 -> 21955-18831-21079
+        // +1 -> 21979-22498-20562
+        //
+        // Limit on depth >= Depth(x)
+        //
+        // 16 -> 17797-16280-18631
+        // 14 -> 18260-16409-17727
+        // 12 -> 16313-18541-17216
+        // 10 -> 19617-17231-18519
+        //
+        // ./stockfish bench 128 4 20 > /dev/null
+        //
+        // Time to bench in msec:
+        //
+        // default -> 31352-32410-34661
+        //
+        // Limit on depth >= minimumSplitDepth + x
+        //
+        // +5 -> 38316-41746-34335
+        //
+        // Limit on depth >= Depth(x)
+        //
+        // 18 -> 35767-35282-39858
+        // 16 -> 35144-32703-30031
+        // 14 -> 33643-37032-38256
+        // 12 -> 38193-36801-41000
+
         // Dynamic minimum split depth
         if (Threads.size() >= 2 && depth >= Threads.minimumSplitDepth + 5)
         {
