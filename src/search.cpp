@@ -292,10 +292,13 @@ namespace {
   void id_loop(Position& pos) {
 
     Stack stack[MAX_PLY+4], *ss = stack+2; // To allow referencing (ss-2) and (ss+2)
+    uint64_t msdNPS[20];
     Depth depth;
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
+    std::memset(msdNPS, 0, sizeof(msdNPS));
+    Threads.read_uci_options(); // Reset minimumSplitDepth
 
     depth = DEPTH_ZERO;
     BestMoveChanges = 0;
@@ -402,6 +405,26 @@ namespace {
             else if (   PVIdx + 1 == std::min(multiPV, RootMoves.size())
                      || Time::now() - SearchTime > 3000)
                 sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+        }
+
+        // Dynamic minimum split depth
+        if (Threads.size() >= 2 && depth >= Threads.minimumSplitDepth + 5)
+        {
+            // Store last iteration nps
+            Time::point elapsed = Time::now() - SearchTime + 1;
+            uint64_t nps = pos.nodes_searched() * 1000 / elapsed;
+            msdNPS[Threads.minimumSplitDepth] = nps;
+
+            // Throttle back?
+            if (   Threads.minimumSplitDepth > ONE_PLY
+                && msdNPS[Threads.minimumSplitDepth - ONE_PLY] > nps)
+                Threads.minimumSplitDepth -= ONE_PLY;
+
+            // Increase MSD?
+            else if (   Threads.minimumSplitDepth < Depth(18)
+                     && (   msdNPS[Threads.minimumSplitDepth + ONE_PLY] == 0
+                         || msdNPS[Threads.minimumSplitDepth + ONE_PLY] > nps))
+                Threads.minimumSplitDepth += ONE_PLY;
         }
 
         // If skill levels are enabled and time is up, pick a sub-optimal best move
