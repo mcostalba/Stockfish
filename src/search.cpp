@@ -481,7 +481,7 @@ namespace {
         ttMove = excludedMove = MOVE_NONE;
         ttValue = VALUE_NONE;
 
-        assert(splitPoint->bestValue > -VALUE_INFINITE && splitPoint->moveCount > 0);
+        assert(splitPoint->bestValue > -VALUE_INFINITE /*&& splitPoint->moveCount > 0*/);
 
         goto moves_loop;
     }
@@ -749,6 +749,35 @@ moves_loop: // When in check and at SpNode search starts from here
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
+
+    // Early split at the child of the first root move. The idea is to start the
+    // threads as early and as high as possible, without waiting for the end of
+    // the search on the first move.
+    if (    PvNode
+        && !SpNode
+        &&  ss->ply == 2
+        &&  beta - alpha == 16 + 16 // Minimum search window
+        &&  Threads.size() >= 2
+        &&  depth >= Threads.minimumSplitDepth
+        &&  (   !thisThread->activeSplitPoint
+             || !thisThread->activeSplitPoint->allSlavesSearching)
+        &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
+    {
+        assert(!RootNode);
+        assert((ss-1)->currentMove = RootMoves[0].pv[0]);
+        assert(bestValue == -VALUE_INFINITE && bestValue < beta);
+
+        bestValue = alpha;
+
+        thisThread->split(pos, ss, alpha, beta, &bestValue, &bestMove,
+                          depth, moveCount, &mp, NT, cutNode);
+
+        if (Signals.stop || thisThread->cutoff_occurred())
+            return VALUE_ZERO;
+
+        if (bestValue >= beta)
+            goto finish;
+    }
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1056,6 +1085,8 @@ moves_loop: // When in check and at SpNode search starts from here
               break;
       }
     }
+
+finish:
 
     if (SpNode)
         return bestValue;
