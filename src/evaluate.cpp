@@ -27,6 +27,7 @@
 #include "material.h"
 #include "pawns.h"
 #include "thread.h"
+#include "uci.h"
 
 namespace {
 
@@ -157,7 +158,8 @@ namespace {
     S(0, 0), S(0, 7), S(0, 14), S(34, 35), S(98, 67), S(205, 123), S(337, 182)
   };
 
-  const Weight PawnMinority = {256, 320};
+//  const Weight PawnMinority = {256, 320};
+  Weight PawnMinority;
 
   // Assorted bonuses and penalties used by evaluation
   const Score KingOnOne          = S( 2, 58);
@@ -171,14 +173,16 @@ namespace {
   const Score Unstoppable        = S( 0, 20);
   const Score Hanging            = S(31, 26);
 
-  const Score AllSafe            = S(120,160);
-  const Score BlockSafe          = S( 40, 56);
-  const Score AllDefended        = S( 40, 80);
-  const Score BlockDefended      = S(  8, 32);
-  const Score BlockedByFriend    = S( 32, 16);
-  const Score KingDistanceUs     = S(  0, 16);
-  const Score KingDistanceUs2    = S(  0,  8);
-  const Score KingDistanceThem   = S(  0, 40);
+//  const Score AllSafe            = S(120,160);
+//  const Score BlockSafe          = S( 40, 56);
+//  const Score AllDefended        = S( 40, 80);
+//  const Score BlockDefended      = S(  8, 32);
+//  const Score BlockedByFriend    = S( 32, 16);
+//  const Score KingDistanceUs     = S(  0, 16);
+//  const Score KingDistanceUs2    = S(  0,  8);
+//  const Score KingDistanceThem   = S(  0, 40);
+  Score AllSafe, BlockSafe, AllDefended, BlockDefended, BlockedByFriend,
+        KingDistanceUs, KingDistanceUs2, KingDistanceThem;
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -910,6 +914,19 @@ namespace Eval {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
         KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
     }
+
+    // SPSA
+
+    PawnMinority = { Options["mPawnMinority"], Options["ePawnMinority"] };
+
+    AllSafe          = make_score(Options["mAllSafe"],          Options["eAllSafe"]);
+    BlockSafe        = make_score(Options["mBlockSafe"],        Options["eBlockSafe"]);
+    AllDefended      = make_score(Options["mAllDefended"],      Options["eAllDefended"]);
+    BlockDefended    = make_score(Options["mBlockDefended"],    Options["eBlockDefended"]);
+    BlockedByFriend  = make_score(Options["mBlockedByFriend"],  Options["eBlockedByFriend"]);
+    KingDistanceUs   = make_score(Options["mKingDistanceUs"],   Options["eKingDistanceUs"]);
+    KingDistanceUs2  = make_score(Options["mKingDistanceUs2"],  Options["eKingDistanceUs2"]);
+    KingDistanceThem = make_score(Options["mKingDistanceThem"], Options["eKingDistanceThem"]);
   }
 
 } // namespace Eval

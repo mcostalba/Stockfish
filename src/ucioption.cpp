@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <sstream>
 
+#include "evaluate.h"
 #include "misc.h"
 #include "thread.h"
 #include "tt.h"
@@ -40,6 +41,7 @@ void on_hash_size(const Option& o) { TT.resize(o); }
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+void on_eval(const Option&) { Eval::init(); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
@@ -71,6 +73,31 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
+
+  // SPSA
+  //
+  //  const Weight PawnMinority = {256, 320};
+
+  o["mPawnMinority"] << Option(256,0,500, on_eval), o["ePawnMinority"] << Option(320,0,500, on_eval);
+
+
+  //  const Score AllSafe            = S(120,160);
+  //  const Score BlockSafe          = S( 40, 56);
+  //  const Score AllDefended        = S( 40, 80);
+  //  const Score BlockDefended      = S(  8, 32);
+  //  const Score BlockedByFriend    = S( 32, 16);
+  //  const Score KingDistanceUs     = S(  0, 16);
+  //  const Score KingDistanceUs2    = S(  0,  8);
+  //  const Score KingDistanceThem   = S(  0, 40);
+
+  o["mAllSafe"]          << Option(120,0,200, on_eval), o["eAllSafe"]          << Option(160,0,200, on_eval);
+  o["mBlockSafe"]        << Option( 40,0,200, on_eval), o["eBlockSafe"]        << Option( 56,0,200, on_eval);
+  o["mAllDefended"]      << Option( 40,0,200, on_eval), o["eAllDefended"]      << Option( 80,0,200, on_eval);
+  o["mBlockDefended"]    << Option(  8,0,200, on_eval), o["eBlockDefended"]    << Option( 32,0,200, on_eval);
+  o["mBlockedByFriend"]  << Option( 32,0,200, on_eval), o["eBlockedByFriend"]  << Option( 16,0,200, on_eval);
+  o["mKingDistanceUs"]   << Option( 0,-50,50, on_eval), o["eKingDistanceUs"]   << Option( 16,0,200, on_eval);
+  o["mKingDistanceUs2"]  << Option( 0,-50,50, on_eval), o["eKingDistanceUs2"]  << Option(  8,0,200, on_eval);
+  o["mKingDistanceThem"] << Option( 0,-50,50, on_eval), o["eKingDistanceThem"] << Option( 40,0,200, on_eval);
 }
 
 
