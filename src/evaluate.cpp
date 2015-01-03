@@ -476,7 +476,7 @@ namespace {
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from evaluation.
-        score -= KingDanger[std::max(std::min(attackUnits / 4, 99), 0)];
+        score -= KingDanger[std::max(std::min((attackUnits / 4)*2, 126), 0)];
     }
 
     if (Trace)
@@ -894,10 +894,11 @@ namespace Eval {
     const double MaxSlope = 30;
     const double Peak = 1280;
 
-    for (int t = 0, i = 1; i < 100; ++i)
+    for (int t = 0, i = 1; i < 64; i++)
     {
         t = int(std::min(Peak, std::min(0.4 * i * i, t + MaxSlope)));
-        KingDanger[i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
+        KingDanger[2*i] = apply_weight(make_score(t, 0), Weights[KingSafety]);
+        KingDanger[2*i-1] = (KingDanger[2*i] + KingDanger[2*i-2]) / 2;
     }
   }
 
