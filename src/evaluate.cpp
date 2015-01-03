@@ -476,7 +476,7 @@ namespace {
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from evaluation.
-        score -= KingDanger[std::max(std::min((attackUnits / 4)*2, 126), 0)];
+        score -= KingDanger[std::max(std::min(attackUnits / 2, 126), 0)];
     }
 
     if (Trace)
