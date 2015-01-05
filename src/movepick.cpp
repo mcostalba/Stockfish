@@ -272,6 +272,8 @@ void MovePicker::generate_next_stage() {
 
   case QUIET_CHECKS_S3:
       end = generate<QUIET_CHECKS>(pos, moves);
+      if (end > moves + 1)
+          score<EVASIONS>();
       return;
 
   case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT: case RECAPTURE:
@@ -363,7 +365,7 @@ Move MovePicker::next_move<false>() {
           break;
 
       case QUIET_CHECKS_S3:
-          move = (cur++)->move;
+          move = pick_best(cur++, end)->move;
           if (move != ttMove)
               return move;
           break;
