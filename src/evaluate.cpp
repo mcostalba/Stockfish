@@ -578,7 +578,7 @@ namespace {
 
             // Adjust bonus based on the king's proximity
             ebonus +=  distance(pos.king_square(Them), blockSq) * 5 * rr
-                     - distance(pos.king_square(Us  ), blockSq) * 2 * rr;
+                     - distance(pos.king_square(Us  ), blockSq) * 3 * rr;
 
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
