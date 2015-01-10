@@ -170,7 +170,7 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
   sp.allSlavesSearching = true; // Must be set under lock protection
   ++splitPointsSize;
   activeSplitPoint = &sp;
-  activePosition = NULL;
+  activePosition = nullptr;
 
   Thread* slave;
 
