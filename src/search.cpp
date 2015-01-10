@@ -563,7 +563,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (3 + depth / 4 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
+        Depth R = ((823 + 67 * depth) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
 
         pos.do_null_move(st);
         (ss+1)->skipEarlyPruning = true;
@@ -1356,8 +1356,12 @@ moves_loop: // When in check and at SpNode search starts from here
         ss << "info depth " << d / ONE_PLY
            << " seldepth "  << selDepth
            << " multipv "   << i + 1
-           << " score "     << (i == PVIdx ? UCI::value(v, alpha, beta) : UCI::value(v))
-           << " nodes "     << pos.nodes_searched()
+           << " score "     << UCI::value(v);
+
+        if (i == PVIdx)
+              ss << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
+
+        ss << " nodes "     << pos.nodes_searched()
            << " nps "       << pos.nodes_searched() * 1000 / elapsed
            << " time "      << elapsed
            << " pv";
