@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ void ThreadBase::wait_for(volatile const bool& condition) {
 // Thread c'tor makes some init but does not launch any execution thread that
 // will be started only when c'tor returns.
 
-Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
+Thread::Thread() /* : splitPoints() */ { // Initialization of non POD broken in MSVC
 
   searching = false;
   maxPly = splitPointsSize = 0;

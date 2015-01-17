@@ -1,6 +1,6 @@
 # Stockfish, a UCI chess playing engine derived from Glaurung 2.1
 # Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-# Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+# Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 #
 # Stockfish is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH = ./$(EXE) bench 16 1 1 default time
+PGOBENCH = ./$(EXE) bench 16 1 1000 default time
 
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
@@ -309,6 +309,14 @@ ifeq ($(comp),gcc)
 	endif
 	endif
 endif
+
+### 3.12 Android 5 can only run position independent executables. Note that this
+### breaks Android 4.0 and earlier.
+ifeq ($(arch),armv7)
+	CXXFLAGS += -fPIE
+	LDFLAGS += -fPIE -pie
+endif
+
 
 ### ==========================================================================
 ### Section 4. Public targets

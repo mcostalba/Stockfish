@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -641,7 +641,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
       return true;
 
   // Is there a discovered check?
-  if (   unlikely(ci.dcCandidates)
+  if (    ci.dcCandidates
       && (ci.dcCandidates & from)
       && !aligned(from, to, ci.ksq))
       return true;
@@ -870,7 +870,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
               st->checkersBB |= to;
 
           // Discovered checks
-          if (unlikely(ci.dcCandidates) && (ci.dcCandidates & from))
+          if (ci.dcCandidates && (ci.dcCandidates & from))
           {
               if (pt != ROOK)
                   st->checkersBB |= attacks_from<ROOK>(king_square(them)) & pieces(us, QUEEN, ROOK);
