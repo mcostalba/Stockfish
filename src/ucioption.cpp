@@ -52,7 +52,7 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 
 void init(OptionsMap& o) {
 
-  const int MaxHashMB = Is64Bit ? 1024 * 1024 : 65536;
+  const int MaxHashMB = Is64Bit ? 1024 * 1024 : 2048;
 
   o["Write Debug Log"]       << Option(false, on_logger);
   o["Contempt"]              << Option(0, -100, 100);

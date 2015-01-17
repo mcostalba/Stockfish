@@ -30,11 +30,10 @@ TranspositionTable TT; // Our global transposition table
 /// measured in megabytes. Transposition table consists of a power of 2 number
 /// of clusters and each cluster consists of TTClusterSize number of TTEntry.
 
-void TranspositionTable::resize(uint64_t mbSize) {
+void TranspositionTable::resize(size_t mbSize) {
 
   assert(sizeof(Cluster) == CacheLineSize / 2);
 
-  // Here mbSize should be 64 bit to not overflow (mbSize * 1024 * 1024)
   size_t newClusterCount = size_t(1) << msb((mbSize * 1024 * 1024) / sizeof(Cluster));
 
   if (newClusterCount == clusterCount)
