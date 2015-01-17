@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ enum EndgameType {
 
 
   // Scaling functions
-  SCALE_FUNS,
+  SCALING_FUNCTIONS,
 
   KBPsK,   // KB and pawns vs K
   KQKRPs,  // KQ vs KR and pawns
@@ -68,7 +68,7 @@ enum EndgameType {
 /// Endgame functions can be of two types depending on whether they return a
 /// Value or a ScaleFactor.
 template<EndgameType E>
-using eg_fun = std::conditional<(E < SCALE_FUNS), Value, ScaleFactor>;
+using eg_fun = std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>;
 
 
 /// Base and derived templates for endgame evaluation and scaling functions
@@ -95,8 +95,8 @@ private:
 
 
 /// The Endgames class stores the pointers to endgame evaluation and scaling
-/// base objects in two std::map typedefs. We then use polymorphism to invoke
-/// the actual endgame function by calling its virtual operator().
+/// base objects in two std::map. We use polymorphism to invoke the actual
+/// endgame function by calling its virtual operator().
 
 class Endgames {
 

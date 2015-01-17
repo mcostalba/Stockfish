@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -497,7 +497,7 @@ namespace {
     else if (ttHit)
     {
         // Never assume anything on values stored in TT
-        if ((ss->staticEval = eval = tte->eval_value()) == VALUE_NONE)
+        if ((ss->staticEval = eval = tte->eval()) == VALUE_NONE)
             eval = ss->staticEval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
@@ -545,7 +545,7 @@ namespace {
     }
 
     // Step 7. Futility pruning: child node (skipped when in check)
-    if (   !PvNode
+    if (   !RootNode
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
@@ -742,9 +742,8 @@ moves_loop: // When in check and at SpNode search starts from here
       // Update the current move (this must be done after singular extension search)
       newDepth = depth - ONE_PLY + extension;
 
-      // Step 13. Pruning at shallow depth (exclude PV nodes)
-      if (   !PvNode
-          && !captureOrPromotion
+      // Step 13. Pruning at shallow depth
+      if (   !captureOrPromotion
           && !inCheck
           && !dangerous
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
@@ -819,7 +818,7 @@ moves_loop: // When in check and at SpNode search starts from here
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
           if (   (!PvNode && cutNode)
-              ||  History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
+              ||  History[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO)
               ss->reduction += ONE_PLY;
 
           if (move == countermoves[0] || move == countermoves[1])
@@ -829,7 +828,7 @@ moves_loop: // When in check and at SpNode search starts from here
           if (   ss->reduction
               && type_of(move) == NORMAL
               && type_of(pos.piece_on(to_sq(move))) != PAWN
-              && pos.see(make_move(to_sq(move), from_sq(move))) < 0)
+              && pos.see(make_move(to_sq(move), from_sq(move))) < VALUE_ZERO)
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
@@ -1078,7 +1077,7 @@ moves_loop: // When in check and at SpNode search starts from here
         if (ttHit)
         {
             // Never assume anything on values stored in TT
-            if ((ss->staticEval = bestValue = tte->eval_value()) == VALUE_NONE)
+            if ((ss->staticEval = bestValue = tte->eval()) == VALUE_NONE)
                 ss->staticEval = bestValue = evaluate(pos);
 
             // Can ttValue be used as a better position evaluation?
@@ -1123,8 +1122,7 @@ moves_loop: // When in check and at SpNode search starts from here
                   : pos.gives_check(move, ci);
 
       // Futility pruning
-      if (   !PvNode
-          && !InCheck
+      if (   !InCheck
           && !givesCheck
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
@@ -1133,13 +1131,13 @@ moves_loop: // When in check and at SpNode search starts from here
 
           futilityValue = futilityBase + PieceValue[EG][pos.piece_on(to_sq(move))];
 
-          if (futilityValue < beta)
+          if (futilityValue <= alpha)
           {
               bestValue = std::max(bestValue, futilityValue);
               continue;
           }
 
-          if (futilityBase < beta && pos.see(move) <= VALUE_ZERO)
+          if (futilityBase <= alpha && pos.see(move) <= VALUE_ZERO)
           {
               bestValue = std::max(bestValue, futilityBase);
               continue;
@@ -1153,8 +1151,7 @@ moves_loop: // When in check and at SpNode search starts from here
                        && !pos.can_castle(pos.side_to_move());
 
       // Don't search moves with negative SEE values
-      if (   !PvNode
-          && (!InCheck || evasionPrunable)
+      if (  (!InCheck || evasionPrunable)
           &&  type_of(move) != PROMOTION
           &&  pos.see_sign(move) < VALUE_ZERO)
           continue;
