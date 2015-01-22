@@ -147,9 +147,8 @@ namespace {
         // If the pawn is passed, isolated, or connected it cannot be
         // backward. If there are friendly pawns behind on adjacent files
         // or if it can capture an enemy pawn it cannot be backward either.
-        if (   (passed | isolated | connected)
-            || (ourPawns & pawn_attack_span(Them, s))
-            || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
+        if (   (passed | isolated | connected | lever)
+            || (ourPawns & pawn_attack_span(Them, s)))
             backward = false;
         else
         {
