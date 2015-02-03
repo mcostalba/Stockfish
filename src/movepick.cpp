@@ -35,6 +35,18 @@ namespace {
     STOP
   };
 
+  #define P(S) &MovePicker::pick_move<S>
+
+  const MovePicker::PickerFun PF[] = {
+    0, P(CAPTURES_S1), P(KILLERS_S1), P(QUIETS_1_S1), P(QUIETS_1_S1), P(BAD_CAPTURES_S1),
+    0, P(EVASIONS_S2),
+    0, P(EVASIONS_S2), P(QUIET_CHECKS_S3),
+    0, P(EVASIONS_S2),
+    0, P(CAPTURES_S5),
+    0, P(CAPTURES_S6),
+    P(STOP)
+  };
+
   // Our insertion sort, which is guaranteed to be stable, as it should be
   void insertion_sort(ExtMove* begin, ExtMove* end)
   {
@@ -67,12 +79,11 @@ namespace {
 /// search captures, promotions and some checks) and how important good move
 /// ordering is at the current node.
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       Move* cm, Move* fm, Search::Stack* s) : pos(p), history(h), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move* cm,
+                       Move* fm, Search::Stack* s) : pos(p), history(h), depth(d), fun(P(MAIN_SEARCH)) {
 
   assert(d > DEPTH_ZERO);
 
-  fun = &MovePicker::pick_move<MAIN_SEARCH>;
   endBadCaptures = moves + MAX_MOVES - 1;
   countermoves = cm;
   followupmoves = fm;
@@ -89,11 +100,9 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       Square s) : pos(p), history(h) {
+                       Square s) : pos(p), history(h), fun(P(MAIN_SEARCH)) {
 
   assert(d <= DEPTH_ZERO);
-
-  fun = &MovePicker::pick_move<MAIN_SEARCH>;
 
   if (pos.checkers())
       stage = EVASION;
@@ -116,12 +125,11 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, PieceType pt)
-                       : pos(p), history(h) {
+                       : pos(p), history(h), fun(P(MAIN_SEARCH)) {
 
   assert(!pos.checkers());
 
   stage = PROBCUT;
-  fun = &MovePicker::pick_move<MAIN_SEARCH>;
 
   // In ProbCut we generate only captures that are better than the parent's
   // captured piece.
@@ -198,25 +206,12 @@ void MovePicker::generate_next_stage() {
 
   switch (++stage) {
 
-  case CAPTURES_S1:
-      fun = &MovePicker::pick_move<CAPTURES_S1>; goto gen;
-
-  case CAPTURES_S3: case CAPTURES_S4:
-      fun = &MovePicker::pick_move<EVASIONS_S2>; goto gen;
-
-  case CAPTURES_S5:
-      fun = &MovePicker::pick_move<CAPTURES_S5>; goto gen;
-
-  case CAPTURES_S6:
-      fun = &MovePicker::pick_move<CAPTURES_S6>; goto gen;
-
-  gen:
+  case CAPTURES_S1: case CAPTURES_S3: case CAPTURES_S4: case CAPTURES_S5: case CAPTURES_S6:
       endMoves = generate<CAPTURES>(pos, moves);
       score<CAPTURES>();
       break;
 
   case KILLERS_S1:
-      fun = &MovePicker::pick_move<KILLERS_S1>;
       cur = killers;
       endMoves = cur + 6;
       killers[0] = ss->killers[0];
@@ -228,7 +223,6 @@ void MovePicker::generate_next_stage() {
       break;
 
   case QUIETS_1_S1:
-      fun = &MovePicker::pick_move<QUIETS_1_S1>;
       endQuiets = endMoves = generate<QUIETS>(pos, moves);
       score<QUIETS>();
       endMoves = std::partition(cur, endMoves, [](const ExtMove& m) { return m.value > VALUE_ZERO; });
@@ -236,7 +230,6 @@ void MovePicker::generate_next_stage() {
       break;
 
   case QUIETS_2_S1:
-      fun = &MovePicker::pick_move<QUIETS_1_S1>;
       cur = endMoves;
       endMoves = endQuiets;
       if (depth >= 3 * ONE_PLY)
@@ -245,20 +238,17 @@ void MovePicker::generate_next_stage() {
 
   case BAD_CAPTURES_S1:
       // Just pick them in reverse order to get MVV/LVA ordering
-      fun = &MovePicker::pick_move<BAD_CAPTURES_S1>;
       cur = moves + MAX_MOVES - 1;
       endMoves = endBadCaptures;
       break;
 
   case EVASIONS_S2:
-      fun = &MovePicker::pick_move<EVASIONS_S2>;
       endMoves = generate<EVASIONS>(pos, moves);
       if (endMoves - moves > 1)
           score<EVASIONS>();
       break;
 
   case QUIET_CHECKS_S3:
-      fun = &MovePicker::pick_move<QUIET_CHECKS_S3>;
       endMoves = generate<QUIET_CHECKS>(pos, moves);
       break;
 
@@ -267,13 +257,14 @@ void MovePicker::generate_next_stage() {
       /* Fall through */
 
   case STOP:
-      fun = &MovePicker::pick_move<STOP>;
       endMoves = cur + 1; // Avoid another generate_next_stage() call
       break;
 
   default:
       assert(false);
   }
+
+  fun = PF[stage];
 }
 
 template<int Stage>
@@ -317,12 +308,12 @@ skip:
   case QUIETS_1_S1:
       move = *cur++;
       if (   move != ttMove
-             && move != killers[0]
-             && move != killers[1]
-             && move != killers[2]
-             && move != killers[3]
-             && move != killers[4]
-             && move != killers[5])
+          && move != killers[0]
+          && move != killers[1]
+          && move != killers[2]
+          && move != killers[3]
+          && move != killers[4]
+          && move != killers[5])
           return move;
       break;
 
