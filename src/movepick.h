@@ -80,6 +80,9 @@ typedef Stats<false, std::pair<Move, Move> > MovesStats;
 /// to get a cut-off first.
 
 class MovePicker {
+
+  typedef Move(MovePicker::*PickerFun) ();
+
 public:
   MovePicker(const MovePicker&) = delete;
   MovePicker& operator=(const MovePicker&) = delete;
@@ -92,6 +95,7 @@ public:
 
 private:
   template<GenType> void score();
+  template<int> Move pick_move();
   void generate_next_stage();
   ExtMove* begin() { return moves; }
   ExtMove* end() { return endMoves; }
@@ -109,6 +113,7 @@ private:
   int stage;
   ExtMove *endQuiets, *endBadCaptures;
   ExtMove moves[MAX_MOVES], *cur = moves, *endMoves = moves;
+  PickerFun fun;
 };
 
 #endif // #ifndef MOVEPICK_H_INCLUDED
