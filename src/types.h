@@ -285,6 +285,20 @@ inline Value eg_value(Score s) {
   return Value(eg.s);
 }
 
+
+/// Our small machinery to use range based for on enums
+template<typename T, int Start, int Size>
+struct Range
+{
+  Range() { for (int i = 0; i < Size; i++) v[i] = T(i + Start); }
+  T* begin() { return v; }
+  T* end() { return v + Size; }
+
+  T v[Size];
+};
+
+template<typename T> struct range_of;
+
 #define ENABLE_BASE_OPERATORS_ON(T)                             \
 inline T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
 inline T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
@@ -295,22 +309,24 @@ inline T& operator+=(T& d1, T d2) { return d1 = d1 + d2; }      \
 inline T& operator-=(T& d1, T d2) { return d1 = d1 - d2; }      \
 inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }
 
-#define ENABLE_FULL_OPERATORS_ON(T)                             \
+#define ENABLE_FULL_OPERATORS_ON(T, Start, Size)                \
 ENABLE_BASE_OPERATORS_ON(T)                                     \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }        \
 inline T& operator--(T& d) { return d = T(int(d) - 1); }        \
 inline T operator/(T d, int i) { return T(int(d) / i); }        \
 inline int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
-inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
+inline T& operator/=(T& d, int i) { return d = T(int(d) / i); } \
+template<> struct range_of<T> : public Range<T, Start, Size> {};
 
-ENABLE_FULL_OPERATORS_ON(Value)
-ENABLE_FULL_OPERATORS_ON(PieceType)
-ENABLE_FULL_OPERATORS_ON(Piece)
-ENABLE_FULL_OPERATORS_ON(Color)
-ENABLE_FULL_OPERATORS_ON(Depth)
-ENABLE_FULL_OPERATORS_ON(Square)
-ENABLE_FULL_OPERATORS_ON(File)
-ENABLE_FULL_OPERATORS_ON(Rank)
+ENABLE_FULL_OPERATORS_ON(Value,     0,VALUE_INFINITE)
+ENABLE_FULL_OPERATORS_ON(PieceType, 1,6)
+ENABLE_FULL_OPERATORS_ON(Piece,     1,PIECE_NB)
+ENABLE_FULL_OPERATORS_ON(Color,     0,COLOR_NB)
+ENABLE_FULL_OPERATORS_ON(Depth,     0,DEPTH_MAX)
+ENABLE_FULL_OPERATORS_ON(Square,    0,SQUARE_NB)
+ENABLE_FULL_OPERATORS_ON(File,      0,FILE_NB)
+ENABLE_FULL_OPERATORS_ON(Rank,      0, RANK_NB)
+ENABLE_FULL_OPERATORS_ON(CastlingRight, 0, CASTLING_RIGHT_NB)
 
 ENABLE_BASE_OPERATORS_ON(Score)
 

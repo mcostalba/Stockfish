@@ -113,7 +113,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
   for (Rank r = RANK_8; r >= RANK_1; --r)
   {
-      for (File f = FILE_A; f <= FILE_H; ++f)
+      for (auto f : range_of<File>())
           os << " | " << PieceToChar[pos.piece_on(make_square(f, r))];
 
       os << " |\n +---+---+---+---+---+---+---+---+\n";
@@ -139,15 +139,15 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+  for (auto c : range_of<Color>())
+      for (auto pt : range_of<PieceType>())
+          for (auto s : range_of<Square>())
               Zobrist::psq[c][pt][s] = rng.rand<Key>();
 
-  for (File f = FILE_A; f <= FILE_H; ++f)
+ for (auto f : range_of<File>())
       Zobrist::enpassant[f] = rng.rand<Key>();
 
-  for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
+  for (auto cr : range_of<CastlingRight>())
   {
       Bitboard b = cr;
       while (b)
@@ -160,14 +160,14 @@ void Position::init() {
   Zobrist::side = rng.rand<Key>();
   Zobrist::exclusion  = rng.rand<Key>();
 
-  for (PieceType pt = PAWN; pt <= KING; ++pt)
+  for (auto pt : range_of<PieceType>())
   {
       PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
       PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
 
       Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
 
-      for (Square s = SQ_A1; s <= SQ_H8; ++s)
+      for (auto s : range_of<Square>())
       {
          psq[WHITE][pt][ s] =  (v + PSQT[pt][s]);
          psq[BLACK][pt][~s] = -(v + PSQT[pt][s]);
@@ -389,12 +389,12 @@ void Position::set_state(StateInfo* si) const {
       si->pawnKey ^= Zobrist::psq[color_of(piece_on(s))][PAWN][s];
   }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
+  for (auto c : range_of<Color>())
+      for (auto pt : range_of<PieceType>())
           for (int cnt = 0; cnt < pieceCount[c][pt]; ++cnt)
               si->materialKey ^= Zobrist::psq[c][pt][cnt];
 
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (auto c : range_of<Color>())
       for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
           si->nonPawnMaterial[c] += pieceCount[c][pt] * PieceValue[MG][pt];
 }
@@ -410,7 +410,7 @@ const string Position::fen() const {
 
   for (Rank r = RANK_8; r >= RANK_1; --r)
   {
-      for (File f = FILE_A; f <= FILE_H; ++f)
+      for (auto f : range_of<File>())
       {
           for (emptyCnt = 0; f <= FILE_H && empty(make_square(f, r)); ++f)
               ++emptyCnt;
@@ -1198,8 +1198,8 @@ bool Position::pos_is_ok(int* failedStep) const {
               ||(pieces(WHITE) | pieces(BLACK)) != pieces())
               return false;
 
-          for (PieceType p1 = PAWN; p1 <= KING; ++p1)
-              for (PieceType p2 = PAWN; p2 <= KING; ++p2)
+          for (auto p1 : range_of<PieceType>())
+             for (auto p2 : range_of<PieceType>())
                   if (p1 != p2 && (pieces(p1) & pieces(p2)))
                       return false;
       }
@@ -1213,8 +1213,8 @@ bool Position::pos_is_ok(int* failedStep) const {
       }
 
       if (step == Lists)
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = PAWN; pt <= KING; ++pt)
+          for (auto c : range_of<Color>())
+              for (auto pt : range_of<PieceType>())
               {
                   if (pieceCount[c][pt] != popcount<Full>(pieces(c, pt)))
                       return false;
@@ -1226,7 +1226,7 @@ bool Position::pos_is_ok(int* failedStep) const {
               }
 
       if (step == Castling)
-          for (Color c = WHITE; c <= BLACK; ++c)
+          for (auto c : range_of<Color>())
               for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
               {
                   if (!can_castle(c | s))
