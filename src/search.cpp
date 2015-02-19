@@ -1590,7 +1590,7 @@ void Thread::idle_loop() {
           // already finished.
           SplitPoint* bestSp = NULL;
           Thread* bestThread = NULL;
-          int bestScore = INT_MAX;
+          int minLevel = INT_MAX;
 
           for (size_t i = 0; i < Threads.size(); ++i)
           {
@@ -1605,18 +1605,17 @@ void Thread::idle_loop() {
                   assert(this != Threads[i]);
                   assert(!(this_sp && this_sp->slavesMask.none()));
 
-                  // Compute the recursive split points chain size
-                  int level = -1;
-                  for (SplitPoint* spp = Threads[i]->activeSplitPoint; spp; spp = spp->parentSplitPoint)
+                  // Prefer to join to SP with few parents to reduce the probability
+                  // that a cut-off occurs above us, and hence we waste our work.
+                  int level = 0;
+                  for (SplitPoint* p = Threads[i]->activeSplitPoint; p; p = p->parentSplitPoint)
                       level++;
 
-                  int score = level * 256 * 256 + (int)sp->slavesMask.count() * 256 - sp->depth * 1;
-
-                  if (score < bestScore)
+                  if (level < minLevel)
                   {
                       bestSp = sp;
                       bestThread = Threads[i];
-                      bestScore = score;
+                      minLevel = level;
                   }
               }
           }
