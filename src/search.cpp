@@ -1520,6 +1520,9 @@ Move RootMove::extract_ponder_from_tt(Position& pos)
 
 /// Thread::idle_loop() is where the thread is parked when it has no work to do
 
+struct Pair { int level; SplitPoint* sp; };
+bool operator<(const Pair& f, const Pair& s) { return f.level < s.level; }
+
 void Thread::idle_loop() {
 
   // Pointer 'this_sp' is not null only if we are called from split(), and not
@@ -1588,9 +1591,7 @@ void Thread::idle_loop() {
 
           // Try to late join to another split point if none of its slaves has
           // already finished.
-          SplitPoint* bestSp = NULL;
-          Thread* bestThread = NULL;
-          int minLevel = INT_MAX;
+          Pair scores[MAX_THREADS], *end = scores;
 
           for (size_t i = 0; i < Threads.size(); ++i)
           {
@@ -1611,33 +1612,35 @@ void Thread::idle_loop() {
                   for (SplitPoint* p = Threads[i]->activeSplitPoint; p; p = p->parentSplitPoint)
                       level++;
 
-                  if (level < minLevel)
-                  {
-                      bestSp = sp;
-                      bestThread = Threads[i];
-                      minLevel = level;
-                  }
+                  Pair s = { level, sp };
+                  *end++ = s;
               }
           }
 
-          if (bestSp)
+          if (end != scores)
           {
-              sp = bestSp;
-
               // Recheck the conditions under lock protection
               Threads.mutex.lock();
-              sp->mutex.lock();
 
-              if (   sp->allSlavesSearching
-                  && sp->slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
-                  && available_to(bestThread))
+              for (Pair* cur = scores; !searching && cur != end; cur++)
               {
-                  sp->slavesMask.set(idx);
-                  activeSplitPoint = sp;
-                  searching = true;
+                  std::swap(*cur, *std::min_element(cur, end));
+                  sp = cur->sp;
+
+                  sp->mutex.lock();
+
+                  if (   sp->allSlavesSearching
+                      && sp->slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
+                      && available_to(sp->masterThread))
+                  {
+                      sp->slavesMask.set(idx);
+                      activeSplitPoint = sp;
+                      searching = true;
+                  }
+
+                  sp->mutex.unlock();
               }
 
-              sp->mutex.unlock();
               Threads.mutex.unlock();
           }
       }
