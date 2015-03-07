@@ -123,11 +123,10 @@ struct Thread : public ThreadBase {
   Thread();
   virtual void idle_loop();
   bool cutoff_occurred() const;
-  bool available_to(const SplitPoint* sp) const;
+  bool can_join(const SplitPoint* sp) const;
 
   void split(Position& pos, Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
              Depth depth, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
-  bool alloc_thread_to_sp(SplitPoint *sp);
 
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   Pawns::Table pawnsTable;

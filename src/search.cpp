@@ -1599,7 +1599,7 @@ void Thread::idle_loop() {
               if (   sp
                   && sp->allSlavesSearching
                   && sp->slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
-                  && available_to(sp))
+                  && can_join(sp))
               {
                   assert(this != Threads[i]);
                   assert(!(this_sp && this_sp->slavesMask.none()));
@@ -1629,12 +1629,20 @@ void Thread::idle_loop() {
               if (   sp->allSlavesSearching
                   && sp->slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT)
               {
-                  alloc_thread_to_sp(sp); // May succeed or fail
+                  mutex.lock();
+
+                  if (can_join(sp))
+                  {
+                      sp->slavesMask.set(idx);
+                      activeSplitPoint = sp;
+                      searching = true;
+                  }
+
+                  mutex.unlock();
               }
 
               sp->mutex.unlock();
           }
-
       }
 
       // Avoid races with notify_one() fired from last slave of the split point
