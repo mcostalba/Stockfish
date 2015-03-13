@@ -103,14 +103,16 @@ namespace {
       assert(newPv.size() >= 3);
 
       // Keep track how many times in a row the PV stays stable 3 plies deep
-      if (pv[2] == newPv[2])
+      if (pv.size() > 2 && std::equal(pv.begin(), pv.begin() + 3, newPv.begin()))
           stableCnt++;
       else
-          stableCnt = 0, pv[2] = newPv[2];
-
-      if (!expectedPosKey || !std::equal(pv.begin(), pv.begin() + 2, newPv.begin()))
       {
+          stableCnt = 0;
           pv = newPv;
+      }
+
+      if (!expectedPosKey)
+      {
           StateInfo st[2];
           pos.do_move(newPv[0], st[0], pos.gives_check(newPv[0], CheckInfo(pos)));
           pos.do_move(newPv[1], st[1], pos.gives_check(newPv[1], CheckInfo(pos)));
