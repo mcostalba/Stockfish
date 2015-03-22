@@ -121,6 +121,7 @@ namespace {
         else if (token == "btime")     is >> limits.time[BLACK];
         else if (token == "winc")      is >> limits.inc[WHITE];
         else if (token == "binc")      is >> limits.inc[BLACK];
+        else if (token == "nps")       is >> limits.nps;
         else if (token == "movestogo") is >> limits.movestogo;
         else if (token == "depth")     is >> limits.depth;
         else if (token == "nodes")     is >> limits.nodes;

@@ -146,6 +146,7 @@ namespace {
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
 
   void id_loop(Position& pos);
+  TimePoint adjusted_now();
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   void update_pv(Move* pv, Move move, Move* childPv);
@@ -463,10 +464,10 @@ namespace {
                 // of the available time has been used or we matched an easyMove
                 // from the previous search and just did a fast verification.
                 if (   RootMoves.size() == 1
-                    || now() - SearchTime > TimeMgr.available_time()
+                    || adjusted_now() - SearchTime > TimeMgr.available_time()
                     || (   RootMoves[0].pv[0] == easyMove
                         && BestMoveChanges < 0.03
-                        && now() - SearchTime > TimeMgr.available_time() / 10))
+                        && adjusted_now() - SearchTime > TimeMgr.available_time() / 10))
                 {
                     // If we are allowed to ponder do not stop the search now but
                     // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -486,7 +487,7 @@ namespace {
 
     // Clear any candidate easy move that wasn't stable for the last search
     // iterations; the second condition prevents consecutive fast moves.
-    if (EasyMove.stableCnt < 6 || now() - SearchTime < TimeMgr.available_time())
+    if (EasyMove.stableCnt < 6 || adjusted_now() - SearchTime < TimeMgr.available_time())
         EasyMove.clear();
 
     // If skill level is enabled, swap best PV line with the sub-optimal one
@@ -1474,6 +1475,14 @@ moves_loop: // When in check and at SpNode search starts from here
     return best;
   }
 
+  TimePoint adjusted_now() {
+
+    if (!Search::Limits.nps)
+        return now();
+
+    return SearchTime + RootPos.nodes_searched() * 1000 / Search::Limits.nps; // In msec
+  }
+
 } // namespace
 
 
@@ -1727,7 +1736,7 @@ void Thread::idle_loop() {
 void check_time() {
 
   static TimePoint lastInfoTime = now();
-  TimePoint elapsed = now() - SearchTime;
+  TimePoint elapsed = adjusted_now() - SearchTime;
 
   if (now() - lastInfoTime >= 1000)
   {
