@@ -322,6 +322,14 @@ namespace {
                 && (pos.pieces(PAWN) & (s + pawn_push(Us))))
                 score += MinorBehindPawn;
 
+            // Malus for a trapped bishop
+            if (Pt == BISHOP)
+            {
+              if (s==relative_square(Us,SQ_A7) && pos.piece_on(s-7)==make_piece(Them,PAWN)) score -= 92;
+              if (s==relative_square(Us,SQ_H7) && pos.piece_on(s-9)==make_piece(Them,PAWN)) score -= 92;
+            }
+            
+
             // Penalty for pawns on same color square of bishop
             if (Pt == BISHOP)
                 score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
