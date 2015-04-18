@@ -126,7 +126,7 @@ namespace {
 
   // Outpost[Bishop/Knight][Square] contains bonuses for knights and bishops
   // outposts, indexed by piece type and square (from white's point of view).
-  const Value Outpost[][SQUARE_NB] = {
+  Value Outpost[][SQUARE_NB] = {
   {// A     B     C     D     E     F     G     H
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0), // Knights
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -142,6 +142,8 @@ namespace {
     V(2), V(8),V(21),V(24),V(24),V(21), V(8), V(2),
     V(0), V(4), V(6), V(6), V(6), V(6), V(4), V(0) }
   };
+
+  TUNE(Outpost); // Only the non-zero options are created (this can be changed with SetRange)
 
   // Threat[defended/weak][minor/major attacking][attacked PieceType] contains
   // bonuses according to which piece type attacks which one.
@@ -172,7 +174,7 @@ namespace {
   const Score Unstoppable        = S( 0, 20);
   const Score Hanging            = S(31, 26);
   const Score PawnAttackThreat   = S(20, 20);
-  const Score PawnSafePush       = S( 5,  5);
+  Score PawnSafePush       = S( 5,  5);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -203,11 +205,18 @@ namespace {
   // Penalties for enemy's safe checks
   const int QueenContactCheck = 89;
   const int RookContactCheck  = 71;
-  const int QueenCheck        = 50;
-  const int RookCheck         = 37;
-  const int BishopCheck       = 6;
-  const int KnightCheck       = 14;
+  int QueenCheck        = 50;
+  int RookCheck         = 37;
+  int BishopCheck       = 6;
+  int KnightCheck       = 14;
 
+  // Add parameters to tune, note that types are different (Score and int)
+  TUNE(PawnSafePush, QueenCheck, RookCheck);
+
+  // You can keep adding parameters, in as many places as you want. You
+  // can add also functions to be called after parameters have been updated.
+  // In this case Position::init() will be called at post-update time.
+  TUNE(BishopCheck, KnightCheck, Position::init);
 
   // init_eval_info() initializes king bitboards for given color adding
   // pawn attacks. To be done at the beginning of the evaluation.

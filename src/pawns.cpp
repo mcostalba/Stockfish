@@ -32,12 +32,12 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Doubled pawn penalty by file
-  const Score Doubled[FILE_NB] = {
+  Score Doubled[FILE_NB] = {
     S(13, 43), S(20, 48), S(23, 48), S(23, 48),
     S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
 
   // Isolated pawn penalty by opposed flag and file
-  const Score Isolated[2][FILE_NB] = {
+  Score Isolated[2][FILE_NB] = {
   { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
     S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
   { S(25, 30), S(36, 35), S(40, 35), S(40, 35),
@@ -94,6 +94,20 @@ namespace {
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(258);
+
+  Range my_range(int) { return Range(-200, 200); }
+
+  // You can add parameters even from different files and from multi-dim arrays.
+  // You can also use your custom Option's min-max function.
+  TUNE(SetRange(my_range), Isolated);
+
+  // If you just want to use fixed min-max values, you can do it directly, and
+  // eventually restore the default behaviour afterwards.
+  TUNE(SetRange(-100, 100), Doubled, SetDefaultRange);
+
+  // Compiler time check of constness! Compiler errors out if parameter is
+  // still a constant
+  /*TUNE(CenterBind);*/ // This generates a compiler error
 
   #undef S
   #undef V
