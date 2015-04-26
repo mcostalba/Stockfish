@@ -711,7 +711,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = ((850 + 70 * depth) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
+        Depth R = ((870 + 74 * depth) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
 
         pos.do_null_move(st);
         (ss+1)->skipEarlyPruning = true;
