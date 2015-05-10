@@ -33,11 +33,11 @@ namespace {
   // Polynomial material imbalance parameters
 
   //                            pair            pawn         knight
-  const Score Linear[6] = { S(1852, 1852), S(-162,-162), S(-1122,-1122),
+  /*const*/ Score Linear[6] = { S(1852, 1852), S(-162,-162), S(-1122,-1122),
   //                           bishop           rook         queen
                             S(-183, -183), S( 249, 249), S( -154, -154) };
 
-  const Score QuadraticOurs[][PIECE_TYPE_NB] = {
+  /*const*/ Score QuadraticOurs[][PIECE_TYPE_NB] = {
     //            OUR PIECES
     //    pair          pawn        knight       bishop        rook       queen
     { S(   0,   0)                                                               }, // Bishop pair
@@ -48,7 +48,7 @@ namespace {
     { S(-177,-177), S( 25,  25), S(129, 129), S(142, 142), S(-137,-137), S(0, 0) }  // Queen
   };
 
-  const Score QuadraticTheirs[][PIECE_TYPE_NB] = {
+  /*const*/ Score QuadraticTheirs[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
     //   pair         pawn      knight      bishop       rook       queen
     { S( 0,  0)                                                             }, // Bishop pair
@@ -60,6 +60,8 @@ namespace {
   };
 
   #undef S
+
+  TUNE(Linear, QuadraticOurs, QuadraticTheirs);
 
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
