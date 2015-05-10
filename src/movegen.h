@@ -51,14 +51,14 @@ ExtMove* generate(const Position& pos, ExtMove* moveList);
 
 /// The MoveList struct is a simple wrapper around generate(). It sometimes comes
 /// in handy to use this class instead of the low level generate() function.
-template<GenType T, PieceType P = ALL_PIECES>
+template<GenType T, PieceType Pt = ALL_PIECES>
 struct MoveList {
 
   explicit MoveList(const Position& pos) : last(generate<T>(pos, moveList)) {
 
-    if (P != ALL_PIECES)
+    if (Pt != ALL_PIECES)
         for (ExtMove* cur = moveList; cur != last; )
-            if (type_of(pos.piece_on(from_sq(cur->move))) != P)
+            if (type_of(pos.piece_on(from_sq(cur->move))) != Pt)
                 *cur = (--last)->move;
             else
                 ++cur;

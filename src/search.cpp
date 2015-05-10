@@ -712,7 +712,8 @@ namespace {
     if (   !PvNode
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  pos.non_pawn_material(pos.side_to_move())
+        && (depth < 12 * ONE_PLY || MoveList<LEGAL, KING>(pos).size()))
     {
         ss->currentMove = MOVE_NULL;
 
