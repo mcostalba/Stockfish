@@ -713,7 +713,7 @@ namespace {
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  pos.non_pawn_material(pos.side_to_move())
-        && (depth < 5 * ONE_PLY || MoveList<LEGAL, KING>(pos).size()))
+        && (depth < 10 * ONE_PLY || MoveList<LEGAL, KING>(pos).size()))
     {
         ss->currentMove = MOVE_NULL;
 
