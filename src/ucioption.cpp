@@ -170,6 +170,9 @@ Option& Option::operator=(const string& v) {
 #include <iostream>
 #include <sstream>
 
+typedef std::map<std::string, int, UCI::CaseInsensitiveLess> ResultsMap;
+ResultsMap TuneResults;
+
 string Tune::next(string& names, bool pop) {
 
   string name;
@@ -196,6 +199,9 @@ static void make_option(const string& n, int v, const SetRange& r) {
   // Do not generate option when there is nothing to tune (ie. min = max)
   if (r(v).first == r(v).second)
       return;
+
+  if (TuneResults.count(n))
+      v = TuneResults[n];
 
   Options[n] << UCI::Option(v, r(v).first, r(v).second, on_tune);
 
@@ -235,3 +241,14 @@ template<> void Tune::Entry<Score>::read_option() {
 // Instead of a variable here we have a PostUpdate function: just call it
 template<> void Tune::Entry<Tune::PostUpdate>::init_option() {}
 template<> void Tune::Entry<Tune::PostUpdate>::read_option() { value(); }
+
+
+void Tune::read_results() {
+// To update values use:
+//
+//  cat tune_result.txt | sed 's/^param: \([^,]*\), best: \([^,]*\).*/  TuneResults["\1"] = int(\2);/'
+//
+// And paste output here below:
+//
+
+}
