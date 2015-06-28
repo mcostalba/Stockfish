@@ -44,6 +44,20 @@ struct SetRange {
 
 #define SetDefaultRange SetRange(default_range)
 
+// Conditions struct, to tune boolean conditions
+struct BoolConditions {
+  int init(size_t);
+  void set();
+
+  std::vector<int> binary, values;
+  int defaultValue = 40, variance = 20, threshold = 50;
+  SetRange range = SetRange(0,100);
+};
+
+extern BoolConditions Conditions;
+
+inline void set_conditions() { Conditions.set(); }
+
 
 /// Tune class implements the 'magic' code that makes the setup of a fishtest
 /// tuning session as easy as it can be. Mainly you have just to remove const
@@ -128,6 +142,14 @@ class Tune {
     return add(value, (next(names), std::move(names)), args...);
   }
 
+  // Template specialization for BoolConditions
+  template<typename... Args>
+  int add(const SetRange& range, std::string&& names, BoolConditions& cond, Args&&... args) {
+    for (size_t size = cond.values.size(), i = 0; i < size; i++)
+        add(cond.range, next(names, i == size - 1) + "_" + std::to_string(i), cond.values[i]);
+    return add(range, std::move(names), args...);
+  }
+
   std::vector<std::unique_ptr<EntryBase>> list;
 
 public:
@@ -144,5 +166,10 @@ public:
 #define UNIQUE2(x, y) x ## y
 #define UNIQUE(x, y) UNIQUE2(x, y) // Two indirection levels to expand __LINE__
 #define TUNE(...) int UNIQUE(p, __LINE__) = Tune::add(STRINGIFY((__VA_ARGS__)), __VA_ARGS__)
+
+// Some macro to tune toggling of boolean conditions
+#define CONDITION(x) (Conditions.binary[__COUNTER__] || (x))
+#define TUNE_CONDITIONS() int UNIQUE(c, __LINE__) = Conditions.init(__COUNTER__); \
+                          TUNE(Conditions, set_conditions)
 
 #endif // #ifndef TUNE_H_INCLUDED

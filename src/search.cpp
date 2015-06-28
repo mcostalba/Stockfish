@@ -672,10 +672,10 @@ namespace {
 
     // Step 6. Razoring (skipped when in check)
     if (   !PvNode
-        &&  depth < 4 * ONE_PLY
-        &&  eval + razor_margin(depth) <= alpha
-        &&  ttMove == MOVE_NONE
-        && !pos.pawn_on_7th(pos.side_to_move()))
+        && CONDITION(depth < 4 * ONE_PLY)
+        && CONDITION(eval + razor_margin(depth) <= alpha)
+        && CONDITION(ttMove == MOVE_NONE)
+        && CONDITION(!pos.pawn_on_7th(pos.side_to_move())))
     {
         if (   depth <= ONE_PLY
             && eval + razor_margin(3 * ONE_PLY) <= alpha)
@@ -1773,3 +1773,5 @@ void check_time() {
           Signals.stop = true;
   }
 }
+
+ TUNE_CONDITIONS();
