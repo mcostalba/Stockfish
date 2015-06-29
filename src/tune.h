@@ -46,11 +46,11 @@ struct SetRange {
 
 // Conditions struct, to tune boolean conditions
 struct BoolConditions {
-  int init(size_t);
+  void init(size_t size) { values.resize(size, defaultValue), binary.resize(size, 0); }
   void set();
 
   std::vector<int> binary, values;
-  int defaultValue = 490, variance = 20, threshold = 500;
+  int defaultValue = 480, variance = 40, threshold = 500;
   SetRange range = SetRange(0, 1000);
 };
 
@@ -169,7 +169,7 @@ public:
 
 // Some macro to tune toggling of boolean conditions
 #define CONDITION(x) (Conditions.binary[__COUNTER__] || (x))
-#define TUNE_CONDITIONS() int UNIQUE(c, __LINE__) = Conditions.init(__COUNTER__); \
+#define TUNE_CONDITIONS() int UNIQUE(c, __LINE__) = (Conditions.init(__COUNTER__), 0); \
                           TUNE(Conditions, set_conditions)
 
 #endif // #ifndef TUNE_H_INCLUDED

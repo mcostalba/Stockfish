@@ -246,17 +246,6 @@ template<> void Tune::Entry<Tune::PostUpdate>::init_option() {}
 template<> void Tune::Entry<Tune::PostUpdate>::read_option() { value(); }
 
 
-// Init defined conditions, ready to be tuned
-
-int BoolConditions::init(size_t size) {
-
-  for (size_t i = 0; i < size; i++)
-      values.push_back(defaultValue), binary.push_back(0);
-
-  return size;
-}
-
-
 // Set binary conditions according to a probability that depends
 // on the corresponding parameter value.
 
