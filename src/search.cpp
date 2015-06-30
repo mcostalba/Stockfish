@@ -673,7 +673,7 @@ namespace {
     // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-        &&  ttMove == MOVE_NONE
+        &&  eval + razor_margin(depth) <= alpha
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
         if (   depth <= ONE_PLY
