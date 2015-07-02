@@ -50,7 +50,7 @@ struct BoolConditions {
   void set();
 
   std::vector<int> binary, values;
-  int defaultValue = 480, variance = 40, threshold = 500;
+  int defaultValue = 465, variance = 40, threshold = 500;
   SetRange range = SetRange(0, 1000);
 };
 
