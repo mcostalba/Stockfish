@@ -234,6 +234,9 @@ void Search::think() {
   DrawValue[ us] = VALUE_DRAW - Value(contempt);
   DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
+  History.age();
+  CounterMovesHistory.age();
+
   TB::Hits = 0;
   TB::RootInTB = false;
   TB::UseRule50 = Options["Syzygy50MoveRule"];

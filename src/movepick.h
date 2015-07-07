@@ -57,6 +57,10 @@ struct Stats {
         table[pc][to] += v;
   }
 
+  void age() { for (auto& a : table) for (auto& v : a) age(v); }
+  void age(Value& v) { v -= v / 4; }
+  void age(Stats<Value>& v) { v.age(); }
+
 private:
   T table[PIECE_NB][SQUARE_NB];
 };
