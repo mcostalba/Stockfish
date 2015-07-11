@@ -1588,6 +1588,8 @@ void Thread::idle_loop() {
   // at the thread creation. This means we are the split point's master.
   SplitPoint* this_sp = activeSplitPoint;
 
+  bool lateJoin = false;
+
   assert(!this_sp || (this_sp->master == this && searching));
 
   while (!exit && !(this_sp && this_sp->slavesMask.none()))
@@ -1614,14 +1616,16 @@ void Thread::idle_loop() {
 
           activePosition = &pos;
 
+          Depth d = sp->depth + lateJoin * ONE_PLY;
+
           if (sp->nodeType == NonPV)
-              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<NonPV, true>(pos, ss, sp->alpha, sp->beta, d, sp->cutNode);
 
           else if (sp->nodeType == PV)
-              search<PV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<PV, true>(pos, ss, sp->alpha, sp->beta, d, sp->cutNode);
 
           else if (sp->nodeType == Root)
-              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth + ONE_PLY, sp->cutNode);
+              search<Root, true>(pos, ss, sp->alpha, sp->beta, d, sp->cutNode);
 
           else
               assert(false);
@@ -1643,6 +1647,7 @@ void Thread::idle_loop() {
           // already finished.
           SplitPoint* bestSp = NULL;
           int minLevel = INT_MAX;
+          lateJoin = false;
 
           for (Thread* th : Threads)
           {
@@ -1689,6 +1694,7 @@ void Thread::idle_loop() {
                       sp->slavesMask.set(idx);
                       activeSplitPoint = sp;
                       searching = true;
+                      lateJoin = true;
                   }
 
                   spinlock.release();
