@@ -1621,7 +1621,7 @@ void Thread::idle_loop() {
               search<PV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
           else if (sp->nodeType == Root)
-              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth + ONE_PLY, sp->cutNode);
 
           else
               assert(false);
