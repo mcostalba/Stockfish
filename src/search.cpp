@@ -39,7 +39,8 @@ namespace Search {
 
   volatile SignalsType Signals;
   LimitsType Limits;
-  RootMoveVector RootMoves;
+  RootMoveVector RootMovesAll[5];
+  RootMoveVector& RootMoves = RootMovesAll[0];
   Position RootPos;
   StateStackPtr SetupStates;
 }
@@ -147,6 +148,20 @@ namespace {
   Value value_from_tt(Value v, int ply);
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
+
+  RootMoveVector& get_root_moves(Thread* th) {
+
+    size_t idx = th->idx;
+    for (SplitPoint* sp = th->activeSplitPoint; sp; sp = sp->parentSplitPoint)
+    {
+        if (!sp->movePicker)
+            return RootMovesAll[idx];
+
+        idx = sp->master->idx;
+    }
+
+    return RootMoves;
+  }
 
 } // namespace
 
@@ -387,7 +402,19 @@ namespace {
             // high/low anymore.
             while (true)
             {
-                bestValue = search<Root, false>(pos, ss, alpha, beta, depth, false);
+                if (   Threads.size() > 4
+                    && depth >= 7 * ONE_PLY)
+                {
+                    for (size_t i = 1; i < 1 + Threads.size() / 4; i++)
+                        RootMovesAll[i] = RootMoves;
+
+                    Move dummy = MOVE_NONE;
+                    bestValue = alpha;
+                    pos.this_thread()->split(pos, ss, alpha, beta, &bestValue,
+                                             &dummy, depth, 0, NULL, Root, false);
+                }
+                else
+                    bestValue = search<Root, false>(pos, ss, alpha, beta, depth, false);
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
@@ -591,7 +618,7 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey, ttHit);
-    ss->ttMove = ttMove = RootNode ? RootMoves[PVIdx].pv[0] : ttHit ? tte->move() : MOVE_NONE;
+    ss->ttMove = ttMove = RootNode ? get_root_moves(thisThread)[PVIdx].pv[0] : ttHit ? tte->move() : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
 
     // At non-PV nodes we check for a fail high/low. We don't prune at PV nodes
@@ -812,7 +839,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
       // mode we also skip PV moves which have been already searched.
-      if (RootNode && !std::count(RootMoves.begin() + PVIdx, RootMoves.end(), move))
+      if (RootNode && !std::count(get_root_moves(thisThread).begin() + PVIdx, get_root_moves(thisThread).end(), move))
           continue;
 
       if (SpNode)
@@ -1030,7 +1057,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
       if (RootNode)
       {
-          RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
+          RootMove& rm = *std::find(get_root_moves(thisThread).begin(), get_root_moves(thisThread).end(), move);
 
           // PV move or new best move ?
           if (moveCount == 1 || value > alpha)
@@ -1094,6 +1121,7 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !SpNode
           &&  Threads.size() >= 2
           &&  depth >= Threads.minimumSplitDepth
+          &&  &get_root_moves(thisThread) == &RootMoves // Don't allow helper threads to split
           &&  (   !thisThread->activeSplitPoint
                || !thisThread->activeSplitPoint->allSlavesSearching
                || (   Threads.size() > MAX_SLAVES_PER_SPLITPOINT
@@ -1614,6 +1642,8 @@ void Thread::idle_loop() {
 
           activePosition = &pos;
 
+          assert(sp->movePicker || sp->nodeType == Root);
+
           if (sp->nodeType == NonPV)
               search<NonPV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
@@ -1621,8 +1651,18 @@ void Thread::idle_loop() {
               search<PV, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
 
           else if (sp->nodeType == Root)
-              search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth + ONE_PLY, sp->cutNode);
-
+          {
+              if (sp->movePicker)
+                  search<Root, true>(pos, ss, sp->alpha, sp->beta, sp->depth, sp->cutNode);
+              else
+              {
+                  // Multi-depth SMP search
+                  Value v = search<Root, false>(pos, ss, sp->alpha, sp->beta,
+                                                sp->depth + int(idx) * ONE_PLY, sp->cutNode);
+                  if (idx == 0)
+                      sp->bestValue = v;
+              }
+          }
           else
               assert(false);
 
@@ -1634,6 +1674,16 @@ void Thread::idle_loop() {
           sp->allSlavesSearching = false;
           sp->nodes += pos.nodes_searched();
 
+          // In multi-depth SMP, when the main thread finishes then stop also
+          // all the other ones, searching at higher depths.
+          bool mainFinished = this_sp && !sp->movePicker;
+          if (mainFinished)
+          {
+              assert(idx == 0);
+
+              sp->cutoff = true;
+          }
+
           // After releasing the lock we can't access any SplitPoint related data
           // in a safe way because it could have been released under our feet by
           // the sp master.
@@ -1644,6 +1694,7 @@ void Thread::idle_loop() {
           SplitPoint* bestSp = NULL;
           int minLevel = INT_MAX;
 
+        if (!mainFinished)
           for (Thread* th : Threads)
           {
               const size_t size = th->splitPointsSize; // Local copy

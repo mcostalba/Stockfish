@@ -100,7 +100,7 @@ typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
 
 extern volatile SignalsType Signals;
 extern LimitsType Limits;
-extern RootMoveVector RootMoves;
+extern RootMoveVector& RootMoves;
 extern Position RootPos;
 extern StateStackPtr SetupStates;
 
