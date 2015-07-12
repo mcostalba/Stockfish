@@ -85,7 +85,7 @@ Thread::Thread() /* : splitPoints() */ { // Initialization of non POD broken in 
   splitPointsSize = 0;
   activeSplitPoint = nullptr;
   activePosition = nullptr;
-  idx = Threads.size(); // Starts from 0
+  idx = Threads.size(); // Starts from 0 (MainThread)
 }
 
 
@@ -156,7 +156,7 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
   sp.beta = beta;
   sp.nodeType = nodeType;
   sp.cutNode = cutNode;
-  sp.movePicker = movePicker;
+  sp.movePicker = movePicker; // If null it is a multi-depth SMP
   sp.moveCount = moveCount;
   sp.pos = &pos;
   sp.nodes = 0;
@@ -170,8 +170,9 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
 
   // Try to allocate available threads
   Thread* slave;
+  size_t maxSlaves = movePicker ? MAX_SLAVES_PER_SPLITPOINT : 1 + Threads.size() / 4;
 
-  while (    sp.slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
+  while (    sp.slavesMask.count() < maxSlaves
          && (slave = Threads.available_slave(&sp)) != nullptr)
   {
      slave->spinlock.acquire();
