@@ -171,7 +171,7 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
   // Try to allocate available threads
   Thread* slave;
 
-  while (    sp.slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
+  while (    sp.slavesMask.count() < Threads.max_slaves_per_splitpoint(depth)
          && (slave = Threads.available_slave(&sp)) != nullptr)
   {
      slave->spinlock.acquire();
@@ -342,6 +342,12 @@ Thread* ThreadPool::available_slave(const SplitPoint* sp) const {
           return th;
 
   return nullptr;
+}
+
+
+size_t ThreadPool::max_slaves_per_splitpoint(Depth depth) {
+
+  return 3 + depth / (4 * ONE_PLY);
 }
 
 
