@@ -345,12 +345,6 @@ Thread* ThreadPool::available_slave(const SplitPoint* sp) const {
 }
 
 
-size_t ThreadPool::max_slaves_per_splitpoint(Depth depth) {
-
-  return 3 + depth / (4 * ONE_PLY);
-}
-
-
 // ThreadPool::start_thinking() wakes up the main thread sleeping in
 // MainThread::idle_loop() and starts a new search, then returns immediately.
 

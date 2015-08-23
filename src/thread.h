@@ -162,7 +162,9 @@ struct ThreadPool : public std::vector<Thread*> {
   void read_uci_options();
   Thread* available_slave(const SplitPoint* sp) const;
   void start_thinking(const Position&, const Search::LimitsType&, Search::StateStackPtr&);
-  size_t max_slaves_per_splitpoint(Depth depth);
+
+  size_t max_slaves_per_splitpoint(Depth depth) { return 3 + depth / (4 * ONE_PLY); }
+
   Depth minimumSplitDepth;
   TimerThread* timer;
 };
