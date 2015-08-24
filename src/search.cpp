@@ -1636,9 +1636,24 @@ void Thread::idle_loop() {
           // the sp master.
           sp->spinlock.release();
 
+      } // Searching
+
+
+      // If search is finished then sleep, otherwise try to join an active
+      // splitpoint.
+      if (!Threads.main()->thinking)
+      {
+          assert(!this_sp);
+
+          std::unique_lock<Mutex> lk(mutex);
+          while (!exit && !Threads.main()->thinking)
+              sleepCondition.wait(lk);
+      }
+      else
+      {
           // Try to late join to another split point if none of its slaves has
           // already finished.
-          SplitPoint* bestSp = NULL;
+          SplitPoint *sp, *bestSp = NULL;
           int minLevel = INT_MAX;
 
           for (Thread* th : Threads)
@@ -1693,19 +1708,10 @@ void Thread::idle_loop() {
 
               sp->spinlock.release();
           }
-      }
 
-      // If search is finished then sleep, otherwise just yield
-      if (!Threads.main()->thinking)
-      {
-          assert(!this_sp);
-
-          std::unique_lock<Mutex> lk(mutex);
-          while (!exit && !Threads.main()->thinking)
-              sleepCondition.wait(lk);
+          if (!searching)
+              std::this_thread::yield();
       }
-      else
-          std::this_thread::yield(); // Wait for a new job or for our slaves to finish
   }
 }
 
