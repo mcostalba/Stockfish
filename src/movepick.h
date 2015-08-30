@@ -53,7 +53,7 @@ struct Stats {
 
   void update(Piece pc, Square to, Value v) {
 
-    table[pc][to] -= table[pc][to] * std::min(abs(int(v)), 512) / 512;
+    table[pc][to] -= table[pc][to] * std::min(abs(int(v)), 1024) / 1024;
     table[pc][to] += int(v) * 64;
   }
 
