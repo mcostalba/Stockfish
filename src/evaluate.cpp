@@ -797,14 +797,15 @@ Value Eval::evaluate(const Position& pos) {
           sf = ei.pi->pawn_span(strongSide) ? ScaleFactor(56) : ScaleFactor(38);
   }
 
-  // Scale endgame by number of pawns
+  // Adjust scale factor by number of pawns and endgame value. The idea is that
+  // when in advantage we prefer to simplify the pawns on the board.
   int p = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
-  int v_eg = 1 + abs(int(eg_value(score)));
-  sf = ScaleFactor(std::max(sf / 2, sf - 7 * SCALE_FACTOR_NORMAL * (14 - p) / v_eg));
+  int w = (448 * p - 6272) / (abs(eg_value(score)) + 1);
+  sf = ScaleFactor(std::max(sf / 2, sf + w));
 
   // Interpolate between a middlegame and a (scaled by 'sf') endgame score
-  Value v =  mg_value(score) * int(me->game_phase())
-           + eg_value(score) * int(PHASE_MIDGAME - me->game_phase()) * sf / SCALE_FACTOR_NORMAL;
+  Value v =  mg_value(score) *  me->game_phase()
+           + eg_value(score) * (PHASE_MIDGAME - me->game_phase()) * sf / SCALE_FACTOR_NORMAL;
 
   v /= int(PHASE_MIDGAME);
 

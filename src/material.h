@@ -39,7 +39,7 @@ namespace Material {
 struct Entry {
 
   Score imbalance() const { return make_score(value, value); }
-  Phase game_phase() const { return gamePhase; }
+  int game_phase() const { return gamePhase; }
   bool specialized_eval_exists() const { return evaluationFunction != nullptr; }
   Value evaluate(const Position& pos) const { return (*evaluationFunction)(pos); }
 
@@ -60,7 +60,7 @@ struct Entry {
   EndgameBase<Value>* evaluationFunction;
   EndgameBase<ScaleFactor>* scalingFunction[COLOR_NB]; // Could be one for each
                                                        // side (e.g. KPKP, KBPsKs)
-  Phase gamePhase;
+  int gamePhase;
 };
 
 typedef HashTable<Entry, 8192> Table;
