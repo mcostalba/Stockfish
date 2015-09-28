@@ -28,10 +28,6 @@
 #include "material.h"
 #include "pawns.h"
 
-int W1 = 448, W2 = 6272;
-
-TUNE(W1, W2);
-
 namespace {
 
   namespace Trace {
@@ -804,7 +800,7 @@ Value Eval::evaluate(const Position& pos) {
   // Adjust scale factor by number of pawns and endgame value. The idea is that
   // when in advantage we prefer to simplify the pawns on the board.
   int p = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
-  int w = (W1 * p - W2) / (abs(eg_value(score)) + 1);
+  int w = (457 * p - 5968) / (abs(eg_value(score)) + 1);
   sf = ScaleFactor(std::max(sf / 2, sf + w));
 
   // Interpolate between a middlegame and a (scaled by 'sf') endgame score
