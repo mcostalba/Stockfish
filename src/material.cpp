@@ -31,9 +31,9 @@ namespace {
   // Polynomial material imbalance parameters
 
   //                      pair  pawn knight bishop rook queen
-  const int Linear[6] = { 1756, -164, -1067, -160,  234, -137 };
+  int Linear[6] = { 1756, -164, -1067, -160,  234, -137 };
 
-  const int QuadraticOurs[][PIECE_TYPE_NB] = {
+  int QuadraticOurs[][PIECE_TYPE_NB] = {
     //            OUR PIECES
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
@@ -44,7 +44,7 @@ namespace {
     {-177,   25, 129,   142,  -137,   0 }  // Queen
   };
 
-  const int QuadraticTheirs[][PIECE_TYPE_NB] = {
+  int QuadraticTheirs[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
@@ -54,6 +54,8 @@ namespace {
     {  50,   40,  23,   -22,    0       }, // Rook
     {  98,  105, -39,   141,  274,    0 }  // Queen
   };
+
+  TUNE(Linear, QuadraticOurs, QuadraticTheirs);
 
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
