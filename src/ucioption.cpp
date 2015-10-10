@@ -276,4 +276,42 @@ void BoolConditions::set() {
 void Tune::read_results() {
 
   /* ...insert your values here... */
+    TuneResults["Linear_0"] = int(1667.26);
+    TuneResults["Linear_1"] = int(-167.83);
+    TuneResults["Linear_2"] = int(-1027.41);
+    TuneResults["Linear_3"] = int(-166.40);
+    TuneResults["Linear_4"] = int(238.39);
+    TuneResults["Linear_5"] = int(-137.94);
+    TuneResults["QuadraticOurs_1_0"] = int(40.04);
+    TuneResults["QuadraticOurs_1_1"] = int(2.03);
+    TuneResults["QuadraticOurs_2_0"] = int(32.04);
+    TuneResults["QuadraticOurs_2_1"] = int(255.20);
+    TuneResults["QuadraticOurs_2_2"] = int(-3.46);
+    TuneResults["QuadraticOurs_3_1"] = int(103.81);
+    TuneResults["QuadraticOurs_3_2"] = int(4.33);
+    TuneResults["QuadraticOurs_4_0"] = int(-26.05);
+    TuneResults["QuadraticOurs_4_1"] = int(-2.05);
+    TuneResults["QuadraticOurs_4_2"] = int(46.78);
+    TuneResults["QuadraticOurs_4_3"] = int(104.95);
+    TuneResults["QuadraticOurs_4_4"] = int(-149.49);
+    TuneResults["QuadraticOurs_5_0"] = int(-184.60);
+    TuneResults["QuadraticOurs_5_1"] = int(24.45);
+    TuneResults["QuadraticOurs_5_2"] = int(121.80);
+    TuneResults["QuadraticOurs_5_3"] = int(136.82);
+    TuneResults["QuadraticOurs_5_4"] = int(-134.03);
+    TuneResults["QuadraticTheirs_1_0"] = int(36.37);
+    TuneResults["QuadraticTheirs_2_0"] = int(9.51);
+    TuneResults["QuadraticTheirs_2_1"] = int(62.87);
+    TuneResults["QuadraticTheirs_3_0"] = int(59.43);
+    TuneResults["QuadraticTheirs_3_1"] = int(65.01);
+    TuneResults["QuadraticTheirs_3_2"] = int(42.29);
+    TuneResults["QuadraticTheirs_4_0"] = int(46.00);
+    TuneResults["QuadraticTheirs_4_1"] = int(38.56);
+    TuneResults["QuadraticTheirs_4_2"] = int(24.21);
+    TuneResults["QuadraticTheirs_4_3"] = int(-23.72);
+    TuneResults["QuadraticTheirs_5_0"] = int(100.63);
+    TuneResults["QuadraticTheirs_5_1"] = int(100.04);
+    TuneResults["QuadraticTheirs_5_2"] = int(-36.98);
+    TuneResults["QuadraticTheirs_5_3"] = int(140.87);
+    TuneResults["QuadraticTheirs_5_4"] = int(268.11);
 }
