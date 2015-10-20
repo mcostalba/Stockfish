@@ -71,7 +71,7 @@ void ThreadBase::notify_one() {
 void ThreadBase::wait(std::atomic<bool>& condition) {
 
   std::unique_lock<Mutex> lk(mutex);
-  sleepCondition.wait(lk, [&]{ return condition.load(std::memory_order_acquire); });
+  sleepCondition.wait(lk, [&]{ return bool(condition); });
 }
 
 
@@ -87,7 +87,7 @@ void ThreadBase::wait_while(std::atomic<bool>& condition) {
 // Thread c'tor makes some init but does not launch any execution thread that
 // will be started only when c'tor returns.
 
-Thread::Thread() {
+Thread::Thread() /* : splitPoints() */ { // Initialization of non POD broken in MSVC
 
   searching = false;
   maxPly = 0;
