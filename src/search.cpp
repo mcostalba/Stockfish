@@ -1051,6 +1051,9 @@ moves_loop: // When in check search starts from here
               // the best move changes frequently, we allocate some more time.
               if (moveCount > 1 && thisThread == Threads.main())
                   ++BestMoveChanges;
+
+              if (moveCount > 1)
+                  thisThread->completedDepth = DEPTH_ZERO;
           }
           else
               // All other moves but the PV are set to the lowest value: this is
