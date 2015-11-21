@@ -328,8 +328,7 @@ void MainThread::search() {
   // Check if there are threads with a better score than main thread.
   Thread* bestThread = this;
   for (Thread* th : Threads)
-      if (   th->completedDepth > bestThread->completedDepth
-          && th->rootMoves[0].score > bestThread->rootMoves[0].score)
+      if (th->completedDepth > bestThread->completedDepth)
         bestThread = th;
 
   // Send new PV when needed.
@@ -482,7 +481,7 @@ void Thread::search() {
               sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
       }
 
-      if (!Signals.stop)
+      if (!Signals.stop && rootMoves[0].pv.size() > 2)
           completedDepth = rootDepth;
 
       if (!isMainThread)
