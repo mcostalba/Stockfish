@@ -619,6 +619,18 @@ namespace {
         {
             Square blockSq = s + pawn_push(Us);
 
+#ifdef HORDE
+            if (pos.is_horde())
+            {
+                // Assume a horde king distance of approximately 5
+                if (Us == WHITE)
+                    ebonus += distance(pos.square<KING>(Them), blockSq) * 5 * rr - 10 * rr;
+                else
+                    ebonus += 25 * rr - distance(pos.square<KING>(Us), blockSq) * 2 * rr;
+            }
+            else
+            {
+#endif
             // Adjust bonus based on the king's proximity
             ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr
                      - distance(pos.square<KING>(Us  ), blockSq) * 2 * rr;
@@ -626,6 +638,9 @@ namespace {
             // If blockSq is not the queening square then consider also a second push
             if (relative_rank(Us, blockSq) != RANK_8)
                 ebonus -= distance(pos.square<KING>(Us), blockSq + pawn_push(Us)) * rr;
+#ifdef HORDE
+            }
+#endif
 
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
