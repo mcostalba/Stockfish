@@ -347,6 +347,45 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
+const int halfDensityMap[][8] =
+ {
+   {0, 1},
+    {1, 0},
+
+    {0, 0, 1, 1},
+    {0, 1, 1, 0},
+    {1, 1, 0, 0},
+    {1, 0, 0, 1},
+
+    {0, 0, 0, 1, 1, 1},
+    {0, 0, 1, 1, 1, 0},
+    {0, 1, 1, 1, 0, 0},
+    {1, 1, 1, 0, 0, 0},
+    {1, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 1, 1},
+
+    {0, 0, 0, 0, 1, 1, 1, 1},
+    {0, 0, 0, 1, 1, 1, 1, 0},
+    {0, 0, 1, 1, 1, 1, 0 ,0},
+    {0, 1, 1, 1, 1, 0, 0 ,0},
+    {1, 1, 1, 1, 0, 0, 0 ,0},
+    {1, 1, 1, 0, 0, 0, 0 ,1},
+    {1, 1, 0, 0, 0, 0, 1 ,1},
+    {1, 0, 0, 0, 0, 1, 1 ,1},
+ };
+
+int getRowLength(size_t idx) {
+    int blsize = 2;
+    int count =0;
+    for (size_t i=0;i < idx; i++) {
+        if (++count == blsize) {
+            blsize+=2;
+            count =0;
+        }
+    }
+    return blsize;
+}
+
 
 // Thread::search() is the main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been
@@ -391,24 +430,9 @@ void Thread::search() {
       // 2nd ply (using a half density map similar to a Hadamard matrix).
       if (!isMainThread)
       {
-          int d = rootDepth + rootPos.game_ply();
-
-          if (idx <= 6 || idx > 24)
-          {
-              if (((d + idx) >> (msb(idx + 1) - 1)) % 2)
-                  continue;
-          }
-          else
-          {
-              // Table of values of 6 bits with 3 of them set
-              static const int HalfDensityMap[] = {
-                      0x07, 0x0b, 0x0d, 0x0e, 0x13, 0x16, 0x19, 0x1a, 0x1c,
-                      0x23, 0x25, 0x26, 0x29, 0x2c, 0x31, 0x32, 0x34, 0x38
-              };
-
-              if ((HalfDensityMap[idx - 7] >> (d % 6)) & 1)
-                  continue;
-          }
+          int patternLength = getRowLength(idx - 1);
+          if (halfDensityMap[(idx - 1) % 20][(rootDepth + rootPos.game_ply()) % patternLength])
+             continue;
       }
 
       // Age out PV variability metric
@@ -535,7 +559,7 @@ void Thread::search() {
               // from the previous search and just did a fast verification.
               if (   rootMoves.size() == 1
                   || Time.elapsed() > Time.available() * (failedLow? 641 : 315)/640
-		  || ( easyPlayed = (   rootMoves[0].pv[0] == easyMove
+          || ( easyPlayed = (   rootMoves[0].pv[0] == easyMove
                       && BestMoveChanges < 0.03
                       && Time.elapsed() > Time.available() / 8)))
               {
