@@ -1483,7 +1483,7 @@ bool Position::is_draw() const {
   {
       stp = stp->previous->previous;
 
-      if (stp->key == st->key && (++rep >= 2 + (gamePly - i < thisThread->rootPly)))
+      if (stp->key == st->key && (++rep >= 2 + (gamePly - i < thisThread->rootPos.game_ply())))
           return true; // Draw at first repetition in search, and second repetition in game tree.
   }
 
