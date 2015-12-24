@@ -182,6 +182,10 @@ namespace {
         if (pos.is_horde())
             passed = !opposed;
 #endif
+#ifdef ATOMIC
+        if (pos.is_atomic())
+            passed = !opposed;
+#endif
         if (passed && !doubled)
             e->passedPawns[Us] |= s;
 
