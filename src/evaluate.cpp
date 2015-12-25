@@ -629,8 +629,16 @@ namespace {
                     ebonus += 25 * rr - distance(pos.square<KING>(Us), blockSq) * 2 * rr;
             }
             else
-            {
 #endif
+#ifdef ATOMIC
+            if (pos.is_atomic())
+            {
+                // Adjust bonus based on proximity to promotion
+                ebonus += relative_rank(Us, s) * 5 * rr;
+            }
+            else
+#endif
+            {
             // Adjust bonus based on the king's proximity
             ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr
                      - distance(pos.square<KING>(Us  ), blockSq) * 2 * rr;
@@ -638,9 +646,7 @@ namespace {
             // If blockSq is not the queening square then consider also a second push
             if (relative_rank(Us, blockSq) != RANK_8)
                 ebonus -= distance(pos.square<KING>(Us), blockSq + pawn_push(Us)) * rr;
-#ifdef HORDE
             }
-#endif
 
             // If the pawn is free to advance, then increase the bonus
             if (pos.empty(blockSq))
@@ -655,12 +661,6 @@ namespace {
                 if (!(pos.pieces(Us) & bb))
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
 
-#ifdef ATOMIC
-                // Consider most squares safe since capturing costs a piece
-                if (pos.is_atomic())
-                    unsafeSquares &= pos.square<KING>(Them);
-                else
-#endif
                 if (!(pos.pieces(Them) & bb))
                     unsafeSquares &= ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
 
@@ -687,10 +687,6 @@ namespace {
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
-#ifdef ATOMIC
-    if (pos.is_atomic())
-        score += score;
-#endif
 
     if (DoTrace)
         Trace::add(PASSED, Us, score * Weights[PassedPawns]);
