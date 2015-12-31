@@ -39,10 +39,8 @@ struct Stack {
   Move* pv;
   int ply;
   Move currentMove;
-  Move ttMove;
   Move excludedMove;
   Move killers[2];
-  Depth reduction;
   Value staticEval;
   bool skipEarlyPruning;
   int moveCount;
@@ -93,7 +91,7 @@ struct LimitsType {
 /// typically in an async fashion e.g. to stop the search by the GUI.
 
 struct SignalsType {
-  std::atomic_bool stop, stopOnPonderhit, firstRootMove, failedLowAtRoot;
+  std::atomic_bool stop, stopOnPonderhit;
 };
 
 typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
