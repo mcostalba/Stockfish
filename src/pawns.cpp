@@ -42,8 +42,9 @@ namespace {
   // Backward pawn penalty by opposed flag
   const Score Backward[2] = { S(67, 42), S(49, 24) };
   
-  // Unsupported pawn penalty, for pawns which are neither isolated or backward
-  const Score Unsupported = S(20, 10);
+  // Unsupported pawn penalty for pawns which are neither isolated or backward,
+  // by number of pawns it supports [less than 2 / exactly 2].
+  const Score Unsupported[2] = { S(20, 10), S(25, 15) };
 
   // Connected pawn bonus by opposed, phalanx, twice supported and rank
   Score Connected[2][2][2][RANK_NB];
@@ -57,9 +58,6 @@ namespace {
   const Score Lever[RANK_NB] = {
     S( 0,  0), S( 0,  0), S(0, 0), S(0, 0),
     S(20, 20), S(40, 40), S(0, 0), S(0, 0) };
-
-  // Center bind bonus, when two pawns controls the same central square
-  const Score CenterBind = S(16, 0);
 
   // Weakness of our pawn shelter in front of the king by [distance from edge][rank]
   const Value ShelterWeakness[][RANK_NB] = {
@@ -110,10 +108,6 @@ namespace {
     const Square Up    = (Us == WHITE ? DELTA_N  : DELTA_S);
     const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
-
-    const Bitboard CenterBindMask =
-      Us == WHITE ? (FileDBB | FileEBB) & (Rank5BB | Rank6BB | Rank7BB)
-                  : (FileDBB | FileEBB) & (Rank4BB | Rank3BB | Rank2BB);
 
     Bitboard b, neighbours, doubled, supported, phalanx;
     Square s;
@@ -195,7 +189,7 @@ namespace {
             score -= Backward[opposed];
 
         else if (!supported)
-            score -= Unsupported;
+            score -= Unsupported[more_than_one(neighbours & rank_bb(s + Up))];
 
         if (connected)
             score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
@@ -209,9 +203,6 @@ namespace {
 
     b = e->semiopenFiles[Us] ^ 0xFF;
     e->pawnSpan[Us] = b ? int(msb(b) - lsb(b)) : 0;
-
-    b = shift_bb<Right>(ourPawns) & shift_bb<Left>(ourPawns) & CenterBindMask;
-    score += CenterBind * popcount<Max15>(b);
 
     return score;
   }
