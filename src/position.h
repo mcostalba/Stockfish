@@ -400,7 +400,7 @@ inline Bitboard Position::pinned_pieces(Color c) const {
 
 inline bool Position::pawn_passed(Color c, Square s) const {
 #ifdef HORDE
-  if (is_horde())
+  if (is_horde() && c == WHITE)
       return !(pieces(~c, PAWN) & forward_bb(c, s));
 #endif
   return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));

@@ -175,7 +175,7 @@ namespace {
         // full attack info to evaluate them. Only the frontmost passed
         // pawn on each file is considered a true passed pawn.
 #ifdef HORDE
-        if (pos.is_horde())
+        if (pos.is_horde() && Us == WHITE)
             passed = !opposed;
 #endif
         if (passed && !doubled)
