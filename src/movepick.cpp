@@ -52,7 +52,7 @@ namespace {
   // pick_best() finds the best move in the range (begin, end) and moves it to
   // the front. It's faster than sorting all the moves in advance when there
   // are few moves e.g. the possible captures.
-  Move pick_best(ExtMove* begin, ExtMove* end)
+  ExtMove pick_best(ExtMove* begin, ExtMove* end)
   {
       std::swap(*begin, *std::max_element(begin, end));
       return *begin;
@@ -235,9 +235,9 @@ void MovePicker::generate_next_stage() {
 /// left. It picks the move with the biggest value from a list of generated moves
 /// taking care not to return the ttMove if it has already been searched.
 
-Move MovePicker::next_move() {
+ExtMove MovePicker::next_move() {
 
-  Move move;
+  ExtMove move;
 
   while (true)
   {
@@ -249,7 +249,7 @@ Move MovePicker::next_move() {
       case MAIN_SEARCH: case EVASION: case QSEARCH_WITH_CHECKS:
       case QSEARCH_WITHOUT_CHECKS: case PROBCUT:
           ++cur;
-          return ttMove;
+          return ExtMove{ttMove, VALUE_NONE};
 
       case GOOD_CAPTURES:
           move = pick_best(cur++, endMoves);
@@ -309,7 +309,7 @@ Move MovePicker::next_move() {
           break;
 
       case STOP:
-          return MOVE_NONE;
+          return ExtMove{MOVE_NONE, VALUE_NONE};
 
       default:
           assert(false);

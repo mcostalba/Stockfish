@@ -87,7 +87,7 @@ public:
   MovePicker(const Position&, Move, const HistoryStats&, Value);
   MovePicker(const Position&, Move, Depth, const HistoryStats&, const CounterMovesStats&, Move, Search::Stack*);
 
-  Move next_move();
+  ExtMove next_move();
 
 private:
   template<GenType> void score();

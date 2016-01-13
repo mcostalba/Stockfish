@@ -540,8 +540,8 @@ void Thread::search() {
               // of the available time has been used or we matched an easyMove
               // from the previous search and just did a fast verification.
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.available() * ( 640  - 160 * !mainThread->failedLow 
-                     - 126 * (bestValue >= mainThread->previousMoveScore)  
+                  || Time.elapsed() > Time.available() * ( 640  - 160 * !mainThread->failedLow
+                     - 126 * (bestValue >= mainThread->previousMoveScore)
                      - 124 * (bestValue >= mainThread->previousMoveScore && !mainThread->failedLow))/640
                   || ( mainThread->easyMovePlayed = ( rootMoves[0].pv[0] == easyMove
                                                      && mainThread->bestMoveChanges < 0.03
@@ -596,7 +596,8 @@ namespace {
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove;
+    ExtMove move;
+    Move ttMove, excludedMove, bestMove;
     Depth extension, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue, futilityValue;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
@@ -875,6 +876,8 @@ moves_loop: // When in check search starts from here
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != MOVE_NONE)
     {
+      /* You can access MovePicker score with move.value */
+
       assert(is_ok(move));
 
       if (move == excludedMove)
@@ -1002,7 +1005,7 @@ moves_loop: // When in check search starts from here
 
           // Decrease reduction for moves with a good history and
           // increase reduction for moves with a bad history
-          int rDecrease = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)] 
+          int rDecrease = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)]
                            + cmh[pos.piece_on(to_sq(move))][to_sq(move)]) / 14980;
           r = std::max(DEPTH_ZERO, r - rDecrease * ONE_PLY);
 
@@ -1182,7 +1185,8 @@ moves_loop: // When in check search starts from here
     StateInfo st;
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, bestMove;
+    ExtMove move;
+    Move ttMove, bestMove;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
     bool ttHit, givesCheck, evasionPrunable;
     Depth ttDepth;
