@@ -474,6 +474,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   if (pos.is_koth() && (pos.is_koth_win() || pos.is_koth_loss()))
       return moveList;
 #endif
+#ifdef RACE
+  if (pos.is_race() && (pos.is_race_win() || pos.is_race_loss()))
+      return moveList;
+#endif
 #ifdef THREECHECK
   if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
       return moveList;
@@ -482,23 +486,14 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;
-
-#ifdef KOTH
-  if (pos.is_koth() && (pos.is_koth_win() || pos.is_koth_loss()))
-      return moveList;
-#endif
-#ifdef THREECHECK
-  if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
-      return moveList;
-#endif
-#ifdef ATOMIC
-  if (pos.is_atomic() && (pos.is_atomic_win() || pos.is_atomic_loss()))
-      return moveList;
-#endif
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
+#ifdef RACE
+      if (   (pos.is_race() || pinned || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
+#else
       if (   (pinned || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
+#endif
           && !pos.legal(*cur, pinned))
           *cur = (--moveList)->move;
       else

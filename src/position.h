@@ -31,9 +31,10 @@
 #define STANDARD_VARIANT 0
 #define CHESS960_VARIANT 1 << 1
 #define KOTH_VARIANT 1 << 2
-#define THREECHECK_VARIANT 1 << 3
-#define HORDE_VARIANT 1 << 4
-#define ATOMIC_VARIANT 1 << 5
+#define RACE_VARIANT 1 << 3
+#define THREECHECK_VARIANT 1 << 4
+#define HORDE_VARIANT 1 << 5
+#define ATOMIC_VARIANT 1 << 6
 
 class Position;
 class Thread;
@@ -194,7 +195,15 @@ public:
   bool is_koth() const;
   bool is_koth_win() const;
   bool is_koth_loss() const;
+#ifdef KOTH_DISTANCE_BONUS
   int koth_distance(Color c) const;
+#endif
+#endif
+#ifdef RACE
+  bool is_race() const;
+  bool is_race_win() const;
+  bool is_race_loss() const;
+  int race_distance(Color c) const;
 #endif
 #ifdef THREECHECK
   bool is_three_check() const;
@@ -487,14 +496,19 @@ inline bool Position::is_koth() const {
 
 // Win if king is in the center (KOTH)
 inline bool Position::is_koth_win() const {
-  return koth_distance(sideToMove) == 0;
+  Square ksq = square<KING>(sideToMove);
+  return (rank_of(ksq) == RANK_4 || rank_of(ksq) == RANK_5) &&
+         (file_of(ksq) == FILE_D || file_of(ksq) == FILE_E);
 }
 
 // Loss if king is in the center (KOTH)
 inline bool Position::is_koth_loss() const {
-  return koth_distance(~sideToMove) == 0;
+  Square ksq = square<KING>(~sideToMove);
+  return (rank_of(ksq) == RANK_4 || rank_of(ksq) == RANK_5) &&
+         (file_of(ksq) == FILE_D || file_of(ksq) == FILE_E);
 }
 
+#ifdef KOTH_DISTANCE_BONUS
 inline int Position::koth_distance(Color c) const {
   Square ksq = square<KING>(c);
   int sdistance =
@@ -504,6 +518,27 @@ inline int Position::koth_distance(Color c) const {
 	distance(ksq, SQ_E5);
   // Return 0 if in the center, weighted average distance otherwise
   return sdistance < 4 ? 0 : (sdistance + 1) / 4;
+}
+#endif
+#endif
+
+#ifdef RACE
+inline bool Position::is_race() const {
+  return variant & RACE_VARIANT;
+}
+
+// Win if king is on the eighth rank (Racing Kings)
+inline bool Position::is_race_win() const {
+  return rank_of(square<KING>(sideToMove)) == RANK_8;
+}
+
+// Loss if king is on the eighth rank (Racing Kings)
+inline bool Position::is_race_loss() const {
+  return rank_of(square<KING>(~sideToMove)) == RANK_8;
+}
+
+inline int Position::race_distance(Color c) const {
+  return distance(rank_of(square<KING>(c)), RANK_8);
 }
 #endif
 

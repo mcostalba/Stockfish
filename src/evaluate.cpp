@@ -848,6 +848,16 @@ Value Eval::evaluate(const Position& pos) {
             return -VALUE_MATE;
     }
 #endif
+#ifdef RACE
+    // Possibly redundant static evaluator
+    if (pos.is_race())
+    {
+        if (pos.is_race_win())
+            return VALUE_MATE;
+        if (pos.is_race_loss())
+            return -VALUE_MATE;
+    }
+#endif
 #ifdef THREECHECK
     if (pos.is_three_check())
     {
@@ -888,6 +898,9 @@ Value Eval::evaluate(const Position& pos) {
   // configuration, call it and return.
 #ifdef KOTH
   if (pos.is_koth()) {} else
+#endif
+#ifdef RACE
+  if (pos.is_race()) {} else
 #endif
 #ifdef THREECHECK
   if (pos.is_three_check()) {} else

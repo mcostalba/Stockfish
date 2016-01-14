@@ -79,6 +79,9 @@ void init(OptionsMap& o) {
 #ifdef KOTH
   o["UCI_KingOfTheHill"]     << Option(false);
 #endif
+#ifdef RACE
+  o["UCI_Race"]              << Option(false);
+#endif
 #ifdef THREECHECK
   o["UCI_3Check"]            << Option(false);
 #endif

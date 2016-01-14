@@ -256,6 +256,10 @@ void MainThread::search() {
       if (rootPos.is_koth() && rootPos.is_koth_loss())
           score = -VALUE_MATE;
 #endif
+#ifdef RACE
+      if (rootPos.is_race() && rootPos.is_race_loss())
+          score = -VALUE_MATE;
+#endif
 #ifdef HORDE
       if (rootPos.is_horde() && rootPos.is_horde_loss())
           score = -VALUE_MATE;
@@ -655,6 +659,16 @@ namespace {
                 return mated_in(ss->ply);
         }
 #endif
+#ifdef RACE
+        // Check for an instant win/loss (Racing Kings)
+        if (pos.is_race())
+        {
+            if (pos.is_race_win())
+                return mate_in(ss->ply + 1);
+            if (pos.is_race_loss())
+                return mated_in(ss->ply);
+        }
+#endif
 #ifdef THREECHECK
         // Check for an instant win/loss (Three-Check)
         if (pos.is_three_check())
@@ -729,6 +743,9 @@ namespace {
     // Step 4a. Tablebase probe
 #ifdef KOTH
     if (pos.is_koth()) {} else
+#endif
+#ifdef RACE
+    if (pos.is_race()) {} else
 #endif
 #ifdef THREECHECK
     if (pos.is_three_check()) {} else
@@ -1305,6 +1322,16 @@ moves_loop: // When in check search starts from here
         if (pos.is_koth_win())
             return mate_in(ss->ply+1);
         if (pos.is_koth_loss())
+            return mated_in(ss->ply);
+    }
+#endif
+#ifdef RACE
+    // Check for an instant win/loss (Racing Kings)
+    if (pos.is_race())
+    {
+        if (pos.is_race_win())
+            return mate_in(ss->ply+1);
+        if (pos.is_race_loss())
             return mated_in(ss->ply);
     }
 #endif

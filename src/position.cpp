@@ -628,6 +628,11 @@ bool Position::legal(Move m, Bitboard pinned) const {
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 #endif
 
+#ifdef RACE
+  // Checking moves are illegal
+  if (is_race() && gives_check(m, CheckInfo(*this)))
+      return false;
+#endif
 #ifdef HORDE
   // All pseudo-legal moves by the horde are legal
   if (is_horde() && square<KING>(us) == SQ_NONE)
@@ -726,6 +731,11 @@ bool Position::pseudo_legal(const Move m) const {
 #ifdef KOTH
   // If the game is already won or lost, further moves are illegal
   if (is_koth() && (is_koth_win() || is_koth_loss()))
+      return false;
+#endif
+#ifdef RACE
+  // If the game is already won or lost, further moves are illegal
+  if (is_race() && (is_koth_win() || is_koth_loss()))
       return false;
 #endif
 #ifdef HORDE

@@ -163,6 +163,10 @@ void benchmark(const Position& current, istream& is) {
       if (Options["UCI_KingOfTheHill"])
           variant |= KOTH_VARIANT;
 #endif
+#ifdef RACE
+      if (Options["UCI_Race"])
+          variant |= RACE_VARIANT;
+#endif
 #ifdef THREECHECK
       if (Options["UCI_3Check"])
           variant |= THREECHECK_VARIANT;
