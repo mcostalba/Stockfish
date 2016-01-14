@@ -1239,6 +1239,11 @@ moves_loop: // When in check search starts from here
     // return a fail low score.
     if (!moveCount)
     {
+#ifdef RACE
+        if (pos.is_race() && pos.is_race_loss())
+            bestValue = excludedMove ? alpha : mated_in(ss->ply);
+        else
+#endif
 #ifdef HORDE
         if (pos.is_horde() && pos.is_horde_loss())
             bestValue = excludedMove ? alpha : mated_in(ss->ply);
