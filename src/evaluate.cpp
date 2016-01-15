@@ -605,6 +605,20 @@ namespace {
 
     b = ei.pi->passed_pawns(Us);
 
+#ifdef RACE
+    if (pos.is_race())
+    {
+        Square ksq = pos.square<KING>(Us);
+        Rank rank = rank_of(ksq);
+        if (rank >= RANK_2)
+        {
+            int r = rank - RANK_2;
+            Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
+            score += make_score(mbonus, ebonus) + PassedFile[file_of(ksq)];
+        }
+    }
+    else
+#endif
     while (b)
     {
         Square s = pop_lsb(&b);
