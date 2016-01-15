@@ -605,6 +605,14 @@ namespace {
 
     b = ei.pi->passed_pawns(Us);
 
+#ifdef KOTH
+    if (pos.is_koth())
+    {
+        int r = RANK_7 - pos.koth_distance(Us);
+        Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
+        score += make_score(mbonus, ebonus);
+    }
+#endif
 #ifdef RACE
     if (pos.is_race())
     {

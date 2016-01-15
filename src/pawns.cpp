@@ -89,15 +89,6 @@ namespace {
   // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(258);
 
-#ifdef KOTH_DISTANCE_BONUS
-  const Score KOTHDistanceBonus[4] = {
-    S(1*PawnValueMg + PawnValueMg/2, 9*PawnValueEg),
-    S(1*PawnValueMg                , 4*PawnValueEg),
-    S(                PawnValueMg/2, 1*PawnValueEg),
-    S(0, 0)
-  };
-#endif
-
   #undef S
   #undef V
 
@@ -300,16 +291,6 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   Checks checks = pos.is_three_check() ? pos.checks_taken() : CHECKS_0;
 #endif
 
-#ifdef KOTH_DISTANCE_BONUS
-  Score kothBonus = SCORE_ZERO;
-  if (pos.is_koth())
-  {
-      // Initial attempt to adjust score based on KOTH distance
-      // TODO: account for attacked and blocked squares
-      kothBonus = KOTHDistanceBonus[pos.koth_distance(Us)];
-  }
-#endif
-
   Bitboard pawns = pos.pieces(Us, PAWN);
   if (pawns)
       while (!(DistanceRingBB[ksq][minKingPawnDistance++] & pawns)) {}
@@ -319,11 +300,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
       // Decrease score when checks have been taken
       return make_score(0, -16 * minKingPawnDistance - checks);
 #else
-#ifdef KOTH_DISTANCE_BONUS
-      return kothBonus + make_score(0, -16 * minKingPawnDistance);
-#else
       return make_score(0, -16 * minKingPawnDistance);
-#endif
 #endif
 
   Value bonus = shelter_storm<Us>(pos, ksq);
@@ -339,11 +316,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   // Decrease score when checks have been taken
   return make_score(bonus, (-16 * minKingPawnDistance) + (-2 * checks));
 #else
-#ifdef KOTH_DISTANCE_BONUS
-  return kothBonus + make_score(bonus, -16 * minKingPawnDistance);
-#else
   return make_score(bonus, -16 * minKingPawnDistance);
-#endif
 #endif
 }
 

@@ -195,9 +195,7 @@ public:
   bool is_koth() const;
   bool is_koth_win() const;
   bool is_koth_loss() const;
-#ifdef KOTH_DISTANCE_BONUS
   int koth_distance(Color c) const;
-#endif
 #endif
 #ifdef RACE
   bool is_race() const;
@@ -508,18 +506,11 @@ inline bool Position::is_koth_loss() const {
          (file_of(ksq) == FILE_D || file_of(ksq) == FILE_E);
 }
 
-#ifdef KOTH_DISTANCE_BONUS
 inline int Position::koth_distance(Color c) const {
   Square ksq = square<KING>(c);
-  int sdistance =
-	distance(ksq, SQ_D4) +
-	distance(ksq, SQ_E4) +
-	distance(ksq, SQ_D5) +
-	distance(ksq, SQ_E5);
-  // Return 0 if in the center, weighted average distance otherwise
-  return sdistance < 4 ? 0 : (sdistance + 1) / 4;
+  return (distance(ksq, SQ_D4) + distance(ksq, SQ_E4) +
+          distance(ksq, SQ_D5) + distance(ksq, SQ_E5)) / 4;
 }
-#endif
 #endif
 
 #ifdef RACE
