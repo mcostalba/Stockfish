@@ -866,6 +866,8 @@ Value Eval::evaluate(const Position& pos) {
     // Possibly redundant static evaluator
     if (pos.is_race())
     {
+        if (pos.is_race_draw())
+            return VALUE_DRAW;
         if (pos.is_race_win())
             return VALUE_MATE;
         if (pos.is_race_loss())

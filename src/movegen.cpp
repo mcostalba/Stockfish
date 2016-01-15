@@ -475,7 +475,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
       return moveList;
 #endif
 #ifdef RACE
-  if (pos.is_race() && (pos.is_race_win() || pos.is_race_loss()))
+  if (pos.is_race() && (pos.is_race_draw() || pos.is_race_win() || pos.is_race_loss()))
       return moveList;
 #endif
 #ifdef THREECHECK

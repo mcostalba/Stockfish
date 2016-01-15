@@ -663,6 +663,8 @@ namespace {
         // Check for an instant win/loss (Racing Kings)
         if (pos.is_race())
         {
+            if (pos.is_race_draw())
+                return DrawValue[pos.side_to_move()];
             if (pos.is_race_win())
                 return mate_in(ss->ply + 1);
             if (pos.is_race_loss())
@@ -1243,8 +1245,10 @@ moves_loop: // When in check search starts from here
     if (!moveCount)
     {
 #ifdef RACE
-        if (pos.is_race() && pos.is_race_loss())
-            bestValue = excludedMove ? alpha : mated_in(ss->ply);
+        if (pos.is_race() && (pos.is_race_draw() || pos.is_race_loss() || pos.is_race_win()))
+            bestValue = excludedMove ? alpha
+                : pos.is_race_draw() ? DrawValue[pos.side_to_move()]
+                : pos.is_race_loss() ? mated_in(ss->ply) : mate_in(ss->ply+1);
         else
 #endif
 #ifdef HORDE
@@ -1337,6 +1341,8 @@ moves_loop: // When in check search starts from here
     // Check for an instant win/loss (Racing Kings)
     if (pos.is_race())
     {
+        if (pos.is_race_draw())
+            return DrawValue[pos.side_to_move()];
         if (pos.is_race_win())
             return mate_in(ss->ply+1);
         if (pos.is_race_loss())

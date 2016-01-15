@@ -202,8 +202,8 @@ public:
 #ifdef RACE
   bool is_race() const;
   bool is_race_win() const;
+  bool is_race_draw() const;
   bool is_race_loss() const;
-  int race_distance(Color c) const;
 #endif
 #ifdef THREECHECK
   bool is_three_check() const;
@@ -532,13 +532,15 @@ inline bool Position::is_race_win() const {
   return rank_of(square<KING>(sideToMove)) == RANK_8;
 }
 
-// Loss if king is on the eighth rank (Racing Kings)
-inline bool Position::is_race_loss() const {
-  return rank_of(square<KING>(~sideToMove)) == RANK_8;
+// Draw if kings are on the eighth rank (Racing Kings)
+inline bool Position::is_race_draw() const {
+  return is_race_win() && is_race_loss();
 }
 
-inline int Position::race_distance(Color c) const {
-  return distance(rank_of(square<KING>(c)), RANK_8);
+// Loss if king is on the eighth rank (Racing Kings)
+inline bool Position::is_race_loss() const {
+  return (sideToMove == WHITE || rank_of(square<KING>(sideToMove)) < RANK_7) &&
+         rank_of(square<KING>(~sideToMove)) == RANK_8;
 }
 #endif
 
