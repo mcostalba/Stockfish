@@ -2,6 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -186,6 +187,8 @@ void Search::clear() {
       th->history.clear();
       th->counterMoves.clear();
   }
+
+  Threads.main()->previousMoveScore = VALUE_INFINITE;
 }
 
 
@@ -346,6 +349,8 @@ void MainThread::search() {
               && th->rootMoves[0].score > bestThread->rootMoves[0].score)
               bestThread = th;
   }
+
+  previousMoveScore = bestThread->rootMoves[0].score;
 
   // Send new PV when needed
   if (bestThread != this)
@@ -547,10 +552,12 @@ void Thread::search() {
               // of the available time has been used or we matched an easyMove
               // from the previous search and just did a fast verification.
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.available() * (mainThread->failedLow ? 641 : 315) / 640
-                  || (mainThread->easyMovePlayed = (   rootMoves[0].pv[0] == easyMove
-                                                    && mainThread->bestMoveChanges < 0.03
-                                                    && Time.elapsed() > Time.available() / 8)))
+                  || Time.elapsed() > Time.available() * ( 640  - 160 * !mainThread->failedLow 
+                     - 126 * (bestValue >= mainThread->previousMoveScore)  
+                     - 124 * (bestValue >= mainThread->previousMoveScore && !mainThread->failedLow))/640
+                  || ( mainThread->easyMovePlayed = ( rootMoves[0].pv[0] == easyMove
+                                                     && mainThread->bestMoveChanges < 0.03
+                                                     && Time.elapsed() > Time.available() * 25/206)))
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -1086,12 +1093,15 @@ moves_loop: // When in check search starts from here
                   && cmh[pos.piece_on(to_sq(move))][to_sq(move)] <= VALUE_ZERO))
               r += ONE_PLY;
 
-          // Decrease reduction for moves with a good history
-          if (   thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)] > VALUE_ZERO
-              && cmh[pos.piece_on(to_sq(move))][to_sq(move)] > VALUE_ZERO)
-              r = std::max(DEPTH_ZERO, r - ONE_PLY);
+          // Decrease reduction for moves with a good history and
+          // increase reduction for moves with a bad history
+          int rDecrease = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)] 
+                           + cmh[pos.piece_on(to_sq(move))][to_sq(move)]) / 14980;
+          r = std::max(DEPTH_ZERO, r - rDecrease * ONE_PLY);
 
-          // Decrease reduction for moves that escape a capture
+          // Decrease reduction for moves that escape a capture. Filter out castling
+          // moves because are coded as "king captures rook" and break make_move().
+          // Also use see() instead of see_sign() because destination square is empty.
           if (   r
               && type_of(move) == NORMAL
               && type_of(pos.piece_on(to_sq(move))) != PAWN
