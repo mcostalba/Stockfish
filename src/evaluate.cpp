@@ -250,6 +250,9 @@ namespace {
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
     // Init king safety tables only if we are going to use them
+#ifdef RACE
+    if (pos.is_race()) {} else
+#endif
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
@@ -603,6 +606,11 @@ namespace {
     Bitboard b, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
 
+#ifdef RACE
+    if (pos.is_race())
+       b = pos.square<KING>(Us);
+    else
+#endif
     b = ei.pi->passed_pawns(Us);
 
 #ifdef KOTH
@@ -613,27 +621,21 @@ namespace {
         score += make_score(mbonus, ebonus);
     }
 #endif
-#ifdef RACE
-    if (pos.is_race())
-    {
-        Square ksq = pos.square<KING>(Us);
-        Rank rank = rank_of(ksq);
-        if (rank >= RANK_2)
-        {
-            int r = rank - RANK_2;
-            Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
-            score += make_score(mbonus, ebonus) + PassedFile[file_of(ksq)];
-        }
-    }
-    else
-#endif
     while (b)
     {
         Square s = pop_lsb(&b);
 
+#ifdef RACE
+        assert(pos.is_race() || pos.pawn_passed(Us, s));
+#else
         assert(pos.pawn_passed(Us, s));
+#endif
 
+#ifdef RACE
+        int r = (pos.is_race() ? rank_of(s) : relative_rank(Us, s)) - RANK_2;
+#else
         int r = relative_rank(Us, s) - RANK_2;
+#endif
         int rr = r * (r - 1);
 
         Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
@@ -641,7 +643,19 @@ namespace {
         if (rr)
         {
             Square blockSq = s + pawn_push(Us);
+#ifdef RACE
+            Bitboard blockSquares = pos.is_race() ?
+                ei.attackedBy[Us][KING] & in_front_bb(Us, rank_of(s)) : 0;
+#endif
 
+#ifdef RACE
+            if (pos.is_race())
+            {
+                // Adjust bonus based on the opponent's king's proximity
+                ebonus += distance(pos.square<KING>(Them), blockSq) * 5 * rr;
+            }
+            else
+#endif
 #ifdef HORDE
             if (pos.is_horde())
             {
@@ -672,30 +686,58 @@ namespace {
             }
 
             // If the pawn is free to advance, then increase the bonus
+#ifdef RACE
+            if (pos.is_race() || pos.empty(blockSq))
+#else
             if (pos.empty(blockSq))
+#endif
             {
                 // If there is a rook or queen attacking/defending the pawn from behind,
                 // consider all the squaresToQueen. Otherwise consider only the squares
                 // in the pawn's path attacked or occupied by the enemy.
+#ifdef RACE
+                if (pos.is_race())
+                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s) | pawn_attack_span(Us, s);
+                else
+#endif
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
                 Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
 
+#ifdef RACE
+                if (pos.is_race() || !(pos.pieces(Us) & bb))
+#else
                 if (!(pos.pieces(Us) & bb))
+#endif
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
 
+#ifdef RACE
+                if (pos.is_race() || !(pos.pieces(Them) & bb))
+#else
                 if (!(pos.pieces(Them) & bb))
+#endif
                     unsafeSquares &= ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
                 int k = !unsafeSquares ? 18 : !(unsafeSquares & blockSq) ? 8 : 0;
+#ifdef RACE
+                if (pos.is_race())
+                    k = !unsafeSquares ? 18 : (blockSquares - unsafeSquares) ? 8 : 0;
+#endif
 
                 // If the path to queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
                     k += 6;
 
+#ifdef RACE
+                else if (pos.is_race())
+                {
+                    if (defendedSquares & blockSquares)
+                        k += 4;
+                }
+#endif
                 else if (defendedSquares & blockSq)
                     k += 4;
 
