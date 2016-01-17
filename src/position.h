@@ -542,6 +542,13 @@ inline bool Position::is_chess960() const {
 inline bool Position::capture_or_promotion(Move m) const {
 
   assert(is_ok(m));
+#ifdef RACE
+  if (is_race())
+  {
+    Square from = from_sq(m), to = to_sq(m);
+    return (type_of(board[from]) == KING && rank_of(to) >= rank_of(from)) || !empty(to);
+  }
+#endif
   return type_of(m) != NORMAL ? type_of(m) != CASTLING : !empty(to_sq(m));
 }
 

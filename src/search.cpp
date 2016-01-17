@@ -997,6 +997,11 @@ moves_loop: // When in check search starts from here
       extension = DEPTH_ZERO;
       captureOrPromotion = pos.capture_or_promotion(move);
 
+#ifdef RACE
+      if (pos.is_race())
+          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
+      else
+#endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
 #ifdef ATOMIC
                   && !pos.is_atomic()
@@ -1460,6 +1465,11 @@ moves_loop: // When in check search starts from here
     {
       assert(is_ok(move));
 
+#ifdef RACE
+      if (pos.is_race())
+          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
+      else
+#endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
 #ifdef ATOMIC
                   && !pos.is_atomic()

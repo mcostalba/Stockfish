@@ -436,6 +436,11 @@ void Position::set_state(StateInfo* si) const {
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
 
+#ifdef RACE
+  if (is_race())
+      si->checkersBB = Rank8BB & square<KING>(~sideToMove);
+  else
+#endif
 #ifdef HORDE
   if (is_horde() && square<KING>(sideToMove) == SQ_NONE)
       si->checkersBB = 0;
@@ -1190,6 +1195,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic() && captured && is_atomic_win())
       givesCheck = false;
+#endif
+#ifdef RACE
+  if (is_race())
+      st->checkersBB = Rank8BB & square<KING>(us);
+  else
 #endif
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
