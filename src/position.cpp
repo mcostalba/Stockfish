@@ -438,7 +438,10 @@ void Position::set_state(StateInfo* si) const {
 
 #ifdef RACE
   if (is_race())
-      si->checkersBB = Rank8BB & square<KING>(~sideToMove);
+  {
+      Rank r = rank_of(square<KING>(sideToMove));
+      si->checkersBB = r == RANK_8 ? 0 : Rank8BB & square<KING>(~sideToMove);
+  }
   else
 #endif
 #ifdef HORDE
@@ -740,7 +743,7 @@ bool Position::pseudo_legal(const Move m) const {
 #endif
 #ifdef RACE
   // If the game is already won or lost, further moves are illegal
-  if (is_race() && (is_koth_win() || is_koth_loss()))
+  if (is_race() && (is_race_draw() || is_race_win() || is_race_loss()))
       return false;
 #endif
 #ifdef HORDE

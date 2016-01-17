@@ -250,9 +250,6 @@ namespace {
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
     // Init king safety tables only if we are going to use them
-#ifdef RACE
-    if (pos.is_race()) {} else
-#endif
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
@@ -697,26 +694,29 @@ namespace {
                 // in the pawn's path attacked or occupied by the enemy.
 #ifdef RACE
                 if (pos.is_race())
-                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s) | pawn_attack_span(Us, s);
+                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s) | blockSquares;
                 else
 #endif
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
-                Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
-
 #ifdef RACE
-                if (pos.is_race() || !(pos.pieces(Us) & bb))
+                Bitboard bb = pos.is_race() ? 0 : forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
 #else
-                if (!(pos.pieces(Us) & bb))
+                Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
 #endif
+
+                if (!(pos.pieces(Us) & bb))
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
 
-#ifdef RACE
-                if (pos.is_race() || !(pos.pieces(Them) & bb))
-#else
                 if (!(pos.pieces(Them) & bb))
+                {
+#ifdef RACE
+                    if (pos.is_race())
+                        unsafeSquares &= ei.attackedBy[Them][ALL_PIECES];
+                    else
 #endif
                     unsafeSquares &= ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
+                }
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
@@ -734,7 +734,7 @@ namespace {
 #ifdef RACE
                 else if (pos.is_race())
                 {
-                    if (defendedSquares & blockSquares)
+                    if ((defendedSquares & blockSquares) == blockSquares)
                         k += 4;
                 }
 #endif
@@ -752,6 +752,10 @@ namespace {
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
+#ifdef RACE
+    if (pos.is_race())
+        score += score;
+#endif
 
     if (DoTrace)
         Trace::add(PASSED, Us, score * Weights[PassedPawns]);
