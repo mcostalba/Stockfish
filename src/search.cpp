@@ -618,10 +618,15 @@ namespace {
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
     bool captureOrPromotion, doFullDepthSearch;
     int moveCount, quietCount;
+    int variantScale;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
+#ifdef RACE
+    int raceRank = pos.is_race() ?
+        rank_of(pos.square<KING>(pos.side_to_move())) + rank_of(pos.square<KING>(~pos.side_to_move())) : 0;
+#endif
 #ifdef THREECHECK
     int checks = pos.is_three_check() ? pos.checks_count() : CHECKS_0;
 #endif
@@ -819,28 +824,25 @@ namespace {
         goto moves_loop;
 
     // Step 6. Razoring (skipped when in check)
+    variantScale = 1;
+#ifdef RACE
+    if (pos.is_race())
+        variantScale += raceRank / 2;
+#endif
+#ifdef THREECHECK
+    if (pos.is_three_check())
+        variantScale += checks;
+#endif
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-#ifdef THREECHECK
-        &&  eval + (razor_margin[depth] * (pos.is_three_check() ? 1 + pos.checks_count() : 1)) <= alpha
-#else
-        &&  eval + razor_margin[depth] <= alpha
-#endif
+        &&  eval + (razor_margin[depth] * variantScale) <= alpha
         &&  ttMove == MOVE_NONE)
     {
         if (   depth <= ONE_PLY
-#ifdef THREECHECK
-            && eval + (razor_margin[3 * ONE_PLY] * (pos.is_three_check() ? 1 + pos.checks_count() : 1)) <= alpha)
-#else
-            && eval + razor_margin[3 * ONE_PLY] <= alpha)
-#endif
+            && eval + (razor_margin[3 * ONE_PLY] * variantScale) <= alpha)
             return qsearch<NonPV, false>(pos, ss, alpha, beta, DEPTH_ZERO);
 
-#ifdef THREECHECK
-        Value ralpha = alpha - (razor_margin[depth] * (pos.is_three_check() ? 1 + pos.checks_count() : 1));
-#else
-        Value ralpha = alpha - razor_margin[depth];
-#endif
+        Value ralpha = alpha - (razor_margin[depth] * variantScale);
         Value v = qsearch<NonPV, false>(pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
         if (v <= ralpha)
             return v;
@@ -849,10 +851,10 @@ namespace {
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !RootNode
         &&  depth < 7 * ONE_PLY
-        &&  eval - futility_margin(depth) >= beta
+        &&  eval - (futility_margin(depth) * variantScale) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
         &&  pos.non_pawn_material(pos.side_to_move()))
-        return eval - futility_margin(depth);
+        return eval - (futility_margin(depth) * variantScale);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
@@ -899,10 +901,18 @@ namespace {
     // and a reduced search returns a value much above beta, we can (almost)
     // safely prune the previous move.
     if (   !PvNode
+#ifdef RACE
+#ifdef THREECHECK
+        &&  depth >= (5 + checks + raceRank) * ONE_PLY
+#else
+        &&  depth >= (5 + raceRank) * ONE_PLY
+#endif
+#else
 #ifdef THREECHECK
         &&  depth >= (5 + checks) * ONE_PLY
 #else
         &&  depth >= 5 * ONE_PLY
+#endif
 #endif
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
@@ -956,10 +966,18 @@ moves_loop: // When in check search starts from here
                ||(ss-2)->staticEval == VALUE_NONE;
 
     singularExtensionNode =   !RootNode
+#ifdef RACE
+#ifdef THREECHECK
+                           &&  depth >= 8 * ONE_PLY - checks - raceRank
+#else
+                           &&  depth >= 8 * ONE_PLY - raceRank
+#endif
+#else
 #ifdef THREECHECK
                            &&  depth >= 8 * ONE_PLY - checks
 #else
                            &&  depth >= 8 * ONE_PLY
+#endif
 #endif
                            &&  ttMove != MOVE_NONE
                        /*  &&  ttValue != VALUE_NONE Already implicit in the next condition */
@@ -1046,16 +1064,36 @@ moves_loop: // When in check search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
+#ifdef RACE
+#ifdef THREECHECK
+          if (   depth < (16 - checks - raceRank) * ONE_PLY
+#else
+          if (   depth < (16 - raceRank) * ONE_PLY
+#endif
+#else
 #ifdef THREECHECK
           if (   depth < (16 - checks) * ONE_PLY
 #else
           if (   depth < 16 * ONE_PLY
 #endif
+#endif
               && moveCount >= FutilityMoveCounts[improving][depth])
               continue;
 
           // History based pruning
+#ifdef RACE
+#ifdef THREECHECK
+          if (   depth <= 4 * ONE_PLY - checks - raceRank
+#else
+          if (   depth <= 4 * ONE_PLY - raceRank
+#endif
+#else
+#ifdef THREECHECK
+          if (   depth <= 4 * ONE_PLY - checks
+#else
           if (   depth <= 4 * ONE_PLY
+#endif
+#endif
               && move != ss->killers[0]
               && thisThread->history[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO
               && cmh[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO)
@@ -1064,10 +1102,18 @@ moves_loop: // When in check search starts from here
           predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 
           // Futility pruning: parent node
+#ifdef RACE
+#ifdef THREECHECK
+          if (predictedDepth < (7 - checks - raceRank) * ONE_PLY)
+#else
+          if (predictedDepth < (7 - raceRank) * ONE_PLY)
+#endif
+#else
 #ifdef THREECHECK
           if (predictedDepth < (7 - checks) * ONE_PLY)
 #else
           if (predictedDepth < 7 * ONE_PLY)
+#endif
 #endif
           {
               futilityValue = ss->staticEval + futility_margin(predictedDepth) + 256;
@@ -1101,10 +1147,18 @@ moves_loop: // When in check search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
+#ifdef RACE
+#ifdef THREECHECK
+      if (    depth >= (3 + checks + raceRank) * ONE_PLY
+#else
+      if (    depth >= (3 + raceRank) * ONE_PLY
+#endif
+#else
 #ifdef THREECHECK
       if (    depth >= (3 + checks) * ONE_PLY
 #else
       if (    depth >= 3 * ONE_PLY
+#endif
 #endif
           &&  moveCount > 1
           && !captureOrPromotion)
