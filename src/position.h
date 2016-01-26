@@ -30,11 +30,12 @@
 
 #define STANDARD_VARIANT 0
 #define CHESS960_VARIANT 1 << 1
-#define KOTH_VARIANT 1 << 2
-#define RACE_VARIANT 1 << 3
-#define THREECHECK_VARIANT 1 << 4
-#define HORDE_VARIANT 1 << 5
-#define ATOMIC_VARIANT 1 << 6
+#define ATOMIC_VARIANT 1 << 2
+#define HORDE_VARIANT 1 << 3
+#define HOUSE_VARIANT 1 << 4
+#define KOTH_VARIANT 1 << 5
+#define RACE_VARIANT 1 << 6
+#define THREECHECK_VARIANT 1 << 7
 
 class Position;
 class Thread;
@@ -190,6 +191,9 @@ public:
 #ifdef HORDE
   bool is_horde() const;
   bool is_horde_loss() const;
+#endif
+#ifdef HOUSE
+  bool is_house() const;
 #endif
 #ifdef KOTH
   bool is_koth() const;
@@ -484,6 +488,12 @@ inline bool Position::is_horde() const {
 // Loss if horde is captured (Horde)
 inline bool Position::is_horde_loss() const {
   return count<ALL_PIECES>(WHITE) == 0;
+}
+#endif
+
+#ifdef HOUSE
+inline bool Position::is_house() const {
+  return variant & HOUSE_VARIANT;
 }
 #endif
 

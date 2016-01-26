@@ -76,6 +76,9 @@ void init(OptionsMap& o) {
 #ifdef HORDE
   o["UCI_Horde"]             << Option(false);
 #endif
+#ifdef HOUSE
+  o["UCI_House"]             << Option(false);
+#endif
 #ifdef KOTH
   o["UCI_KingOfTheHill"]     << Option(false);
 #endif

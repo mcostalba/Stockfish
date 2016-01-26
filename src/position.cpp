@@ -523,6 +523,10 @@ const string Position::fen() const {
       if (r > RANK_1)
           ss << '/';
   }
+#ifdef HOUSE
+  if (is_house())
+      ss << '/'; // TODO: pieces in hand
+#endif
 
   ss << (sideToMove == WHITE ? " w " : " b ");
 

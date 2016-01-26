@@ -70,6 +70,10 @@ namespace {
     if (Options["UCI_Horde"])
         variant |= HORDE_VARIANT;
 #endif
+#ifdef HOUSE
+    if (Options["UCI_House"])
+        variant |= HOUSE_VARIANT;
+#endif
 #ifdef KOTH
     if (Options["UCI_KingOfTheHill"])
         variant |= KOTH_VARIANT;
