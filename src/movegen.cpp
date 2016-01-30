@@ -47,7 +47,13 @@ namespace {
 
     for (Square s = kto; s != kfrom; s += K)
         if (pos.attackers_to(s) & enemies)
+        {
+#ifdef ATOMIC
+            if (pos.is_atomic() && (pos.attacks_from<KING>(pos.square<KING>(~us)) & s))
+                continue;
+#endif
             return moveList;
+        }
 
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
