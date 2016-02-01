@@ -490,16 +490,19 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #endif
 
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
+  bool validate = pinned;
+#ifdef ATOMIC
+  if (pos.is_atomic()) validate = true;
+#endif
+#ifdef RACE
+  if (pos.is_race()) validate = true;
+#endif
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
-#ifdef RACE
-      if (   (pos.is_race() || pinned || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
-#else
-      if (   (pinned || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
-#endif
+      if (   (validate || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
           && !pos.legal(*cur, pinned))
           *cur = (--moveList)->move;
       else
