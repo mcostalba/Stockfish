@@ -127,6 +127,35 @@ namespace {
     Move pv[3];
   };
 
+  // Set of rows with half bits set to 1 and half to 0. It is used to allocate
+  // the search depths across the threads.
+  typedef std::vector<int> Row;
+
+  const Row HalfDensity[] = {
+    {0, 1},
+    {1, 0},
+    {0, 0, 1, 1},
+    {0, 1, 1, 0},
+    {1, 1, 0, 0},
+    {1, 0, 0, 1},
+    {0, 0, 0, 1, 1, 1},
+    {0, 0, 1, 1, 1, 0},
+    {0, 1, 1, 1, 0, 0},
+    {1, 1, 1, 0, 0, 0},
+    {1, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 1, 1},
+    {0, 0, 0, 0, 1, 1, 1, 1},
+    {0, 0, 0, 1, 1, 1, 1, 0},
+    {0, 0, 1, 1, 1, 1, 0 ,0},
+    {0, 1, 1, 1, 1, 0, 0 ,0},
+    {1, 1, 1, 1, 0, 0, 0 ,0},
+    {1, 1, 1, 0, 0, 0, 0 ,1},
+    {1, 1, 0, 0, 0, 0, 1 ,1},
+    {1, 0, 0, 0, 0, 1, 1 ,1},
+  };
+
+  const size_t HalfDensitySize = std::extent<decltype(HalfDensity)>::value;
+
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
   CounterMoveHistoryStats CounterMoveHistory;
@@ -150,22 +179,23 @@ namespace {
 
 void Search::init() {
 
-  const double K[][2] = {{ 0.799, 2.281 }, { 0.484, 3.023 }};
+  const bool PV=true;
 
-  for (int pv = 0; pv <= 1; ++pv)
-      for (int imp = 0; imp <= 1; ++imp)
-          for (int d = 1; d < 64; ++d)
-              for (int mc = 1; mc < 64; ++mc)
-              {
-                  double r = K[pv][0] + log(d) * log(mc) / K[pv][1];
+  for (int imp = 0; imp <= 1; ++imp)
+      for (int d = 1; d < 64; ++d)
+          for (int mc = 1; mc < 64; ++mc)
+          {
+              double r = log(d) * log(mc) / 2;
+              if (r < 0.80)
+                continue;
 
-                  if (r >= 1.5)
-                      Reductions[pv][imp][d][mc] = int(r) * ONE_PLY;
-
-                  // Increase reduction when eval is not improving
-                  if (!pv && !imp && Reductions[pv][imp][d][mc] >= 2 * ONE_PLY)
-                      Reductions[pv][imp][d][mc] += ONE_PLY;
-              }
+              Reductions[!PV][imp][d][mc] = int(std::round(r)) * ONE_PLY;
+              Reductions[PV][imp][d][mc] = std::max(Reductions[!PV][imp][d][mc] - ONE_PLY, DEPTH_ZERO);
+              
+              // Increase reduction for non-PV nodes when eval is not improving
+              if (!imp && Reductions[!PV][imp][d][mc] >= 2 * ONE_PLY)
+                Reductions[!PV][imp][d][mc] += ONE_PLY;
+          }
 
   for (int d = 0; d < 16; ++d)
   {
@@ -369,33 +399,6 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
-const int halfDensityMap[][9] =
-{
-    {2, 0, 1},
-    {2, 1, 0},
-
-    {4, 0, 0, 1, 1},
-    {4, 0, 1, 1, 0},
-    {4, 1, 1, 0, 0},
-    {4, 1, 0, 0, 1},
-
-    {6, 0, 0, 0, 1, 1, 1},
-    {6, 0, 0, 1, 1, 1, 0},
-    {6, 0, 1, 1, 1, 0, 0},
-    {6, 1, 1, 1, 0, 0, 0},
-    {6, 1, 1, 0, 0, 0, 1},
-    {6, 1, 0, 0, 0, 1, 1},
-
-    {8, 0, 0, 0, 0, 1, 1, 1, 1},
-    {8, 0, 0, 0, 1, 1, 1, 1, 0},
-    {8, 0, 0, 1, 1, 1, 1, 0 ,0},
-    {8, 0, 1, 1, 1, 1, 0, 0 ,0},
-    {8, 1, 1, 1, 1, 0, 0, 0 ,0},
-    {8, 1, 1, 1, 0, 0, 0, 0 ,1},
-    {8, 1, 1, 0, 0, 0, 0, 1 ,1},
-    {8, 1, 0, 0, 0, 0, 1, 1 ,1},
-};
-
 
 // Thread::search() is the main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been
@@ -440,8 +443,8 @@ void Thread::search() {
       // 2nd ply (using a half-density matrix).
       if (!mainThread)
       {
-          int row = (idx - 1) % 20;
-          if (halfDensityMap[row][(rootDepth + rootPos.game_ply()) % halfDensityMap[row][0] + 1])
+          const Row& row = HalfDensity[(idx - 1) % HalfDensitySize];
+          if (row[(rootDepth + rootPos.game_ply()) % row.size()])
              continue;
       }
 
@@ -560,10 +563,6 @@ void Thread::search() {
       {
           if (!Signals.stop && !Signals.stopOnPonderhit)
           {
-              // Take some extra time if the best move has changed
-              if (rootDepth > 4 * ONE_PLY && multiPV == 1)
-                  Time.pv_instability(mainThread->bestMoveChanges);
-
               // Stop the search if only one legal move is available, or if all
               // of the available time has been used, or if we matched an easyMove
               // from the previous search and just did a fast verification.
@@ -571,13 +570,14 @@ void Thread::search() {
                                  bestValue >= mainThread->previousScore };
 
               int improvingFactor = 640 - 160*F[0] - 126*F[1] - 124*F[0]*F[1];
+              double unstablePvFactor = 1 + mainThread->bestMoveChanges;
 
               bool doEasyMove =   rootMoves[0].pv[0] == easyMove
                                && mainThread->bestMoveChanges < 0.03
-                               && Time.elapsed() > Time.available() * 25 / 206;
+                               && Time.elapsed() > Time.optimum() * 25 / 204;
 
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.available() * improvingFactor / 640
+                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 634
                   || (mainThread->easyMovePlayed = doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
@@ -1117,7 +1117,7 @@ moves_loop: // When in check search starts from here
               && cmh[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO)
               continue;
 
-          predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
+          predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
 
           // Futility pruning: parent node
 #ifdef RACE
@@ -1182,16 +1182,16 @@ moves_loop: // When in check search starts from here
           && !captureOrPromotion)
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
+          Value hValue = thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)];
+          Value cmhValue = cmh[pos.piece_on(to_sq(move))][to_sq(move)];
 
           // Increase reduction for cut nodes and moves with a bad history
           if (   (!PvNode && cutNode)
-              || (   thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO
-                  && cmh[pos.piece_on(to_sq(move))][to_sq(move)] <= VALUE_ZERO))
+              || (hValue < VALUE_ZERO && cmhValue <= VALUE_ZERO))
               r += ONE_PLY;
 
           // Decrease/increase reduction for moves with a good/bad history
-          int rHist = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)]
-                       + cmh[pos.piece_on(to_sq(move))][to_sq(move)]) / 14980;
+          int rHist = (hValue + cmhValue) / 14980;
           r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
           // Decrease reduction for moves that escape a capture. Filter out
