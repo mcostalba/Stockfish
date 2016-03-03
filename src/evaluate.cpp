@@ -708,11 +708,13 @@ namespace {
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
-                int k = !unsafeSquares ? 18 : !(unsafeSquares & blockSq) ? 8 : 0;
+                int k;
 #ifdef RACE
                 if (pos.is_race())
-                    k = !unsafeSquares ? 18 : (blockSquares - unsafeSquares) ? 8 : 0;
+                    k = popcount<Max15>(blockSquares - unsafeSquares) * 6;
+                else
 #endif
+                k = !unsafeSquares ? 18 : !(unsafeSquares & blockSq) ? 8 : 0;
 
                 // If the path to the queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
@@ -721,10 +723,7 @@ namespace {
 
 #ifdef RACE
                 else if (pos.is_race())
-                {
-                    if ((defendedSquares & blockSquares) == blockSquares)
-                        k += 4;
-                }
+                    k += popcount<Max15>(defendedSquares & blockSquares) * 4;
 #endif
                 else if (defendedSquares & blockSq)
                     k += 4;
