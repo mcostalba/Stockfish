@@ -168,7 +168,7 @@ namespace {
   // Passed[mg/eg][Rank] contains midgame and endgame bonuses for passed pawns.
   // We don't use a Score because we process the two components independently.
   const Value Passed[][RANK_NB] = {
-    { V(0), V( 1), V(26), V(68), V(161), V(247) },
+    { V(5), V( 5), V(31), V(73), V(166), V(252) },
     { V(7), V(14), V(38), V(64), V(137), V(193) }
   };
 
@@ -439,37 +439,20 @@ namespace {
         b2 = pos.attacks_from<BISHOP>(ksq) & safe;
 
         // Enemy queen safe checks
-        b = (b1 | b2) & ei.attackedBy[Them][QUEEN];
-        if (b)
-        {
-            attackUnits += QueenCheck * popcount<Max15>(b);
-            score -= Checked;
-        }
+        if ((b1 | b2) & ei.attackedBy[Them][QUEEN])
+            attackUnits += QueenCheck, score -= Checked;
 
         // Enemy rooks safe checks
-        b = b1 & ei.attackedBy[Them][ROOK];
-        if (b)
-        {
-            attackUnits += RookCheck * popcount<Max15>(b);
-            score -= Checked;
-        }
+        if (b1 & ei.attackedBy[Them][ROOK])
+            attackUnits += RookCheck, score -= Checked;
 
         // Enemy bishops safe checks
-        b = b2 & ei.attackedBy[Them][BISHOP];
-
-        if (b)
-        {
-            attackUnits += BishopCheck * popcount<Max15>(b);
-            score -= Checked;
-        }
+        if (b2 & ei.attackedBy[Them][BISHOP])
+            attackUnits += BishopCheck, score -= Checked;
 
         // Enemy knights safe checks
-        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
-        if (b)
-        {
-            attackUnits += KnightCheck * popcount<Max15>(b);
-            score -= Checked;
-        }
+        if (pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe)
+            attackUnits += KnightCheck, score -= Checked;
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from the evaluation.
@@ -496,7 +479,7 @@ namespace {
   }
 
 
-  // evaluate_threats() assigns bonuses according to the types of the attacking 
+  // evaluate_threats() assigns bonuses according to the types of the attacking
   // and the attacked pieces.
 
   template<Color Us, bool DoTrace>
@@ -728,10 +711,10 @@ namespace {
                 else if (defendedSquares & blockSq)
                     k += 4;
 
-                mbonus += k * rr * 3 / 4, ebonus += k * rr;
+                mbonus += k * rr, ebonus += k * rr;
             }
             else if (pos.pieces(Us) & blockSq)
-                mbonus += (rr * 3 + r * 2 + 3) * 3 / 4, ebonus += rr + r * 2;
+                mbonus += rr + r * 2, ebonus += rr + r * 2;
         } // rr != 0
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
@@ -825,11 +808,12 @@ namespace {
   // status of the players.
   Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
-    int kingDistance = distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+    int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
+                      - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
     int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
-    int initiative = 8 * (pawns + asymmetry + kingDistance - 15);
+    int initiative = 8 * (asymmetry + kingDistance - 15) + 12 * pawns;
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
