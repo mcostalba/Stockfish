@@ -672,7 +672,7 @@ namespace {
 
             // If the pawn is free to advance, then increase the bonus
 #ifdef RACE
-            if (pos.is_race() || pos.empty(blockSq))
+            if (pos.is_race() ? (blockSquares - ei.attackedBy[Them][ALL_PIECES]) : pos.empty(blockSq))
 #else
             if (pos.empty(blockSq))
 #endif
