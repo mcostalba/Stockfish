@@ -471,6 +471,10 @@ namespace {
 #endif
         score -= KingDanger[std::max(std::min(attackUnits, 399), 0)];
     }
+#ifdef RACE
+    if (pos.is_race())
+        score = -score;
+#endif
 
     if (DoTrace)
         Trace::add(KING, Us, score);
@@ -570,6 +574,11 @@ namespace {
   Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
+#ifdef RACE
+    const Color Up = pos.is_race() ? WHITE : Us;
+#else
+    const Color Up = Us;
+#endif
 
     Bitboard b, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
@@ -593,27 +602,20 @@ namespace {
     {
         Square s = pop_lsb(&b);
 
-#ifdef RACE
-        assert(pos.is_race() || pos.pawn_passed(Us, s));
-#else
         assert(pos.pawn_passed(Us, s));
-#endif
 
-#ifdef RACE
-        int r = (pos.is_race() ? rank_of(s) : relative_rank(Us, s)) - RANK_2;
-#else
-        int r = relative_rank(Us, s) - RANK_2;
-#endif
+        int r = relative_rank(Up, s) - RANK_2;
         int rr = r * (r - 1);
 
         Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
 
         if (rr)
         {
-            Square blockSq = s + pawn_push(Us);
+            Square pawnPush = pawn_push(Up);
+            Square blockSq = s + pawnPush;
 #ifdef RACE
             Bitboard blockSquares = pos.is_race() ?
-                ei.attackedBy[Us][KING] & in_front_bb(Us, rank_of(s)) : 0;
+                ei.attackedBy[Us][KING] & in_front_bb(Up, rank_of(s)) : 0;
 #endif
 
 #ifdef RACE
@@ -649,8 +651,8 @@ namespace {
                      - distance(pos.square<KING>(Us  ), blockSq) * 2 * rr;
 
             // If blockSq is not the queening square then consider also a second push
-            if (relative_rank(Us, blockSq) != RANK_8)
-                ebonus -= distance(pos.square<KING>(Us), blockSq + pawn_push(Us)) * rr;
+            if (relative_rank(Up, blockSq) != RANK_8)
+                ebonus -= distance(pos.square<KING>(Us), blockSq + pawnPush) * rr;
             }
 
             // If the pawn is free to advance, then increase the bonus
@@ -665,7 +667,7 @@ namespace {
                 // in the pawn's path attacked or occupied by the enemy.
 #ifdef RACE
                 if (pos.is_race())
-                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s) | blockSquares;
+                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Up, s) | blockSquares;
                 else
 #endif
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
@@ -691,13 +693,7 @@ namespace {
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
-                int k;
-#ifdef RACE
-                if (pos.is_race())
-                    k = popcount<Max15>(blockSquares - unsafeSquares) * 6;
-                else
-#endif
-                k = !unsafeSquares ? 18 : !(unsafeSquares & blockSq) ? 8 : 0;
+                int k = !unsafeSquares ? 18 : !(unsafeSquares & blockSq) ? 8 : 0;
 
                 // If the path to the queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
@@ -713,6 +709,9 @@ namespace {
 
                 mbonus += k * rr, ebonus += k * rr;
             }
+#ifdef RACE
+            else if (pos.is_race()) {}
+#endif
             else if (pos.pieces(Us) & blockSq)
                 mbonus += rr + r * 2, ebonus += rr + r * 2;
         } // rr != 0
@@ -722,10 +721,6 @@ namespace {
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
-#ifdef RACE
-    if (pos.is_race())
-        score += score;
-#endif
 
     if (DoTrace)
         Trace::add(PASSED, Us, score);

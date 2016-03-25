@@ -410,6 +410,10 @@ inline Bitboard Position::pinned_pieces(Color c) const {
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
+#ifdef RACE
+  if (is_race())
+    return true;
+#endif
 #ifdef HORDE
   if (is_horde() && c == WHITE)
       return !(pieces(~c, PAWN) & forward_bb(c, s));
@@ -418,6 +422,11 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {
+#ifdef RACE
+  if (is_race())
+    return   type_of(moved_piece(m)) == KING
+          && rank_of(from_sq(m)) > RANK_4;
+#endif
   return   type_of(moved_piece(m)) == PAWN
         && relative_rank(sideToMove, from_sq(m)) > RANK_4;
 }

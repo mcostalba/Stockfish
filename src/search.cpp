@@ -1035,7 +1035,8 @@ moves_loop: // When in check search starts from here
 
 #ifdef RACE
       if (pos.is_race())
-          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
+          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING &&
+              rank_of(to_sq(move)) > rank_of(from_sq(move));
       else
 #endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
