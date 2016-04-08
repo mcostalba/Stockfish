@@ -783,7 +783,7 @@ namespace {
     int bonus = popcount<Full>((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
 #ifdef HORDE
     if (pos.is_horde())
-        bonus = popcount<Full>(safe | behind);
+        bonus = popcount<Full>(safe) + popcount<Full>(behind & safe);
 #endif
     int weight =  pos.count<KNIGHT>(Us) + pos.count<BISHOP>(Us)
                 + pos.count<KNIGHT>(Them) + pos.count<BISHOP>(Them);
@@ -792,11 +792,11 @@ namespace {
         weight -= pos.checks_count();
 #endif
 #ifdef HORDE
-    if (pos.is_horde())
+    if (pos.is_horde() && Us == WHITE)
     {
-        weight += pos.count<ROOK>(Us) + pos.count<QUEEN>(Us) + pos.count<KING>(Us)
-                + pos.count<ROOK>(Them) + pos.count<QUEEN>(Them) + pos.count<KING>(Them);
-        return make_score(bonus * (bonus + 2 * weight) * weight, 0);
+        weight += weight + pos.count<PAWN>(Them);
+        bonus = bonus * weight * weight / 4;
+        return make_score(bonus, bonus);
     }
 #endif
 
@@ -1010,9 +1010,8 @@ Value Eval::evaluate(const Position& pos) {
 #ifdef HORDE
   if (pos.is_horde())
   {
-  if (pos.non_pawn_material(BLACK) + pos.non_pawn_material(BLACK) >= 12222)
-      score += (  evaluate_space<WHITE>(pos, ei)
-                - evaluate_space<BLACK>(pos, ei));
+      score +=  evaluate_space<WHITE>(pos, ei)
+              - evaluate_space<BLACK>(pos, ei);
   }
   else
   {
