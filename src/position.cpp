@@ -329,13 +329,8 @@ void Position::set(const string& fenStr, int var, Thread* th) {
   }
 
   // 4. En passant square. Ignore if no pawn capture is possible
-#ifdef HORDE
-    if (((ss >> col) && (col >= 'a' && col <= 'h'))
-        && ((ss >> row) && (sideToMove ? (((var & HORDE_VARIANT) && row == '2') || row == '3') : row == '6')))
-#else
-    if (((ss >> col) && (col >= 'a' && col <= 'h'))
+  if (((ss >> col) && (col >= 'a' && col <= 'h'))
         && ((ss >> row) && (sideToMove ? row == '3' : row == '6')))
-#endif
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
@@ -1015,12 +1010,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
               assert(pt == PAWN);
               assert(to == st->epSquare);
-#ifdef HORDE
-              assert((is_horde() && rank_of(to) == RANK_2) ||
-                     relative_rank(us, to) == RANK_6);
-#else
               assert(relative_rank(us, to) == RANK_6);
-#endif
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
 
@@ -1138,6 +1128,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (pt == PAWN)
   {
       // Set en-passant square if the moved pawn can be captured
+#ifdef HORDE
+      if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)); else
+#endif
       if (   (int(to) ^ int(from)) == 16
           && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {

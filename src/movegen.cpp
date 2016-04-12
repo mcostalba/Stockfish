@@ -222,12 +222,7 @@ namespace {
 
         if (pos.ep_square() != SQ_NONE)
         {
-#ifdef HORDE
-            assert((pos.is_horde() && rank_of(pos.ep_square()) == RANK_2) ||
-                   rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
-#else
             assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
-#endif
 
             // An en passant capture can be an evasion only if the checking piece
             // is the double pushed pawn and so is in the target. Otherwise this
