@@ -711,7 +711,7 @@ namespace {
 
 #ifdef RACE
                 else if (pos.is_race())
-                    k += popcount<Max15>(defendedSquares & blockSquares) * 4;
+                    k += popcount(defendedSquares & blockSquares) * 4;
 #endif
                 else if (defendedSquares & blockSq)
                     k += 4;
@@ -783,7 +783,7 @@ namespace {
     int bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
 #ifdef HORDE
     if (pos.is_horde())
-        bonus = popcount(safe) + popcount<Full>(behind & safe);
+        bonus = popcount(safe) + popcount(behind & safe);
 #endif
     int weight =  pos.count<KNIGHT>(Us) + pos.count<BISHOP>(Us)
                 + pos.count<KNIGHT>(Them) + pos.count<BISHOP>(Them);
