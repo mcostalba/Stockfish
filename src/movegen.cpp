@@ -404,15 +404,13 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   {
       // Blasts that explode the opposing king or explode all checkers
       // are counted among evasive moves.
-      Bitboard target = pos.checkers(), b1 = pos.checkers();
-      while (b1)
-          target |= pos.attacks_from<KING>(pop_lsb(&b1));
-      if (more_than_one(pos.checkers()))
+      Bitboard target = 0, b = pos.checkers();
+      if (more_than_one(b))
       {
-          b1 = pos.checkers();
-          while (b1)
+          target = pos.pieces(~us);
+          while (b)
           {
-              Square s = pop_lsb(&b1);
+              Square s = pop_lsb(&b);
               target &= pos.attacks_from<KING>(s) | s;
           }
       }
