@@ -13,9 +13,9 @@ short ReadUshort(unsigned char* d);
 int ReadUint32(unsigned char* d);
 int probe_wdl(Position& pos, int *success);
 int probe_dtz(Position& pos, int *success);
-bool root_probe(Position& pos, Search::RootMoveVector& rootMoves, Value& score);
-bool root_probe_wdl(Position& pos, Search::RootMoveVector& rootMoves, Value& score);
-long long calc_key_from_pcs(int *pcs, int mirror);
+bool root_probe(Position& pos, Search::RootMoves& rootMoves, Value& score);
+bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Value& score);
+
 }
 
 #endif

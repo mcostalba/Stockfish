@@ -23,7 +23,10 @@
 
 #include <cassert>
 #include <cstddef>  // For offsetof()
+#include <deque>
+#include <memory>   // For std::unique_ptr
 #include <string>
+#include <vector>
 
 #include "bitboard.h"
 #include "types.h"
@@ -90,6 +93,9 @@ struct StateInfo {
   StateInfo* previous;
 };
 
+// In a std::deque references to elements are unaffected upon resizing
+typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
+
 
 /// Position class stores information regarding the board representation as
 /// pieces, side to move, hash keys, castling info, etc. Important methods are
@@ -101,18 +107,12 @@ class Position {
 public:
   static void init();
 
-  Position() = default; // To define the global object RootPos
+  Position() = default;
   Position(const Position&) = delete;
-  Position(const Position& pos, Thread* th) { *this = pos; thisThread = th; }
-
-  Position(const std::string& f, Thread* t) { set(f, STANDARD_VARIANT, t); }
-  Position(const std::string& f, int var, Thread* t) { set(f, var, t); }
-
-  Position& operator=(const Position&); // To assign RootPos from UCI
+  Position& operator=(const Position&) = delete;
 
   // FEN string input/output
-  void set(const std::string& fenStr, int var, Thread* th);
-
+  Position& set(const std::string& fenStr, int var, StateInfo* si, Thread* th);
   const std::string fen() const;
 
   // Position representation
@@ -229,7 +229,6 @@ public:
 
 private:
   // Initialization helpers (used while setting up a position)
-  void clear();
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
 
@@ -255,7 +254,6 @@ private:
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
-  StateInfo startState;
   uint64_t nodes;
   int gamePly;
   Color sideToMove;
