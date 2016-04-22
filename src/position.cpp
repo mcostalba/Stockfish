@@ -190,7 +190,7 @@ void Position::init() {
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
 
-Position& Position::set(const string& fenStr, int var, StateInfo* si, Thread* th) {
+Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -350,7 +350,7 @@ Position& Position::set(const string& fenStr, int var, StateInfo* si, Thread* th
   // handle also common incorrect FEN with fullmove = 0.
   gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
 
-  variant = var;
+  var = v;
   thisThread = th;
   set_state(st);
 
@@ -394,7 +394,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->pawnKey = si->materialKey = variant;
+  si->key = si->pawnKey = si->materialKey = var;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
 
@@ -1508,7 +1508,7 @@ void Position::flip() {
   std::getline(ss, token); // Half and full moves
   f += token;
 
-  set(f, variant, st, this_thread());
+  set(f, var, st, this_thread());
 
   assert(pos_is_ok());
 }
