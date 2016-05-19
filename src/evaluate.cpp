@@ -192,7 +192,8 @@ namespace {
   const Score BishopPawns         = S( 8, 12);
   const Score RookOnPawn          = S( 8, 24);
   const Score TrappedRook         = S(92,  0);
-  const Score Checked             = S(20, 20);
+  const Score SafeCheck           = S(20, 20);
+  const Score OtherCheck          = S(10, 10);
   const Score ThreatByHangingPawn = S(71, 61);
   const Score LooseEnemies        = S( 0, 25);
   const Score Hanging             = S(48, 27);
@@ -243,7 +244,7 @@ namespace {
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
-        ei.kingAttackersCount[Us] = b ? popcount(b) : 0;
+        ei.kingAttackersCount[Us] = popcount(b);
         ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
     }
     else
@@ -285,9 +286,7 @@ namespace {
         {
             ei.kingAttackersCount[Us]++;
             ei.kingAttackersWeight[Us] += KingAttackWeights[Pt];
-            bb = b & ei.attackedBy[Them][KING];
-            if (bb)
-                ei.kingAdjacentZoneAttacksCount[Us] += popcount(bb);
+            ei.kingAdjacentZoneAttacksCount[Us] += popcount(b & ei.attackedBy[Them][KING]);
         }
 
         if (Pt == QUEEN)
@@ -340,11 +339,7 @@ namespace {
         {
             // Bonus for aligning with enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
-            {
-                Bitboard alignedPawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
-                if (alignedPawns)
-                    score += RookOnPawn * popcount(alignedPawns);
-            }
+                score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s]);
 
             // Bonus when on an open or semi-open file
             if (ei.pi->semiopen_file(Us, file_of(s)))
@@ -383,9 +378,10 @@ namespace {
   template<Color Us, bool DoTrace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = (Us == WHITE ? BLACK   : WHITE);
+    const Square  Up = (Us == WHITE ? DELTA_N : DELTA_S);
 
-    Bitboard undefended, b, b1, b2, safe;
+    Bitboard undefended, b, b1, b2, safe, other;
     int attackUnits;
     const Square ksq = pos.square<KING>(Us);
 
@@ -428,35 +424,49 @@ namespace {
                 | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]
                 | ei.attackedBy[Them][KING];
 
-            if (b)
-                attackUnits += QueenContactCheck * popcount(b);
+            attackUnits += QueenContactCheck * popcount(b);
         }
 
-        // Analyse the enemy's safe distance checks for sliders and knights
-        safe = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
+        // Analyse the safe enemy's checks which are possible on next move...
+        safe  = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
+
+        // ... and some other potential checks, only requiring the square to be
+        // safe from pawn-attacks, and not being occupied by a blocked pawn.
+        other = ~(   ei.attackedBy[Us][PAWN]
+                  | (pos.pieces(Them, PAWN) & shift_bb<Up>(pos.pieces(PAWN))));
 #ifdef THREECHECK
         if (pos.is_three_check() && pos.checks_taken())
-            safe = ~pos.pieces(Them);
+            other = safe = ~pos.pieces(Them);
 #endif
 
-        b1 = pos.attacks_from<ROOK  >(ksq) & safe;
-        b2 = pos.attacks_from<BISHOP>(ksq) & safe;
+        b1 = pos.attacks_from<ROOK  >(ksq);
+        b2 = pos.attacks_from<BISHOP>(ksq);
 
         // Enemy queen safe checks
-        if ((b1 | b2) & ei.attackedBy[Them][QUEEN])
-            attackUnits += QueenCheck, score -= Checked;
+        if ((b1 | b2) & ei.attackedBy[Them][QUEEN] & safe)
+            attackUnits += QueenCheck, score -= SafeCheck;
 
-        // Enemy rooks safe checks
-        if (b1 & ei.attackedBy[Them][ROOK])
-            attackUnits += RookCheck, score -= Checked;
+        // Enemy rooks safe and other checks
+        if (b1 & ei.attackedBy[Them][ROOK] & safe)
+            attackUnits += RookCheck, score -= SafeCheck;
 
-        // Enemy bishops safe checks
-        if (b2 & ei.attackedBy[Them][BISHOP])
-            attackUnits += BishopCheck, score -= Checked;
+        else if (b1 & ei.attackedBy[Them][ROOK] & other)
+            score -= OtherCheck;
 
-        // Enemy knights safe checks
-        if (pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe)
-            attackUnits += KnightCheck, score -= Checked;
+        // Enemy bishops safe and other checks
+        if (b2 & ei.attackedBy[Them][BISHOP] & safe)
+            attackUnits += BishopCheck, score -= SafeCheck;
+
+        else if (b2 & ei.attackedBy[Them][BISHOP] & other)
+            score -= OtherCheck;
+
+        // Enemy knights safe and other checks
+        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT];
+        if (b & safe)
+            attackUnits += KnightCheck, score -= SafeCheck;
+
+        else if (b & other)
+            score -= OtherCheck;
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from the evaluation.
@@ -546,9 +556,7 @@ namespace {
         while (b)
             score += Threat[Rook ][type_of(pos.piece_on(pop_lsb(&b)))];
 
-        b = weak & ~ei.attackedBy[Them][ALL_PIECES];
-        if (b)
-            score += Hanging * popcount(b);
+        score += Hanging * popcount(weak & ~ei.attackedBy[Them][ALL_PIECES]);
 
         b = weak & ei.attackedBy[Us][KING];
         if (b)
@@ -567,8 +575,7 @@ namespace {
        &  pos.pieces(Them)
        & ~ei.attackedBy[Us][PAWN];
 
-    if (b)
-        score += ThreatByPawnPush * popcount(b);
+    score += ThreatByPawnPush * popcount(b);
 
     if (DoTrace)
         Trace::add(THREAT, Us, score);

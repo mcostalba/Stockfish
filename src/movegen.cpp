@@ -259,7 +259,7 @@ namespace {
                 && !(PseudoAttacks[Pt][from] & target & ci->checkSquares[Pt]))
                 continue;
 
-            if (ci->dcCandidates && (ci->dcCandidates & from))
+            if (ci->dcCandidates & from)
                 continue;
         }
 

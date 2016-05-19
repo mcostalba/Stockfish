@@ -365,6 +365,7 @@ void MainThread::search() {
   Thread* bestThread = this;
   if (   !this->easyMovePlayed
       &&  Options["MultiPV"] == 1
+      && !Limits.depth
       && !Skill(Options["Skill Level"]).enabled()
       &&  rootMoves[0].pv[0] != MOVE_NONE)
   {
@@ -427,7 +428,7 @@ void Thread::search() {
   multiPV = std::min(multiPV, rootMoves.size());
 
   // Iterative deepening loop until requested to stop or the target depth is reached.
-  while (++rootDepth < DEPTH_MAX && !Signals.stop && (!Limits.depth || rootDepth <= Limits.depth))
+  while (++rootDepth < DEPTH_MAX && !Signals.stop && (!Limits.depth || Threads.main()->rootDepth <= Limits.depth))
   {
       // Set up the new depths for the helper threads skipping on average every
       // 2nd ply (using a half-density matrix).
@@ -522,7 +523,7 @@ void Thread::search() {
           std::stable_sort(rootMoves.begin(), rootMoves.begin() + PVIdx + 1);
 
           if (!mainThread)
-              break;
+              continue;
 
           if (Signals.stop)
               sync_cout << "info nodes " << Threads.nodes_searched()
@@ -1179,13 +1180,17 @@ moves_loop: // When in check search starts from here
           Value hValue = thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)];
           Value cmhValue = cmh[pos.piece_on(to_sq(move))][to_sq(move)];
 
-          // Increase reduction for cut nodes and moves with a bad history
-          if (   (!PvNode && cutNode)
-              || (hValue < VALUE_ZERO && cmhValue <= VALUE_ZERO))
+          const CounterMoveStats* fm = (ss - 2)->counterMoves;
+          const CounterMoveStats* fm2 = (ss - 4)->counterMoves;
+          Value fmValue = (fm ? (*fm)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
+          Value fm2Value = (fm2 ? (*fm2)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
+
+          // Increase reduction for cut nodes
+          if (!PvNode && cutNode)
               r += ONE_PLY;
 
           // Decrease/increase reduction for moves with a good/bad history
-          int rHist = (hValue + cmhValue) / 14980;
+          int rHist = (hValue + cmhValue + fmValue + fm2Value - 10000) / 20000;
           r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
           // Decrease reduction for moves that escape a capture. Filter out

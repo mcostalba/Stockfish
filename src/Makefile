@@ -231,7 +231,7 @@ ifneq ($(comp),mingw)
 	endif
 endif
 
-### 3.4 Debugging
+### 3.2 Debugging
 CXXFLAGS += -DATOMIC -DHORDE -DHOUSE -DKOTH -DRACE -DTHREECHECK
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
@@ -239,11 +239,12 @@ else
 	CXXFLAGS += -g
 endif
 
-### 3.5 Optimization
+### 3.3 Optimization
 ifeq ($(optimize),yes)
 
+	CXXFLAGS += -O3
+
 	ifeq ($(comp),gcc)
-		CXXFLAGS += -O3
 
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(arch),i386)
@@ -259,21 +260,13 @@ ifeq ($(optimize),yes)
 		endif
 	endif
 
-	ifeq ($(comp),mingw)
-		CXXFLAGS += -O3
-	endif
-
 	ifeq ($(comp),icc)
 		ifeq ($(UNAME),Darwin)
-			CXXFLAGS += -fast -mdynamic-no-pic
-		else
-			CXXFLAGS += -fast
+			CXXFLAGS += -mdynamic-no-pic
 		endif
 	endif
 
 	ifeq ($(comp),clang)
-		CXXFLAGS += -O3
-
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(pext),no)
 				CXXFLAGS += -flto
@@ -289,12 +282,12 @@ ifeq ($(optimize),yes)
 	endif
 endif
 
-### 3.6. Bits
+### 3.4 Bits
 ifeq ($(bits),64)
 	CXXFLAGS += -DIS_64BIT
 endif
 
-### 3.7 prefetch
+### 3.5 prefetch
 ifeq ($(prefetch),yes)
 	ifeq ($(sse),yes)
 		CXXFLAGS += -msse
@@ -304,7 +297,7 @@ else
 	CXXFLAGS += -DNO_PREFETCH
 endif
 
-### 3.9 popcnt
+### 3.6 popcnt
 ifeq ($(popcnt),yes)
 	ifeq ($(comp),icc)
 		CXXFLAGS += -msse3 -DUSE_POPCNT
@@ -313,15 +306,15 @@ ifeq ($(popcnt),yes)
 	endif
 endif
 
-### 3.10 pext
+### 3.7 pext
 ifeq ($(pext),yes)
 	CXXFLAGS += -DUSE_PEXT
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
-		CXXFLAGS += -mbmi -mbmi2
+		CXXFLAGS += -mbmi2
 	endif
 endif
 
-### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw under Windows.
+### 3.8 Link Time Optimization, it works since gcc 4.5 but not on mingw under Windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
@@ -344,7 +337,7 @@ ifeq ($(comp),mingw)
 	endif
 endif
 
-### 3.12 Android 5 can only run position independent executables. Note that this
+### 3.9 Android 5 can only run position independent executables. Note that this
 ### breaks Android 4.0 and earlier.
 ifeq ($(arch),armv7)
 	CXXFLAGS += -fPIE
