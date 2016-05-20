@@ -1,0 +1,3 @@
+setoption name SyzygyPath value ../../tb/src
+bench 128 1 10 syzygy/syzygy_good.epd
+quit
