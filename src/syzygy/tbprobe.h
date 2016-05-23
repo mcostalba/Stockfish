@@ -20,9 +20,12 @@
 #ifndef TBPROBE_H
 #define TBPROBE_H
 
+#include <fstream>
 #include <ostream>
 
 #include "../search.h"
+
+#include "tbprobe_ref.h"
 
 namespace Tablebases {
 
@@ -71,6 +74,103 @@ inline std::ostream& operator<<(std::ostream& os, const ProbeState v) {
            v == ZEROING_BEST_MOVE ? "Best move zeroes DTZ" : "None");
 
     return os;
+}
+
+}
+
+namespace TablebasesInst {
+
+typedef Tablebases::WDLScore WDLScore;
+typedef Tablebases::ProbeState ProbeState;
+
+inline void init(const std::string& paths) {
+
+    TablebasesRef::init(paths);
+    Tablebases::init(paths);
+}
+
+inline int probe_dtz(Position& pos, ProbeState* result) {
+
+    static Mutex mutex;
+
+    int s1, success = *result;
+    {
+        std::unique_lock<Mutex> lk(mutex);
+        s1 = TablebasesRef::probe_dtz(pos, &success);
+    }
+    int s2 = Tablebases::probe_dtz(pos, result);
+
+    dbg_hit_on(s1 != s2 || !!success != !!(*result));
+
+    if (s1 != s2 || !!success != !!(*result))
+    {
+        std::ofstream log("tb_dbg.log", std::ios::out | std::ios::app);
+        if (log.is_open())
+        {
+            log << pos
+                << "DTZ: ref = (" << s1 << ", " << !!(success)
+                <<   "), new = (" << s2 << ", " << !!(*result) << std::endl;
+            log.close();
+        }
+    }
+
+    return s2;
+}
+
+inline WDLScore probe_wdl(Position& pos, ProbeState* result) {
+
+    int success = *result;
+    WDLScore s1 = WDLScore(TablebasesRef::probe_wdl(pos, &success));
+    WDLScore s2 = Tablebases::probe_wdl(pos, result);
+
+    dbg_hit_on(s1 != s2 || !!success != !!(*result));
+
+    if (s1 != s2 || !!success != !!(*result))
+    {
+        std::ofstream log("tb_dbg.log", std::ios::out | std::ios::app);
+        if (log.is_open())
+        {
+            log << pos
+                << "WDL: ref = (" << s1 << ", " << !!(success)
+                <<   "), new = (" << s2 << ", " << !!(*result) << std::endl;
+            log.close();
+        }
+    }
+
+    // Full test DTZ in every position where WDL is called: slow but exaustive
+    TablebasesInst::probe_dtz(pos, result);
+
+    return s2;
+}
+
+inline bool root_probe(Position& pos, Search::RootMoves& rootMoves, Value& score) {
+
+    Value score2 = score;
+    Search::RootMoves rootMoves2 = rootMoves;
+    bool s1 = TablebasesRef::root_probe(pos, rootMoves2, score2);
+    bool s2 = Tablebases::root_probe(pos, rootMoves, score);
+
+    dbg_hit_on(s1 != s2 || score != score2 || rootMoves.size() != rootMoves2.size());
+
+    ProbeState result;
+    TablebasesInst::probe_dtz(pos, &result);
+
+    return s2;
+}
+
+inline bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Value& score) {
+
+    Value score2 = score;
+    Search::RootMoves rootMoves2 = rootMoves;
+    bool s1 = TablebasesRef::root_probe_wdl(pos, rootMoves2, score2);
+    bool s2 = Tablebases::root_probe_wdl(pos, rootMoves, score);
+
+    dbg_hit_on(s1 != s2 || score != score2 || rootMoves.size() != rootMoves2.size());
+
+    ProbeState result;
+    TablebasesInst::probe_dtz(pos, &result);
+
+    return s2;
 }
 
 }
