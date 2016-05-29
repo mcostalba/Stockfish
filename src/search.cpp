@@ -36,13 +36,10 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-namespace TB = Tablebases;
-
 namespace Search {
 
   SignalsType Signals;
   LimitsType Limits;
-  TB::WDLScore WDLScore;
 }
 
 namespace Tablebases {
@@ -54,6 +51,8 @@ namespace Tablebases {
   Depth ProbeDepth;
   Value Score;
 }
+
+namespace TB = Tablebases;
 
 using std::string;
 using Eval::evaluate;
@@ -867,23 +866,6 @@ moves_loop: // When in check search starts from here
       if (rootNode && !std::count(thisThread->rootMoves.begin() + thisThread->PVIdx,
                                   thisThread->rootMoves.end(), move))
           continue;
-
-      // When tablebases are available skip root moves that do not preserve the
-      // draw or the win.
-      if (rootNode && Search::WDLScore != TB::WDLScoreNone)
-      {
-          RootMove& rm = *std::find(thisThread->rootMoves.begin(),
-                                    thisThread->rootMoves.end(), move);
-
-          if (   rm.wdlScore != TB::WDLScoreNone
-              && rm.wdlScore != Search::WDLScore)
-          {
-              assert(Search::WDLScore > rm.wdlScore);
-
-              rm.score = -VALUE_INFINITE;
-              continue;
-          }
-      }
 
       ss->moveCount = ++moveCount;
 

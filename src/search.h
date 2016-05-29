@@ -27,7 +27,6 @@
 #include "misc.h"
 #include "position.h"
 #include "types.h"
-#include "syzygy/tbprobe.h"
 
 template<typename T, bool CM> struct Stats;
 typedef Stats<Value, true> CounterMoveStats;
@@ -56,7 +55,7 @@ struct Stack {
 
 struct RootMove {
 
-  explicit RootMove(Move m) : pv(1, m), wdlScore(Tablebases::WDLScoreNone) {}
+  explicit RootMove(Move m) : pv(1, m) {}
 
   bool operator<(const RootMove& m) const { return m.score < score; } // Descending sort
   bool operator==(const Move& m) const { return pv[0] == m; }
@@ -66,7 +65,6 @@ struct RootMove {
   Value score = -VALUE_INFINITE;
   Value previousScore = -VALUE_INFINITE;
   std::vector<Move> pv;
-  Tablebases::WDLScore wdlScore;
 };
 
 typedef std::vector<RootMove> RootMoves;
@@ -101,7 +99,6 @@ struct SignalsType {
 
 extern SignalsType Signals;
 extern LimitsType Limits;
-extern Tablebases::WDLScore WDLScore;
 
 void init();
 void clear();

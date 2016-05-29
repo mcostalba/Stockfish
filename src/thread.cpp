@@ -25,6 +25,7 @@
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
+#include "syzygy/tbprobe.h"
 
 ThreadPool Threads; // Global object
 
@@ -177,12 +178,40 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
   Search::Signals.stopOnPonderhit = Search::Signals.stop = false;
   Search::Limits = limits;
   Search::RootMoves rootMoves;
-  Search::WDLScore = Tablebases::WDLScoreNone;
+
+  StateInfo st;
+  CheckInfo ci(pos);
+  Tablebases::ProbeState result;
+  Tablebases::WDLScore wdlScore = Tablebases::WDLScoreNone;
+
+  if (   (int)Tablebases::MaxCardinality >= popcount(pos.pieces())
+      && !pos.can_castle(ANY_CASTLING))
+  {
+      auto wdl = Tablebases::probe_wdl(pos, &result);
+      if (result != Tablebases::FAIL)
+          wdlScore = wdl;
+  }
 
   for (const auto& m : MoveList<LEGAL>(pos))
       if (   limits.searchmoves.empty()
           || std::count(limits.searchmoves.begin(), limits.searchmoves.end(), m))
+      {
+          if (wdlScore != Tablebases::WDLScoreNone)
+          {
+              pos.do_move(m, st, pos.gives_check(m, ci));
+              auto wdl = -Tablebases::probe_wdl(pos, &result);
+              pos.undo_move(m);
+
+              // When tablebases are available skip root moves that do not
+              // preserve the draw or the win.
+              if (result != Tablebases::FAIL && wdl != wdlScore)
+              {
+                  assert(wdlScore > wdl);
+                  continue;
+              }
+          }
           rootMoves.push_back(Search::RootMove(m));
+      }
 
   // After ownership transfer 'states' becomes empty, so if we stop the search
   // and call 'go' again without setting a new position states.get() == NULL.
@@ -192,33 +221,6 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
       setupStates = std::move(states); // Ownership transfer, states is now empty
 
   StateInfo tmp = setupStates->back();
-
-  if (    (int)Tablebases::MaxCardinality >= popcount(pos.pieces())
-      && !pos.can_castle(ANY_CASTLING))
-  {
-      Tablebases::ProbeState result;
-      auto wdl = Tablebases::probe_wdl(pos, &result);
-
-      if (result != Tablebases::FAIL)
-      {
-          Search::WDLScore = wdl;
-
-          StateInfo st;
-          CheckInfo ci(pos);
-
-          for (auto& rm : rootMoves)
-          {
-              pos.do_move(rm.pv[0], st, pos.gives_check(rm.pv[0], ci));
-
-              wdl = -Tablebases::probe_wdl(pos, &result);
-
-              if (result != Tablebases::FAIL)
-                  rm.wdlScore = wdl;
-
-              pos.undo_move(rm.pv[0]);
-          }
-      }
-  }
 
   for (Thread* th : Threads)
   {
