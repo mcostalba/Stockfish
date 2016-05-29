@@ -36,6 +36,8 @@ enum WDLScore {
     WDLScoreNone  = -1000
 };
 
+inline WDLScore operator-(WDLScore d) { return WDLScore(-int(d)); }
+
 // Possible states after a probing operation
 enum ProbeState {
     FAIL              =  0, // Probe failed (missing file table)

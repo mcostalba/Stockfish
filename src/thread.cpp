@@ -210,7 +210,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
           {
               pos.do_move(rm.pv[0], st, pos.gives_check(rm.pv[0], ci));
 
-              wdl = Tablebases::probe_wdl(pos, &result);
+              wdl = -Tablebases::probe_wdl(pos, &result);
 
               if (result != Tablebases::FAIL)
                   rm.wdlScore = wdl;

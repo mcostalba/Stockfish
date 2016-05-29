@@ -660,43 +660,31 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (TB::Cardinality)
+    if (TB::Cardinality && !rootNode)
     {
-        if (!rootNode)
-        {
-            int piecesCnt = popcount(pos.pieces());
+        int piecesCnt = popcount(pos.pieces());
 
-            if (    piecesCnt <= TB::Cardinality
-                && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
-                &&  pos.rule50_count() == 0
-                && !pos.can_castle(ANY_CASTLING))
+        if (    piecesCnt <= TB::Cardinality
+            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
+            &&  pos.rule50_count() == 0
+            && !pos.can_castle(ANY_CASTLING))
+        {
+            TB::ProbeState result;
+            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
+
+            if (result != TB::FAIL)
             {
-                TB::ProbeState result;
-                TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
+                TB::Hits++;
 
-                if (result != TB::FAIL)
-                {
-                    TB::Hits++;
+                if (wdl == TB::WDLWin)
+                    return beta;
 
-                    if (wdl == TB::WDLWin)
-                        return beta;
+                if (wdl == TB::WDLLoss)
+                    return alpha;
 
-                    if (wdl == TB::WDLLoss)
-                        return alpha;
-
-                    if (wdl == TB::WDLDraw)
-                        return DrawValue[pos.side_to_move()];
-                }
+                if (wdl == TB::WDLDraw)
+                    return DrawValue[pos.side_to_move()];
             }
-        }
-        else if (Search::WDLScore != TB::WDLScoreNone)
-        {
-            RootMove& rm = *std::find(thisThread->rootMoves.begin(),
-                                      thisThread->rootMoves.end(), move);
-
-            // Skip root moves that do not preserve the draw or the win
-            if (rm.wdlScore != TB::WDLScoreNone && rm.wdlScore != Search::WDLScore)
-                return alpha;
         }
     }
 
@@ -879,6 +867,23 @@ moves_loop: // When in check search starts from here
       if (rootNode && !std::count(thisThread->rootMoves.begin() + thisThread->PVIdx,
                                   thisThread->rootMoves.end(), move))
           continue;
+
+      // When tablebases are available skip root moves that do not preserve the
+      // draw or the win.
+      if (rootNode && Search::WDLScore != TB::WDLScoreNone)
+      {
+          RootMove& rm = *std::find(thisThread->rootMoves.begin(),
+                                    thisThread->rootMoves.end(), move);
+
+          if (   rm.wdlScore != TB::WDLScoreNone
+              && rm.wdlScore != Search::WDLScore)
+          {
+              assert(Search::WDLScore > rm.wdlScore);
+
+              rm.score = -VALUE_INFINITE;
+              continue;
+          }
+      }
 
       ss->moveCount = ++moveCount;
 
