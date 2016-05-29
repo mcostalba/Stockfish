@@ -169,7 +169,7 @@ int64_t ThreadPool::nodes_searched() {
 /// ThreadPool::start_thinking() wakes up the main thread sleeping in idle_loop()
 /// and starts a new search, then returns immediately.
 
-void ThreadPool::start_thinking(const Position& pos, StateListPtr& states,
+void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
                                 const Search::LimitsType& limits) {
 
   main()->wait_for_search_finished();
@@ -177,6 +177,7 @@ void ThreadPool::start_thinking(const Position& pos, StateListPtr& states,
   Search::Signals.stopOnPonderhit = Search::Signals.stop = false;
   Search::Limits = limits;
   Search::RootMoves rootMoves;
+  Search::WDLScore = Tablebases::WDLScoreNone;
 
   for (const auto& m : MoveList<LEGAL>(pos))
       if (   limits.searchmoves.empty()
@@ -191,6 +192,33 @@ void ThreadPool::start_thinking(const Position& pos, StateListPtr& states,
       setupStates = std::move(states); // Ownership transfer, states is now empty
 
   StateInfo tmp = setupStates->back();
+
+  if (    (int)Tablebases::MaxCardinality >= popcount(pos.pieces())
+      && !pos.can_castle(ANY_CASTLING))
+  {
+      Tablebases::ProbeState result;
+      auto wdl = Tablebases::probe_wdl(pos, &result);
+
+      if (result != Tablebases::FAIL)
+      {
+          Search::WDLScore = wdl;
+
+          StateInfo st;
+          CheckInfo ci(pos);
+
+          for (auto& rm : rootMoves)
+          {
+              pos.do_move(rm.pv[0], st, pos.gives_check(rm.pv[0], ci));
+
+              wdl = Tablebases::probe_wdl(pos, &result);
+
+              if (result != Tablebases::FAIL)
+                  rm.wdlScore = wdl;
+
+              pos.undo_move(rm.pv[0]);
+          }
+      }
+  }
 
   for (Thread* th : Threads)
   {

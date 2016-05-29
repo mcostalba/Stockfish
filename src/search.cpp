@@ -36,10 +36,13 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
+namespace TB = Tablebases;
+
 namespace Search {
 
   SignalsType Signals;
   LimitsType Limits;
+  TB::WDLScore WDLScore;
 }
 
 namespace Tablebases {
@@ -51,8 +54,6 @@ namespace Tablebases {
   Depth ProbeDepth;
   Value Score;
 }
-
-namespace TB = Tablebases;
 
 using std::string;
 using Eval::evaluate;
@@ -283,38 +284,6 @@ void MainThread::search() {
   }
   else
   {
-      if (    TB::Cardinality >=  rootPos.count<ALL_PIECES>(WHITE)
-                                + rootPos.count<ALL_PIECES>(BLACK)
-          && !rootPos.can_castle(ANY_CASTLING))
-      {
-          // If the current root position is in the tablebases, then RootMoves
-          // contains only moves that preserve the draw or the win.
-          TB::RootInTB = Tablebases::root_probe(rootPos, rootMoves, TB::Score);
-
-          if (TB::RootInTB)
-              TB::Cardinality = 0; // Do not probe tablebases during the search
-
-          else // If DTZ tables are missing, use WDL tables as a fallback
-          {
-              // Filter out moves that do not preserve the draw or the win.
-              TB::RootInTB = Tablebases::root_probe_wdl(rootPos, rootMoves, TB::Score);
-
-              // Only probe during search if winning
-              if (TB::Score <= VALUE_DRAW)
-                  TB::Cardinality = 0;
-          }
-
-          if (TB::RootInTB)
-          {
-              TB::Hits = rootMoves.size();
-
-              if (!TB::UseRule50)
-                  TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
-                             : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
-                                                      :  VALUE_DRAW;
-          }
-      }
-
       for (Thread* th : Threads)
           if (th != this)
               th->start_searching();
@@ -691,34 +660,46 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (!rootNode && TB::Cardinality)
+    if (TB::Cardinality)
     {
-        int piecesCnt = pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK);
-
-        if (    piecesCnt <= TB::Cardinality
-            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
-            &&  pos.rule50_count() == 0
-            && !pos.can_castle(ANY_CASTLING))
+        if (!rootNode)
         {
-            TB::ProbeState err;
-            TB::WDLScore v = Tablebases::probe_wdl(pos, &err);
+            int piecesCnt = popcount(pos.pieces());
 
-            if (err != TB::ProbeState::FAIL)
+            if (    piecesCnt <= TB::Cardinality
+                && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
+                &&  pos.rule50_count() == 0
+                && !pos.can_castle(ANY_CASTLING))
             {
-                TB::Hits++;
+                TB::ProbeState result;
+                TB::WDLScore v = Tablebases::probe_wdl(pos, &result);
 
-                int drawScore = TB::UseRule50 ? 1 : 0;
+                if (result != TB::FAIL)
+                {
+                    TB::Hits++;
 
-                value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
-                       : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
-                                        :  VALUE_DRAW + 2 * v * drawScore;
+                    int drawScore = TB::UseRule50 ? 1 : 0;
 
-                tte->save(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
-                          std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
-                          MOVE_NONE, VALUE_NONE, TT.generation());
+                    value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
+                           : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
+                                            :  VALUE_DRAW + 2 * v * drawScore;
 
-                return value;
+                    tte->save(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
+                              std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
+                              MOVE_NONE, VALUE_NONE, TT.generation());
+
+                    return value;
+                }
             }
+        }
+        else if (Search::WDLScore != TB::WDLScoreNone)
+        {
+            RootMove& rm = *std::find(thisThread->rootMoves.begin(),
+                                      thisThread->rootMoves.end(), move);
+
+            // Skip root moves that do not preserve the draw or the win
+            if (rm.wdlScore != TB::WDLScoreNone && rm.wdlScore != Search::WDLScore)
+                return beta;
         }
     }
 
