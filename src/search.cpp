@@ -660,7 +660,7 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
-    if (TB::Cardinality && !rootNode)
+    if (TB::Cardinality && !rootNode && alpha > -VALUE_KNOWN_WIN && beta < VALUE_KNOWN_WIN)
     {
         int piecesCnt = popcount(pos.pieces());
 
