@@ -672,23 +672,20 @@ namespace {
                 && !pos.can_castle(ANY_CASTLING))
             {
                 TB::ProbeState result;
-                TB::WDLScore v = Tablebases::probe_wdl(pos, &result);
+                TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
 
                 if (result != TB::FAIL)
                 {
                     TB::Hits++;
 
-                    int drawScore = TB::UseRule50 ? 1 : 0;
+                    if (wdl == TB::WDLWin)
+                        return beta;
 
-                    value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
-                           : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
-                                            :  VALUE_DRAW + 2 * v * drawScore;
+                    if (wdl == TB::WDLLoss)
+                        return alpha;
 
-                    tte->save(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
-                              std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
-                              MOVE_NONE, VALUE_NONE, TT.generation());
-
-                    return value;
+                    if (wdl == TB::WDLDraw)
+                        return DrawValue[pos.side_to_move()];
                 }
             }
         }
@@ -699,7 +696,7 @@ namespace {
 
             // Skip root moves that do not preserve the draw or the win
             if (rm.wdlScore != TB::WDLScoreNone && rm.wdlScore != Search::WDLScore)
-                return beta;
+                return alpha;
         }
     }
 
