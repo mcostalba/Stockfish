@@ -205,7 +205,12 @@ int MapB1H1H7[SQUARE_NB];
 int MapA1D1D4[SQUARE_NB];
 int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
 
-typedef std::pair<Key, std::pair<WDLScore, ProbeState>> CacheEntry;
+struct CacheEntry {
+    Key key;
+    WDLScore wdl;
+    ProbeState result;
+};
+
 HashTable<CacheEntry, 32768> WDLCache;
 
 // Comparison function to sort leading pawns in ascending MapPawns[] order
@@ -1366,13 +1371,13 @@ WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result)
     Key key = pos.key();
     CacheEntry* e = WDLCache[key];
 
-    if (e->first == key)
-        return (*result = e->second.second, e->second.first);
+    if (e->key == key)
+        return (*result = e->result, e->wdl);
 
-    e->first = key;
-    e->second.first = search(pos, WDLLoss, WDLWin, result);
-    e->second.second = *result;
-    return e->second.first;
+    e->key = key;
+    e->wdl = search(pos, WDLLoss, WDLWin, result);
+    e->result = *result;
+    return e->wdl;
 }
 
 // Probe the DTZ table for a particular position.
