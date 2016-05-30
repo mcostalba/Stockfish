@@ -658,42 +658,12 @@ namespace {
         return ttValue;
     }
 
-    // Step 4a. Tablebase probe
-    if (TB::Cardinality && !rootNode && alpha > -VALUE_KNOWN_WIN && beta < VALUE_KNOWN_WIN)
-    {
-        int piecesCnt = popcount(pos.pieces());
-
-        if (    piecesCnt <= TB::Cardinality
-            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
-            &&  pos.rule50_count() == 0
-            && !pos.can_castle(ANY_CASTLING))
-        {
-            TB::ProbeState result;
-            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
-
-            if (result != TB::FAIL)
-            {
-                TB::Hits++;
-
-                if (wdl == TB::WDLWin)
-                    return beta;
-
-                if (wdl == TB::WDLLoss)
-                    return alpha;
-
-                if (wdl == TB::WDLDraw)
-                    return DrawValue[pos.side_to_move()];
-            }
-        }
-    }
-
     // Step 5. Evaluate the position statically
     if (inCheck)
     {
         ss->staticEval = eval = VALUE_NONE;
         goto moves_loop;
     }
-
     else if (ttHit)
     {
         // Never assume anything on values stored in TT
@@ -1138,6 +1108,38 @@ moves_loop: // When in check search starts from here
 
         if ((ss-5)->counterMoves)
             (ss-5)->counterMoves->update(pos.piece_on(prevSq), prevSq, bonus);
+    }
+
+    // Tablebase probe
+    if (   !PvNode
+        &&  TB::Cardinality
+        && !rootNode
+        &&  alpha > -VALUE_KNOWN_WIN
+        &&  beta  <  VALUE_KNOWN_WIN
+        &&  bestValue != DrawValue[pos.side_to_move()] // Don't override draw detection
+        && !pos.can_castle(ANY_CASTLING))
+    {
+        int piecesCnt = popcount(pos.pieces());
+
+        if (    piecesCnt <= TB::Cardinality
+            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth))
+        {
+            TB::ProbeState result;
+            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
+            if (result != TB::FAIL)
+            {
+                TB::Hits++;
+
+                if (wdl == TB::WDLDraw) // Unconditional!
+                    bestValue = DrawValue[pos.side_to_move()], bestMove = MOVE_NONE;
+
+                else if (wdl == TB::WDLLoss && bestValue >= beta)
+                    bestValue = alpha, bestMove = MOVE_NONE;
+
+                else if (wdl == TB::WDLWin && bestValue <= alpha)
+                    bestValue = beta, bestMove = MOVE_NONE;
+            }
+        }
     }
 
     tte->save(posKey, value_to_tt(bestValue, ss->ply),
