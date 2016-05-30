@@ -29,6 +29,7 @@
 #include <type_traits>
 
 #include "../bitboard.h"
+#include "../misc.h"
 #include "../movegen.h"
 #include "../position.h"
 #include "../search.h"
@@ -204,17 +205,12 @@ int MapB1H1H7[SQUARE_NB];
 int MapA1D1D4[SQUARE_NB];
 int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
 
+typedef std::pair<Key, std::pair<WDLScore, ProbeState>> CacheEntry;
+HashTable<CacheEntry, 32768> WDLCache;
+
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
 int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
-
-const Value WDL_to_value[] = {
-   -VALUE_MATE + MAX_PLY + 1,
-    VALUE_DRAW - 2,
-    VALUE_DRAW,
-    VALUE_DRAW + 2,
-    VALUE_MATE - MAX_PLY - 1
-};
 
 const std::string PieceToChar = " PNBRQK  pnbrqk";
 
@@ -1366,7 +1362,17 @@ void Tablebases::init(const std::string& paths)
 WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result)
 {
     *result = OK;
-    return search(pos, WDLLoss, WDLWin, result);
+
+    Key key = pos.key();
+    CacheEntry* e = WDLCache[key];
+
+    if (e->first == key)
+        return (*result = e->second.second, e->second.first);
+
+    e->first = key;
+    e->second.first = search(pos, WDLLoss, WDLWin, result);
+    e->second.second = *result;
+    return e->second.first;
 }
 
 // Probe the DTZ table for a particular position.
