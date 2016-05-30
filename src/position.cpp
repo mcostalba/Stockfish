@@ -319,7 +319,7 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
 #ifdef THREECHECK
     st->checksGiven[WHITE] = CHECKS_0;
     st->checksGiven[BLACK] = CHECKS_0;
-    if ((var & THREECHECK_VARIANT) != 0)
+    if ((v & THREECHECK_VARIANT) != 0)
     {
         // 7. Checks given counter for Three-Check positions
         if ((ss >> std::skipws >> token) && token == '+')
@@ -333,14 +333,16 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
             case 3: st->checksGiven[WHITE] = CHECKS_3; break;
             default: st->checksGiven[WHITE] = CHECKS_NB;
             }
-            ss >> token; // skip '+'
-            switch(token - '0')
-            {
-            case 0: st->checksGiven[BLACK] = CHECKS_0; break;
-            case 1: st->checksGiven[BLACK] = CHECKS_1; break;
-            case 2: st->checksGiven[BLACK] = CHECKS_2; break;
-            case 3: st->checksGiven[BLACK] = CHECKS_3; break;
-            default : st->checksGiven[BLACK] = CHECKS_NB;
+            if ((ss >> token) && token == '+') {
+                ss >> token;
+                switch(token - '0')
+                {
+                case 0: st->checksGiven[BLACK] = CHECKS_0; break;
+                case 1: st->checksGiven[BLACK] = CHECKS_1; break;
+                case 2: st->checksGiven[BLACK] = CHECKS_2; break;
+                case 3: st->checksGiven[BLACK] = CHECKS_3; break;
+                default : st->checksGiven[BLACK] = CHECKS_NB;
+                }
             }
         }
     }
