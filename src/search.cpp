@@ -641,6 +641,10 @@ namespace {
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->PVIdx].pv[0]
             : ttHit    ? tte->move() : MOVE_NONE;
 
+    // Check for a tablebase draw position
+    if (ttHit && ttValue == VALUE_TB_DRAW)
+        return DrawValue[pos.side_to_move()];
+
     // At non-PV nodes we check for an early TT cutoff
     if (  !PvNode
         && ttHit
@@ -1131,7 +1135,7 @@ moves_loop: // When in check search starts from here
                 TB::Hits++;
 
                 if (wdl == TB::WDLDraw) // Unconditional!
-                    bestValue = DrawValue[pos.side_to_move()], bestMove = MOVE_NONE;
+                    bestValue = VALUE_TB_DRAW, bestMove = MOVE_NONE;
 
                 else if (wdl == TB::WDLLoss && bestValue >= beta)
                     bestValue = alpha, bestMove = MOVE_NONE;
@@ -1204,6 +1208,10 @@ moves_loop: // When in check search starts from here
     tte = TT.probe(posKey, ttHit);
     ttMove = ttHit ? tte->move() : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
+
+    // Check for a tablebase draw position
+    if (ttHit && ttValue == VALUE_TB_DRAW)
+        return DrawValue[pos.side_to_move()];
 
     if (  !PvNode
         && ttHit
@@ -1372,7 +1380,8 @@ moves_loop: // When in check search starts from here
 
     assert(v != VALUE_NONE);
 
-    return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
+    return  v == VALUE_TB_DRAW          ? VALUE_TB_DRAW
+          : v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
   }
 
@@ -1384,6 +1393,7 @@ moves_loop: // When in check search starts from here
   Value value_from_tt(Value v, int ply) {
 
     return  v == VALUE_NONE             ? VALUE_NONE
+          : v == VALUE_TB_DRAW          ? VALUE_TB_DRAW
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
   }
