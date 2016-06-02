@@ -1151,6 +1151,9 @@ moves_loop: // When in check search starts from here
               PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
               depth, bestMove, ss->staticEval, TT.generation());
 
+    if (bestValue == VALUE_TB_DRAW)
+        bestValue = DrawValue[pos.side_to_move()];
+
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
     return bestValue;
