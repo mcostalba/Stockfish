@@ -1137,10 +1137,10 @@ moves_loop: // When in check search starts from here
                 if (wdl == TB::WDLDraw) // Unconditional!
                     bestValue = VALUE_TB_DRAW, bestMove = MOVE_NONE;
 
-                else if (wdl == TB::WDLLoss && bestValue >= beta)
+                else if (wdl == TB::WDLLoss && bestValue > alpha)
                     bestValue = alpha, bestMove = MOVE_NONE;
 
-                else if (wdl == TB::WDLWin && bestValue <= alpha)
+                else if (wdl == TB::WDLWin && bestValue < beta)
                     bestValue = beta, bestMove = MOVE_NONE;
             }
         }
