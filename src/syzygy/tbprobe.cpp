@@ -1364,7 +1364,7 @@ void Tablebases::init(const std::string& paths)
 //  0 : draw
 //  1 : win, but draw under 50-move rule
 //  2 : win
-WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result)
+WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result, bool cached)
 {
     *result = OK;
 
@@ -1372,7 +1372,10 @@ WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result)
     CacheEntry* e = WDLCache[key];
 
     if (e->key == key)
-        return (*result = e->result, e->wdl);
+        return *result = e->result, e->wdl;
+
+    if (cached)
+        return *result = FAIL, WDLScoreNone;
 
     e->key = key;
     e->wdl = search(pos, WDLLoss, WDLWin, result);

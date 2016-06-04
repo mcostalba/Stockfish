@@ -1129,7 +1129,7 @@ moves_loop: // When in check search starts from here
             && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth))
         {
             TB::ProbeState result;
-            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result);
+            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result, depth < 3 * ONE_PLY);
             if (result != TB::FAIL)
             {
                 TB::Hits++;

@@ -49,7 +49,7 @@ enum ProbeState {
 extern size_t MaxCardinality;
 
 void init(const std::string& paths);
-WDLScore probe_wdl(Position& pos, ProbeState* result);
+WDLScore probe_wdl(Position& pos, ProbeState* result, bool cached = false);
 int probe_dtz(Position& pos, ProbeState* result);
 
 inline std::ostream& operator<<(std::ostream& os, const WDLScore v) {
