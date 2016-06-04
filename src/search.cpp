@@ -1118,6 +1118,7 @@ moves_loop: // When in check search starts from here
     if (   !PvNode
         &&  TB::Cardinality
         && !rootNode
+        && (ss->ply & 1) // pos.side_to_move() == RootColor
         &&  alpha > -VALUE_KNOWN_WIN
         &&  beta  <  VALUE_KNOWN_WIN
         &&  bestValue != DrawValue[pos.side_to_move()] // Don't override draw detection
