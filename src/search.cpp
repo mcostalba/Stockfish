@@ -1115,8 +1115,7 @@ moves_loop: // When in check search starts from here
     }
 
     // Tablebase probe
-    if (   !PvNode
-        &&  TB::Cardinality
+    if (    TB::Cardinality
         && !rootNode
         && (ss->ply & 1) // pos.side_to_move() == RootColor
         &&  alpha > -VALUE_KNOWN_WIN
@@ -1130,7 +1129,7 @@ moves_loop: // When in check search starts from here
             && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth))
         {
             TB::ProbeState result;
-            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result, depth < 3 * ONE_PLY);
+            TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result, !PvNode && depth < 3 * ONE_PLY);
             if (result != TB::FAIL)
             {
                 TB::Hits++;
