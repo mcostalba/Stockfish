@@ -557,18 +557,18 @@ void Thread::search() {
               // Stop the search if only one legal move is available, or if all
               // of the available time has been used, or if we matched an easyMove
               // from the previous search and just did a fast verification.
-              const bool F[] = { !mainThread->failedLow,
-                                 bestValue >= mainThread->previousScore };
+              const int F[] = { mainThread->failedLow,
+                                bestValue - mainThread->previousScore };
 
-              int improvingFactor = 640 - 160*F[0] - 126*F[1] - 124*F[0]*F[1];
+              int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
               double unstablePvFactor = 1 + mainThread->bestMoveChanges;
 
               bool doEasyMove =   rootMoves[0].pv[0] == easyMove
                                && mainThread->bestMoveChanges < 0.03
-                               && Time.elapsed() > Time.optimum() * 25 / 204;
+                               && Time.elapsed() > Time.optimum() * 5 / 42;
 
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 634
+                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 628
                   || (mainThread->easyMovePlayed = doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
@@ -622,9 +622,10 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth, predictedDepth;
-    Value bestValue, value, ttValue, eval, nullValue, futilityValue;
+    Value bestValue, value, ttValue, eval, nullValue;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
     bool captureOrPromotion, doFullDepthSearch;
+    Piece moved_piece;
     int moveCount, quietCount;
     int variantScale;
 
@@ -967,7 +968,9 @@ namespace {
 moves_loop: // When in check search starts from here
 
     Square prevSq = to_sq((ss-1)->currentMove);
-    const CounterMoveStats& cmh = CounterMoveHistory[pos.piece_on(prevSq)][prevSq];
+    const CounterMoveStats* cmh  = (ss-1)->counterMoves;
+    const CounterMoveStats* fmh  = (ss-2)->counterMoves;
+    const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
 
     MovePicker mp(pos, ttMove, depth, ss);
     CheckInfo ci(pos);
@@ -1025,6 +1028,7 @@ moves_loop: // When in check search starts from here
 
       extension = DEPTH_ZERO;
       captureOrPromotion = pos.capture_or_promotion(move);
+      moved_piece = pos.moved_piece(move);
 
 #ifdef RACE
       if (pos.is_race())
@@ -1092,7 +1096,7 @@ moves_loop: // When in check search starts from here
               && moveCount >= FutilityMoveCounts[improving][depth])
               continue;
 
-          // History based pruning
+          // Countermoves based pruning
 #ifdef RACE
 #ifdef THREECHECK
           if (   depth <= 4 * ONE_PLY - checks - raceRank
@@ -1107,8 +1111,9 @@ moves_loop: // When in check search starts from here
 #endif
 #endif
               && move != ss->killers[0]
-              && thisThread->history[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO
-              && cmh[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO)
+              && (!cmh  || (*cmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
+              && (!fmh  || (*fmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
+              && (!fmh2 || (*fmh2)[moved_piece][to_sq(move)] < VALUE_ZERO || (cmh && fmh)))
               continue;
 
           predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
@@ -1116,26 +1121,19 @@ moves_loop: // When in check search starts from here
           // Futility pruning: parent node
 #ifdef RACE
 #ifdef THREECHECK
-          if (predictedDepth < (7 - checks - raceRank) * ONE_PLY)
+          if (predictedDepth < (7 - checks - raceRank) * ONE_PLY
 #else
-          if (predictedDepth < (7 - raceRank) * ONE_PLY)
+          if (predictedDepth < (7 - raceRank) * ONE_PLY
 #endif
 #else
 #ifdef THREECHECK
-          if (predictedDepth < (7 - checks) * ONE_PLY)
+          if (predictedDepth < (7 - checks) * ONE_PLY
 #else
-          if (predictedDepth < 7 * ONE_PLY)
+          if (predictedDepth < 7 * ONE_PLY
 #endif
 #endif
-          {
-              futilityValue = ss->staticEval + futility_margin(predictedDepth) + 256;
-
-              if (futilityValue <= alpha)
-              {
-                  bestValue = std::max(bestValue, futilityValue);
-                  continue;
-              }
-          }
+              && ss->staticEval + futility_margin(predictedDepth) + 256 <= alpha)
+              continue;
 
           // Prune moves with negative SEE at low depths
           if (predictedDepth < 4 * ONE_PLY && pos.see_sign(move) < VALUE_ZERO)
@@ -1153,7 +1151,7 @@ moves_loop: // When in check search starts from here
       }
 
       ss->currentMove = move;
-      ss->counterMoves = &CounterMoveHistory[pos.moved_piece(move)][to_sq(move)];
+      ss->counterMoves = &CounterMoveHistory[moved_piece][to_sq(move)];
 
       // Step 14. Make the move
       pos.do_move(move, st, givesCheck);
@@ -1177,31 +1175,27 @@ moves_loop: // When in check search starts from here
           && !captureOrPromotion)
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
-          Value hValue = thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)];
-          Value cmhValue = cmh[pos.piece_on(to_sq(move))][to_sq(move)];
-
-          const CounterMoveStats* fm = (ss - 2)->counterMoves;
-          const CounterMoveStats* fm2 = (ss - 4)->counterMoves;
-          Value fmValue = (fm ? (*fm)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
-          Value fm2Value = (fm2 ? (*fm2)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
+          Value val = thisThread->history[moved_piece][to_sq(move)]
+                     +    (cmh  ? (*cmh )[moved_piece][to_sq(move)] : VALUE_ZERO)
+                     +    (fmh  ? (*fmh )[moved_piece][to_sq(move)] : VALUE_ZERO)
+                     +    (fmh2 ? (*fmh2)[moved_piece][to_sq(move)] : VALUE_ZERO);
 
           // Increase reduction for cut nodes
           if (!PvNode && cutNode)
               r += ONE_PLY;
 
-          // Decrease/increase reduction for moves with a good/bad history
-          int rHist = (hValue + cmhValue + fmValue + fm2Value - 10000) / 20000;
-          r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
-
           // Decrease reduction for moves that escape a capture. Filter out
           // castling moves, because they are coded as "king captures rook" and
           // hence break make_move(). Also use see() instead of see_sign(),
           // because the destination square is empty.
-          if (   r
-              && type_of(move) == NORMAL
-              && type_of(pos.piece_on(to_sq(move))) != PAWN
-              && pos.see(make_move(to_sq(move), from_sq(move))) < VALUE_ZERO)
-              r = std::max(DEPTH_ZERO, r - ONE_PLY);
+          else if (   type_of(move) == NORMAL
+                   && type_of(pos.piece_on(to_sq(move))) != PAWN
+                   && pos.see(make_move(to_sq(move), from_sq(move))) < VALUE_ZERO)
+              r -= ONE_PLY;
+
+          // Decrease/increase reduction for moves with a good/bad history
+          int rHist = (val - 10000) / 20000;
+          r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
           Depth d = std::max(newDepth - r, ONE_PLY);
 
