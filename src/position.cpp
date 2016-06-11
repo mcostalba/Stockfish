@@ -28,12 +28,20 @@
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
-#include "thread.h"
-#include "tt.h"
-#include "uci.h"
+//#include "thread.h"
+//#include "tt.h"
+//#include "uci.h"
 #include "syzygy/tbprobe.h"
 
 using std::string;
+
+Value PieceValue[PHASE_NB][PIECE_NB] = {
+{ VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+{ VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
+
+namespace PSQT {
+  Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+}
 
 namespace Zobrist {
 
@@ -119,8 +127,8 @@ std::ostream& operator<<(std::ostream& os, Position& pos) {
      << std::setfill('0') << std::setw(16) << pos.key()
      << std::setfill(' ') << std::dec << "\nCheckers: ";
 
-  for (Bitboard b = pos.checkers(); b; )
-      os << UCI::square(pop_lsb(&b)) << " ";
+//  for (Bitboard b = pos.checkers(); b; )
+//      os << UCI::square(pop_lsb(&b)) << " ";
 
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
       && !pos.can_castle(ANY_CASTLING))
@@ -434,8 +442,8 @@ const string Position::fen() const {
   if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ")
-     << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
+//  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ")
+//     << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
   return ss.str();
 }
@@ -748,7 +756,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[them][captured][capsq];
       st->materialKey ^= Zobrist::psq[them][captured][pieceCount[them][captured]];
-      prefetch(thisThread->materialTable[st->materialKey]);
+//      prefetch(thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
       st->psq -= PSQT::psq[them][captured][capsq];
@@ -815,7 +823,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Update pawn hash key and prefetch access to pawnsTable
       st->pawnKey ^= Zobrist::psq[us][PAWN][from] ^ Zobrist::psq[us][PAWN][to];
-      prefetch(thisThread->pawnsTable[st->pawnKey]);
+//      prefetch(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
       st->rule50 = 0;
@@ -941,7 +949,7 @@ void Position::do_null_move(StateInfo& newSt) {
   }
 
   st->key ^= Zobrist::side;
-  prefetch(TT.first_entry(st->key));
+//  prefetch(TT.first_entry(st->key));
 
   ++st->rule50;
   st->pliesFromNull = 0;

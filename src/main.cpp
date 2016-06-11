@@ -21,32 +21,20 @@
 #include <iostream>
 
 #include "bitboard.h"
-#include "evaluate.h"
 #include "position.h"
-#include "search.h"
-#include "thread.h"
-#include "tt.h"
-#include "uci.h"
 #include "syzygy/tbprobe.h"
 
-int main(int argc, char* argv[]) {
+int main(int, char**) {
 
-  std::cout << engine_info() << std::endl;
-
-  UCI::init(Options);
-  PSQT::init();
   Bitboards::init();
   Position::init();
-  Bitbases::init();
-  Search::init();
-  Eval::init();
-  Pawns::init();
-  Threads.init();
-  Tablebases::init(Options["SyzygyPath"]);
-  TT.resize(Options["Hash"]);
+  Tablebases::init("../../tb/src");
 
-  UCI::loop(argc, argv);
+  StateInfo st;
+  Position pos;
+  pos.set("3K4/8/3k4/8/4p3/4B3/5P2/8 w - - 0 5", false, &st, nullptr);
 
-  Threads.exit();
+  std::cout << pos << std::endl;
+
   return 0;
 }
