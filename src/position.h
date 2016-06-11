@@ -34,13 +34,6 @@
 class Position;
 class Thread;
 
-namespace PSQT {
-
-  extern Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-
-  void init();
-}
-
 /// CheckInfo struct is initialized at constructor time and keeps info used to
 /// detect if a move gives check.
 
@@ -136,51 +129,31 @@ public:
 
   // Properties of moves
   bool legal(Move m, Bitboard pinned) const;
-  bool pseudo_legal(const Move m) const;
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
   bool gives_check(Move m, const CheckInfo& ci) const;
-  bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   PieceType captured_piece_type() const;
-
-  // Piece specific
-  bool pawn_passed(Color c, Square s) const;
-  bool opposite_bishops() const;
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& st, bool givesCheck);
   void undo_move(Move m);
-  void do_null_move(StateInfo& st);
-  void undo_null_move();
-
-  // Static exchange evaluation
-  Value see(Move m) const;
-  Value see_sign(Move m) const;
 
   // Accessing hash keys
   Key key() const;
-  Key key_after(Move m) const;
-  Key exclusion_key() const;
   Key material_key() const;
   Key pawn_key() const;
 
   // Other properties of the position
   Color side_to_move() const;
-  Phase game_phase() const;
   int game_ply() const;
   bool is_chess960() const;
   Thread* this_thread() const;
-  uint64_t nodes_searched() const;
-  void set_nodes_searched(uint64_t n);
   bool is_draw() const;
   int rule50_count() const;
-  Score psq_score() const;
-  Value non_pawn_material(Color c) const;
 
   // Position consistency check, for debugging
   bool pos_is_ok(int* failedStep = nullptr) const;
-  void flip();
 
 private:
   // Initialization helpers (used while setting up a position)
@@ -319,15 +292,6 @@ inline Bitboard Position::pinned_pieces(Color c) const {
   return slider_blockers(pieces(c), pieces(~c), square<KING>(c));
 }
 
-inline bool Position::pawn_passed(Color c, Square s) const {
-  return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
-}
-
-inline bool Position::advanced_pawn_push(Move m) const {
-  return   type_of(moved_piece(m)) == PAWN
-        && relative_rank(sideToMove, from_sq(m)) > RANK_4;
-}
-
 inline Key Position::key() const {
   return st->key;
 }
@@ -340,34 +304,12 @@ inline Key Position::material_key() const {
   return st->materialKey;
 }
 
-inline Score Position::psq_score() const {
-  return st->psq;
-}
-
-inline Value Position::non_pawn_material(Color c) const {
-  return st->nonPawnMaterial[c];
-}
-
 inline int Position::game_ply() const {
   return gamePly;
 }
 
 inline int Position::rule50_count() const {
   return st->rule50;
-}
-
-inline uint64_t Position::nodes_searched() const {
-  return nodes;
-}
-
-inline void Position::set_nodes_searched(uint64_t n) {
-  nodes = n;
-}
-
-inline bool Position::opposite_bishops() const {
-  return   pieceCount[WHITE][BISHOP] == 1
-        && pieceCount[BLACK][BISHOP] == 1
-        && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
 inline bool Position::is_chess960() const {
