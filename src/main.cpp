@@ -28,13 +28,21 @@ int main(int, char**) {
 
   Bitboards::init();
   Position::init();
-  Tablebases::init("../../tb/src");
 
   StateInfo st;
   Position pos;
   pos.set("3K4/8/3k4/8/4p3/4B3/5P2/8 w - - 0 5", false, &st, nullptr);
 
   std::cout << pos << std::endl;
+
+  Tablebases::init("../../tb/src");
+
+  Tablebases::ProbeState s1, s2;
+  Tablebases::WDLScore wdl = Tablebases::probe_wdl(pos, &s1);
+  int dtz = Tablebases::probe_dtz(pos, &s2);
+
+  std::cout << "\nProbe WDL: " << wdl << " (" << s1 << ")"
+            << "\nProbe DTZ: " << dtz << " (" << s2 << ")" << std::endl;
 
   return 0;
 }
