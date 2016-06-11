@@ -268,8 +268,6 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   thisThread = th;
   set_state(st);
 
-  assert(pos_is_ok());
-
   return *this;
 }
 
@@ -727,8 +725,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
   sideToMove = ~sideToMove;
-
-  assert(pos_is_ok());
 }
 
 
@@ -791,8 +787,6 @@ void Position::undo_move(Move m) {
   // Finally point our state pointer back to the previous state
   st = st->previous;
   --gamePly;
-
-  assert(pos_is_ok());
 }
 
 
@@ -812,83 +806,4 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   board[Do ? from : to] = board[Do ? rfrom : rto] = NO_PIECE; // Since remove_piece doesn't do it for us
   put_piece(us, KING, Do ? to : from);
   put_piece(us, ROOK, Do ? rto : rfrom);
-}
-
-
-/// Position::pos_is_ok() performs some consistency checks for the position object.
-/// This is meant to be helpful when debugging.
-
-bool Position::pos_is_ok(int* failedStep) const {
-
-  const bool Fast = true; // Quick (default) or full check?
-
-  enum { Default, King, Bitboards, State, Lists, Castling };
-
-  for (int step = Default; step <= (Fast ? Default : Castling); step++)
-  {
-      if (failedStep)
-          *failedStep = step;
-
-      if (step == Default)
-          if (   (sideToMove != WHITE && sideToMove != BLACK)
-              || piece_on(square<KING>(WHITE)) != W_KING
-              || piece_on(square<KING>(BLACK)) != B_KING
-              || (   ep_square() != SQ_NONE
-                  && relative_rank(sideToMove, ep_square()) != RANK_6))
-              return false;
-
-      if (step == King)
-          if (   std::count(board, board + SQUARE_NB, W_KING) != 1
-              || std::count(board, board + SQUARE_NB, B_KING) != 1
-              || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
-              return false;
-
-      if (step == Bitboards)
-      {
-          if (  (pieces(WHITE) & pieces(BLACK))
-              ||(pieces(WHITE) | pieces(BLACK)) != pieces())
-              return false;
-
-          for (PieceType p1 = PAWN; p1 <= KING; ++p1)
-              for (PieceType p2 = PAWN; p2 <= KING; ++p2)
-                  if (p1 != p2 && (pieces(p1) & pieces(p2)))
-                      return false;
-      }
-
-      if (step == State)
-      {
-          StateInfo si = *st;
-          set_state(&si);
-          if (std::memcmp(&si, st, sizeof(StateInfo)))
-              return false;
-      }
-
-      if (step == Lists)
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = PAWN; pt <= KING; ++pt)
-              {
-                  if (pieceCount[c][pt] != popcount(pieces(c, pt)))
-                      return false;
-
-                  for (int i = 0; i < pieceCount[c][pt];  ++i)
-                      if (   board[pieceList[c][pt][i]] != make_piece(c, pt)
-                          || index[pieceList[c][pt][i]] != i)
-                          return false;
-              }
-
-      if (step == Castling)
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
-              {
-                  if (!can_castle(c | s))
-                      continue;
-
-                  if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
-                      || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
-                      ||(castlingRightsMask[square<KING>(c)] & (c | s)) != (c | s))
-                      return false;
-              }
-  }
-
-  return true;
 }

@@ -152,9 +152,6 @@ public:
   bool is_draw() const;
   int rule50_count() const;
 
-  // Position consistency check, for debugging
-  bool pos_is_ok(int* failedStep = nullptr) const;
-
 private:
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
