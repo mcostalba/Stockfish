@@ -35,7 +35,7 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = ./$(EXE) bench 16 1 1000 default time
 
 ### Object files
-OBJS = bitboard.o main.o movegen.o position.o syzygy/tbprobe.o
+OBJS = bitboard.o main.o movegen.o position.o tbprobe.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

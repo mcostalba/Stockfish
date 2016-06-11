@@ -28,11 +28,11 @@
 #include <sstream>
 #include <type_traits>
 
-#include "../bitboard.h"
-#include "../movegen.h"
-#include "../position.h"
-#include "../thread_win32.h"
-#include "../types.h"
+#include "bitboard.h"
+#include "movegen.h"
+#include "position.h"
+#include "thread_win32.h"
+#include "types.h"
 
 #include "tbprobe.h"
 
@@ -207,14 +207,6 @@ int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
 int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
-
-const Value WDL_to_value[] = {
-   -VALUE_MATE + MAX_PLY + 1,
-    VALUE_DRAW - 2,
-    VALUE_DRAW,
-    VALUE_DRAW + 2,
-    VALUE_MATE - MAX_PLY - 1
-};
 
 const std::string PieceToChar = " PNBRQK  pnbrqk";
 

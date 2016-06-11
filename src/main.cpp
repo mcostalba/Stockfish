@@ -22,7 +22,7 @@
 
 #include "bitboard.h"
 #include "position.h"
-#include "syzygy/tbprobe.h"
+#include "tbprobe.h"
 
 int main(int, char**) {
 

@@ -28,7 +28,7 @@
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
-#include "syzygy/tbprobe.h"
+#include "tbprobe.h"
 
 using std::string;
 
