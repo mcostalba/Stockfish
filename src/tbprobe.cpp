@@ -25,13 +25,13 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <mutex>
 #include <sstream>
 #include <type_traits>
 
 #include "bitboard.h"
 #include "movegen.h"
 #include "position.h"
-#include "thread_win32.h"
 #include "types.h"
 
 #include "tbprobe.h"
@@ -43,7 +43,9 @@
 #include <sys/stat.h>
 #else
 #define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
+#ifndef NOMINMAX
+#  define NOMINMAX // Disable macros min() and max()
+#endif
 #include <windows.h>
 #endif
 
@@ -1115,14 +1117,14 @@ void* init(Entry& e, const Position& pos) {
 
     const bool IsWDL = std::is_same<Entry, WDLEntry>::value;
 
-    static Mutex mutex;
+    static std::mutex mutex;
 
     // Avoid a thread reads 'ready' == true while another is still in do_init(),
     // this could happen due to compiler reordering.
     if (e.ready.load(std::memory_order_acquire))
         return e.baseAddress;
 
-    std::unique_lock<Mutex> lk(mutex);
+    std::unique_lock<std::mutex> lk(mutex);
 
     if (e.ready.load(std::memory_order_relaxed)) // Recheck under lock
         return e.baseAddress;
