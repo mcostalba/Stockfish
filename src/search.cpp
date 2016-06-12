@@ -261,19 +261,6 @@ void MainThread::search() {
   DrawValue[ us] = VALUE_DRAW - Value(contempt);
   DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
-  TB::Hits = 0;
-  TB::RootInTB = false;
-  TB::UseRule50 = Options["Syzygy50MoveRule"];
-  TB::ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
-  TB::Cardinality = Options["SyzygyProbeLimit"];
-
-  // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
-  if (TB::Cardinality > TB::MaxCardinality)
-  {
-      TB::Cardinality = TB::MaxCardinality;
-      TB::ProbeDepth = DEPTH_ZERO;
-  }
-
   if (rootMoves.empty())
   {
       rootMoves.push_back(RootMove(MOVE_NONE));
@@ -298,38 +285,6 @@ void MainThread::search() {
   }
   else
   {
-      if (    TB::Cardinality >=  rootPos.count<ALL_PIECES>(WHITE)
-                                + rootPos.count<ALL_PIECES>(BLACK)
-          && !rootPos.can_castle(ANY_CASTLING))
-      {
-          // If the current root position is in the tablebases, then RootMoves
-          // contains only moves that preserve the draw or the win.
-          TB::RootInTB = Tablebases::root_probe(rootPos, rootMoves, TB::Score);
-
-          if (TB::RootInTB)
-              TB::Cardinality = 0; // Do not probe tablebases during the search
-
-          else // If DTZ tables are missing, use WDL tables as a fallback
-          {
-              // Filter out moves that do not preserve the draw or the win.
-              TB::RootInTB = Tablebases::root_probe_wdl(rootPos, rootMoves, TB::Score);
-
-              // Only probe during search if winning
-              if (TB::Score <= VALUE_DRAW)
-                  TB::Cardinality = 0;
-          }
-
-          if (TB::RootInTB)
-          {
-              TB::Hits = rootMoves.size();
-
-              if (!TB::UseRule50)
-                  TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
-                             : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
-                                                      :  VALUE_DRAW;
-          }
-      }
-
       for (Thread* th : Threads)
           if (th != this)
               th->start_searching();
@@ -624,7 +579,7 @@ namespace {
     Depth extension, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning;
     Piece moved_piece;
     int moveCount, quietCount;
     int variantScale;
@@ -1043,8 +998,25 @@ moves_loop: // When in check search starts from here
                   ? ci.checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
                   : pos.gives_check(move, ci);
 
+#ifdef RACE
+#ifdef THREECHECK
+      moveCountPruning =   depth < (16 - checks - raceRank) * ONE_PLY
+#else
+      moveCountPruning =   depth < (16 - raceRank) * ONE_PLY
+#endif
+#else
+#ifdef THREECHECK
+      moveCountPruning =   depth < (16 - checks) * ONE_PLY
+#else
+      moveCountPruning =   depth < 16 * ONE_PLY
+#endif
+#endif
+                        && moveCount >= FutilityMoveCounts[improving][depth];
+
       // Step 12. Extend checks
-      if (givesCheck && pos.see_sign(move) >= VALUE_ZERO)
+      if (   givesCheck
+          && (    moveCount == 1
+              || (!moveCountPruning && pos.see_sign(move) >= VALUE_ZERO)))
           extension = ONE_PLY;
 
       // Singular extension search. If all moves but one fail low on a search of
@@ -1080,20 +1052,7 @@ moves_loop: // When in check search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-#ifdef RACE
-#ifdef THREECHECK
-          if (   depth < (16 - checks - raceRank) * ONE_PLY
-#else
-          if (   depth < (16 - raceRank) * ONE_PLY
-#endif
-#else
-#ifdef THREECHECK
-          if (   depth < (16 - checks) * ONE_PLY
-#else
-          if (   depth < 16 * ONE_PLY
-#endif
-#endif
-              && moveCount >= FutilityMoveCounts[improving][depth])
+          if (moveCountPruning)
               continue;
 
           // Countermoves based pruning
@@ -1341,7 +1300,7 @@ moves_loop: // When in check search starts from here
              && !pos.captured_piece_type()
              && is_ok((ss-1)->currentMove))
     {
-        Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+        Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
         if ((ss-2)->counterMoves)
             (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, bonus);
 
@@ -1686,7 +1645,7 @@ moves_loop: // When in check search starts from here
         ss->killers[0] = move;
     }
 
-    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
 
     Square prevSq = to_sq((ss-1)->currentMove);
     CounterMoveStats* cmh  = (ss-1)->counterMoves;
@@ -1727,13 +1686,13 @@ moves_loop: // When in check search starts from here
     if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
     {
         if ((ss-2)->counterMoves)
-            (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
 
         if ((ss-3)->counterMoves)
-            (ss-3)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-3)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
 
         if ((ss-5)->counterMoves)
-            (ss-5)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-5)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
     }
   }
 
@@ -1909,4 +1868,50 @@ bool RootMove::extract_ponder_from_tt(Position& pos)
     }
 
     return false;
+}
+
+void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) {
+
+    Hits = 0;
+    RootInTB = false;
+    UseRule50 = Options["Syzygy50MoveRule"];
+    ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
+    Cardinality = Options["SyzygyProbeLimit"];
+
+    // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
+    if (Cardinality > MaxCardinality)
+    {
+        Cardinality = MaxCardinality;
+        ProbeDepth = DEPTH_ZERO;
+    }
+
+    if (Cardinality < popcount(pos.pieces()) || pos.can_castle(ANY_CASTLING))
+        return;
+
+    // If the current root position is in the tablebases, then RootMoves
+    // contains only moves that preserve the draw or the win.
+    RootInTB = root_probe(pos, rootMoves, TB::Score);
+
+    if (RootInTB)
+        Cardinality = 0; // Do not probe tablebases during the search
+
+    else // If DTZ tables are missing, use WDL tables as a fallback
+    {
+        // Filter out moves that do not preserve the draw or the win.
+        RootInTB = root_probe_wdl(pos, rootMoves, TB::Score);
+
+        // Only probe during search if winning
+        if (TB::Score <= VALUE_DRAW)
+            Cardinality = 0;
+    }
+
+    if (RootInTB)
+    {
+        Hits = rootMoves.size();
+
+        if (!UseRule50)
+            TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
+                       : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
+                                                :  VALUE_DRAW;
+    }
 }
