@@ -166,7 +166,7 @@ namespace {
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
 
   Value value_to_tt(Value v, int ply);
-  Value value_from_tt(Value v, int ply);
+  Value value_from_tt(Value v, int ply, Value alpha, Value beta);
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   void check_time();
@@ -637,7 +637,7 @@ namespace {
     excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
     tte = TT.probe(posKey, ttHit);
-    ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
+    ttValue = ttHit ? value_from_tt(tte->value(), ss->ply, alpha, beta) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->PVIdx].pv[0]
             : ttHit    ? tte->move() : MOVE_NONE;
 
@@ -1126,26 +1126,36 @@ moves_loop: // When in check search starts from here
             {
                 TB::Hits++;
                 ss->tbProbed = true;
+                depth += 3 * ONE_PLY; // Save TB result in TT with a higher depth than usual
 
                 if (wdl == TB::WDLDraw) // Unconditional!
                     bestValue = VALUE_TB_DRAW, bestMove = MOVE_NONE;
 
                 else if (wdl == TB::WDLLoss && bestValue > alpha)
-                    bestValue = alpha, bestMove = MOVE_NONE;
+                    bestValue = VALUE_TB_LOSS, bestMove = MOVE_NONE;
 
                 else if (wdl == TB::WDLWin && bestValue < beta)
-                    bestValue = beta, bestMove = MOVE_NONE;
+                    bestValue = VALUE_TB_WIN, bestMove = MOVE_NONE;
             }
         }
     }
 
     tte->save(posKey, value_to_tt(bestValue, ss->ply),
-              bestValue >= beta ? BOUND_LOWER :
+              bestValue >= beta || (ss->tbProbed && bestValue == VALUE_TB_WIN) ? BOUND_LOWER :
               PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
               depth, bestMove, ss->staticEval, TT.generation());
 
-    if (bestValue == VALUE_TB_DRAW)
-        bestValue = DrawValue[pos.side_to_move()];
+    if (ss->tbProbed)
+    {
+        if (bestValue == VALUE_TB_DRAW)
+            bestValue = DrawValue[pos.side_to_move()];
+
+        else if (bestValue == VALUE_TB_WIN)
+            bestValue = beta;
+
+        else if (bestValue == VALUE_TB_LOSS)
+            bestValue = alpha;
+    }
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1204,7 +1214,7 @@ moves_loop: // When in check search starts from here
     posKey = pos.key();
     tte = TT.probe(posKey, ttHit);
     ttMove = ttHit ? tte->move() : MOVE_NONE;
-    ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
+    ttValue = ttHit ? value_from_tt(tte->value(), ss->ply, alpha, beta) : VALUE_NONE;
 
     // Check for a tablebase draw position
     if (ttHit && ttValue == VALUE_TB_DRAW)
@@ -1377,7 +1387,7 @@ moves_loop: // When in check search starts from here
 
     assert(v != VALUE_NONE);
 
-    return  v == VALUE_TB_DRAW          ? VALUE_TB_DRAW
+    return  v == VALUE_TB_DRAW || v == VALUE_TB_WIN || v == VALUE_TB_LOSS ? v
           : v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
   }
@@ -1387,10 +1397,12 @@ moves_loop: // When in check search starts from here
   // from the transposition table (which refers to the plies to mate/be mated
   // from current position) to "plies to mate/be mated from the root".
 
-  Value value_from_tt(Value v, int ply) {
+  Value value_from_tt(Value v, int ply, Value alpha, Value beta) {
 
     return  v == VALUE_NONE             ? VALUE_NONE
           : v == VALUE_TB_DRAW          ? VALUE_TB_DRAW
+          : v == VALUE_TB_WIN           ? beta
+          : v == VALUE_TB_LOSS          ? alpha
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
   }
