@@ -426,11 +426,6 @@ void Thread::search() {
               // search the already searched PV lines are preserved.
               std::stable_sort(rootMoves.begin() + PVIdx, rootMoves.end());
 
-              // Write PV back to the transposition table in case the relevant
-              // entries have been overwritten during the search.
-              for (size_t i = 0; i <= PVIdx; ++i)
-                  rootMoves[i].insert_pv_in_tt(rootPos);
-
               // If search has been stopped, break immediately. Sorting and
               // writing PV back to TT is safe because RootMoves is still
               // valid, although it refers to the previous iteration.
@@ -576,7 +571,7 @@ namespace {
     Depth extension, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning;
     Piece moved_piece;
     int moveCount, quietCount;
 
@@ -859,8 +854,13 @@ moves_loop: // When in check search starts from here
                   ? ci.checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
                   : pos.gives_check(move, ci);
 
+      moveCountPruning =   depth < 16 * ONE_PLY
+                        && moveCount >= FutilityMoveCounts[improving][depth];
+
       // Step 12. Extend checks
-      if (givesCheck && pos.see_sign(move) >= VALUE_ZERO)
+      if (    givesCheck
+          && !moveCountPruning
+          &&  pos.see_sign(move) >= VALUE_ZERO)
           extension = ONE_PLY;
 
       // Singular extension search. If all moves but one fail low on a search of
@@ -896,8 +896,7 @@ moves_loop: // When in check search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[improving][depth])
+          if (moveCountPruning)
               continue;
 
           // Countermoves based pruning
@@ -950,7 +949,7 @@ moves_loop: // When in check search starts from here
 
           // Increase reduction for cut nodes
           if (!PvNode && cutNode)
-              r += ONE_PLY;
+              r += 2 * ONE_PLY;
 
           // Decrease reduction for moves that escape a capture. Filter out
           // castling moves, because they are coded as "king captures rook" and
@@ -959,7 +958,7 @@ moves_loop: // When in check search starts from here
           else if (   type_of(move) == NORMAL
                    && type_of(pos.piece_on(to_sq(move))) != PAWN
                    && pos.see(make_move(to_sq(move), from_sq(move))) < VALUE_ZERO)
-              r -= ONE_PLY;
+              r -= 2 * ONE_PLY;
 
           // Decrease/increase reduction for moves with a good/bad history
           int rHist = (val - 10000) / 20000;
@@ -1095,7 +1094,7 @@ moves_loop: // When in check search starts from here
              && !pos.captured_piece_type()
              && is_ok((ss-1)->currentMove))
     {
-        Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+        Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
         if ((ss-2)->counterMoves)
             (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, bonus);
 
@@ -1430,7 +1429,7 @@ moves_loop: // When in check search starts from here
         ss->killers[0] = move;
     }
 
-    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
 
     Square prevSq = to_sq((ss-1)->currentMove);
     CounterMoveStats* cmh  = (ss-1)->counterMoves;
@@ -1471,13 +1470,13 @@ moves_loop: // When in check search starts from here
     if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
     {
         if ((ss-2)->counterMoves)
-            (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
 
         if ((ss-3)->counterMoves)
-            (ss-3)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-3)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
 
         if ((ss-5)->counterMoves)
-            (ss-5)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY);
+            (ss-5)->counterMoves->update(pos.piece_on(prevSq), prevSq, -bonus - 2 * (depth + 1) / ONE_PLY - 1);
     }
   }
 
@@ -1597,33 +1596,6 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
   }
 
   return ss.str();
-}
-
-
-/// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
-/// inserts the PV back into the TT. This makes sure the old PV moves are searched
-/// first, even if the old TT entries have been overwritten.
-
-void RootMove::insert_pv_in_tt(Position& pos) {
-
-  StateInfo state[MAX_PLY], *st = state;
-  bool ttHit;
-
-  for (Move m : pv)
-  {
-      assert(MoveList<LEGAL>(pos).contains(m));
-
-      TTEntry* tte = TT.probe(pos.key(), ttHit);
-
-      if (!ttHit || tte->move() != m) // Don't overwrite correct entries
-          tte->save(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
-                    m, VALUE_NONE, TT.generation());
-
-      pos.do_move(m, *st++, pos.gives_check(m, CheckInfo(pos)));
-  }
-
-  for (size_t i = pv.size(); i > 0; )
-      pos.undo_move(pv[--i]);
 }
 
 
