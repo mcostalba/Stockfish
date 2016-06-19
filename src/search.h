@@ -45,6 +45,7 @@ struct Stack {
   Move killers[2];
   Value staticEval;
   bool skipEarlyPruning;
+  bool tbProbed;
   int moveCount;
   CounterMoveStats* counterMoves;
 };

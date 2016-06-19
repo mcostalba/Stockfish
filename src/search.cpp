@@ -628,7 +628,7 @@ namespace {
 
     ss->currentMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->counterMoves = nullptr;
-    (ss+1)->skipEarlyPruning = false;
+    (ss+1)->skipEarlyPruning = ss->tbProbed = false;
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
     // Step 4. Transposition table lookup. We don't want the score of a partial
@@ -1109,10 +1109,10 @@ moves_loop: // When in check search starts from here
     // Tablebase probe
     if (    TB::Cardinality
         && !rootNode
-        && (ss->ply & 1) // pos.side_to_move() == RootColor
         &&  alpha > -VALUE_KNOWN_WIN
         &&  beta  <  VALUE_KNOWN_WIN
         &&  bestValue != DrawValue[pos.side_to_move()] // Don't override draw detection
+        && !(bestValue >= beta && (ss+1)->tbProbed) // Don't reprobe known TB win positions
         && !pos.can_castle(ANY_CASTLING))
     {
         int piecesCnt = popcount(pos.pieces());
@@ -1125,6 +1125,7 @@ moves_loop: // When in check search starts from here
             if (result != TB::FAIL)
             {
                 TB::Hits++;
+                ss->tbProbed = true;
 
                 if (wdl == TB::WDLDraw) // Unconditional!
                     bestValue = VALUE_TB_DRAW, bestMove = MOVE_NONE;
@@ -1183,6 +1184,7 @@ moves_loop: // When in check search starts from here
     }
 
     ss->currentMove = bestMove = MOVE_NONE;
+    ss->tbProbed = false;
     ss->ply = (ss-1)->ply + 1;
 
     // Check for an instant draw or if the maximum ply has been reached
