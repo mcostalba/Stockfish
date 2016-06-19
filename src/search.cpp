@@ -1107,18 +1107,18 @@ moves_loop: // When in check search starts from here
     }
 
     // Tablebase probe
-    if (    TB::Cardinality
-        && !rootNode
-        &&  alpha > -VALUE_KNOWN_WIN
-        &&  beta  <  VALUE_KNOWN_WIN
-        &&  bestValue != DrawValue[pos.side_to_move()] // Don't override draw detection
-        && !(bestValue >= beta && (ss+1)->tbProbed) // Don't reprobe known TB win positions
-        && !pos.can_castle(ANY_CASTLING))
+    if (TB::Cardinality)
     {
         int piecesCnt = popcount(pos.pieces());
 
         if (    piecesCnt <= TB::Cardinality
-            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth))
+            && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
+            && !rootNode
+            &&  alpha > -VALUE_KNOWN_WIN
+            &&  beta  <  VALUE_KNOWN_WIN
+            &&  bestValue != DrawValue[pos.side_to_move()] // Don't override draw detection
+            && !(bestValue >= beta && (ss+1)->tbProbed) // Don't reprobe known TB win positions
+            && !pos.can_castle(ANY_CASTLING))
         {
             TB::ProbeState result;
             TB::WDLScore wdl = Tablebases::probe_wdl(pos, &result, !PvNode && depth < 3 * ONE_PLY);
