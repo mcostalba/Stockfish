@@ -51,7 +51,7 @@
 
 using namespace Tablebases;
 
-size_t Tablebases::MaxCardinality;
+int Tablebases::MaxCardinality;
 
 namespace {
 
@@ -482,7 +482,7 @@ void HashTable::insert(const std::vector<PieceType>& pieces) {
 
     file.close();
 
-    MaxCardinality = std::max(pieces.size(), MaxCardinality);
+    MaxCardinality = std::max((int)pieces.size(), MaxCardinality);
 
     wdlTable.push_back(WDLEntry(code));
     dtzTable.push_back(DTZEntry(wdlTable.back()));

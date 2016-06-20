@@ -122,7 +122,7 @@ std::ostream& operator<<(std::ostream& os, Position& pos) {
   for (Bitboard b = pos.checkers(); b; )
       os << UCI::square(pop_lsb(&b)) << " ";
 
-  if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
+  if (    Tablebases::MaxCardinality >= popcount(pos.pieces())
       && !pos.can_castle(ANY_CASTLING))
   {
       Tablebases::ProbeState s1, s2;

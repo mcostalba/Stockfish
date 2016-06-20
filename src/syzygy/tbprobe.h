@@ -46,7 +46,7 @@ enum ProbeState {
     ZEROING_BEST_MOVE =  2  // Best move zeroes DTZ (capture or pawn move)
 };
 
-extern size_t MaxCardinality;
+extern int MaxCardinality;
 
 void init(const std::string& paths);
 WDLScore probe_wdl(Position& pos, ProbeState* result, bool cached = false);

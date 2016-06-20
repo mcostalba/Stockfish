@@ -266,7 +266,7 @@ void MainThread::search() {
   TB::Cardinality = Options["SyzygyProbeLimit"];
 
   // Skip TB probing when no TB found
-  TB::Cardinality = std::min(TB::Cardinality, int(TB::MaxCardinality));
+  TB::Cardinality = std::min(TB::Cardinality, TB::MaxCardinality);
 
   if (rootMoves.empty())
   {
