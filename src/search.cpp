@@ -46,7 +46,6 @@ namespace Tablebases {
 
   int Cardinality;
   uint64_t Hits;
-  bool RootInTB;
   bool UseRule50;
   Depth ProbeDepth;
   Value Score;
@@ -262,12 +261,11 @@ void MainThread::search() {
   DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
   TB::Hits = 0;
-  TB::RootInTB = false;
   TB::UseRule50 = Options["Syzygy50MoveRule"];
   TB::ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
   TB::Cardinality = Options["SyzygyProbeLimit"];
 
-  // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
+  // Skip TB probing when no TB found
   if (TB::Cardinality > int(TB::MaxCardinality))
   {
       TB::Cardinality = TB::MaxCardinality;
@@ -1566,9 +1564,6 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
       Depth d = updated ? depth : depth - ONE_PLY;
       Value v = updated ? rootMoves[i].score : rootMoves[i].previousScore;
 
-      bool tb = TB::RootInTB && abs(v) < VALUE_MATE - MAX_PLY;
-      v = tb ? TB::Score : v;
-
       if (ss.rdbuf()->in_avail()) // Not at first line
           ss << "\n";
 
@@ -1578,7 +1573,7 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
          << " multipv "  << i + 1
          << " score "    << UCI::value(v);
 
-      if (!tb && i == PVIdx)
+      if (i == PVIdx)
           ss << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
       ss << " nodes "    << nodes_searched
