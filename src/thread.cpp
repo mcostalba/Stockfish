@@ -25,7 +25,6 @@
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
-#include "syzygy/tbprobe.h"
 
 ThreadPool Threads; // Global object
 
@@ -179,39 +178,10 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
   Search::Limits = limits;
   Search::RootMoves rootMoves;
 
-  StateInfo st;
-  CheckInfo ci(pos);
-  Tablebases::ProbeState result;
-  Tablebases::WDLScore wdlScore = Tablebases::WDLScoreNone;
-
-  if (   (int)Tablebases::MaxCardinality >= popcount(pos.pieces())
-      && !pos.can_castle(ANY_CASTLING))
-  {
-      auto wdl = Tablebases::probe_wdl(pos, &result);
-      if (result != Tablebases::FAIL)
-          wdlScore = wdl;
-  }
-
   for (const auto& m : MoveList<LEGAL>(pos))
       if (   limits.searchmoves.empty()
           || std::count(limits.searchmoves.begin(), limits.searchmoves.end(), m))
-      {
-          if (wdlScore != Tablebases::WDLScoreNone)
-          {
-              pos.do_move(m, st, pos.gives_check(m, ci));
-              auto wdl = -Tablebases::probe_wdl(pos, &result);
-              pos.undo_move(m);
-
-              // When tablebases are available skip root moves that do not
-              // preserve the draw or the win.
-              if (result != Tablebases::FAIL && wdl != wdlScore)
-              {
-                  assert(wdlScore > wdl);
-                  continue;
-              }
-          }
           rootMoves.push_back(Search::RootMove(m));
-      }
 
   // After ownership transfer 'states' becomes empty, so if we stop the search
   // and call 'go' again without setting a new position states.get() == NULL.
