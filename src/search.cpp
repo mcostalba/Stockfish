@@ -429,11 +429,6 @@ void Thread::search() {
               // search the already searched PV lines are preserved.
               std::stable_sort(rootMoves.begin() + PVIdx, rootMoves.end());
 
-              // Write PV back to the transposition table in case the relevant
-              // entries have been overwritten during the search.
-              for (size_t i = 0; i <= PVIdx; ++i)
-                  rootMoves[i].insert_pv_in_tt(rootPos);
-
               // If search has been stopped, break immediately. Sorting and
               // writing PV back to TT is safe because RootMoves is still
               // valid, although it refers to the previous iteration.
@@ -913,7 +908,7 @@ namespace {
     {
         Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
         ss->skipEarlyPruning = true;
-        search<NT>(pos, ss, alpha, beta, d, true);
+        search<NT>(pos, ss, alpha, beta, d, cutNode);
         ss->skipEarlyPruning = false;
 
         tte = TT.probe(posKey, ttHit);
@@ -1014,9 +1009,9 @@ moves_loop: // When in check search starts from here
                         && moveCount >= FutilityMoveCounts[improving][depth];
 
       // Step 12. Extend checks
-      if (   givesCheck
-          && (    moveCount == 1
-              || (!moveCountPruning && pos.see_sign(move) >= VALUE_ZERO)))
+      if (    givesCheck
+          && !moveCountPruning
+          &&  pos.see_sign(move) >= VALUE_ZERO)
           extension = ONE_PLY;
 
       // Singular extension search. If all moves but one fail low on a search of
@@ -1812,33 +1807,6 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
   }
 
   return ss.str();
-}
-
-
-/// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
-/// inserts the PV back into the TT. This makes sure the old PV moves are searched
-/// first, even if the old TT entries have been overwritten.
-
-void RootMove::insert_pv_in_tt(Position& pos) {
-
-  StateInfo state[MAX_PLY], *st = state;
-  bool ttHit;
-
-  for (Move m : pv)
-  {
-      assert(MoveList<LEGAL>(pos).contains(m));
-
-      TTEntry* tte = TT.probe(pos.key(), ttHit);
-
-      if (!ttHit || tte->move() != m) // Don't overwrite correct entries
-          tte->save(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
-                    m, VALUE_NONE, TT.generation());
-
-      pos.do_move(m, *st++, pos.gives_check(m, CheckInfo(pos)));
-  }
-
-  for (size_t i = pv.size(); i > 0; )
-      pos.undo_move(pv[--i]);
 }
 
 
