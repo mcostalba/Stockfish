@@ -565,6 +565,7 @@ namespace {
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
     assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
+    assert(!(PvNode && cutNode));
 
     Move pv[MAX_PLY+1], quietsSearched[64];
     StateInfo st;
@@ -917,7 +918,6 @@ namespace {
 
 moves_loop: // When in check search starts from here
 
-    Square prevSq = to_sq((ss-1)->currentMove);
     const CounterMoveStats* cmh  = (ss-1)->counterMoves;
     const CounterMoveStats* fmh  = (ss-2)->counterMoves;
     const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
@@ -926,7 +926,7 @@ moves_loop: // When in check search starts from here
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
-               || ss->staticEval == VALUE_NONE
+            /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
                ||(ss-2)->staticEval == VALUE_NONE;
 
     singularExtensionNode =   !rootNode
@@ -1135,7 +1135,7 @@ moves_loop: // When in check search starts from here
                      +    (fmh2 ? (*fmh2)[moved_piece][to_sq(move)] : VALUE_ZERO);
 
           // Increase reduction for cut nodes
-          if (!PvNode && cutNode)
+          if (cutNode)
               r += 2 * ONE_PLY;
 
           // Decrease reduction for moves that escape a capture. Filter out
@@ -1291,10 +1291,10 @@ moves_loop: // When in check search starts from here
     // Bonus for prior countermove that caused the fail low
     else if (    depth >= 3 * ONE_PLY
              && !bestMove
-             && !inCheck
              && !pos.captured_piece_type()
              && is_ok((ss-1)->currentMove))
     {
+        Square prevSq = to_sq((ss-1)->currentMove);
         Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
         if ((ss-2)->counterMoves)
             (ss-2)->counterMoves->update(pos.piece_on(prevSq), prevSq, bonus);
