@@ -617,9 +617,14 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth())
     {
-        int r = RANK_7 - pos.koth_distance(Us);
-        Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
-        score += make_score(mbonus, ebonus);
+        Square ksq = pos.square<KING>(Us);
+        Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
+        for(int i = 0; i<4; i++){        
+            int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
+            int r = std::max(RANK_7 - dist, 0);
+            Value mbonus = Passed[MG][r], ebonus = 2*Passed[EG][r];
+            score += make_score(mbonus, ebonus);
+        }
     }
 #endif
     while (b)
