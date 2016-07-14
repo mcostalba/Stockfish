@@ -816,8 +816,8 @@ namespace {
     if (pos.is_horde() && Us == WHITE)
     {
         weight += weight + pos.count<PAWN>(Them);
-        bonus = bonus * weight * weight / 4;
-        return make_score(bonus, bonus);
+        bonus = bonus * weight * weight / 15;
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/3,0);
     }
 #endif
 
