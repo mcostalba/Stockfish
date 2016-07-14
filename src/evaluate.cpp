@@ -925,8 +925,13 @@ Value Eval::evaluate(const Position& pos) {
         if (pos.is_three_check_loss())
             return -VALUE_MATE;
 
-        score += ChecksGivenBonus[pos.checks_given()];
-        score -= ChecksGivenBonus[pos.checks_taken()];
+        if(pos.side_to_move() == WHITE){
+            score += ChecksGivenBonus[pos.checks_given()];
+            score -= ChecksGivenBonus[pos.checks_taken()];
+        }else{
+            score -= ChecksGivenBonus[pos.checks_given()];
+            score += ChecksGivenBonus[pos.checks_taken()];
+        }
     }
 #endif
 #ifdef HORDE
