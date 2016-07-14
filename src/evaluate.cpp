@@ -815,9 +815,9 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde() && Us == WHITE)
     {
-        weight += weight + pos.count<PAWN>(Them);
-        bonus = bonus * weight * weight / 15;
-        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/3,0);
+        weight = (pos.count<PAWN>(Us) + int(pos.non_pawn_material(BLACK)/PawnValueMg))/5;
+        bonus = bonus * weight * weight / 10;
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/4,0);
     }
 #endif
 
