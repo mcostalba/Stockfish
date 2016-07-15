@@ -617,9 +617,14 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth())
     {
-        int r = RANK_7 - pos.koth_distance(Us);
-        Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
-        score += make_score(mbonus, ebonus);
+        Square ksq = pos.square<KING>(Us);
+        Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
+        for(int i = 0; i<4; i++){        
+            int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
+            int r = std::max(RANK_7 - dist, 0);
+            Value mbonus = Passed[MG][r], ebonus = 2*Passed[EG][r];
+            score += make_score(mbonus, ebonus);
+        }
     }
 #endif
     while (b)
@@ -810,9 +815,9 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde() && Us == WHITE)
     {
-        weight += weight + pos.count<PAWN>(Them);
-        bonus = bonus * weight * weight / 4;
-        return make_score(bonus, bonus);
+        weight = (pos.count<PAWN>(Us) + int(pos.non_pawn_material(BLACK)/PawnValueMg))/5;
+        bonus = bonus * weight * weight / 10;
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/4,0);
     }
 #endif
 
@@ -925,8 +930,13 @@ Value Eval::evaluate(const Position& pos) {
         if (pos.is_three_check_loss())
             return -VALUE_MATE;
 
-        score += ChecksGivenBonus[pos.checks_given()];
-        score -= ChecksGivenBonus[pos.checks_taken()];
+        if(pos.side_to_move() == WHITE){
+            score += ChecksGivenBonus[pos.checks_given()];
+            score -= ChecksGivenBonus[pos.checks_taken()];
+        }else{
+            score -= ChecksGivenBonus[pos.checks_given()];
+            score += ChecksGivenBonus[pos.checks_taken()];
+        }
     }
 #endif
 #ifdef HORDE
