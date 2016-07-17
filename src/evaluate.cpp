@@ -651,7 +651,7 @@ namespace {
         for(int i = 0; i<4; i++){        
             int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
             int r = std::max(RANK_7 - dist, 0);
-            Value mbonus = Passed[MG][r], ebonus = 2*Passed[EG][r];
+            Value mbonus = 2*Passed[MG][r], ebonus = 4*Passed[EG][r];
             score += make_score(mbonus, ebonus);
         }
     }
