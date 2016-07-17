@@ -1399,6 +1399,22 @@ Value Position::see(Move m) const {
   swapList[0] = PieceValue[MG][piece_on(to)];
   stm = color_of(piece_on(from));
   occupied = pieces() ^ from;
+#ifdef ATOMIC
+  if(is_atomic())
+  {
+    Value blast_eval = VALUE_ZERO;
+    Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
+    if(blast & pieces(~stm,KING))
+        return VALUE_MATE;
+    for (Color c = WHITE; c <= BLACK; ++c)
+        for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
+            if(c == stm)
+                blast_eval -= popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
+            else
+                blast_eval += popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
+    return blast_eval + PieceValue[MG][piece_on(to_sq(m))] - PieceValue[MG][moved_piece(m)];
+  }
+#endif
 
   // Castling moves are implemented as king capturing the rook so cannot
   // be handled correctly. Simply return VALUE_ZERO that is always correct
