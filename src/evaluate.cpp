@@ -849,6 +849,12 @@ namespace {
         return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/4,0);
     }
 #endif
+#ifdef KOTH
+    if (pos.is_koth()){
+        int koth_bonus = 200*popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
+        return make_score(bonus * weight * weight * 2 / 11, 0) + make_score(koth_bonus, koth_bonus);
+    }
+#endif
 
     return make_score(bonus * weight * weight * 2 / 11, 0);
   }
