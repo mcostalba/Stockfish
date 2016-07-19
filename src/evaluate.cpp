@@ -1088,6 +1088,10 @@ Value Eval::evaluate(const Position& pos) {
 #ifdef HORDE
   }
 #endif
+#ifdef ATOMIC
+  if (pos.is_atomic())
+      score -= make_score(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK),pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK))/4;
+#endif
 
   // Evaluate scale factor for the winning side
   ScaleFactor sf = evaluate_scale_factor(pos, ei, eg_value(score));
