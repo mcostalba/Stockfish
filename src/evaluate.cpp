@@ -651,7 +651,7 @@ namespace {
         for(int i = 0; i<4; i++){        
             int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
             int r = std::max(RANK_7 - dist, 0);
-            Value mbonus = Passed[MG][r], ebonus = 2*Passed[EG][r];
+            Value mbonus = 2*Passed[MG][r], ebonus = 4*Passed[EG][r];
             score += make_score(mbonus, ebonus);
         }
     }
@@ -844,9 +844,15 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde() && Us == WHITE)
     {
-        weight = (pos.count<PAWN>(Us) + int(pos.non_pawn_material(BLACK)/PawnValueMg))/5;
-        bonus = bonus * weight * weight / 10;
-        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK)/4,0);
+        weight = pos.count<PAWN>(Us) + int(pos.non_pawn_material(BLACK)/PawnValueMg);
+        bonus = bonus * weight * weight / 200;
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK) * 2 / 9,0);
+    }
+#endif
+#ifdef KOTH
+    if (pos.is_koth()){
+        int koth_bonus = 200*popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
+        return make_score(bonus * weight * weight * 2 / 11, 0) + make_score(koth_bonus, koth_bonus);
     }
 #endif
 
@@ -1081,6 +1087,10 @@ Value Eval::evaluate(const Position& pos) {
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
 #ifdef HORDE
   }
+#endif
+#ifdef ATOMIC
+  if (pos.is_atomic())
+      score -= make_score(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK),pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK))/4;
 #endif
 
   // Evaluate scale factor for the winning side
