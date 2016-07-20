@@ -638,8 +638,18 @@ namespace {
 
 #ifdef RACE
     if (pos.is_race())
-       b = pos.square<KING>(Us);
+    {
+        Square ksq = pos.square<KING>(Us);
+        int r = relative_rank(Up, ksq);
+        Value v = r * (r + 1) * PawnValueMg / 2;
+        Bitboard advances = in_front_bb(Us, rank_of(ksq)) & pos.attacks_from<KING>(ksq);
+        v -= (advances & ei.attackedBy[Them][ALL_PIECES]) == advances ? r * PawnValueMg : 0;
+        Bitboard blocked_squares = in_front_bb(Us, rank_of(ksq)) & ei.attackedBy[Them][ALL_PIECES];
+        v -= popcount(blocked_squares) * PawnValueMg / 5;
+        score = make_score(v, v);
+    }
     else
+    {
 #endif
     b = ei.pi->passed_pawns(Us);
 
@@ -672,19 +682,6 @@ namespace {
         {
             Square pawnPush = pawn_push(Up);
             Square blockSq = s + pawnPush;
-#ifdef RACE
-            Bitboard blockSquares = pos.is_race() ?
-                ei.attackedBy[Us][KING] & in_front_bb(Up, rank_of(s)) : 0;
-#endif
-
-#ifdef RACE
-            if (pos.is_race())
-            {
-                // Adjust bonus based on the opponent's king's proximity
-                ebonus += distance(pos.square<KING>(Them), blockSq) * 5 * rr;
-            }
-            else
-#endif
 #ifdef HORDE
             if (pos.is_horde())
             {
@@ -715,38 +712,20 @@ namespace {
             }
 
             // If the pawn is free to advance, then increase the bonus
-#ifdef RACE
-            if (pos.is_race() ? (blockSquares - ei.attackedBy[Them][ALL_PIECES]) : pos.empty(blockSq))
-#else
             if (pos.empty(blockSq))
-#endif
             {
                 // If there is a rook or queen attacking/defending the pawn from behind,
                 // consider all the squaresToQueen. Otherwise consider only the squares
                 // in the pawn's path attacked or occupied by the enemy.
-#ifdef RACE
-                if (pos.is_race())
-                    defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Up, s) | blockSquares;
-                else
-#endif
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
-#ifdef RACE
-                Bitboard bb = pos.is_race() ? 0 : forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
-#else
                 Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
-#endif
 
                 if (!(pos.pieces(Us) & bb))
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
 
                 if (!(pos.pieces(Them) & bb))
                 {
-#ifdef RACE
-                    if (pos.is_race())
-                        unsafeSquares &= ei.attackedBy[Them][ALL_PIECES];
-                    else
-#endif
                     unsafeSquares &= ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them);
                 }
 
@@ -758,26 +737,20 @@ namespace {
                 // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
                     k += 6;
-
-#ifdef RACE
-                else if (pos.is_race())
-                    k += popcount(defendedSquares & blockSquares) * 4;
-#endif
                 else if (defendedSquares & blockSq)
                     k += 4;
 
                 mbonus += k * rr, ebonus += k * rr;
             }
-#ifdef RACE
-            else if (pos.is_race()) {}
-#endif
             else if (pos.pieces(Us) & blockSq)
                 mbonus += rr + r * 2, ebonus += rr + r * 2;
         } // rr != 0
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
-
+#ifdef RACE
+    }
+#endif
     if (DoTrace)
         Trace::add(PASSED, Us, score);
 
