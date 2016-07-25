@@ -658,7 +658,8 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
-        for(int i = 0; i<4; i++){        
+        for (int i = 0; i<4; i++)
+        {
             int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
             int r = std::max(RANK_7 - dist, 0);
             Value mbonus = 2*Passed[MG][r], ebonus = 4*Passed[EG][r];
@@ -823,7 +824,8 @@ namespace {
     }
 #endif
 #ifdef KOTH
-    if (pos.is_koth()){
+    if (pos.is_koth())
+    {
         int koth_bonus = 200*popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
         return make_score(bonus * weight * weight * 2 / 11, 0) + make_score(koth_bonus, koth_bonus);
     }
@@ -938,10 +940,13 @@ Value Eval::evaluate(const Position& pos) {
         if (pos.is_three_check_loss())
             return -VALUE_MATE;
 
-        if(pos.side_to_move() == WHITE){
+        if (pos.side_to_move() == WHITE)
+        {
             score += ChecksGivenBonus[pos.checks_given()];
             score -= ChecksGivenBonus[pos.checks_taken()];
-        }else{
+        }
+        else
+        {
             score -= ChecksGivenBonus[pos.checks_given()];
             score += ChecksGivenBonus[pos.checks_taken()];
         }
