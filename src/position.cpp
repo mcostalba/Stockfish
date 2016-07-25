@@ -1400,15 +1400,15 @@ Value Position::see(Move m) const {
   stm = color_of(piece_on(from));
   occupied = pieces() ^ from;
 #ifdef ATOMIC
-  if(is_atomic())
+  if (is_atomic())
   {
     Value blast_eval = VALUE_ZERO;
     Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
-    if(blast & pieces(~stm,KING))
+    if (blast & pieces(~stm,KING))
         return VALUE_MATE;
     for (Color c = WHITE; c <= BLACK; ++c)
         for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-            if(c == stm)
+            if (c == stm)
                 blast_eval -= popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
             else
                 blast_eval += popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
