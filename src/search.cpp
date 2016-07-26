@@ -820,9 +820,8 @@ namespace {
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (   !PvNode
-        &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
-        && (ss->staticEval >= beta || depth >= 12 * ONE_PLY)
+        && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
         &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
@@ -1090,9 +1089,16 @@ moves_loop: // When in check search starts from here
               && ss->staticEval + futility_margin(predictedDepth) + 256 <= alpha)
               continue;
 
-          // Prune moves with negative SEE at low depths
-          if (predictedDepth < 4 * ONE_PLY && pos.see_sign(move) < VALUE_ZERO)
-              continue;
+          // Prune moves with negative SEE at low depths and below a decreasing
+          // threshold at higher depths.
+          if (predictedDepth < 8 * ONE_PLY)
+          {
+              Value see_v = predictedDepth < 4 * ONE_PLY ? VALUE_ZERO
+                            : -PawnValueMg * 2 * int(predictedDepth - 3 * ONE_PLY);
+
+              if (pos.see_sign(move) < see_v)
+                  continue;
+          }
       }
 
       // Speculative prefetch as early as possible
