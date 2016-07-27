@@ -1091,6 +1091,9 @@ moves_loop: // When in check search starts from here
 
           // Prune moves with negative SEE at low depths and below a decreasing
           // threshold at higher depths.
+#ifdef ATOMIC
+          if (!pos.is_atomic())
+#endif
           if (predictedDepth < 8 * ONE_PLY)
           {
               Value see_v = predictedDepth < 4 * ONE_PLY ? VALUE_ZERO
