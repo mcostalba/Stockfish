@@ -402,6 +402,12 @@ namespace {
 
     // King shelter and enemy pawns storm
     Score score = ei.pi->king_safety<Us>(pos, ksq);
+#ifdef RACE
+    if (pos.is_race())
+        score = make_score(0, 0);
+    else
+    {
+#endif
 
     // Main king safety evaluation
     if (ei.kingAttackersCount[Them])
@@ -499,8 +505,7 @@ namespace {
         score -= KingDanger[std::max(std::min(attackUnits, 399), 0)];
     }
 #ifdef RACE
-    if (pos.is_race())
-        score = -score;
+    }
 #endif
 
     if (DoTrace)
