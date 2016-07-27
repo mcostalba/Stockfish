@@ -647,7 +647,7 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         int r = relative_rank(Up, ksq);
-        Value v = r * (r + 1) * PawnValueMg / 2;
+        Value v = r * (r + 1) * PawnValueMg * 3 / 4;
         Bitboard advances = in_front_bb(Us, rank_of(ksq)) & pos.attacks_from<KING>(ksq);
         v -= (advances & ei.attackedBy[Them][ALL_PIECES]) == advances ? r * PawnValueMg : 0;
         Bitboard blocked_squares = in_front_bb(Us, rank_of(ksq)) & ei.attackedBy[Them][ALL_PIECES];
