@@ -1094,6 +1094,9 @@ moves_loop: // When in check search starts from here
 #ifdef ATOMIC
           if (!pos.is_atomic())
 #endif
+#ifdef RACE
+          if (!pos.is_race())
+#endif
           if (predictedDepth < 8 * ONE_PLY)
           {
               Value see_v = predictedDepth < 4 * ONE_PLY ? VALUE_ZERO

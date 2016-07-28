@@ -402,6 +402,12 @@ namespace {
 
     // King shelter and enemy pawns storm
     Score score = ei.pi->king_safety<Us>(pos, ksq);
+#ifdef RACE
+    if (pos.is_race())
+        score = make_score(0, 0);
+    else
+    {
+#endif
 
     // Main king safety evaluation
     if (ei.kingAttackersCount[Them])
@@ -499,8 +505,7 @@ namespace {
         score -= KingDanger[std::max(std::min(attackUnits, 399), 0)];
     }
 #ifdef RACE
-    if (pos.is_race())
-        score = -score;
+    }
 #endif
 
     if (DoTrace)
@@ -642,7 +647,7 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         int r = relative_rank(Up, ksq);
-        Value v = r * (r + 1) * PawnValueMg / 2;
+        Value v = r * (r + 1) * PawnValueMg * 3 / 4;
         Bitboard advances = in_front_bb(Us, rank_of(ksq)) & pos.attacks_from<KING>(ksq);
         v -= (advances & ei.attackedBy[Them][ALL_PIECES]) == advances ? r * PawnValueMg : 0;
         Bitboard blocked_squares = in_front_bb(Us, rank_of(ksq)) & ei.attackedBy[Them][ALL_PIECES];
