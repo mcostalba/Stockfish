@@ -448,7 +448,7 @@ namespace {
         other = ~(   ei.attackedBy[Us][PAWN]
                   | (pos.pieces(Them, PAWN) & shift_bb<Up>(pos.pieces(PAWN))));
 #ifdef THREECHECK
-        if (pos.is_three_check() && pos.checks_taken())
+        if (pos.is_three_check() && (pos.side_to_move() == Us ? pos.checks_taken() : pos.checks_given()))
             other = safe = ~pos.pieces(Them);
 #endif
 
@@ -492,7 +492,7 @@ namespace {
 #ifdef THREECHECK
         if (pos.is_three_check())
         {
-            switch(pos.checks_taken())
+            switch(pos.side_to_move() == Us ? pos.checks_taken() : pos.checks_given())
             {
             case CHECKS_NB:
             case CHECKS_3:
