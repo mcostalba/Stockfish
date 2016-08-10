@@ -294,6 +294,35 @@ Value Endgame<KRKN>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+// KQ vs KP.  In general, a win for the stronger side, however, there are a few
+// important exceptions.  Pawn on 7th rank, A,C,F or H file, with king next can
+// be a draw, so we scale down to distance between kings only. 
+template<>
+Value Endgame<KQKP>::operator()(const Position& pos) const {
+  assert(pos.non_pawn_material(strongerSide) == QueenValueMg);
+  assert(pos.piece_count(strongerSide, PAWN) == 0);
+  assert(pos.non_pawn_material(weakerSide) == 0);
+  assert(pos.piece_count(weakerSide, PAWN) == 1);
+
+  Square winnerKSq = pos.king_square(strongerSide);
+  Square loserKSq = pos.king_square(weakerSide);
+  Square loserPSq = pos.piece_list(weakerSide, PAWN)[0];
+
+  if (square_distance(loserKSq, loserPSq) == 1 &&
+      relative_rank(weakerSide, loserPSq) == RANK_7) {
+    File file = file_of(loserPSq);
+    if (file == FILE_A || file == FILE_C || file == FILE_F || file == FILE_H) {
+      Value result = Value(DistanceBonus[square_distance(winnerKSq, loserKSq)]);
+      return strongerSide == pos.side_to_move() ? result : -result; 
+    }
+  }
+
+  Value result =  QueenValueEg
+                - PawnValueEg
+                + DistanceBonus[square_distance(winnerKSq, loserKSq)];
+
+  return strongerSide == pos.side_to_move() ? result : -result; 
+}
 
 /// KQ vs KP. In general, this is a win for the stronger side, but there are a
 /// few important exceptions. A pawn on 7th rank and on the A,C,F or H files
