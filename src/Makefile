@@ -127,6 +127,27 @@ ifeq ($(ARCH),ppc-64)
 	bits = 64
 endif
 
+ifeq ($(strip $(ARCH)),)
+    #No ARCH given : using Linux automatic detection
+    arch = any
+    os = any
+    bits = $(shell getconf LONG_BIT)
+    prefetch = no
+    bsfq = no
+    #Detect sse
+    ifeq ($(bits),64)
+        ifeq ($(strip $(cat /proc/cpuinfo | grep sse)),)
+            prefetch = yes
+            bsfq = yes
+        endif        
+    endif
+    #Detect popcnt
+    ifeq ($(strip $(cat /proc/cpuinfo | grep popcnt)),)
+        popcnt = yes
+    else
+        popcnt = no
+    endif
+endif
 
 ### ==========================================================================
 ### Section 3. Low-level configuration
