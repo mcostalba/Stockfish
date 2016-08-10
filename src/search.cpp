@@ -586,8 +586,8 @@ namespace {
     }
 
     // Used to send selDepth info to GUI
-    if (PvNode && thisThread->maxPly < ss->ply)
-        thisThread->maxPly = ss->ply;
+    if (PvNode)
+        thisThread->maxPly = std::max(thisThread->maxPly, ss->ply);
 
     if (!rootNode)
     {
