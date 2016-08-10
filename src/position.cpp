@@ -125,11 +125,19 @@ std::ostream& operator<<(std::ostream& os, Position& pos) {
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
       && !pos.can_castle(ANY_CASTLING))
   {
+      os << "\n\n";
+
       Tablebases::ProbeState s1, s2;
       Tablebases::WDLScore wdl = Tablebases::probe_wdl(pos, &s1);
       int dtz = Tablebases::probe_dtz(pos, &s2);
-      os << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << s1 << ")"
-         << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << s2 << ")";
+      os << "\nTablebases New WDL: " << std::setw(4) << wdl << " (" << s1 << ")"
+         << "\nTablebases New DTZ: " << std::setw(4) << dtz << " (" << s2 << ")\n";
+
+      int s1r, wdlRef = TablebasesRef::probe_wdl(pos, &s1r);
+      int s2r, dtzRef = TablebasesRef::probe_dtz(pos, &s2r);
+
+      os << "\nTablebases Ref WDL: " << std::setw(4) << wdlRef << " (" << s1r << ")"
+         << "\nTablebases Ref DTZ: " << std::setw(4) << dtzRef << " (" << s2r << ")";
   }
 
   return os;
