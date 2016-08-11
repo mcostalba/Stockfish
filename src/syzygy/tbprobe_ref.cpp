@@ -10,13 +10,11 @@
 #define NOMINMAX
 
 #include <algorithm>
-#include <iostream>
 
 #include "../position.h"
 #include "../movegen.h"
 #include "../bitboard.h"
 #include "../search.h"
-#include "../uci.h"
 
 #include "tbprobe_ref.h"
 #include "tbcore_ref.h"
@@ -218,7 +216,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
 {
   struct TBEntry *ptr;
   uint64 idx;
-  int i, res, sym = -1;
+  int i, res;
   int p[TBPIECES];
 
   // Obtain the position's material signature key.
@@ -289,7 +287,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
       } while (bb);
     }
     idx = encode_piece((struct TBEntry_piece *)entry, entry->norm, p, entry->factor);
-    res = sym = decompress_pairs(entry->precomp, idx);
+    res = decompress_pairs(entry->precomp, idx);
 
     if (entry->flags & 2)
       res = entry->map[entry->map_idx[wdl_to_map[wdl + 2]] + res];
@@ -318,7 +316,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
       } while (bb);
     }
     idx = encode_pawn((struct TBEntry_pawn *)entry, entry->file[f].norm, p, entry->file[f].factor);
-    res = sym = decompress_pairs(entry->file[f].precomp, idx);
+    res = decompress_pairs(entry->file[f].precomp, idx);
 
     if (entry->flags[f] & 2)
       res = entry->map[entry->map_idx[f][wdl_to_map[wdl + 2]] + res];
@@ -326,9 +324,6 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
     if (!(entry->flags[f] & pa_flags[wdl + 2]) || (wdl & 1))
       res *= 2;
   }
-
-  std::cout << "Ref: idx = " << idx << std::endl;
-  std::cout << "Ref: sym = " << sym << std::endl;
 
   return res;
 }
@@ -473,13 +468,7 @@ static int probe_dtz_no_ep(Position& pos, int *success)
 {
   int wdl, dtz;
 
-  std::cout << "\nRef: pos = " << pos.key() << std::endl;
-
   wdl = probe_ab(pos, -2, 2, success);
-
-  std::cout << "Ref: wdl = " << wdl << std::endl;
-  std::cout << "Ref: success = " << *success << std::endl;
-
   if (*success == 0) return 0;
 
   if (wdl == 0) return 0;
@@ -508,9 +497,6 @@ static int probe_dtz_no_ep(Position& pos, int *success)
       pos.do_move(move, st, pos.gives_check(move, ci));
       int v = -TablebasesRef::probe_wdl(pos, success);
       pos.undo_move(move);
-
-      std::cout << "Ref: pawn move = " << UCI::move(move, false) << ", v = " << v << std::endl;
-
       if (*success == 0) return 0;
       if (v == wdl)
         return v == 2 ? 1 : 101;
@@ -518,11 +504,6 @@ static int probe_dtz_no_ep(Position& pos, int *success)
   }
 
   dtz = 1 + probe_dtz_table(pos, wdl, success);
-
-  std::cout << "Ref: dtz = " << dtz << std::endl;
-  std::cout << "Ref: success = " << *success << std::endl;
-
-
   if (*success >= 0) {
     if (wdl & 1) dtz += 100;
     return wdl >= 0 ? dtz : -dtz;

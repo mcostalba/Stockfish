@@ -878,18 +878,6 @@ encode_remaining:
         groupSq += d->groupLen[next];
     }
 
-    if (!IsWDL)
-    {
-        std::cout << "New: pos = " << pos.key() << std::endl;
-        std::cout << "New: idx = " << idx << std::endl;
-
-        int sym = decompress_pairs(d, idx);
-        int dtz = map_score(entry, tbFile, sym, wdl);
-
-        std::cout << "New: sym = " << sym << std::endl;
-        std::cout << "New: dtz = " << dtz << std::endl;
-    }
-
     // Now that we have the index, decompress the pair and get the score
     return map_score(entry, tbFile, decompress_pairs(d, idx), wdl);
 }
