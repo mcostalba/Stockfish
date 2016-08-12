@@ -64,7 +64,7 @@ inline Square operator^(Square s, int i) { return Square(int(s) ^ i); }
 // DTZ tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but we can easily recover the correct dtz of the
 // previous move if we know the position's WDL score.
-int before_zeroing_move_dtz(WDLScore wdl) {
+int dtz_before_zeroing(WDLScore wdl) {
     return wdl == WDLWin        ?  1   :
            wdl == WDLCursedWin  ?  101 :
            wdl == WDLCursedLoss ? -101 :
@@ -1429,7 +1429,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     // DTZ stores a 'don't care' value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
     if (*result == ZEROING_BEST_MOVE)
-        return before_zeroing_move_dtz(wdl);
+        return dtz_before_zeroing(wdl);
 
     int dtz = probe_table<DTZEntry>(pos, result, wdl);
 
@@ -1455,7 +1455,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
         // otherwise we will get the dtz of the next move sequence. Search the
         // position after the move to get the score sign (because even in a
         // winning position we could make a losing capture or going for a draw).
-        dtz = zeroing ? -before_zeroing_move_dtz(search(pos, result))
+        dtz = zeroing ? -dtz_before_zeroing(search(pos, result))
                       : -probe_dtz(pos, result);
 
         pos.undo_move(move);
@@ -1463,9 +1463,8 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
         if (*result == FAIL)
             return 0;
 
-        // Convert result from 1-ply search. Zeroing moves are already correctly
-        // accounted by before_zeroing_move_dtz() that returns the DTZ of the
-        // previous move.
+        // Convert result from 1-ply search. Zeroing moves are already accounted
+        // by dtz_before_zeroing() that returns the DTZ of the previous move.
         if (!zeroing)
             dtz += sign_of(dtz);
 
@@ -1545,7 +1544,7 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
                     --v;
             } else {
                 v = -probe_wdl(pos, &result);
-                v = before_zeroing_move_dtz(WDLScore(v));
+                v = dtz_before_zeroing(WDLScore(v));
             }
         }
 
