@@ -1370,6 +1370,10 @@ Value Position::see_sign(Move m) const {
 
   assert(is_ok(m));
 
+#ifdef THREECHECK
+  if (is_three_check() && gives_check(m, CheckInfo(*this)))
+      return VALUE_KNOWN_WIN;
+#endif
   // Early return if SEE cannot be negative because captured piece value
   // is not less then capturing one. Note that king moves always return
   // here because king midgame value is set to 0.

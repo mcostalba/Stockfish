@@ -448,7 +448,7 @@ namespace {
         other = ~(   ei.attackedBy[Us][PAWN]
                   | (pos.pieces(Them, PAWN) & shift_bb<Up>(pos.pieces(PAWN))));
 #ifdef THREECHECK
-        if (pos.is_three_check() && pos.checks_taken())
+        if (pos.is_three_check() && (pos.side_to_move() == Us ? pos.checks_taken() : pos.checks_given()))
             other = safe = ~pos.pieces(Them);
 #endif
 
@@ -492,7 +492,7 @@ namespace {
 #ifdef THREECHECK
         if (pos.is_three_check())
         {
-            switch(pos.checks_taken())
+            switch(pos.side_to_move() == Us ? pos.checks_taken() : pos.checks_given())
             {
             case CHECKS_NB:
             case CHECKS_3:
@@ -646,12 +646,11 @@ namespace {
     if (pos.is_race())
     {
         Square ksq = pos.square<KING>(Us);
-        int r = relative_rank(Up, ksq);
-        Value v = r * (r + 1) * PawnValueMg * 3 / 4;
-        Bitboard advances = in_front_bb(Us, rank_of(ksq)) & pos.attacks_from<KING>(ksq);
-        v -= (advances & ei.attackedBy[Them][ALL_PIECES]) == advances ? r * PawnValueMg : 0;
-        Bitboard blocked_squares = in_front_bb(Us, rank_of(ksq)) & ei.attackedBy[Them][ALL_PIECES];
-        v -= popcount(blocked_squares) * PawnValueMg / 5;
+        int s = relative_rank(BLACK, ksq);
+        for (Rank i = Rank(rank_of(ksq) + 1); i < RANK_8; ++i)
+            if (!(rank_bb(i) & DistanceRingBB[ksq][i - 1 - rank_of(ksq)] & ~ei.attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
+                s++;
+        Value v = MidgameLimit / (s + 1);
         score = make_score(v, v);
     }
     else
@@ -667,9 +666,9 @@ namespace {
         for (int i = 0; i<4; i++)
         {
             int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
-            int r = std::max(RANK_7 - dist, 0);
-            Value mbonus = 2*Passed[MG][r], ebonus = 4*Passed[EG][r];
-            score += make_score(mbonus, ebonus);
+            assert(dist > 0);
+            Value bonus = RookValueMg / (dist * dist);
+            score += make_score(bonus, bonus);
         }
     }
 #endif

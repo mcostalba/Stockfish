@@ -787,6 +787,10 @@ namespace {
 
     // Step 6. Razoring (skipped when in check)
     variantScale = 1;
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        variantScale += 3;
+#endif
 #ifdef RACE
     if (pos.is_race())
         variantScale += raceRank / 2;
