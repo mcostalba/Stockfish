@@ -707,6 +707,25 @@ namespace {
             }
             else
 #endif
+#ifdef ANTI
+            if (pos.is_anti())
+            {
+                // Adjust bonus based on the kings' proximities
+                Square ksq;
+                const Square* kl = pos.squares<KING>(Them);
+                while ((ksq = *kl++) != SQ_NONE)
+                    ebonus += distance(ksq, blockSq) * 5 * rr;
+                kl = pos.squares<KING>(Us);
+                while ((ksq = *kl++) != SQ_NONE)
+                {
+                    ebonus -= distance(ksq, blockSq) * 2 * rr;
+                    // If blockSq is not the queening square then consider also a second push
+                    if (relative_rank(Up, blockSq) != RANK_8)
+                        ebonus -= distance(ksq, blockSq + pawnPush) * rr;
+                }
+            }
+            else
+#endif
             {
             // Adjust bonus based on the king's proximity
             ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr
@@ -844,8 +863,15 @@ namespace {
   // status of the players.
   Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
-    int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
-                      - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+    int kingDistance;
+#ifdef ANTI
+    // Assume an antichess king distance of approximately 5
+    if (pos.is_anti())
+        kingDistance = 5;
+    else
+#endif
+    kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
+                  - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
     int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
