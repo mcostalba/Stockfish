@@ -809,6 +809,10 @@ namespace {
     if (pos.is_atomic())
         variantScale += 3;
 #endif
+#ifdef ANTI
+    if (pos.is_anti())
+        variantScale += 3;
+#endif
 #ifdef RACE
     if (pos.is_race())
         variantScale += raceRank / 2;
@@ -885,6 +889,9 @@ namespace {
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost)
     // safely prune the previous move.
+#ifdef ANTI
+    if (pos.is_anti()) {} else
+#endif
     if (   !PvNode
 #ifdef RACE
 #ifdef THREECHECK
@@ -1113,11 +1120,14 @@ moves_loop: // When in check search starts from here
 
           // Prune moves with negative SEE at low depths and below a decreasing
           // threshold at higher depths.
+#ifdef ANTI
+          if (pos.is_anti()) {} else
+#endif
 #ifdef ATOMIC
-          if (!pos.is_atomic())
+          if (pos.is_atomic()) {} else
 #endif
 #ifdef RACE
-          if (!pos.is_race())
+          if (pos.is_race()) {} else
 #endif
           if (predictedDepth < 8 * ONE_PLY)
           {
@@ -1541,6 +1551,11 @@ moves_loop: // When in check search starts from here
 #ifdef RACE
       if (pos.is_race())
           givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
+      else
+#endif
+#ifdef ANTI
+      if (pos.is_anti())
+          givesCheck = pos.capture(move);
       else
 #endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
