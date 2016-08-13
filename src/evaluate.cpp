@@ -186,6 +186,10 @@ namespace {
   };
 #endif
 
+#ifdef ANTI
+  const Score AntiPieceScore      = S(-500, -500);
+#endif
+
   // PassedFile[File] contains a bonus according to the file of a passed pawn
   const Score PassedFile[FILE_NB] = {
     S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
@@ -545,6 +549,25 @@ namespace {
 
     Bitboard b, weak, defended, safeThreats;
     Score score = SCORE_ZERO;
+#ifdef ANTI
+    if (pos.is_anti())
+    {
+        // Penalty if we attack only unprotected pieces and opponent does not attack any pieces
+        if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ~ei.attackedBy[Them][ALL_PIECES])
+            && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
+            && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
+            score += 2 * AntiPieceScore;
+        // Bonus if we attack protected pieces and opponent does not attack any pieces
+        else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
+                 && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
+            score -= popcount(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES]) * AntiPieceScore / 2;
+        // if both colors attack pieces, penalize more the color with more pieces
+        else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them)) && (ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
+            score += pos.count<ALL_PIECES>(Us) * AntiPieceScore / 2;
+    }
+    else
+    {
+#endif
 
     // Small bonus if the opponent has loose pawns or pieces
     if (   (pos.pieces(Them) ^ pos.pieces(Them, QUEEN, KING))
@@ -620,6 +643,9 @@ namespace {
     // Count all these squares with a single popcount
     score += make_score(7 * popcount(b), 0);
 
+#ifdef ANTI
+    }
+#endif
     if (DoTrace)
         Trace::add(THREAT, Us, score);
 
@@ -939,6 +965,11 @@ Value Eval::evaluate(const Position& pos) {
   // Initialize score by reading the incrementally updated scores included in
   // the position object (material + piece square tables). Score is computed
   // internally from the white point of view.
+#ifdef ANTI
+  if (pos.is_anti())
+      score = (pos.count<ALL_PIECES>(WHITE)-pos.count<ALL_PIECES>(BLACK)) * AntiPieceScore;
+  else
+#endif
   score = pos.psq_score();
 
 #ifdef KOTH
