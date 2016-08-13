@@ -222,6 +222,7 @@ public:
   bool is_anti() const;
   bool is_anti_win() const;
   bool is_anti_loss() const;
+  bool can_capture() const;
 #endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
@@ -521,6 +522,20 @@ inline bool Position::is_anti_loss() const {
 
 inline bool Position::is_anti_win() const {
   return count<ALL_PIECES>(sideToMove) == 0;
+}
+
+inline bool Position::can_capture() const {
+  if (ep_square() != SQ_NONE)
+      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN))
+          return true;
+  Bitboard b = pieces(sideToMove);
+  while (b)
+  {
+      Square s = pop_lsb(&b);
+      if (attacks_from(piece_on(s), s) & pieces(~sideToMove))
+          return true;
+  }
+  return false;
 }
 #endif
 

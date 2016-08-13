@@ -381,6 +381,10 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   Bitboard target =  Type == CAPTURES     ?  pos.pieces(~us)
                    : Type == QUIETS       ? ~pos.pieces()
                    : Type == NON_EVASIONS ? ~pos.pieces(us) : 0;
+#ifdef ANTI
+  if (pos.is_anti() && pos.can_capture())
+      target &= pos.pieces(~us);
+#endif
 #ifdef ATOMIC
   if (pos.is_atomic() && Type == CAPTURES)
       target &= ~pos.attacks_from<KING>(pos.square<KING>(us));
@@ -535,7 +539,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   if (pos.is_race()) validate = true;
 #endif
 #ifdef ANTI
-  if (pos.is_anti()) validate = true;
+  if (pos.is_anti()) validate = false;
 #endif
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;
@@ -547,6 +551,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
           *cur = (--moveList)->move;
 #ifdef ATOMIC
       else if (pos.is_atomic() && pos.capture(*cur) && !pos.legal(*cur, pinned))
+          *cur = (--moveList)->move;
+#endif
+#ifdef ANTI
+      else if (pos.is_anti() && type_of(pos.piece_on(from_sq(*cur))) == PAWN && !pos.legal(*cur, pinned))
           *cur = (--moveList)->move;
 #endif
       else
