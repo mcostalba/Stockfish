@@ -191,6 +191,9 @@ Entry* probe(const Position& pos) {
 #ifdef ATOMIC
           if (pos.is_atomic()) {} else
 #endif
+#ifdef ANTI
+          if (pos.is_anti()) {} else
+#endif
           assert(pos.count<PAWN>(WHITE) >= 2);
 
           e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
@@ -211,6 +214,9 @@ Entry* probe(const Position& pos) {
 #endif
 #ifdef ATOMIC
           if (pos.is_atomic()) {} else
+#endif
+#ifdef ANTI
+          if (pos.is_anti()) {} else
 #endif
           assert(pos.count<PAWN>(BLACK) >= 2);
 

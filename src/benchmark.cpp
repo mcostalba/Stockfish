@@ -175,6 +175,10 @@ void benchmark(const Position& current, istream& is) {
       if (Options["UCI_3Check"])
           variant |= THREECHECK_VARIANT;
 #endif
+#ifdef ANTI
+      if (Options["UCI_Anti"])
+          variant |= ANTI_VARIANT;
+#endif
       StateListPtr states(new std::deque<StateInfo>(1));
       pos.set(fens[i], variant, &states->back(), Threads.main());
 

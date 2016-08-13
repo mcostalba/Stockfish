@@ -90,6 +90,10 @@ namespace {
     if (Options["UCI_3Check"])
         variant |= THREECHECK_VARIANT;
 #endif
+#ifdef ANTI
+    if (Options["UCI_Anti"])
+        variant |= ANTI_VARIANT;
+#endif
 
     is >> token;
     if (token == "startpos")
