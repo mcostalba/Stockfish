@@ -814,8 +814,7 @@ namespace {
     if (pos.is_horde())
         bonus = popcount(safe) + popcount(behind & safe);
 #endif
-    int weight =  pos.count<KNIGHT>(Us) + pos.count<BISHOP>(Us)
-                + pos.count<KNIGHT>(Them) + pos.count<BISHOP>(Them);
+    int weight = pos.count<ALL_PIECES>(Us);
 #ifdef THREECHECK
     if (pos.is_three_check())
         weight -= pos.checks_count();
@@ -823,20 +822,20 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde() && Us == WHITE)
     {
-        weight = pos.count<PAWN>(Us) + int(pos.non_pawn_material(BLACK)/PawnValueMg);
+        weight += pos.non_pawn_material(BLACK) / PawnValueMg;
         bonus = bonus * weight * weight / 200;
-        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK) * 2 / 9,0);
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK) * 2 / 9, 0);
     }
 #endif
 #ifdef KOTH
     if (pos.is_koth())
     {
-        int koth_bonus = 200*popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
-        return make_score(bonus * weight * weight * 2 / 11, 0) + make_score(koth_bonus, koth_bonus);
+        int koth_bonus = 200 * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
+        return make_score(bonus * weight * weight / 22, 0) + make_score(koth_bonus, koth_bonus);
     }
 #endif
 
-    return make_score(bonus * weight * weight * 2 / 11, 0);
+    return make_score(bonus * weight * weight  / 22, 0);
   }
 
 
