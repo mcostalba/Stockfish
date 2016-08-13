@@ -333,7 +333,8 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
       return SQ_NONE;
 #endif
 #ifdef ANTI
-  if (is_anti() && pieceCount[c][Pt] == 0)
+  // There may be zero, one, or multiple kings
+  if (is_anti())
       return SQ_NONE;
 #endif
   assert(pieceCount[c][Pt] == 1);

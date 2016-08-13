@@ -572,6 +572,9 @@ Bitboard Position::slider_blockers(Bitboard target, Bitboard sliders, Square s) 
 #ifdef HORDE
   if (is_horde() && s == SQ_NONE) return result;
 #endif
+#ifdef ANTI
+  if (is_anti() && s == SQ_NONE) return result;
+#endif
 
   // Pinners are sliders that attack 's' when a pinned piece is removed
   pinners = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
@@ -608,28 +611,28 @@ bool Position::legal(Move m, Bitboard pinned) const {
 
   assert(is_ok(m));
   assert(pinned == pinned_pieces(sideToMove));
-#ifdef ANTI
-  if (is_anti())
-  {
-      bool can_capture = false;
-      Bitboard b = pieces(side_to_move());
-      while (b)
-      {
-          Square s = pop_lsb(&b);
-          if (attacks_from(piece_on(s), s) & pieces(~side_to_move()))
-          {
-              can_capture = true;
-              break;
-          }
-      }
-      return can_capture == capture(m);
-  }
-#endif
 
   Color us = sideToMove;
   Square from = from_sq(m);
 
   assert(color_of(moved_piece(m)) == us);
+#ifdef ANTI
+  // If a player can capture, that player must capture
+  // Ideally move generator should handle this
+  if (is_anti())
+  {
+      if (capture(m))
+          return true;
+      Bitboard b = pieces(us);
+      while (b)
+      {
+          Square s = pop_lsb(&b);
+          if (attacks_from(piece_on(s), s) & pieces(~us))
+              return false;
+      }
+      return true;
+  }
+#endif
 #ifdef HORDE
   assert(is_horde() && us == WHITE ? square<KING>(us) == SQ_NONE : piece_on(square<KING>(us)) == make_piece(us, KING));
 #else
@@ -990,7 +993,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   assert(color_of(piece_on(from)) == us);
   assert(piece_on(to) == NO_PIECE || color_of(piece_on(to)) == (type_of(m) != CASTLING ? them : us));
+#ifdef ANTI
+  assert(is_anti() || captured != KING);
+#else
   assert(captured != KING);
+#endif
 
   if (type_of(m) == CASTLING)
   {
@@ -1247,7 +1254,11 @@ void Position::undo_move(Move m) {
 
   assert(empty(to) || color_of(piece_on(to)) == us);
   assert(empty(from) || type_of(m) == CASTLING);
+#ifdef ANTI
+  assert(is_anti() || st->capturedType != KING);
+#else
   assert(st->capturedType != KING);
+#endif
 
   if (type_of(m) == PROMOTION)
   {
@@ -1610,7 +1621,7 @@ bool Position::pos_is_ok(int* failedStep) const {
           {
               if ((sideToMove != WHITE && sideToMove != BLACK)
                   || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
-              return false;
+                  return false;
           }
           else
 #endif
