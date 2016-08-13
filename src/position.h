@@ -39,6 +39,7 @@
 #define KOTH_VARIANT 1 << 5
 #define RACE_VARIANT 1 << 6
 #define THREECHECK_VARIANT 1 << 7
+#define ANTI_VARIANT 1 << 8
 
 class Position;
 class Thread;
@@ -217,6 +218,11 @@ public:
   Checks checks_given() const;
   Checks checks_taken() const;
 #endif
+#ifdef ANTI
+  bool is_anti() const;
+  bool is_anti_win() const;
+  bool is_anti_loss() const;
+#endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
   void set_nodes_searched(uint64_t n);
@@ -324,6 +330,10 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 #endif
 #ifdef ATOMIC
   if (is_atomic() && pieceCount[c][Pt] == 0)
+      return SQ_NONE;
+#endif
+#ifdef ANTI
+  if (is_anti() && pieceCount[c][Pt] == 0)
       return SQ_NONE;
 #endif
   assert(pieceCount[c][Pt] == 1);
@@ -496,6 +506,20 @@ inline bool Position::is_horde() const {
 // Loss if horde is captured (Horde)
 inline bool Position::is_horde_loss() const {
   return count<ALL_PIECES>(WHITE) == 0;
+}
+#endif
+
+#ifdef ANTI
+inline bool Position::is_anti() const {
+  return var & ANTI_VARIANT;
+}
+
+inline bool Position::is_anti_loss() const {
+  return count<ALL_PIECES>(~sideToMove) == 0;
+}
+
+inline bool Position::is_anti_win() const {
+  return count<ALL_PIECES>(sideToMove) == 0;
 }
 #endif
 

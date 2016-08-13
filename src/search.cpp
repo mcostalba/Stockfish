@@ -282,6 +282,10 @@ void MainThread::search() {
       if (rootPos.is_atomic() && rootPos.is_atomic_loss())
           score = -VALUE_MATE;
 #endif
+#ifdef ANTI
+      if (rootPos.is_anti() && rootPos.is_anti_loss())
+          score = -VALUE_MATE;
+#endif
       sync_cout << "info depth 0 score " << UCI::value(score) << sync_endl;
   }
   else
@@ -652,6 +656,16 @@ namespace {
         if (pos.is_horde() && pos.is_horde_loss())
             return mated_in(ss->ply);
 #endif
+#ifdef ANTI
+        // Check for an instant loss (Anti)
+        if (pos.is_anti())
+        {
+            if (pos.is_anti_win())
+                return mate_in(ss->ply + 1);
+            if (pos.is_anti_loss())
+                return mated_in(ss->ply);
+        }
+#endif
 #ifdef ATOMIC
         // Check for an instant loss (Atomic)
         if (pos.is_atomic() && pos.is_atomic_loss())
@@ -724,6 +738,9 @@ namespace {
 #endif
 #ifdef ATOMIC
     if (pos.is_atomic()) {} else
+#endif
+#ifdef ANTI
+    if (pos.is_anti()) {} else
 #endif
     if (!rootNode && TB::Cardinality)
     {
@@ -1299,6 +1316,11 @@ moves_loop: // When in check search starts from here
             bestValue = excludedMove ? alpha : mated_in(ss->ply);
         else
 #endif
+#ifdef ANTI
+        if (pos.is_anti())
+            bestValue = mate_in(ss->ply+1);
+        else
+#endif
         bestValue = excludedMove ? alpha
                    :     inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
     }
@@ -1420,6 +1442,16 @@ moves_loop: // When in check search starts from here
         if (pos.is_atomic_win())
             return mate_in(ss->ply + 1);
         if (pos.is_atomic_loss())
+            return mated_in(ss->ply);
+    }
+#endif
+#ifdef ANTI
+    // Check for an instant win (Anti)
+    if (pos.is_anti())
+    {
+        if (pos.is_anti_win())
+            return mate_in(ss->ply + 1);
+        if (pos.is_anti_loss())
             return mated_in(ss->ply);
     }
 #endif

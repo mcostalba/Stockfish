@@ -232,7 +232,7 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2 Debugging
-CXXFLAGS += -DATOMIC -DHORDE -DHOUSE -DKOTH -DRACE -DTHREECHECK
+CXXFLAGS += -DATOMIC -DHORDE -DHOUSE -DKOTH -DRACE -DTHREECHECK -DANTI
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else

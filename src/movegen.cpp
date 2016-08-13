@@ -73,9 +73,28 @@ namespace {
   }
 
 
+#ifdef ANTI
+  template<GenType Type, Square Delta>
+  ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to, const CheckInfo* ci) {
+#else
   template<GenType Type, Square Delta>
   ExtMove* make_promotions(ExtMove* moveList, Square to, const CheckInfo* ci) {
+#endif
 
+#ifdef ANTI
+    if (pos.is_anti())
+    {
+        if (Type == CAPTURES || Type == NON_EVASIONS)
+        {
+            *moveList++ = make<PROMOTION>(to - Delta, to, QUEEN);
+            *moveList++ = make<PROMOTION>(to - Delta, to, ROOK);
+            *moveList++ = make<PROMOTION>(to - Delta, to, BISHOP);
+            *moveList++ = make<PROMOTION>(to - Delta, to, KNIGHT);
+            *moveList++ = make<PROMOTION>(to - Delta, to, KING);
+        }
+        return moveList;
+    }
+#endif
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         *moveList++ = make<PROMOTION>(to - Delta, to, QUEEN);
 
@@ -193,13 +212,25 @@ namespace {
         Bitboard b3 = shift_bb<Up   >(pawnsOn7) & emptySquares;
 
         while (b1)
+#ifdef ANTI
+            moveList = make_promotions<Type, Right>(pos, moveList, pop_lsb(&b1), ci);
+#else
             moveList = make_promotions<Type, Right>(moveList, pop_lsb(&b1), ci);
+#endif
 
         while (b2)
+#ifdef ANTI
+            moveList = make_promotions<Type, Left >(pos, moveList, pop_lsb(&b2), ci);
+#else
             moveList = make_promotions<Type, Left >(moveList, pop_lsb(&b2), ci);
+#endif
 
         while (b3)
+#ifdef ANTI
+            moveList = make_promotions<Type, Up   >(pos, moveList, pop_lsb(&b3), ci);
+#else
             moveList = make_promotions<Type, Up   >(moveList, pop_lsb(&b3), ci);
+#endif
     }
 
     // Standard and en-passant captures
@@ -288,6 +319,20 @@ namespace {
     moveList = generate_moves<  ROOK, Checks>(pos, moveList, Us, target, ci);
     moveList = generate_moves< QUEEN, Checks>(pos, moveList, Us, target, ci);
 
+#ifdef ANTI
+    if (pos.is_anti())
+    {
+        Bitboard kings = pos.pieces(Us, KING);
+        while (kings)
+        {
+            Square ksq = pop_lsb(&kings);
+            Bitboard b = pos.attacks_from<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(&b));
+        }
+        return moveList;
+    }
+#endif
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
@@ -479,11 +524,18 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
       return moveList;
 #endif
+#ifdef ANTI
+  if (pos.is_anti() && (pos.is_anti_win() || pos.is_anti_loss()))
+      return moveList;
+#endif
 
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
   bool validate = pinned;
 #ifdef RACE
   if (pos.is_race()) validate = true;
+#endif
+#ifdef ANTI
+  if (pos.is_anti()) validate = true;
 #endif
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;

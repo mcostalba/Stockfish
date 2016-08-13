@@ -418,6 +418,10 @@ inline MoveType type_of(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
+#ifdef ANTI
+  if ((m >> 16) & 1)
+      return KING;
+#endif
   return PieceType(((m >> 12) & 3) + KNIGHT);
 }
 
@@ -427,6 +431,10 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
+#ifdef ANTI
+  if (pt == KING)
+      return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12) | (1 << 16));
+#endif
   return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12));
 }
 

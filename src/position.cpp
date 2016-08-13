@@ -116,6 +116,17 @@ CheckInfo::CheckInfo(const Position& pos) {
   return;
   }
 #endif
+#ifdef ANTI
+  if (pos.is_anti()) {
+  checkSquares[PAWN]   = 0;
+  checkSquares[KNIGHT] = 0;
+  checkSquares[BISHOP] = 0;
+  checkSquares[ROOK]   = 0;
+  checkSquares[QUEEN]  = 0;
+  checkSquares[KING]   = 0;
+  return;
+  }
+#endif
   checkSquares[PAWN]   = pos.attacks_from<PAWN>(ksq, them);
   checkSquares[KNIGHT] = pos.attacks_from<KNIGHT>(ksq);
   checkSquares[BISHOP] = pos.attacks_from<BISHOP>(ksq);
@@ -413,6 +424,11 @@ void Position::set_state(StateInfo* si) const {
       si->checkersBB = 0;
   else
 #endif
+#ifdef ANTI
+  if (is_anti())
+      si->checkersBB = 0;
+  else
+#endif
 #ifdef ATOMIC
   if (is_atomic() && (square<KING>(sideToMove) == SQ_NONE ||
          (attacks_from<KING>(square<KING>(sideToMove)) & square<KING>(~sideToMove))))
@@ -592,6 +608,23 @@ bool Position::legal(Move m, Bitboard pinned) const {
 
   assert(is_ok(m));
   assert(pinned == pinned_pieces(sideToMove));
+#ifdef ANTI
+  if (is_anti())
+  {
+      bool can_capture = false;
+      Bitboard b = pieces(side_to_move());
+      while (b)
+      {
+          Square s = pop_lsb(&b);
+          if (attacks_from(piece_on(s), s) & pieces(~side_to_move()))
+          {
+              can_capture = true;
+              break;
+          }
+      }
+      return can_capture == capture(m);
+  }
+#endif
 
   Color us = sideToMove;
   Square from = from_sq(m);
@@ -717,6 +750,11 @@ bool Position::pseudo_legal(const Move m) const {
   if (is_horde() && is_horde_loss())
       return false;
 #endif
+#ifdef ANTI
+  // If the game is already won or lost, further moves are illegal
+  if (is_anti() && (is_anti_win() || is_anti_loss()))
+      return false;
+#endif
 #ifdef ATOMIC
   if (is_atomic())
   {
@@ -830,6 +868,10 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
 
 #ifdef HORDE
   if (is_horde() && ci.ksq == SQ_NONE)
+      return false;
+#endif
+#ifdef ANTI
+  if (is_anti())
       return false;
 #endif
 #ifdef ATOMIC
@@ -1113,7 +1155,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           PieceType promotion = promotion_type(m);
 
           assert(relative_rank(us, to) == RANK_8);
+#ifdef ANTI
+          assert(promotion >= KNIGHT && promotion <= (is_anti() ? KING : QUEEN));
+#else
           assert(promotion >= KNIGHT && promotion <= QUEEN);
+#endif
 
           remove_piece(us, PAWN, to);
           put_piece(us, promotion, to);
@@ -1167,6 +1213,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->checkersBB = Rank8BB & square<KING>(us);
   else
 #endif
+#ifdef ANTI
+  if (is_anti())
+      st->checkersBB = 0;
+  else
+#endif
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
@@ -1206,7 +1257,11 @@ void Position::undo_move(Move m) {
       {
 #endif
       assert(pt == promotion_type(m));
+#ifdef ANTI
+      assert(pt >= KNIGHT && pt <= (is_anti() ? KING : QUEEN));
+#else
       assert(pt >= KNIGHT && pt <= QUEEN);
+#endif
 
       remove_piece(us, pt, to);
       put_piece(us, PAWN, to);
@@ -1550,6 +1605,15 @@ bool Position::pos_is_ok(int* failedStep) const {
       if (step == Default)
       {
           Square wksq = square<KING>(WHITE), bksq = square<KING>(BLACK);
+#ifdef ANTI
+          if (is_anti())
+          {
+              if ((sideToMove != WHITE && sideToMove != BLACK)
+                  || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
+              return false;
+          }
+          else
+#endif
           if (   (sideToMove != WHITE && sideToMove != BLACK)
 #ifdef HORDE
 #ifdef ATOMIC
@@ -1579,6 +1643,9 @@ bool Position::pos_is_ok(int* failedStep) const {
 
       if (step == King)
       {
+#ifdef ANTI
+          if (is_anti()) {} else
+#endif
 #ifdef HORDE
           if (is_horde())
           {

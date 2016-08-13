@@ -974,6 +974,16 @@ Value Eval::evaluate(const Position& pos) {
             return -VALUE_MATE;
     }
 #endif
+#ifdef ANTI
+    // Possibly redundant static evaluator
+    if (pos.is_anti())
+    {
+        if (pos.is_anti_win())
+            return VALUE_MATE;
+        if (pos.is_anti_loss())
+            return -VALUE_MATE;
+    }
+#endif
 
   // Probe the material hash table
   ei.me = Material::probe(pos);
@@ -995,6 +1005,9 @@ Value Eval::evaluate(const Position& pos) {
 #endif
 #ifdef ATOMIC
   if (pos.is_atomic()) {} else
+#endif
+#ifdef ANTI
+  if (pos.is_anti()) {} else
 #endif
   if (ei.me->specialized_eval_exists())
       return ei.me->evaluate(pos);
@@ -1027,6 +1040,9 @@ Value Eval::evaluate(const Position& pos) {
   score += evaluate_pieces<DoTrace>(pos, ei, mobility, mobilityArea);
   score += mobility[WHITE] - mobility[BLACK];
 
+#ifdef ANTI
+  if (pos.is_anti()) {} else
+#endif
   // Evaluate kings after all other pieces because we need full attack
   // information when computing the king safety evaluation.
   score +=  evaluate_king<WHITE, DoTrace>(pos, ei)
