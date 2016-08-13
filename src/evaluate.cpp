@@ -832,7 +832,9 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde())
         bonus = popcount(safe) + popcount(behind & safe);
+    else
 #endif
+    bonus = std::min(16, bonus);
     int weight = pos.count<ALL_PIECES>(Us);
 #ifdef THREECHECK
     if (pos.is_three_check())
@@ -854,7 +856,7 @@ namespace {
     }
 #endif
 
-    return make_score(bonus * weight * weight  / 22, 0);
+    return make_score(bonus * weight * weight / 22, 0);
   }
 
 
