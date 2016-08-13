@@ -145,6 +145,10 @@ namespace {
     if (Type != CAPTURES)
     {
         emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+#ifdef ANTI
+        if (pos.is_anti())
+            emptySquares &= target;
+#endif
 
         Bitboard b1 = shift_bb<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = shift_bb<Up>(b1 & TRank3BB) & emptySquares;
@@ -203,6 +207,10 @@ namespace {
                 emptySquares &= target;
 #endif
         }
+#ifdef ANTI
+        if (pos.is_anti())
+            emptySquares &= target;
+#endif
 
         if (Type == EVASIONS)
             emptySquares &= target;
@@ -538,9 +546,6 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #ifdef RACE
   if (pos.is_race()) validate = true;
 #endif
-#ifdef ANTI
-  if (pos.is_anti()) validate = false;
-#endif
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
@@ -551,10 +556,6 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
           *cur = (--moveList)->move;
 #ifdef ATOMIC
       else if (pos.is_atomic() && pos.capture(*cur) && !pos.legal(*cur, pinned))
-          *cur = (--moveList)->move;
-#endif
-#ifdef ANTI
-      else if (pos.is_anti() && type_of(pos.piece_on(from_sq(*cur))) == PAWN && !pos.legal(*cur, pinned))
           *cur = (--moveList)->move;
 #endif
       else

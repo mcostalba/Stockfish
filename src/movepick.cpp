@@ -284,6 +284,9 @@ Move MovePicker::next_move() {
 
       case KILLERS:
           move = *cur++;
+#ifdef ANTI
+          if (pos.is_anti() && pos.can_capture()) {} else
+#endif
           if (    move != MOVE_NONE
               &&  move != ttMove
               &&  pos.pseudo_legal(move)

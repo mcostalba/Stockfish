@@ -618,9 +618,10 @@ bool Position::legal(Move m, Bitboard pinned) const {
   assert(color_of(moved_piece(m)) == us);
 #ifdef ANTI
   // If a player can capture, that player must capture
-  // Ideally move generator should handle this
+  // Is handled by move generator
+  assert(!is_anti() || capture(m) == can_capture(m));
   if (is_anti())
-      return capture(m) == can_capture();
+      return true;
 #endif
 #ifdef HORDE
   assert(is_horde() && us == WHITE ? square<KING>(us) == SQ_NONE : piece_on(square<KING>(us)) == make_piece(us, KING));
