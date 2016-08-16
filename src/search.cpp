@@ -1079,18 +1079,20 @@ moves_loop: // When in check search starts from here
           if (moveCountPruning)
               continue;
 
+          predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
+
           // Countermoves based pruning
 #ifdef RACE
 #ifdef THREECHECK
-          if (   depth <= 4 * ONE_PLY - checks - raceRank
+          if (   predictedDepth < 3 * ONE_PLY - checks - raceRank
 #else
-          if (   depth <= 4 * ONE_PLY - raceRank
+          if (   predictedDepth < 3 * ONE_PLY - raceRank
 #endif
 #else
 #ifdef THREECHECK
-          if (   depth <= 4 * ONE_PLY - checks
+          if (   predictedDepth < 3 * ONE_PLY - checks
 #else
-          if (   depth <= 4 * ONE_PLY
+          if (   predictedDepth < 3 * ONE_PLY
 #endif
 #endif
               && move != ss->killers[0]
@@ -1098,8 +1100,6 @@ moves_loop: // When in check search starts from here
               && (!fmh  || (*fmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
               && (!fmh2 || (*fmh2)[moved_piece][to_sq(move)] < VALUE_ZERO || (cmh && fmh)))
               continue;
-
-          predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
 
           // Futility pruning: parent node
 #ifdef RACE
@@ -1705,7 +1705,7 @@ moves_loop: // When in check search starts from here
         ss->killers[1] = ss->killers[0];
         ss->killers[0] = move;
     }
-	
+
     Color c = pos.side_to_move();
     Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
 
