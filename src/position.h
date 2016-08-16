@@ -47,6 +47,9 @@ class Thread;
 namespace PSQT {
 
   extern Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#ifdef ANTI
+  extern Score psqAnti[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#endif
 
   void init();
 }

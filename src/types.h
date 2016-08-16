@@ -194,6 +194,14 @@ enum Value : int {
   BishopValueMg = 836,   BishopValueEg = 907,
   RookValueMg   = 1270,  RookValueEg   = 1356,
   QueenValueMg  = 2521,  QueenValueEg  = 2658,
+#ifdef ANTI
+  PawnValueMgAnti   = -500,  PawnValueEgAnti   = -500,
+  KnightValueMgAnti = -500,  KnightValueEgAnti = -500,
+  BishopValueMgAnti = -500,  BishopValueEgAnti = -500,
+  RookValueMgAnti   = -500,  RookValueEgAnti   = -500,
+  QueenValueMgAnti  = -500,  QueenValueEgAnti  = -500,
+  KingValueMgAnti   = -500,  KingValueEgAnti   = -500,
+#endif
 
   MidgameLimit  = 15581, EndgameLimit  = 3998
 };

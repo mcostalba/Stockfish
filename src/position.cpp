@@ -444,6 +444,11 @@ void Position::set_state(StateInfo* si) const {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[color_of(pc)][type_of(pc)][s];
+#ifdef ANTI
+      if (is_anti())
+          si->psq += PSQT::psqAnti[color_of(pc)][type_of(pc)][s];
+      else
+#endif
       si->psq += PSQT::psq[color_of(pc)][type_of(pc)][s];
   }
 
@@ -1074,6 +1079,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       prefetch(thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
+#ifdef ANTI
+      if (is_anti())
+          st->psq -= PSQT::psqAnti[them][captured][capsq];
+      else
+#endif
       st->psq -= PSQT::psq[them][captured][capsq];
 
       // Reset rule 50 counter
@@ -1168,6 +1178,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
+#ifdef ANTI
+          if (is_anti())
+              st->psq += PSQT::psqAnti[us][promotion][to] - PSQT::psqAnti[us][PAWN][to];
+          else
+#endif
           st->psq += PSQT::psq[us][promotion][to] - PSQT::psq[us][PAWN][to];
 
           // Update material
@@ -1193,6 +1208,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   // Update incremental scores
+#ifdef ANTI
+  if (is_anti())
+      st->psq += PSQT::psqAnti[us][pt][to] - PSQT::psqAnti[us][pt][from];
+  else
+#endif
   st->psq += PSQT::psq[us][pt][to] - PSQT::psq[us][pt][from];
 
   // Set capture piece

@@ -965,11 +965,6 @@ Value Eval::evaluate(const Position& pos) {
   // Initialize score by reading the incrementally updated scores included in
   // the position object (material + piece square tables). Score is computed
   // internally from the white point of view.
-#ifdef ANTI
-  if (pos.is_anti())
-      score = (pos.count<ALL_PIECES>(WHITE)-pos.count<ALL_PIECES>(BLACK)) * AntiPieceScore;
-  else
-#endif
   score = pos.psq_score();
 
 #ifdef KOTH
