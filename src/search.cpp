@@ -283,8 +283,8 @@ void MainThread::search() {
           score = -VALUE_MATE;
 #endif
 #ifdef ANTI
-      if (rootPos.is_anti() && rootPos.is_anti_loss())
-          score = -VALUE_MATE;
+      if (rootPos.is_anti())
+          score = rootPos.is_anti_loss() ? -VALUE_MATE : VALUE_MATE;
 #endif
       sync_cout << "info depth 0 score " << UCI::value(score) << sync_endl;
   }
@@ -1553,14 +1553,12 @@ moves_loop: // When in check search starts from here
           givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
       else
 #endif
-#ifdef ANTI
-      if (pos.is_anti())
-          givesCheck = pos.capture(move);
-      else
-#endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
 #ifdef ATOMIC
                   && !pos.is_atomic()
+#endif
+#ifdef ANTI
+                  && !pos.is_anti()
 #endif
                   ? ci.checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
                   : pos.gives_check(move, ci);

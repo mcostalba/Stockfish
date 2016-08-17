@@ -245,6 +245,7 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
   std::memset(si, 0, sizeof(StateInfo));
   std::fill_n(&pieceList[0][0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   st = si;
+  var = v;
 
   ss >> std::noskipws;
 
@@ -363,7 +364,6 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
   // handle also common incorrect FEN with fullmove = 0.
   gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
 
-  var = v;
   thisThread = th;
   set_state(st);
 
@@ -624,7 +624,7 @@ bool Position::legal(Move m, Bitboard pinned) const {
 #ifdef ANTI
   // If a player can capture, that player must capture
   // Is handled by move generator
-  assert(!is_anti() || capture(m) == can_capture(m));
+  assert(!is_anti() || capture(m) == can_capture());
   if (is_anti())
       return true;
 #endif
