@@ -676,6 +676,29 @@ namespace {
     // Count all these squares with a single popcount
     score += make_score(7 * popcount(b), 0);
 
+#ifdef HORDE
+    if (pos.is_horde() && Us == BLACK)
+    {
+        // Add a bonus according to how close black is to breaking through the pawn wall
+        if (pos.pieces(BLACK, ROOK) | pos.pieces(BLACK, QUEEN))
+        {
+            int min = 8;
+            if ((ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][ROOK]) & rank_bb(RANK_1))
+                min = 0;
+            else
+            {
+                for (File f = FILE_A; f <= FILE_H; ++f)
+                {
+                    int pawns = popcount(pos.pieces(WHITE, PAWN) & file_bb(f));
+                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f - 1]), pawns) : 0;
+                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f + 1]), pawns) : 0;
+                    min = std::min(min, pawnsl + pawnsr);
+                }
+            }
+            score += ThreatByHangingPawn * pos.count<PAWN>(WHITE) / (1 + min) / (pos.pieces(BLACK, QUEEN) ? 2 : 4);
+        }
+    }
+#endif
 #ifdef ANTI
     }
 #endif
