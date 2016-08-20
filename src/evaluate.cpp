@@ -512,9 +512,9 @@ namespace {
             {
             case CHECKS_NB:
             case CHECKS_3:
-            case CHECKS_2:  attackUnits += RookCheck; break;
-            case CHECKS_1:  attackUnits += KnightCheck + attackUnits / 2; break;
-            case CHECKS_0:  attackUnits += BishopCheck + attackUnits; break;
+            case CHECKS_2:  attackUnits += 2 * attackUnits; break;
+            case CHECKS_1:  attackUnits += attackUnits; break;
+            case CHECKS_0:  attackUnits += attackUnits / 2; break;
             }
         }
 #endif
