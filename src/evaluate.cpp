@@ -440,12 +440,20 @@ namespace {
         // Analyse the enemy's safe queen contact checks. Firstly, find the
         // undefended squares around the king reachable by the enemy queen...
         b = undefended & ei.attackedBy[Them][QUEEN] & ~pos.pieces(Them);
+#ifdef ATOMIC
+        if (pos.is_atomic())
+            b |= ei.attackedBy[Us][KING];
+#endif
 
         // ...and keep squares supported by another enemy piece
         attackUnits += QueenContactCheck * popcount(b & ei.attackedBy2[Them]);
 
         // Analyse the safe enemy's checks which are possible on next move...
         safe  = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
+#ifdef ATOMIC
+        if (pos.is_atomic())
+            safe |= ei.attackedBy[Us][KING];
+#endif
 
         // ... and some other potential checks, only requiring the square to be
         // safe from pawn-attacks, and not being occupied by a blocked pawn.
@@ -491,6 +499,10 @@ namespace {
         else if (b & other)
             score -= OtherCheck;
 
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        score -= popcount(ei.attackedBy[Us][KING] & pos.pieces()) * make_score(100, 100);
+#endif
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from the evaluation.
 #ifdef THREECHECK
@@ -500,9 +512,9 @@ namespace {
             {
             case CHECKS_NB:
             case CHECKS_3:
-            case CHECKS_2:  attackUnits += RookCheck; break;
-            case CHECKS_1:  attackUnits += KnightCheck + attackUnits / 2; break;
-            case CHECKS_0:  attackUnits += BishopCheck + attackUnits; break;
+            case CHECKS_2:  attackUnits += 2 * attackUnits; break;
+            case CHECKS_1:  attackUnits += attackUnits; break;
+            case CHECKS_0:  attackUnits += attackUnits / 2; break;
             }
         }
 #endif
@@ -569,6 +581,9 @@ namespace {
     {
 #endif
 
+#ifdef ATOMIC
+    if (pos.is_atomic()) {} else
+#endif
     // Small bonus if the opponent has loose pawns or pieces
     if (   (pos.pieces(Them) ^ pos.pieces(Them, QUEEN, KING))
         & ~(ei.attackedBy[Us][ALL_PIECES] | ei.attackedBy[Them][ALL_PIECES]))
@@ -592,9 +607,19 @@ namespace {
     }
 
     // Non-pawn enemies defended by a pawn
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        defended = pos.pieces(Them) ^ pos.pieces(Them, PAWN);
+    else
+#endif
     defended = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Them][PAWN];
 
     // Enemies not defended by a pawn and under our attack
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        weak = 0;
+    else
+#endif
     weak =   pos.pieces(Them)
           & ~ei.attackedBy[Them][PAWN]
           &  ei.attackedBy[Us][ALL_PIECES];
@@ -613,6 +638,9 @@ namespace {
         score += Hanging * popcount(weak & ~ei.attackedBy[Them][ALL_PIECES]);
 
         b = weak & ei.attackedBy[Us][KING];
+#ifdef ATOMIC
+        if (pos.is_atomic()) {} else
+#endif
         if (b)
             score += ThreatByKing[more_than_one(b)];
     }
@@ -621,6 +649,11 @@ namespace {
     b = pos.pieces(Us, PAWN) & ~TRank7BB;
     b = shift_bb<Up>(b | (shift_bb<Up>(b & TRank2BB) & ~pos.pieces()));
 
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        b &=  ~pos.pieces();
+    else
+#endif
     b &=  ~pos.pieces()
         & ~ei.attackedBy[Them][PAWN]
         & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
@@ -643,6 +676,29 @@ namespace {
     // Count all these squares with a single popcount
     score += make_score(7 * popcount(b), 0);
 
+#ifdef HORDE
+    if (pos.is_horde() && Us == BLACK)
+    {
+        // Add a bonus according to how close black is to breaking through the pawn wall
+        if (pos.pieces(BLACK, ROOK) | pos.pieces(BLACK, QUEEN))
+        {
+            int min = 8;
+            if ((ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][ROOK]) & rank_bb(RANK_1))
+                min = 0;
+            else
+            {
+                for (File f = FILE_A; f <= FILE_H; ++f)
+                {
+                    int pawns = popcount(pos.pieces(WHITE, PAWN) & file_bb(f));
+                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f - 1]), pawns) : 0;
+                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f + 1]), pawns) : 0;
+                    min = std::min(min, pawnsl + pawnsr);
+                }
+            }
+            score += ThreatByHangingPawn * pos.count<PAWN>(WHITE) / (1 + min) / (pos.pieces(BLACK, QUEEN) ? 2 : 4);
+        }
+    }
+#endif
 #ifdef ANTI
     }
 #endif
