@@ -845,6 +845,9 @@ namespace {
         return eval - (futility_margin(depth) * variantScale);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
+#ifdef ANTI
+    if (pos.is_anti() && pos.can_capture()) {} else
+#endif
     if (   !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
