@@ -172,9 +172,6 @@ namespace {
             score += Lever[relative_rank(Us, s)];
     }
 
-    b = e->semiopenFiles[Us] ^ 0xFF;
-    e->pawnSpan[Us] = b ? int(msb(b) - lsb(b)) : 0;
-
     return score;
   }
 
