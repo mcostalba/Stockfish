@@ -72,7 +72,7 @@ namespace {
   unsigned bsf_index(Bitboard b) {
     b ^= b - 1;
     return Is64Bit ? (b * DeBruijn64) >> 58
-                   : ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn32) >> 26;
+                   : (b * DeBruijn32) >> 27; // Kim Walisch's method is better in perf. and it works for 32-bit as well (as long as we but correct DeBurijn32 seq. and create the corresponding index32 array "bsftable here")
   }
 
 
