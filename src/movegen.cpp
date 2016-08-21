@@ -412,6 +412,10 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 /// underpromotions that give check. Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
+#ifdef ANTI
+  if (pos.is_anti())
+      return moveList;
+#endif
 
   assert(!pos.checkers());
 
@@ -445,6 +449,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 /// to move is in check. Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
+#ifdef ANTI
+  if (pos.is_anti())
+      return moveList;
+#endif
 
   assert(pos.checkers());
 

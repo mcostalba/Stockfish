@@ -27,8 +27,8 @@ Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 #ifdef ANTI
 Value PieceValueAnti[PHASE_NB][PIECE_NB] = {
-{ KingValueMgAnti, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti },
-{ KingValueEgAnti, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti } };
+{ VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti },
+{ VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti } };
 #endif
 
 namespace PSQT {
@@ -120,7 +120,9 @@ void init() {
       PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
 
       Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
+#ifdef ANTI
       Score vAnti = make_score(PieceValueAnti[MG][pt], PieceValueAnti[EG][pt]);
+#endif
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
