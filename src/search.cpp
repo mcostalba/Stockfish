@@ -1011,12 +1011,6 @@ moves_loop: // When in check search starts from here
       captureOrPromotion = pos.capture_or_promotion(move);
       moved_piece = pos.moved_piece(move);
 
-#ifdef RACE
-      if (pos.is_race())
-          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING &&
-              rank_of(to_sq(move)) > rank_of(from_sq(move));
-      else
-#endif
       givesCheck =  type_of(move) == NORMAL && !ci.dcCandidates
 #ifdef ATOMIC
                   && !pos.is_atomic()
@@ -1070,6 +1064,9 @@ moves_loop: // When in check search starts from here
       newDepth = depth - ONE_PLY + extension;
 
       // Step 13. Pruning at shallow depth
+#ifdef RACE
+      if (pos.is_race() && type_of(moved_piece) == KING && rank_of(to_sq(move)) > rank_of(from_sq(move))) {} else
+#endif
       if (   !rootNode
           && !captureOrPromotion
           && !inCheck
