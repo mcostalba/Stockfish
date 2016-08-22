@@ -54,7 +54,7 @@ namespace {
 
   // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
   const uint64_t DeBruijn64 = 0x3F79D71B4CB0A89ULL;
-  const uint32_t DeBruijn32 = 0x783A9B23;
+  const uint32_t DeBruijn32 = 0x783A9B23U;
 
   int MSBTable[256];            // To implement software msb()
   Square BSFTable[SQUARE_NB];   // To implement software bitscan
@@ -72,8 +72,8 @@ namespace {
   unsigned bsf_index(Bitboard b) {
     b ^= b - 1;
     return Is64Bit ? (b * DeBruijn64) >> 58
-                   : (b * DeBruijn32) >> 27; // Kim Walisch's method is better in perf. and it works for 32-bit as well (as long as we but correct DeBurijn32 seq. and create the corresponding index32 array "bsftable here")
-  }
+                   : (unsigned(b) * DeBruijn32) >> 27; // Kim Walisch's method is better in perf. and it works for 32-bit as well (as long as we but correct DeBurijn32 seq. and create the corresponding index32 array "bsftable here")
+  }                                                    // I forgot to make it unsigned so the compiler allocates 32-bit for it also deburijn32 should have  a "U" at the end so the bitwise goes well "but not neccesary"
 
 
   // popcount16() counts the non-zero bits using SWAR-Popcount algorithm
