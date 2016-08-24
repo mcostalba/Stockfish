@@ -646,13 +646,6 @@ namespace {
                 Value bonus = Value(d * d + 2 * d - 2);
                 update_stats(pos, ss, ttMove, nullptr, 0, bonus);
             }
-
-            // Extra penalty for a quiet TT move in previous ply when it gets refuted
-            if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
-            {
-                Value penalty = Value(d * d + 4 * d + 1);
-                update_opponent_stats(pos, ss, -penalty);
-            }
         }
         return ttValue;
     }
@@ -1135,13 +1128,6 @@ moves_loop: // When in check search starts from here
         {
             Value bonus = Value(d * d + 2 * d - 2);
             update_stats(pos, ss, bestMove, quietsSearched, quietCount, bonus);
-        }
-
-        // Extra penalty for a quiet TT move in previous ply when it gets refuted
-        if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
-        {
-            Value penalty = Value(d * d + 4 * d + 1);
-            update_opponent_stats(pos, ss, -penalty);
         }
     }
     // Bonus for prior countermove that caused the fail low
