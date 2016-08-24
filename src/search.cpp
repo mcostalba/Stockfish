@@ -1418,12 +1418,8 @@ moves_loop: // When in check search starts from here
 
     Square prevSq = to_sq((ss-1)->currentMove);
 
-    CounterMoveStats* fmh   = (ss-2)->counterMoves;
     CounterMoveStats* cmh2  = (ss-3)->counterMoves;
     CounterMoveStats* cmh3  = (ss-5)->counterMoves;
-
-    if (fmh) // FIXME Is it ok to update fmh here?
-        fmh->update(pos.piece_on(prevSq), prevSq, bonus);
 
     if (cmh2)
         cmh2->update(pos.piece_on(prevSq), prevSq, bonus);
