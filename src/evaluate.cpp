@@ -571,7 +571,7 @@ namespace {
             score += 2 * AntiPieceScore;
         // if both colors attack pieces, penalize more the color with more pieces
         else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them)) && (ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score += pos.count<ALL_PIECES>(Us) * AntiPieceScore / 2;
+            score += pos.count<ALL_PIECES>(Us) * AntiPieceScore / 4;
 
         // Bonus if we threaten to force captures
         Bitboard push1 = shift_bb<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
