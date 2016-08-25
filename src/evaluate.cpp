@@ -569,10 +569,6 @@ namespace {
             && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
             && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
             score += 2 * AntiPieceScore;
-        // Bonus if we attack protected pieces and opponent does not attack any pieces
-        else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
-                 && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score -= popcount(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES]) * AntiPieceScore / 2;
         // if both colors attack pieces, penalize more the color with more pieces
         else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them)) && (ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
             score += pos.count<ALL_PIECES>(Us) * AntiPieceScore / 2;
