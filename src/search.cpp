@@ -1420,16 +1420,12 @@ moves_loop: // When in check search starts from here
 
     CounterMoveStats* cmh  = (ss-2)->counterMoves;
     CounterMoveStats* fmh1 = (ss-3)->counterMoves;
-    CounterMoveStats* fmh2 = (ss-5)->counterMoves;
 
     if (cmh)
         cmh->update(pos.piece_on(prevSq), prevSq, bonus);
 
     if (fmh1)
         fmh1->update(pos.piece_on(prevSq), prevSq, bonus);
-
-    if (fmh2)
-        fmh2->update(pos.piece_on(prevSq), prevSq, bonus);
   }
 
 
@@ -1447,7 +1443,6 @@ moves_loop: // When in check search starts from here
 
     CounterMoveStats* cmh  = (ss-1)->counterMoves;
     CounterMoveStats* fmh1 = (ss-2)->counterMoves;
-    CounterMoveStats* fmh2 = (ss-4)->counterMoves;
 
     Color c = pos.side_to_move();
     Thread* thisThread = pos.this_thread();
@@ -1464,9 +1459,6 @@ moves_loop: // When in check search starts from here
     if (fmh1)
         fmh1->update(pos.moved_piece(move), to_sq(move), bonus);
 
-    if (fmh2)
-        fmh2->update(pos.moved_piece(move), to_sq(move), bonus);
-
     // Decrease all the other played quiet moves
     for (int i = 0; i < quietsCnt; ++i)
     {
@@ -1479,8 +1471,7 @@ moves_loop: // When in check search starts from here
         if (fmh1)
             fmh1->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
 
-        if (fmh2)
-            fmh2->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+
     }
   }
 
