@@ -121,11 +121,21 @@ const string engine_info(bool to_uci) {
 
 
 /// Debug functions used mainly to collect run-time statistics
-static int64_t hits[2], means[3];
+static int64_t hits[2], samples, means[2], cov[2][2];
 
 void dbg_hit_on(bool b) { ++hits[0]; if (b) ++hits[1]; }
 void dbg_hit_on(bool c, bool b) { if (c) dbg_hit_on(b); }
-void dbg_mean_of(int v) { ++means[0]; means[1] += v; means[2] += v * v; }
+void dbg_stats_of(int v) { ++samples; means[0] += v; cov[0][0] += v * v; }
+void dbg_stats_of(int v, int w) {
+    ++samples;
+    means[0] += v;
+    means[1] += w;
+    cov[0][0] += v*v;
+    cov[1][1] += w*w;
+    cov[0][1] += v*w;
+    cov[1][0] += w*v; // for completeness, if we want to have imaginary numbers
+}
+
 
 void dbg_print() {
 
@@ -135,10 +145,18 @@ void dbg_print() {
 
   if (means[0])
   {
-      double m = (double)means[1] / means[0];
+      double m1 = (double)means[0] / samples;
       cerr << showpoint << noshowpos << fixed << setprecision(3)
-           << "Total " << means[0] << "  Mean " << m
-           << "  Variance " << (double)means[2] / means[0] - m * m << endl;
+           << "Samples " << samples << "\nMean " << m1
+           << "  Variance " << (double)cov[0][0] / samples - m1 * m1 << endl;
+      if (means[1])
+      {
+          double m2 = (double)means[1] / samples;
+          cerr << showpoint << noshowpos << fixed << setprecision(3)
+               << "Mean " << m2
+               << "  Variance "   << (double) cov[1][1] / samples - m2 * m2
+               << "\nCovariance "  << (double) cov[0][1] / samples - m1 * m2  << endl;
+      }
   }
 }
 
