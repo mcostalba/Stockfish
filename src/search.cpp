@@ -1036,7 +1036,7 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
                   && !pos.is_anti()
 #endif
-                  ? pos.check_info().checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
+                  ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
 
 #ifdef RACE
@@ -1593,7 +1593,7 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
                   && !pos.is_anti()
 #endif
-                  ? pos.check_info().checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
+                  ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
 
       // Futility pruning

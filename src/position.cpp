@@ -350,52 +350,52 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 /// Position::set_check_info() sets king attacks to detect if a move gives check
 
-void Position::set_check_info(CheckInfo* ci) const {
+void Position::set_check_info(StateInfo* si) const {
 
-  ci->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE));
-  ci->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE));
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
 
-  Square ksq = ci->ksq = square<KING>(~sideToMove);
+  Square ksq = square<KING>(~sideToMove);
 
 #ifdef HORDE
   if (is_horde() && ksq == SQ_NONE) {
-  ci->checkSquares[PAWN]   = 0;
-  ci->checkSquares[KNIGHT] = 0;
-  ci->checkSquares[BISHOP] = 0;
-  ci->checkSquares[ROOK]   = 0;
-  ci->checkSquares[QUEEN]  = 0;
-  ci->checkSquares[KING]   = 0;
+  si->checkSquares[PAWN]   = 0;
+  si->checkSquares[KNIGHT] = 0;
+  si->checkSquares[BISHOP] = 0;
+  si->checkSquares[ROOK]   = 0;
+  si->checkSquares[QUEEN]  = 0;
+  si->checkSquares[KING]   = 0;
   return;
   }
 #endif
 #ifdef ATOMIC
   if (is_atomic() && ksq == SQ_NONE) {
-  ci->checkSquares[PAWN]   = 0;
-  ci->checkSquares[KNIGHT] = 0;
-  ci->checkSquares[BISHOP] = 0;
-  ci->checkSquares[ROOK]   = 0;
-  ci->checkSquares[QUEEN]  = 0;
-  ci->checkSquares[KING]   = 0;
+  si->checkSquares[PAWN]   = 0;
+  si->checkSquares[KNIGHT] = 0;
+  si->checkSquares[BISHOP] = 0;
+  si->checkSquares[ROOK]   = 0;
+  si->checkSquares[QUEEN]  = 0;
+  si->checkSquares[KING]   = 0;
   return;
   }
 #endif
 #ifdef ANTI
   if (is_anti()) {
-  ci->checkSquares[PAWN]   = 0;
-  ci->checkSquares[KNIGHT] = 0;
-  ci->checkSquares[BISHOP] = 0;
-  ci->checkSquares[ROOK]   = 0;
-  ci->checkSquares[QUEEN]  = 0;
-  ci->checkSquares[KING]   = 0;
+  si->checkSquares[PAWN]   = 0;
+  si->checkSquares[KNIGHT] = 0;
+  si->checkSquares[BISHOP] = 0;
+  si->checkSquares[ROOK]   = 0;
+  si->checkSquares[QUEEN]  = 0;
+  si->checkSquares[KING]   = 0;
   return;
   }
 #endif
-  ci->checkSquares[PAWN]   = attacks_from<PAWN>(ksq, ~sideToMove);
-  ci->checkSquares[KNIGHT] = attacks_from<KNIGHT>(ksq);
-  ci->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq);
-  ci->checkSquares[ROOK]   = attacks_from<ROOK>(ksq);
-  ci->checkSquares[QUEEN]  = ci->checkSquares[BISHOP] | ci->checkSquares[ROOK];
-  ci->checkSquares[KING]   = 0;
+  si->checkSquares[PAWN]   = attacks_from<PAWN>(ksq, ~sideToMove);
+  si->checkSquares[KNIGHT] = attacks_from<KNIGHT>(ksq);
+  si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq);
+  si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq);
+  si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
+  si->checkSquares[KING]   = 0;
 }
 
 
@@ -437,7 +437,7 @@ void Position::set_state(StateInfo* si) const {
       si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
   }
 
-  set_check_info(&si->ci);
+  set_check_info(si);
 
   for (Bitboard b = pieces(); b; )
   {
@@ -909,12 +909,12 @@ bool Position::gives_check(Move m) const {
 #endif
 
   // Is there a direct check?
-  if (st->ci.checkSquares[type_of(piece_on(from))] & to)
+  if (st->checkSquares[type_of(piece_on(from))] & to)
       return true;
 
   // Is there a discovered check?
   if (   (discovered_check_candidates() & from)
-      && !aligned(from, to, st->ci.ksq))
+      && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
 
   switch (type_of(m))
@@ -923,7 +923,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   case PROMOTION:
-      return attacks_bb(Piece(promotion_type(m)), to, pieces() ^ from) & st->ci.ksq;
+      return attacks_bb(Piece(promotion_type(m)), to, pieces() ^ from) & square<KING>(~sideToMove);
 
   // En passant capture with check? We have already handled the case
   // of direct checks and ordinary discovered check, so the only case we
@@ -934,8 +934,8 @@ bool Position::gives_check(Move m) const {
       Square capsq = make_square(file_of(to), rank_of(from));
       Bitboard b = (pieces() ^ from ^ capsq) | to;
 
-      return  (attacks_bb<  ROOK>(st->ci.ksq, b) & pieces(sideToMove, QUEEN, ROOK))
-            | (attacks_bb<BISHOP>(st->ci.ksq, b) & pieces(sideToMove, QUEEN, BISHOP));
+      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
+            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
   }
   case CASTLING:
   {
@@ -944,8 +944,8 @@ bool Position::gives_check(Move m) const {
       Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
       Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
 
-      return   (PseudoAttacks[ROOK][rto] & st->ci.ksq)
-            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & st->ci.ksq);
+      return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
+            && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
   default:
       assert(false);
@@ -1239,8 +1239,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   sideToMove = ~sideToMove;
 
-  // Update CheckInfo
-  set_check_info(&st->ci);
+  // Update king attacks used for fast check detection
+  set_check_info(st);
 
   assert(pos_is_ok());
 }
@@ -1395,7 +1395,7 @@ void Position::do_null_move(StateInfo& newSt) {
 
   sideToMove = ~sideToMove;
 
-  set_check_info(&st->ci);
+  set_check_info(st);
 
   assert(pos_is_ok());
 }
