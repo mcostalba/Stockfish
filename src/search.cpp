@@ -272,8 +272,9 @@ void MainThread::search() {
           score = -VALUE_MATE;
 #endif
 #ifdef RACE
-      if (rootPos.is_race() && rootPos.is_race_loss())
-          score = -VALUE_MATE;
+      if (rootPos.is_race())
+          score =  rootPos.is_race_draw() ? VALUE_DRAW
+                 : rootPos.is_race_loss() ? -VALUE_MATE : VALUE_MATE;
 #endif
 #ifdef HORDE
       if (rootPos.is_horde() && rootPos.is_horde_loss())
