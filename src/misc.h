@@ -35,7 +35,9 @@ void start_logger(const std::string& fname);
 
 void dbg_hit_on(bool b);
 void dbg_hit_on(bool c, bool b);
-void dbg_mean_of(int v);
+void dbg_stats_of(int v);
+void dbg_stats_of(int v, int w);
+
 void dbg_print();
 
 typedef std::chrono::milliseconds::rep TimePoint; // A value in milliseconds
