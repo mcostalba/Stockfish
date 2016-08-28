@@ -50,7 +50,7 @@
 
 using namespace Tablebases;
 
-size_t Tablebases::MaxCardinality;
+int Tablebases::MaxCardinality;
 
 namespace {
 
@@ -482,7 +482,7 @@ void HashTable::insert(const std::vector<PieceType>& pieces) {
 
     file.close();
 
-    MaxCardinality = std::max(pieces.size(), MaxCardinality);
+    MaxCardinality = std::max((int)pieces.size(), MaxCardinality);
 
     wdlTable.push_back(WDLEntry(code));
     dtzTable.push_back(DTZEntry(wdlTable.back()));
@@ -869,7 +869,7 @@ encode_remaining:
         for (int i = 0; i < d->groupLen[next]; ++i)
         {
             auto f = [&](Square s) { return groupSq[i] > s; };
-            int adjust = std::count_if(squares, groupSq, f);
+            auto adjust = std::count_if(squares, groupSq, f);
             n += Binomial[i + 1][groupSq[i] - adjust - 8 * remainingPawns];
         }
 
@@ -1189,7 +1189,6 @@ WDLScore search(Position& pos, ProbeState* result) {
 
     WDLScore value, bestValue = WDLLoss;
     StateInfo st;
-    CheckInfo ci(pos);
 
     auto moveList = MoveList<LEGAL>(pos);
     size_t totalCount = moveList.size(), moveCount = 0;
@@ -1202,7 +1201,7 @@ WDLScore search(Position& pos, ProbeState* result) {
 
         moveCount++;
 
-        pos.do_move(move, st, pos.gives_check(move, ci));
+        pos.do_move(move, st, pos.gives_check(move));
         value = -search(pos, result);
         pos.undo_move(move);
 
@@ -1442,14 +1441,13 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     // DTZ stores results for the other side, so we need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
     StateInfo st;
-    CheckInfo ci(pos);
     int minDTZ = 0xFFFF;
 
     for (const Move& move : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN;
 
-        pos.do_move(move, st, pos.gives_check(move, ci));
+        pos.do_move(move, st, pos.gives_check(move));
 
         // For zeroing moves we want the dtz of the move _before_ doing it,
         // otherwise we will get the dtz of the next move sequence. Search the
@@ -1519,12 +1517,11 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
         return false;
 
     StateInfo st;
-    CheckInfo ci(pos);
 
     // Probe each move
     for (size_t i = 0; i < rootMoves.size(); ++i) {
         Move move = rootMoves[i].pv[0];
-        pos.do_move(move, st, pos.gives_check(move, ci));
+        pos.do_move(move, st, pos.gives_check(move));
         int v = 0;
 
         if (pos.checkers() && dtz > 0) {
@@ -1654,14 +1651,13 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
     score = WDL_to_value[wdl + 2];
 
     StateInfo st;
-    CheckInfo ci(pos);
 
     int best = WDLLoss;
 
     // Probe each move
     for (size_t i = 0; i < rootMoves.size(); ++i) {
         Move move = rootMoves[i].pv[0];
-        pos.do_move(move, st, pos.gives_check(move, ci));
+        pos.do_move(move, st, pos.gives_check(move));
         WDLScore v = -Tablebases::probe_wdl(pos, &result);
         pos.undo_move(move);
 

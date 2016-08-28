@@ -41,19 +41,6 @@ namespace PSQT {
   void init();
 }
 
-/// CheckInfo struct is initialized at constructor time and keeps info used to
-/// detect if a move gives check.
-
-struct CheckInfo {
-
-  explicit CheckInfo(const Position&);
-
-  Bitboard dcCandidates;
-  Bitboard pinned;
-  Bitboard checkSquares[PIECE_TYPE_NB];
-  Square   ksq;
-};
-
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -76,6 +63,8 @@ struct StateInfo {
   Bitboard   checkersBB;
   PieceType  capturedType;
   StateInfo* previous;
+  Bitboard   blockersForKing[COLOR_NB];
+  Bitboard   checkSquares[PIECE_TYPE_NB];
 };
 
 // In a std::deque references to elements are unaffected upon resizing
@@ -125,6 +114,7 @@ public:
   Bitboard checkers() const;
   Bitboard discovered_check_candidates() const;
   Bitboard pinned_pieces(Color c) const;
+  Bitboard check_squares(PieceType pt) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -132,14 +122,14 @@ public:
   Bitboard attacks_from(Piece pc, Square s) const;
   template<PieceType> Bitboard attacks_from(Square s) const;
   template<PieceType> Bitboard attacks_from(Square s, Color c) const;
-  Bitboard slider_blockers(Bitboard target, Bitboard sliders, Square s) const;
+  Bitboard slider_blockers(Bitboard sliders, Square s) const;
 
   // Properties of moves
-  bool legal(Move m, Bitboard pinned) const;
+  bool legal(Move m) const;
   bool pseudo_legal(const Move m) const;
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
-  bool gives_check(Move m, const CheckInfo& ci) const;
+  bool gives_check(Move m) const;
   bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   PieceType captured_piece_type() const;
@@ -186,6 +176,7 @@ private:
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
+  void set_check_info(StateInfo* si) const;
 
   // Other helpers
   void put_piece(Color c, PieceType pt, Square s);
@@ -312,11 +303,15 @@ inline Bitboard Position::checkers() const {
 }
 
 inline Bitboard Position::discovered_check_candidates() const {
-  return slider_blockers(pieces(sideToMove), pieces(sideToMove), square<KING>(~sideToMove));
+  return st->blockersForKing[~sideToMove] & pieces(sideToMove);
 }
 
 inline Bitboard Position::pinned_pieces(Color c) const {
-  return slider_blockers(pieces(c), pieces(~c), square<KING>(c));
+  return st->blockersForKing[c] & pieces(c);
+}
+
+inline Bitboard Position::check_squares(PieceType pt) const {
+  return st->checkSquares[pt];
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
