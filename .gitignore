@@ -1,0 +1,14 @@
+# Never ignore .gitignore itself
+!.gitignore
+
+# ignore compilation results
+src/stockfish
+src/stockfish.exe
+src/*.o
+src/.depend
+src/*~
+src/core
+src/bench.txt
+src/*.gcda
+src/syzygy/*.o
+src/syzygy/*.gcda
