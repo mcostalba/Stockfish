@@ -842,8 +842,8 @@ namespace {
 #endif
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-        &&  eval + (razor_margin[depth / ONE_PLY] * variantScale) <= alpha
-        &&  ttMove == MOVE_NONE)
+        &&  ttMove == MOVE_NONE
+        &&  eval + (razor_margin[depth / ONE_PLY] * variantScale) <= alpha)
     {
         if (   depth <= ONE_PLY
             && eval + (razor_margin[3 * ONE_PLY] * variantScale) <= alpha)
@@ -1092,8 +1092,8 @@ moves_loop: // When in check search starts from here
           && !captureOrPromotion
           && !inCheck
           && !givesCheck
-          && !pos.advanced_pawn_push(move)
-          &&  bestValue > VALUE_MATED_IN_MAX_PLY)
+          &&  bestValue > VALUE_MATED_IN_MAX_PLY
+          && !pos.advanced_pawn_push(move))
       {
           // Move count based pruning
           if (moveCountPruning)
