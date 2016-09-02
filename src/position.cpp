@@ -40,13 +40,10 @@ namespace Zobrist {
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
   Key side;
-  Key exclusion;
 #ifdef THREECHECK
   Key checks[COLOR_NB][CHECKS_NB];
 #endif
 }
-
-Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion; }
 
 namespace {
 
@@ -135,8 +132,6 @@ void Position::init() {
   }
 
   Zobrist::side = rng.rand<Key>();
-  Zobrist::exclusion  = rng.rand<Key>();
-
 #ifdef THREECHECK
   for (Color c = WHITE; c <= BLACK; ++c)
       for (Checks n = CHECKS_0; n <= CHECKS_3; ++n)
@@ -356,7 +351,6 @@ void Position::set_check_info(StateInfo* si) const {
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
 
   Square ksq = square<KING>(~sideToMove);
-
 #ifdef HORDE
   if (is_horde() && ksq == SQ_NONE) {
   si->checkSquares[PAWN]   = 0;
@@ -409,6 +403,7 @@ void Position::set_state(StateInfo* si) const {
   si->key = si->pawnKey = si->materialKey = var;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
+  set_check_info(si);
 #ifdef RACE
   if (is_race())
   {
@@ -436,8 +431,6 @@ void Position::set_state(StateInfo* si) const {
   {
       si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
   }
-
-  set_check_info(si);
 
   for (Bitboard b = pieces(); b; )
   {
