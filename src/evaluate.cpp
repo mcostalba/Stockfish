@@ -929,7 +929,7 @@ namespace {
     else
 #endif
     bonus = std::min(16, bonus);
-    int weight = pos.count<ALL_PIECES>(Us);
+    int weight = pos.count<ALL_PIECES>(Us) - 2 * ei.pi->open_files();
 #ifdef THREECHECK
     if (pos.is_three_check())
         weight -= pos.checks_count();
@@ -950,7 +950,7 @@ namespace {
     }
 #endif
 
-    return make_score(bonus * weight * weight / 22, 0);
+    return make_score(bonus * weight * weight / 18, 0);
   }
 
 
