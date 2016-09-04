@@ -689,10 +689,10 @@ namespace {
     score += ThreatByPawnPush * popcount(b);
 
 #ifdef HORDE
-    if (pos.is_horde() && Us == BLACK)
+    if (pos.is_horde() && pos.is_horde_color(Them))
     {
-        // Add a bonus according to how close black is to breaking through the pawn wall
-        if (pos.pieces(BLACK, ROOK) | pos.pieces(BLACK, QUEEN))
+        // Add a bonus according to how close we are to breaking through the pawn wall
+        if (pos.pieces(Us, ROOK) | pos.pieces(Us, QUEEN))
         {
             int min = 8;
             if ((ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][ROOK]) & rank_bb(RANK_1))
@@ -701,13 +701,13 @@ namespace {
             {
                 for (File f = FILE_A; f <= FILE_H; ++f)
                 {
-                    int pawns = popcount(pos.pieces(WHITE, PAWN) & file_bb(f));
-                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f - 1]), pawns) : 0;
-                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(WHITE, PAWN) & FileBB[f + 1]), pawns) : 0;
+                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
+                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f - 1]), pawns) : 0;
+                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f + 1]), pawns) : 0;
                     min = std::min(min, pawnsl + pawnsr);
                 }
             }
-            score += ThreatByHangingPawn * pos.count<PAWN>(WHITE) / (1 + min) / (pos.pieces(BLACK, QUEEN) ? 2 : 4);
+            score += ThreatByHangingPawn * pos.count<PAWN>(Them) / (1 + min) / (pos.pieces(Us, QUEEN) ? 2 : 4);
         }
     }
 #endif
@@ -935,11 +935,11 @@ namespace {
         weight -= pos.checks_count();
 #endif
 #ifdef HORDE
-    if (pos.is_horde() && Us == WHITE)
+    if (pos.is_horde() && pos.is_horde_color(Us))
     {
-        weight += pos.non_pawn_material(BLACK) / PawnValueMg;
+        weight += pos.non_pawn_material(Them) / PawnValueMg;
         bonus = bonus * weight * weight / 200;
-        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(BLACK) * 2 / 9, 0);
+        return make_score(bonus, bonus) + make_score(pos.non_pawn_material(Them) * 2 / 9, 0);
     }
 #endif
 #ifdef KOTH

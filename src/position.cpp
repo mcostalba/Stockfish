@@ -352,7 +352,7 @@ void Position::set_check_info(StateInfo* si) const {
 
   Square ksq = square<KING>(~sideToMove);
 #ifdef HORDE
-  if (is_horde() && ksq == SQ_NONE) {
+  if (is_horde() && is_horde_color(~sideToMove)) {
   si->checkSquares[PAWN]   = 0;
   si->checkSquares[KNIGHT] = 0;
   si->checkSquares[BISHOP] = 0;
@@ -413,7 +413,7 @@ void Position::set_state(StateInfo* si) const {
   else
 #endif
 #ifdef HORDE
-  if (is_horde() && square<KING>(sideToMove) == SQ_NONE)
+  if (is_horde() && is_horde_color(sideToMove))
       si->checkersBB = 0;
   else
 #endif
@@ -621,7 +621,7 @@ bool Position::legal(Move m) const {
       return true;
 #endif
 #ifdef HORDE
-  assert(is_horde() && us == WHITE ? square<KING>(us) == SQ_NONE : piece_on(square<KING>(us)) == make_piece(us, KING));
+  assert((is_horde() && is_horde_color(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
 #else
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 #endif
@@ -633,7 +633,7 @@ bool Position::legal(Move m) const {
 #endif
 #ifdef HORDE
   // All pseudo-legal moves by the horde are legal
-  if (is_horde() && square<KING>(us) == SQ_NONE)
+  if (is_horde() && is_horde_color(us))
       return true;
 #endif
 #ifdef ATOMIC
@@ -856,7 +856,7 @@ bool Position::gives_check(Move m) const {
   Square to = to_sq(m);
 
 #ifdef HORDE
-  if (is_horde() && square<KING>(~sideToMove) == SQ_NONE)
+  if (is_horde() && is_horde_color(sideToMove))
       return false;
 #endif
 #ifdef ANTI
@@ -867,7 +867,7 @@ bool Position::gives_check(Move m) const {
   if (is_atomic())
   {
       Square ksq = square<KING>(~sideToMove);
-      if (is_horde() && ksq == SQ_NONE)
+      if (ksq == SQ_NONE)
           return false;
       // If kings are adjacent, there is no check
       // If kings were adjacent, there may be direct checks
@@ -1633,19 +1633,22 @@ bool Position::pos_is_ok(int* failedStep) const {
           }
           else
 #endif
-          if (   (sideToMove != WHITE && sideToMove != BLACK)
 #ifdef HORDE
-#ifdef ATOMIC
-              || (is_horde() ? wksq != SQ_NONE : ((!is_atomic() || wksq != SQ_NONE) && piece_on(wksq) != W_KING))
-#else
-              || (is_horde() ? wksq != SQ_NONE : piece_on(wksq) != W_KING)
+          if (is_horde())
+          {
+              if ((sideToMove != WHITE && sideToMove != BLACK)
+                  || (is_horde_color(WHITE) ? wksq != SQ_NONE : piece_on(wksq) != W_KING)
+                  || (is_horde_color(BLACK) ? bksq != SQ_NONE : piece_on(bksq) != B_KING)
+                  || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) < RANK_6))
+                  return false;
+          }
+          else
 #endif
-#else
+          if (   (sideToMove != WHITE && sideToMove != BLACK)
 #ifdef ATOMIC
               || ((!is_atomic() || wksq != SQ_NONE) && piece_on(wksq) != W_KING)
 #else
               || piece_on(wksq) != W_KING
-#endif
 #endif
 #ifdef ATOMIC
               || ((!is_atomic() || bksq != SQ_NONE) && piece_on(bksq) != B_KING)
@@ -1653,9 +1656,6 @@ bool Position::pos_is_ok(int* failedStep) const {
               || piece_on(bksq) != B_KING
 #endif
               || (   ep_square() != SQ_NONE
-#ifdef HORDE
-                  && (!is_horde() || relative_rank(sideToMove, ep_square()) != RANK_7)
-#endif
                   && relative_rank(sideToMove, ep_square()) != RANK_6))
               return false;
       }
@@ -1668,9 +1668,9 @@ bool Position::pos_is_ok(int* failedStep) const {
 #ifdef HORDE
           if (is_horde())
           {
-              if (   std::count(board, board + SQUARE_NB, W_KING) != 0
-                  || std::count(board, board + SQUARE_NB, B_KING) != 1
-                  || (sideToMove == WHITE && attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
+              if (   std::count(board, board + SQUARE_NB, W_KING) +
+                     std::count(board, board + SQUARE_NB, B_KING) != 1
+                  || (is_horde_color(sideToMove) && attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
               return false;
           } else
 #endif

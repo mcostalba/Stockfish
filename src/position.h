@@ -185,6 +185,7 @@ public:
 #endif
 #ifdef HORDE
   bool is_horde() const;
+  bool is_horde_color(Color c) const;
   bool is_horde_loss() const;
 #endif
 #ifdef HOUSE
@@ -316,7 +317,7 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
 #ifdef HORDE
-  if (is_horde() && c == WHITE)
+  if (is_horde() && is_horde_color(c))
   {
       assert(pieceCount[make_piece(c, Pt)] == 0);
       return SQ_NONE;
@@ -423,7 +424,7 @@ inline bool Position::pawn_passed(Color c, Square s) const {
     return true;
 #endif
 #ifdef HORDE
-  if (is_horde() && c == WHITE)
+  if (is_horde() && is_horde_color(c))
       return !(pieces(~c, PAWN) & forward_bb(c, s));
 #endif
   return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
@@ -502,9 +503,13 @@ inline bool Position::is_horde() const {
   return var & HORDE_VARIANT;
 }
 
+inline bool Position::is_horde_color(Color c) const {
+  return pieceCount[make_piece(c, KING)] == 0;
+}
+
 // Loss if horde is captured (Horde)
 inline bool Position::is_horde_loss() const {
-  return count<ALL_PIECES>(WHITE) == 0;
+  return count<ALL_PIECES>(is_horde_color(WHITE) ? WHITE : BLACK) == 0;
 }
 #endif
 
