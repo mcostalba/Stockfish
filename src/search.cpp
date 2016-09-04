@@ -732,7 +732,7 @@ namespace {
             }
 
             // Extra penalty for a quiet TT move in previous ply when it gets refuted
-            if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
+            if ((ss-1)->moveCount == 1 && !pos.captured_piece())
             {
                 Value penalty = Value(d * d + 4 * d + 1);
                 Square prevSq = to_sq((ss-1)->currentMove);
@@ -1370,7 +1370,7 @@ moves_loop: // When in check search starts from here
         }
 
         // Extra penalty for a quiet TT move in previous ply when it gets refuted
-        if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
+        if ((ss-1)->moveCount == 1 && !pos.captured_piece())
         {
             Value penalty = Value(d * d + 4 * d + 1);
             Square prevSq = to_sq((ss-1)->currentMove);
@@ -1379,7 +1379,7 @@ moves_loop: // When in check search starts from here
     }
     // Bonus for prior countermove that caused the fail low
     else if (    depth >= 3 * ONE_PLY
-             && !pos.captured_piece_type()
+             && !pos.captured_piece()
              && is_ok((ss-1)->currentMove))
     {
         int d = depth / ONE_PLY;

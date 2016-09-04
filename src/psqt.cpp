@@ -104,9 +104,9 @@ const Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
 
 #undef S
 
-Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Score psq[PIECE_NB][SQUARE_NB];
 #ifdef ANTI
-Score psqAnti[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Score psqAnti[PIECE_NB][SQUARE_NB];
 #endif
 
 // init() initializes piece-square tables: the white halves of the tables are
@@ -114,24 +114,24 @@ Score psqAnti[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 // tables are initialized by flipping and changing the sign of the white scores.
 void init() {
 
-  for (PieceType pt = PAWN; pt <= KING; ++pt)
+  for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
   {
-      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
-      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
+      PieceValue[MG][~pc] = PieceValue[MG][pc];
+      PieceValue[EG][~pc] = PieceValue[EG][pc];
 
-      Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
+      Score v = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
 #ifdef ANTI
-      Score vAnti = make_score(PieceValueAnti[MG][pt], PieceValueAnti[EG][pt]);
+      Score vAnti = make_score(PieceValueAnti[MG][pc], PieceValueAnti[EG][pc]);
 #endif
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
           File f = std::min(file_of(s), FILE_H - file_of(s));
-          psq[WHITE][pt][ s] = v + Bonus[pt][rank_of(s)][f];
-          psq[BLACK][pt][~s] = -psq[WHITE][pt][s];
+          psq[ pc][ s] = v + Bonus[pc][rank_of(s)][f];
+          psq[~pc][~s] = -psq[pc][s];
 #ifdef ANTI
-          psqAnti[WHITE][pt][ s] = vAnti + Bonus[pt][rank_of(s)][f];
-          psqAnti[BLACK][pt][~s] = -psqAnti[WHITE][pt][s];
+          psqAnti[ pc][ s] = vAnti + Bonus[pc][rank_of(s)][f];
+          psqAnti[~pc][~s] = -psqAnti[pc][s];
 #endif
       }
   }
