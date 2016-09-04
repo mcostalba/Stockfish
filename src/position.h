@@ -317,11 +317,8 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
 #ifdef HORDE
-  if (is_horde() && is_horde_color(c))
-  {
-      assert(pieceCount[make_piece(c, Pt)] == 0);
+  if (is_horde() && pieceCount[make_piece(c, Pt)] == 0)
       return SQ_NONE;
-  }
 #endif
 #ifdef ATOMIC
   if (is_atomic() && pieceCount[make_piece(c, Pt)] == 0)

@@ -856,7 +856,7 @@ bool Position::gives_check(Move m) const {
   Square to = to_sq(m);
 
 #ifdef HORDE
-  if (is_horde() && is_horde_color(sideToMove))
+  if (is_horde() && is_horde_color(~sideToMove))
       return false;
 #endif
 #ifdef ANTI
