@@ -1426,9 +1426,10 @@ Key Position::key_after(Move m) const {
           while (blast)
           {
               Square bsq = pop_lsb(&blast);
-              Piece bpc = st->blast[bsq];
+              Piece bpc = piece_on(bsq);
               k ^= Zobrist::psq[bpc][bsq];
           }
+          return k ^ Zobrist::psq[pc][from];
       }
 #endif
   }
