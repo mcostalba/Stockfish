@@ -1035,14 +1035,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
       if (is_atomic()) // Remove the blast piece(s)
       {
-          Bitboard blast = attacks_from<KING>(to);
+          Bitboard blast = attacks_from<KING>(to) - from;
           while (blast)
           {
               Square bsq = pop_lsb(&blast);
-              if (bsq == from)
-                  continue;
-              st->blast[bsq] = piece_on(bsq);
-              Piece bpc = st->blast[bsq];
+              Piece bpc = piece_on(bsq);
+              st->blast[bsq] = bpc;
               if (bpc != NO_PIECE && type_of(bpc) != PAWN)
               {
                   Color bc = color_of(st->blast[bsq]);
@@ -1140,17 +1138,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef HORDE
       if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)); else
 #endif
+#ifdef ATOMIC
+      if (is_atomic() && captured); else
+#endif
       if (   (int(to) ^ int(from)) == 16
           && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {
           st->epSquare = (from + to) / 2;
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
       }
-#ifdef ATOMIC
-      else if (is_atomic() && captured)
-      {
-      }
-#endif
       else if (type_of(m) == PROMOTION)
       {
           Piece promotion = make_piece(us, promotion_type(m));
@@ -1183,12 +1179,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[us] += PieceValue[MG][promotion];
       }
 
+      // Update pawn hash key and prefetch access to pawnsTable
 #ifdef ATOMIC
       if (is_atomic() && captured)
           st->pawnKey ^= Zobrist::psq[make_piece(us, PAWN)][from];
       else
 #endif
-      // Update pawn hash key and prefetch access to pawnsTable
       st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
       prefetch(thisThread->pawnsTable[st->pawnKey]);
 

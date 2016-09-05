@@ -91,6 +91,10 @@ inline Bitboard operator^(Bitboard b, Square s) {
   return b ^ SquareBB[s];
 }
 
+inline Bitboard operator-(Bitboard b, Square s) {
+  return (b | s) ^ s;
+}
+
 inline Bitboard& operator|=(Bitboard& b, Square s) {
   return b |= SquareBB[s];
 }
