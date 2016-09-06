@@ -69,7 +69,7 @@ struct StateInfo {
   int    rule50;
   int    pliesFromNull;
 #ifdef THREECHECK
-  Checks checksGiven[COLOR_NB];
+  CheckCount checksGiven[COLOR_NB];
 #endif
   Score  psq;
   Square epSquare;
@@ -208,8 +208,8 @@ public:
   bool is_three_check_win() const;
   bool is_three_check_loss() const;
   int checks_count() const;
-  Checks checks_given() const;
-  Checks checks_taken() const;
+  CheckCount checks_given() const;
+  CheckCount checks_taken() const;
 #endif
 #ifdef ANTI
   bool is_anti() const;
@@ -350,11 +350,11 @@ inline int Position::checks_count() const {
   return st->checksGiven[WHITE] + st->checksGiven[BLACK];
 }
 
-inline Checks Position::checks_given() const {
+inline CheckCount Position::checks_given() const {
   return st->checksGiven[sideToMove];
 }
 
-inline Checks Position::checks_taken() const {
+inline CheckCount Position::checks_taken() const {
   return st->checksGiven[~sideToMove];
 }
 #endif

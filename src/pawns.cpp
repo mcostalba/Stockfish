@@ -266,7 +266,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   castlingRights[Us] = pos.can_castle(Us);
   int minKingPawnDistance = 0;
 #ifdef THREECHECK
-  Checks checks = pos.is_three_check() ? pos.checks_taken() : CHECKS_0;
+  CheckCount checks = pos.is_three_check() ? pos.checks_taken() : CHECKS_0;
 #endif
 
   Bitboard pawns = pos.pieces(Us, PAWN);

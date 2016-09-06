@@ -112,10 +112,9 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
-              Zobrist::psq[make_piece(c, pt)][s] = rng.rand<Key>();
+  for (Piece pc : Pieces)
+      for (Square s = SQ_A1; s <= SQ_H8; ++s)
+          Zobrist::psq[pc][s] = rng.rand<Key>();
 
   for (File f = FILE_A; f <= FILE_H; ++f)
       Zobrist::enpassant[f] = rng.rand<Key>();
@@ -134,7 +133,7 @@ void Position::init() {
   Zobrist::side = rng.rand<Key>();
 #ifdef THREECHECK
   for (Color c = WHITE; c <= BLACK; ++c)
-      for (Checks n = CHECKS_0; n <= CHECKS_3; ++n)
+      for (CheckCount n : Checks)
           Zobrist::checks[c][n] = rng.rand<Key>();
 #endif
 }
@@ -459,18 +458,18 @@ void Position::set_state(StateInfo* si) const {
       si->pawnKey ^= Zobrist::psq[piece_on(s)][s];
   }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
-          for (int cnt = 0; cnt < pieceCount[make_piece(c, pt)]; ++cnt)
-              si->materialKey ^= Zobrist::psq[make_piece(c, pt)][cnt];
+  for (Piece pc : Pieces)
+  {
+      if (type_of(pc) != PAWN && type_of(pc) != KING)
+          si->nonPawnMaterial[color_of(pc)] += pieceCount[pc] * PieceValue[MG][pc];
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-          si->nonPawnMaterial[c] += pieceCount[make_piece(c, pt)] * PieceValue[MG][pt];
+      for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
+          si->materialKey ^= Zobrist::psq[pc][cnt];
+  }
 
 #ifdef THREECHECK
   for (Color c = WHITE; c <= BLACK; ++c)
-      for (Checks n = CHECKS_1; n <= si->checksGiven[c]; ++n)
+      for (CheckCount n : Checks)
           si->key ^= Zobrist::checks[c][n];
 #endif
 }
@@ -1109,7 +1108,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (is_three_check() && givesCheck)
   {
       ++(st->checksGiven[sideToMove]);
-      Checks checksGiven = checks_given();
+      CheckCount checksGiven = checks_given();
       assert(checksGiven < CHECKS_NB);
       k ^= Zobrist::checks[sideToMove][checksGiven];
   }
@@ -1709,18 +1708,15 @@ bool Position::pos_is_ok(int* failedStep) const {
       }
 
       if (step == Lists)
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = PAWN; pt <= KING; ++pt)
-              {
-                  Piece pc = make_piece(c, pt);
+          for (Piece pc : Pieces)
+          {
+              if (pieceCount[pc] != popcount(pieces(color_of(pc), type_of(pc))))
+                  return false;
 
-                  if (pieceCount[pc] != popcount(pieces(c, pt)))
+              for (int i = 0; i < pieceCount[pc]; ++i)
+                  if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
                       return false;
-
-                  for (int i = 0; i < pieceCount[pc]; ++i)
-                      if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
-                          return false;
-              }
+          }
 
       if (step == Castling)
           for (Color c = WHITE; c <= BLACK; ++c)

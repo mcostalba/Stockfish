@@ -152,9 +152,11 @@ template<Color C, CastlingSide S> struct MakeCastling {
 };
 
 #ifdef THREECHECK
-enum Checks {
+enum CheckCount {
   CHECKS_0 = 0, CHECKS_1 = 1, CHECKS_2 = 2, CHECKS_3 = 3, CHECKS_NB = 4
 };
+
+const CheckCount Checks[] = { CHECKS_0, CHECKS_1, CHECKS_2, CHECKS_3 };
 #endif
 
 enum Phase {
@@ -218,6 +220,9 @@ enum Piece {
   B_PAWN = 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
   PIECE_NB = 16
 };
+
+const Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+                         B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
 
 enum Depth {
 
@@ -316,7 +321,7 @@ ENABLE_FULL_OPERATORS_ON(PieceType)
 ENABLE_FULL_OPERATORS_ON(Piece)
 ENABLE_FULL_OPERATORS_ON(Color)
 #ifdef THREECHECK
-ENABLE_FULL_OPERATORS_ON(Checks)
+ENABLE_FULL_OPERATORS_ON(CheckCount)
 #endif
 ENABLE_FULL_OPERATORS_ON(Depth)
 ENABLE_FULL_OPERATORS_ON(Square)
@@ -346,7 +351,7 @@ inline Score operator/(Score s, int i) {
 extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 inline Color operator~(Color c) {
-  return Color(c ^ BLACK);
+  return Color(c ^ BLACK); // Toggle color
 }
 
 inline Square operator~(Square s) {
@@ -354,7 +359,7 @@ inline Square operator~(Square s) {
 }
 
 inline Piece operator~(Piece pc) {
-  return Piece(pc ^ 8);
+  return Piece(pc ^ 8); // Swap color of piece B_KNIGHT -> W_KNIGHT
 }
 
 inline CastlingRight operator|(Color c, CastlingSide s) {
