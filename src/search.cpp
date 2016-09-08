@@ -1088,74 +1088,61 @@ moves_loop: // When in check search starts from here
 #ifdef RACE
       if (pos.is_race() && type_of(moved_piece) == KING && rank_of(to_sq(move)) > rank_of(from_sq(move))) {} else
 #endif
-      if (   !rootNode
-          && !captureOrPromotion
-          && !inCheck
-          && !givesCheck
-          &&  bestValue > VALUE_MATED_IN_MAX_PLY
-          && !pos.advanced_pawn_push(move))
+      if (  !rootNode
+         && !inCheck
+         &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
-          // Move count based pruning
-          if (moveCountPruning)
-              continue;
+          if (   !captureOrPromotion
+              && !givesCheck
+              && !pos.advanced_pawn_push(move))
+          {
+              // Move count based pruning
+              if (moveCountPruning)
+                  continue;
 
-          predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
-
-          // Countermoves based pruning
+              predictedDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO);
 #ifdef RACE
+              predictedDepth -= raceRank * ONE_PLY;
+#endif
 #ifdef THREECHECK
-          if (   predictedDepth < 3 * ONE_PLY - checks - raceRank
-#else
-          if (   predictedDepth < 3 * ONE_PLY - raceRank
+              predictedDepth -= checks * ONE_PLY;
 #endif
-#else
-#ifdef THREECHECK
-          if (   predictedDepth < 3 * ONE_PLY - checks
-#else
-          if (   predictedDepth < 3 * ONE_PLY
-#endif
-#endif
-              && (!cmh  || (*cmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
-              && (!fmh  || (*fmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
-              && (!fmh2 || (*fmh2)[moved_piece][to_sq(move)] < VALUE_ZERO || (cmh && fmh)))
-              continue;
 
-          // Futility pruning: parent node
-#ifdef RACE
-#ifdef THREECHECK
-          if (   predictedDepth < (7 - checks - raceRank) * ONE_PLY
-#else
-          if (   predictedDepth < (7 - raceRank) * ONE_PLY
-#endif
-#else
-#ifdef THREECHECK
-          if (   predictedDepth < (7 - checks) * ONE_PLY
-#else
-          if (   predictedDepth < 7 * ONE_PLY
-#endif
-#endif
-              && ss->staticEval + 256 + 200 * predictedDepth / ONE_PLY <= alpha)
-              continue;
+              // Countermoves based pruning
+              if (   predictedDepth < 3 * ONE_PLY
+                  && (!cmh  || (*cmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
+                  && (!fmh  || (*fmh )[moved_piece][to_sq(move)] < VALUE_ZERO)
+                  && (!fmh2 || (*fmh2)[moved_piece][to_sq(move)] < VALUE_ZERO || (cmh && fmh)))
+                  continue;
 
-          // Prune moves with negative SEE at low depths and below a decreasing
-          // threshold at higher depths.
+              // Futility pruning: parent node
+              if (   predictedDepth < 7 * ONE_PLY
+                  && ss->staticEval + 256 + 200 * predictedDepth / ONE_PLY <= alpha)
+                  continue;
+
+              // Prune moves with negative SEE at low depths and below a decreasing
+              // threshold at higher depths.
 #ifdef ANTI
-          if (pos.is_anti()) {} else
+              if (pos.is_anti()) {} else
 #endif
 #ifdef ATOMIC
-          if (pos.is_atomic()) {} else
+              if (pos.is_atomic()) {} else
 #endif
 #ifdef RACE
-          if (pos.is_race()) {} else
+              if (pos.is_race()) {} else
 #endif
-          if (predictedDepth < 8 * ONE_PLY)
-          {
-              Value see_v = predictedDepth < 4 * ONE_PLY ? VALUE_ZERO
-                            : -PawnValueMg * 2 * int(predictedDepth - 3 * ONE_PLY) / ONE_PLY;
+              if (predictedDepth < 8 * ONE_PLY)
+              {
+                  Value see_v = predictedDepth < 4 * ONE_PLY ? VALUE_ZERO
+                              : -PawnValueMg * 2 * int(predictedDepth - 3 * ONE_PLY) / ONE_PLY;
 
-              if (pos.see_sign(move) < see_v)
-                  continue;
+                  if (pos.see_sign(move) < see_v)
+                      continue;
+              }
           }
+          else if (   depth < 3 * ONE_PLY
+                   && pos.see_sign(move) < VALUE_ZERO)
+              continue;
       }
 
       // Speculative prefetch as early as possible
