@@ -346,8 +346,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE));
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK));
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinnersForKing[WHITE]);
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinnersForKing[BLACK]);
 
   Square ksq = square<KING>(~sideToMove);
 #ifdef HORDE
@@ -556,16 +556,17 @@ Phase Position::game_phase() const {
 }
 
 
-/// Position::slider_blockers() returns a bitboard of all the pieces (both colors) that
-/// are blocking attacks on the square 's' from 'sliders'. A piece blocks a slider
-/// if removing that piece from the board would result in a position where square 's'
-/// is attacked. For example, a king-attack blocking piece can be either a pinned or
-/// a discovered check piece, according if its color is the opposite or the same of
-/// the color of the slider.
+/// Position::slider_blockers() returns a bitboard of all the pieces (both colors)
+/// that are blocking attacks on the square 's' from 'sliders'. A piece blocks a
+/// slider if removing that piece from the board would result in a position where
+/// square 's' is attacked. For example, a king-attack blocking piece can be either
+/// a pinned or a discovered check piece, according if its color is the opposite
+/// or the same of the color of the slider. The pinners bitboard get filled with
+/// real and potential pinners.
 
-Bitboard Position::slider_blockers(Bitboard sliders, Square s) const {
+Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const {
 
-  Bitboard b, pinners, result = 0;
+  Bitboard b, p, result = 0;
 #ifdef HORDE
   if (is_horde() && s == SQ_NONE) return result;
 #endif
@@ -574,12 +575,12 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s) const {
 #endif
 
   // Pinners are sliders that attack 's' when a pinned piece is removed
-  pinners = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
-             | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
+  pinners = p = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
+                 | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
 
-  while (pinners)
+  while (p)
   {
-      b = between_bb(s, pop_lsb(&pinners)) & pieces();
+      b = between_bb(s, pop_lsb(&p)) & pieces();
 
       if (!more_than_one(b))
           result |= b;
@@ -1107,10 +1108,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef THREECHECK
   if (is_three_check() && givesCheck)
   {
-      ++(st->checksGiven[sideToMove]);
-      CheckCount checksGiven = checks_given();
+      ++(st->checksGiven[us]);
+      CheckCount checksGiven = checks_given(us);
       assert(checksGiven < CHECKS_NB);
-      k ^= Zobrist::checks[sideToMove][checksGiven];
+      k ^= Zobrist::checks[us][checksGiven];
   }
 #endif
 
@@ -1509,8 +1510,17 @@ Value Position::see(Move m) const {
   // If the opponent has no attackers we are finished
   stm = ~stm;
   stmAttackers = attackers & pieces(stm);
+  occupied ^= to; // For the case when captured piece is a pinner
+
+  // Don't allow pinned pieces to attack as long all pinners (this includes also
+  // potential ones) are on their original square. When a pinner moves to the
+  // exchange-square or get captured on it, we fall back to standard SEE behaviour.
+  if (   (stmAttackers & pinned_pieces(stm))
+      && (st->pinnersForKing[stm] & occupied) == st->pinnersForKing[stm])
+      stmAttackers &= ~pinned_pieces(stm);
+
   if (!stmAttackers)
-      return swapList[0];
+        return swapList[0];
 
   // The destination square is defended, which makes things rather more
   // difficult to compute. We proceed by building up a "swap list" containing
@@ -1534,6 +1544,10 @@ Value Position::see(Move m) const {
       captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
       stm = ~stm;
       stmAttackers = attackers & pieces(stm);
+      if (   (stmAttackers & pinned_pieces(stm))
+          && (st->pinnersForKing[stm] & occupied) == st->pinnersForKing[stm])
+          stmAttackers &= ~pinned_pieces(stm);
+
       ++slIndex;
 
   } while (stmAttackers && (captured != KING || (--slIndex, false))); // Stop before a king capture

@@ -83,6 +83,7 @@ struct StateInfo {
 #endif
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
+  Bitboard   pinnersForKing[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
 };
 
@@ -140,7 +141,7 @@ public:
   Bitboard attacks_from(Piece pc, Square s) const;
   template<PieceType> Bitboard attacks_from(Square s) const;
   template<PieceType> Bitboard attacks_from(Square s, Color c) const;
-  Bitboard slider_blockers(Bitboard sliders, Square s) const;
+  Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const;
 
   // Properties of moves
   bool legal(Move m) const;
@@ -208,8 +209,7 @@ public:
   bool is_three_check_win() const;
   bool is_three_check_loss() const;
   int checks_count() const;
-  CheckCount checks_given() const;
-  CheckCount checks_taken() const;
+  CheckCount checks_given(Color c) const;
 #endif
 #ifdef ANTI
   bool is_anti() const;
@@ -350,12 +350,8 @@ inline int Position::checks_count() const {
   return st->checksGiven[WHITE] + st->checksGiven[BLACK];
 }
 
-inline CheckCount Position::checks_given() const {
-  return st->checksGiven[sideToMove];
-}
-
-inline CheckCount Position::checks_taken() const {
-  return st->checksGiven[~sideToMove];
+inline CheckCount Position::checks_given(Color c) const {
+  return st->checksGiven[c];
 }
 #endif
 
