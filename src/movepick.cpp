@@ -246,6 +246,9 @@ Move MovePicker::next_move() {
   case COUNTERMOVE:
       ++stage;
       move = countermove;
+#ifdef ANTI
+      if (pos.is_anti() && pos.can_capture()) {} else
+#endif
       if (    move != MOVE_NONE
           &&  move != ttMove
           &&  move != ss->killers[0]
