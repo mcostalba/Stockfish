@@ -190,6 +190,11 @@ namespace {
   const Score AntiPieceScore      = S(-500, -500);
 #endif
 
+#ifdef ATOMIC
+  Score CloseEnemiesAtomic = S( 17,   0);
+  Score PawnBonusAtomic    = S(200, 199);
+#endif
+
   // PassedFile[File] contains a bonus according to the file of a passed pawn
   const Score PassedFile[FILE_NB] = {
     S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
@@ -546,6 +551,11 @@ namespace {
     b =  (Us == WHITE ? b << 4 : b >> 4)
        | (b & ei.attackedBy2[Them] & ~ei.attackedBy[Us][PAWN]);
 
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        score -= CloseEnemiesAtomic * popcount(b);
+    else
+#endif
     score -= CloseEnemies * popcount(b);
 
     if (DoTrace)
@@ -1199,7 +1209,7 @@ Value Eval::evaluate(const Position& pos) {
 #endif
 #ifdef ATOMIC
   if (pos.is_atomic())
-      score -= make_score(pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK),pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK))/4;
+      score += (pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) * PawnBonusAtomic;
 #endif
 
   // Evaluate scale factor for the winning side
