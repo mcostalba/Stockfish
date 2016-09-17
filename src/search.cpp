@@ -1125,9 +1125,6 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
               if (pos.is_anti()) {} else
 #endif
-#ifdef ATOMIC
-              if (pos.is_atomic()) {} else
-#endif
 #ifdef RACE
               if (pos.is_race()) {} else
 #endif
