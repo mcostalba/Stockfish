@@ -223,6 +223,7 @@ enum Piece {
 
 const Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
                          B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
+extern Value PieceValue[PHASE_NB][PIECE_NB];
 
 enum Depth {
 
@@ -280,22 +281,22 @@ enum Rank {
 enum Score : int { SCORE_ZERO };
 
 inline Score make_score(int mg, int eg) {
-  return Score((mg << 16) + eg);
+  return Score((eg << 16) + mg);
 }
 
 /// Extracting the signed lower and upper 16 bits is not so trivial because
 /// according to the standard a simple cast to short is implementation defined
 /// and so is a right shift of a signed integer.
-inline Value mg_value(Score s) {
-
-  union { uint16_t u; int16_t s; } mg = { uint16_t(unsigned(s + 0x8000) >> 16) };
-  return Value(mg.s);
-}
-
 inline Value eg_value(Score s) {
 
-  union { uint16_t u; int16_t s; } eg = { uint16_t(unsigned(s)) };
+  union { uint16_t u; int16_t s; } eg = { uint16_t(unsigned(s + 0x8000) >> 16) };
   return Value(eg.s);
+}
+
+inline Value mg_value(Score s) {
+
+  union { uint16_t u; int16_t s; } mg = { uint16_t(unsigned(s)) };
+  return Value(mg.s);
 }
 
 #define ENABLE_BASE_OPERATORS_ON(T)                             \
@@ -348,8 +349,6 @@ inline Score operator/(Score s, int i) {
   return make_score(mg_value(s) / i, eg_value(s) / i);
 }
 
-extern Value PieceValue[PHASE_NB][PIECE_NB];
-
 inline Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
@@ -375,7 +374,7 @@ inline Value mated_in(int ply) {
 }
 
 inline Square make_square(File f, Rank r) {
-  return Square((r << 3) | f);
+  return Square((r << 3) + f);
 }
 
 inline Piece make_piece(Color c, PieceType pt) {
@@ -445,16 +444,16 @@ inline PieceType promotion_type(Move m) {
 }
 
 inline Move make_move(Square from, Square to) {
-  return Move(to | (from << 6));
+  return Move((from << 6) + to);
 }
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 #ifdef ANTI
   if (pt == KING)
-      return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12) | (1 << 16));
+      return Move((1 << 16) | (T + ((pt - KNIGHT) << 12) + (from << 6) + to));
 #endif
-  return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12));
+  return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
 
 inline bool is_ok(Move m) {
