@@ -1459,6 +1459,9 @@ Value Position::see_sign(Move m) const {
 #ifdef ANTI
   if (is_anti()) {} else
 #endif
+#ifdef ATOMIC
+  if (is_atomic()) {} else
+#endif
   if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
       return VALUE_KNOWN_WIN;
 
@@ -1493,17 +1496,46 @@ Value Position::see(Move m) const {
 #ifdef ATOMIC
   if (is_atomic())
   {
-    Value blast_eval = VALUE_ZERO;
-    Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
-    if (blast & pieces(~stm,KING))
-        return VALUE_MATE;
-    for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-            if (c == stm)
-                blast_eval -= popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
-            else
-                blast_eval += popcount(blast & pieces(c,pt))*PieceValue[MG][pt];
-    return blast_eval + PieceValue[MG][piece_on(to_sq(m))] - PieceValue[MG][moved_piece(m)];
+      if (capture(m))
+      {
+          Value blast_eval = VALUE_ZERO;
+          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
+          if (blast & pieces(~stm,KING))
+              return VALUE_MATE;
+          for (Color c = WHITE; c <= BLACK; ++c)
+              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
+                  if (c == stm)
+                      blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
+                  else
+                      blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
+          return blast_eval + PieceValue[MG][piece_on(to_sq(m))] - PieceValue[MG][moved_piece(m)];
+      }
+      else
+      {
+          Bitboard b = attackers_to(to, occupied) & occupied & pieces(~stm) & ~pieces(KING);
+          Value best_capture = VALUE_ZERO;
+
+          // Loop over attacking pieces to find the best capture
+          while (b)
+          {
+              Square s = pop_lsb(&b);
+
+              Value blast_eval = VALUE_ZERO;
+              Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from] & ~SquareBB[s];
+              if (blast & pieces(~stm,KING))
+                  continue;
+              if (blast & pieces(stm,KING))
+                  return -VALUE_MATE;
+              for (Color c = WHITE; c <= BLACK; ++c)
+                  for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
+                      if (c == stm)
+                          blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
+                      else
+                          blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
+              best_capture = std::min(blast_eval + PieceValue[MG][piece_on(s)] - PieceValue[MG][moved_piece(m)], best_capture);
+          }
+          return best_capture;
+      }
   }
 #endif
 
