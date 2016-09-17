@@ -1456,6 +1456,9 @@ Value Position::see_sign(Move m) const {
   // Early return if SEE cannot be negative because captured piece value
   // is not less then capturing one. Note that king moves always return
   // here because king midgame value is set to 0.
+#ifdef ANTI
+  if (is_anti()) {} else
+#endif
   if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
       return VALUE_KNOWN_WIN;
 
@@ -1479,6 +1482,11 @@ Value Position::see(Move m) const {
 
   from = from_sq(m);
   to = to_sq(m);
+#ifdef ANTI
+  if (is_anti())
+      swapList[0] = PieceValueAnti[MG][piece_on(to)];
+  else
+#endif
   swapList[0] = PieceValue[MG][piece_on(to)];
   stm = color_of(piece_on(from));
   occupied = pieces() ^ from;
@@ -1508,6 +1516,11 @@ Value Position::see(Move m) const {
   if (type_of(m) == ENPASSANT)
   {
       occupied ^= to - pawn_push(stm); // Remove the captured pawn
+#ifdef ANTI
+      if (is_anti())
+          swapList[0] = PieceValueAnti[MG][PAWN];
+      else
+#endif
       swapList[0] = PieceValue[MG][PAWN];
   }
 
@@ -1546,10 +1559,28 @@ Value Position::see(Move m) const {
 #endif
 
       // Add the new entry to the swap list
+#ifdef ANTI
+      if (is_anti())
+          swapList[slIndex] = -swapList[slIndex - 1] + PieceValueAnti[MG][captured];
+      else
+#endif
       swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
 
       // Locate and remove the next least valuable attacker
       captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
+#ifdef ANTI
+      if (is_anti() && captured == KING)
+      {
+          Bitboard b = stmAttackers & byTypeBB[KING];
+          if (b)
+          {
+              occupied ^= b & ~(b - 1);
+              attackers &= occupied;
+          }
+          else
+              --slIndex;
+      }
+#endif
       stm = ~stm;
       stmAttackers = attackers & pieces(stm);
       if (   (stmAttackers & pinned_pieces(stm))
@@ -1558,10 +1589,18 @@ Value Position::see(Move m) const {
 
       ++slIndex;
 
+#ifdef ANTI
+  } while (stmAttackers && (is_anti() || captured != KING || (--slIndex, false))); // Stop before a king capture      
+#else
   } while (stmAttackers && (captured != KING || (--slIndex, false))); // Stop before a king capture
+#endif
 
   // Having built the swap list, we negamax through it to find the best
   // achievable score from the point of view of the side to move.
+#ifdef ANTI
+  if (is_anti())
+      return --slIndex % 2 ? -swapList[slIndex] : swapList[slIndex];
+#endif
   while (--slIndex)
       swapList[slIndex - 1] = std::min(-swapList[slIndex], swapList[slIndex - 1]);
 

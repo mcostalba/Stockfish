@@ -224,6 +224,9 @@ enum Piece {
 const Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
                          B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
 extern Value PieceValue[PHASE_NB][PIECE_NB];
+#ifdef ANTI
+extern Value PieceValueAnti[PHASE_NB][PIECE_NB];
+#endif
 
 enum Depth {
 
