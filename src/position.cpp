@@ -787,6 +787,10 @@ bool Position::pseudo_legal(const Move m) const {
       }
   }
 #endif
+#ifdef ANTI
+  if (is_anti() && !capture(m) && can_capture())
+      return false;
+#endif
 
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)

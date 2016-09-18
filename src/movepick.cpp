@@ -222,9 +222,6 @@ Move MovePicker::next_move() {
 
       ++stage;
       move = ss->killers[0];  // First killer move
-#ifdef ANTI
-      if (pos.is_anti() && pos.can_capture()) {} else
-#endif
       if (    move != MOVE_NONE
           &&  move != ttMove
           &&  pos.pseudo_legal(move)
@@ -234,9 +231,6 @@ Move MovePicker::next_move() {
   case KILLERS:
       ++stage;
       move = ss->killers[1]; // Second killer move
-#ifdef ANTI
-      if (pos.is_anti() && pos.can_capture()) {} else
-#endif
       if (    move != MOVE_NONE
           &&  move != ttMove
           &&  pos.pseudo_legal(move)
@@ -246,9 +240,6 @@ Move MovePicker::next_move() {
   case COUNTERMOVE:
       ++stage;
       move = countermove;
-#ifdef ANTI
-      if (pos.is_anti() && pos.can_capture()) {} else
-#endif
       if (    move != MOVE_NONE
           &&  move != ttMove
           &&  move != ss->killers[0]
