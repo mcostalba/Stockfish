@@ -454,7 +454,7 @@ template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 #ifdef ANTI
   if (pt == KING)
-      return Move((1 << 16) | (T + ((pt - KNIGHT) << 12) + (from << 6) + to));
+      return Move((1 << 16) | (T + (from << 6) + to));
 #endif
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
