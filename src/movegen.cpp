@@ -82,7 +82,7 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti())
     {
-        if (Type == CAPTURES || Type == NON_EVASIONS)
+        if (Type == QUIETS || Type == CAPTURES || Type == NON_EVASIONS)
         {
             *moveList++ = make<PROMOTION>(to - Delta, to, QUEEN);
             *moveList++ = make<PROMOTION>(to - Delta, to, ROOK);
