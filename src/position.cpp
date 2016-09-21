@@ -569,12 +569,12 @@ Phase Position::game_phase() const {
 /// slider if removing that piece from the board would result in a position where
 /// square 's' is attacked. For example, a king-attack blocking piece can be either
 /// a pinned or a discovered check piece, according if its color is the opposite
-/// or the same of the color of the slider. The pinners bitboard get filled with
-/// real and potential pinners.
+/// or the same of the color of the slider.
 
 Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const {
 
-  Bitboard b, p, result = 0;
+  Bitboard result = 0;
+  pinners = 0;
 #ifdef HORDE
   if (is_horde() && s == SQ_NONE) return result;
 #endif
@@ -582,16 +582,21 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   if (is_anti() && s == SQ_NONE) return result;
 #endif
 
-  // Pinners are sliders that attack 's' when a pinned piece is removed
-  pinners = p = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
-                 | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
+  // Snipers are sliders that attack 's' when a piece is removed
+  Bitboard snipers = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
+                      | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
 
-  while (p)
+  while (snipers)
   {
-      b = between_bb(s, pop_lsb(&p)) & pieces();
+    Square sniperSq = pop_lsb(&snipers);
+    Bitboard b = between_bb(s, sniperSq) & pieces();
 
-      if (!more_than_one(b))
-          result |= b;
+    if (!more_than_one(b))
+    {
+        result |= b;
+        if (b & pieces(color_of(piece_on(s))))
+            pinners |= sniperSq;
+    }
   }
   return result;
 }
@@ -1482,7 +1487,7 @@ Value Position::see(Move m) const {
   Value swapList[32];
 #endif
   int slIndex = 1;
-  PieceType captured;
+  PieceType nextVictim;
   Color stm;
 
   assert(is_ok(m));
@@ -1569,8 +1574,8 @@ Value Position::see(Move m) const {
   stmAttackers = attackers & pieces(stm);
   occupied ^= to; // For the case when captured piece is a pinner
 
-  // Don't allow pinned pieces to attack as long all pinners (this includes also
-  // potential ones) are on their original square. When a pinner moves to the
+  // Don't allow pinned pieces to attack pieces except the king as long all
+  // pinners are on their original square. When a pinner moves to the
   // exchange-square or get captured on it, we fall back to standard SEE behaviour.
   if (   (stmAttackers & pinned_pieces(stm))
       && (st->pinnersForKing[stm] & occupied) == st->pinnersForKing[stm])
@@ -1585,7 +1590,7 @@ Value Position::see(Move m) const {
   // destination square, where the sides alternately capture, and always
   // capture with the least valuable piece. After each capture, we look for
   // new X-ray attacks from behind the capturing piece.
-  captured = type_of(piece_on(from));
+  nextVictim = type_of(piece_on(from));
 
   do {
 #ifdef HORDE
@@ -1597,15 +1602,15 @@ Value Position::see(Move m) const {
       // Add the new entry to the swap list
 #ifdef ANTI
       if (is_anti())
-          swapList[slIndex] = -swapList[slIndex - 1] + PieceValueAnti[MG][captured];
+          swapList[slIndex] = -swapList[slIndex - 1] + PieceValueAnti[MG][nextVictim];
       else
 #endif
-      swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
+      swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][nextVictim];
 
       // Locate and remove the next least valuable attacker
-      captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
+      nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
 #ifdef ANTI
-      if (is_anti() && captured == KING)
+      if (is_anti() && nextVictim == KING)
       {
           Bitboard b = stmAttackers & byTypeBB[KING];
           if (b)
@@ -1619,16 +1624,17 @@ Value Position::see(Move m) const {
 #endif
       stm = ~stm;
       stmAttackers = attackers & pieces(stm);
-      if (   (stmAttackers & pinned_pieces(stm))
+      if (    nextVictim != KING
+          && (stmAttackers & pinned_pieces(stm))
           && (st->pinnersForKing[stm] & occupied) == st->pinnersForKing[stm])
           stmAttackers &= ~pinned_pieces(stm);
 
       ++slIndex;
 
 #ifdef ANTI
-  } while (stmAttackers && (is_anti() || captured != KING || (--slIndex, false))); // Stop before a king capture      
+  } while (stmAttackers && (is_anti() || nextVictim != KING || (--slIndex, false))); // Stop before a king capture
 #else
-  } while (stmAttackers && (captured != KING || (--slIndex, false))); // Stop before a king capture
+  } while (stmAttackers && (nextVictim != KING || (--slIndex, false))); // Stop before a king capture
 #endif
 
   // Having built the swap list, we negamax through it to find the best
