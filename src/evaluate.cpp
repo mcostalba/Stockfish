@@ -187,7 +187,9 @@ namespace {
 #endif
 
 #ifdef ANTI
-  const Score AntiPieceScore      = S(-500, -500);
+  const Score ForcedCaptureAnti = S(1135, 1470);
+  const Score PieceCountAnti    = S(122, 124);
+  const Score ThreatsAnti[]     = { S(234, 293), S(468, 382) };
 #endif
 
 #ifdef ATOMIC
@@ -589,10 +591,10 @@ namespace {
         if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ~ei.attackedBy[Them][ALL_PIECES])
             && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
             && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score += 2 * AntiPieceScore;
+            score -= ForcedCaptureAnti;
         // if both colors attack pieces, penalize more the color with more pieces
         else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them)) && (ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score += pos.count<ALL_PIECES>(Us) * AntiPieceScore / 4;
+            score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
 
         // Bonus if we threaten to force captures
         Bitboard push1 = shift_bb<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
@@ -605,8 +607,8 @@ namespace {
         Bitboard unprotected_piece_moves = piece_moves & ~ei.attackedBy2[Us];
         Bitboard unprotected_moves = unprotected_pawn_pushes | unprotected_piece_moves;
 
-        score -= popcount(ei.attackedBy[Them][ALL_PIECES] & movesbb) * AntiPieceScore / 2;
-        score -= popcount(ei.attackedBy[Them][ALL_PIECES] & unprotected_moves) * AntiPieceScore;
+        score += popcount(ei.attackedBy[Them][ALL_PIECES] & movesbb) * ThreatsAnti[0];
+        score += popcount(ei.attackedBy[Them][ALL_PIECES] & unprotected_moves) * ThreatsAnti[1];
     }
     else
     {
