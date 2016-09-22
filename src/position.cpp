@@ -581,6 +581,9 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 #ifdef ANTI
   if (is_anti() && s == SQ_NONE) return result;
 #endif
+#ifdef ATOMIC
+  if (is_atomic() && s == SQ_NONE) return result;
+#endif
 
   // Snipers are sliders that attack 's' when a piece is removed
   Bitboard snipers = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
