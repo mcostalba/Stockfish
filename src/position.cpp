@@ -354,10 +354,27 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
+#ifdef ANTI
+  if (is_anti()) si->blockersForKing[WHITE] = si->blockersForKing[BLACK] = 0;
+  else
+#endif
+  {
   si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinnersForKing[WHITE]);
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinnersForKing[BLACK]);
+  }
 
   Square ksq = square<KING>(~sideToMove);
+#ifdef ANTI
+  if (is_anti()) { // There are no checks in antichess
+  si->checkSquares[PAWN]   = 0;
+  si->checkSquares[KNIGHT] = 0;
+  si->checkSquares[BISHOP] = 0;
+  si->checkSquares[ROOK]   = 0;
+  si->checkSquares[QUEEN]  = 0;
+  si->checkSquares[KING]   = 0;
+  return;
+  }
+#endif
 #ifdef HORDE
   if (is_horde() && is_horde_color(~sideToMove)) {
   si->checkSquares[PAWN]   = 0;
@@ -371,17 +388,6 @@ void Position::set_check_info(StateInfo* si) const {
 #endif
 #ifdef ATOMIC
   if (is_atomic() && ksq == SQ_NONE) {
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
-#ifdef ANTI
-  if (is_anti()) {
   si->checkSquares[PAWN]   = 0;
   si->checkSquares[KNIGHT] = 0;
   si->checkSquares[BISHOP] = 0;
@@ -577,9 +583,6 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   pinners = 0;
 #ifdef HORDE
   if (is_horde() && s == SQ_NONE) return result;
-#endif
-#ifdef ANTI
-  if (is_anti() && s == SQ_NONE) return result;
 #endif
 #ifdef ATOMIC
   if (is_atomic() && s == SQ_NONE) return result;
@@ -1579,6 +1582,9 @@ Value Position::see(Move m) const {
 
   // Don't allow pinned pieces to attack pieces except the king as long all
   // pinners are on their original square.
+#ifdef ANTI
+  if (is_anti()) {} else
+#endif
   if (!(st->pinnersForKing[stm] & ~occupied))
       stmAttackers &= ~st->blockersForKing[stm];
 
@@ -1627,6 +1633,9 @@ Value Position::see(Move m) const {
       stmAttackers = attackers & pieces(stm);
 
       // Don't allow pinned pieces to attack pieces except the king
+#ifdef ANTI
+      if (is_anti()) {} else
+#endif
       if (   nextVictim != KING
           && !(st->pinnersForKing[stm] & ~occupied))
           stmAttackers &= ~st->blockersForKing[stm];
