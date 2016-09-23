@@ -86,6 +86,36 @@ PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitbo
   return KING; // No need to update bitboards: it is the last cycle
 }
 
+template<int Pt>
+PieceType min_attacker_anti(const Bitboard* bb, Square to, Bitboard stmAttackers,
+                       Bitboard& occupied, Bitboard& attackers) {
+
+  Bitboard b = stmAttackers & bb[Pt];
+  if (!b)
+      return min_attacker_anti<Pt-1>(bb, to, stmAttackers, occupied, attackers);
+
+  occupied ^= b & ~(b - 1);
+
+  if (Pt == PAWN || Pt == BISHOP || Pt == QUEEN || Pt == KING)
+      attackers |= attacks_bb<BISHOP>(to, occupied) & (bb[BISHOP] | bb[QUEEN]);
+
+  if (Pt == ROOK || Pt == QUEEN || Pt == KING)
+      attackers |= attacks_bb<ROOK>(to, occupied) & (bb[ROOK] | bb[QUEEN]);
+
+  attackers &= occupied; // After X-ray that may add already processed pieces
+  return (PieceType)Pt;
+}
+
+template<>
+PieceType min_attacker_anti<NO_PIECE_TYPE>(const Bitboard* bb, Square to, Bitboard stmAttackers,
+                       Bitboard& occupied, Bitboard& attackers) {
+
+  Bitboard b = stmAttackers & bb[KING];
+  if (b)
+      return min_attacker_anti<KING>(bb, to, stmAttackers, occupied, attackers);
+  return NO_PIECE_TYPE; // No need to update bitboards: it is the last cycle
+}
+
 } // namespace
 
 
@@ -1003,7 +1033,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
-  assert(type_of(captured) != KING);
 #ifdef ANTI
   assert(is_anti() || type_of(captured) != KING);
 #else
@@ -1471,11 +1500,13 @@ Value Position::see_sign(Move m) const {
   // Early return if SEE cannot be negative because captured piece value
   // is not less then capturing one. Note that king moves always return
   // here because king midgame value is set to 0.
-#ifdef ANTI
-  if (is_anti()) {} else
-#endif
 #ifdef ATOMIC
   if (is_atomic()) {} else
+#endif
+#ifdef ANTI
+  if (PieceValueAnti[MG][moved_piece(m)] <= PieceValueAnti[MG][piece_on(to_sq(m))])
+      return VALUE_KNOWN_WIN;
+  else
 #endif
   if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
       return VALUE_KNOWN_WIN;
@@ -1601,7 +1632,7 @@ Value Position::see(Move m) const {
 
   do {
 #ifdef HORDE
-      assert(slIndex < SQUARE_NB);
+      assert(is_horde() ? slIndex < SQUARE_NB : slIndex < 32);
 #else
       assert(slIndex < 32);
 #endif
@@ -1615,20 +1646,12 @@ Value Position::see(Move m) const {
       swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][nextVictim];
 
       // Locate and remove the next least valuable attacker
-      nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
 #ifdef ANTI
-      if (is_anti() && nextVictim == KING)
-      {
-          Bitboard b = stmAttackers & byTypeBB[KING];
-          if (b)
-          {
-              occupied ^= b & ~(b - 1);
-              attackers &= occupied;
-          }
-          else
-              --slIndex;
-      }
+      if (is_anti()) // Antichess: QUEEN-ROOK-BISHOP-KNIGHT-PAWN-KING
+          nextVictim = min_attacker_anti<QUEEN>(byTypeBB, to, stmAttackers, occupied, attackers);
+      else
 #endif
+      nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
       stm = ~stm;
       stmAttackers = attackers & pieces(stm);
 
@@ -1643,17 +1666,13 @@ Value Position::see(Move m) const {
       ++slIndex;
 
 #ifdef ANTI
-  } while (stmAttackers && (is_anti() || nextVictim != KING || (--slIndex, false))); // Stop before a king capture
+  } while (stmAttackers && (nextVictim != (is_anti() ? NO_PIECE_TYPE : KING) || (--slIndex, false))); // Stop before a king capture
 #else
   } while (stmAttackers && (nextVictim != KING || (--slIndex, false))); // Stop before a king capture
 #endif
 
   // Having built the swap list, we negamax through it to find the best
   // achievable score from the point of view of the side to move.
-#ifdef ANTI
-  if (is_anti())
-      return --slIndex % 2 ? -swapList[slIndex] : swapList[slIndex];
-#endif
   while (--slIndex)
       swapList[slIndex - 1] = std::min(-swapList[slIndex], swapList[slIndex - 1]);
 
