@@ -23,32 +23,32 @@
 #include "bitboard.h"
 #include "position.h"
 #include "search.h"
+#include "syzygy/tbprobe.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
-#include "syzygy/tbprobe.h"
 
 namespace PSQT {
-  void init();
+void init();
 }
 
 int main(int argc, char* argv[]) {
 
-  std::cout << engine_info() << std::endl;
+    std::cout << engine_info() << std::endl;
 
-  UCI::init(Options);
-  PSQT::init();
-  Bitboards::init();
-  Position::init();
-  Bitbases::init();
-  Search::init();
-  Pawns::init();
-  Threads.init();
-  Tablebases::init(Options["SyzygyPath"]);
-  TT.resize(Options["Hash"]);
+    UCI::init(Options);
+    PSQT::init();
+    Bitboards::init();
+    Position::init();
+    Bitbases::init();
+    Search::init();
+    Pawns::init();
+    Threads.init();
+    Tablebases::init(Options["SyzygyPath"]);
+    TT.resize(Options["Hash"]);
 
-  UCI::loop(argc, argv);
+    UCI::loop(argc, argv);
 
-  Threads.exit();
-  return 0;
+    Threads.exit();
+    return 0;
 }
