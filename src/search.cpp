@@ -1886,6 +1886,9 @@ bool RootMove::extract_ponder_from_tt(Position& pos)
     if (pv[0] == MOVE_NONE) // Not pondering
         return false;
 
+    if (!pv[0])
+        return false;
+
     pos.do_move(pv[0], st, pos.gives_check(pv[0]));
     TTEntry* tte = TT.probe(pos.key(), ttHit);
 
