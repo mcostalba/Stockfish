@@ -158,32 +158,32 @@ void benchmark(const Position& current, istream& is) {
       int variant = STANDARD_VARIANT;
       if (Options["UCI_Chess960"])
           variant |= CHESS960_VARIANT;
-#ifdef ANTI
-    if (!((string)Options["UCI_Variant"]).compare("antichess"))
-        variant |= ANTI_VARIANT;
-#endif
 #ifdef ATOMIC
-    if (!((string)Options["UCI_Variant"]).compare("atomic"))
+    if (!(Options["UCI_Variant"].compare("atomic")))
         variant |= ATOMIC_VARIANT;
 #endif
 #ifdef HOUSE
-    if (!((string)Options["UCI_Variant"]).compare("crazyhouse"))
+    if (!(Options["UCI_Variant"].compare("crazyhouse")))
         variant |= HOUSE_VARIANT;
 #endif
+#ifdef ANTI
+    if (!(Options["UCI_Variant"].compare("giveaway")))
+        variant |= ANTI_VARIANT;
+#endif
 #ifdef HORDE
-    if (!((string)Options["UCI_Variant"]).compare("horde"))
+    if (!(Options["UCI_Variant"].compare("horde")))
         variant |= HORDE_VARIANT;
 #endif
 #ifdef KOTH
-    if (!((string)Options["UCI_Variant"]).compare("kingofthehill"))
+    if (!(Options["UCI_Variant"].compare("kingofthehill")))
         variant |= KOTH_VARIANT;
 #endif
 #ifdef RACE
-    if (!((string)Options["UCI_Variant"]).compare("racingkings"))
+    if (!(Options["UCI_Variant"].compare("racingkings")))
         variant |= RACE_VARIANT;
 #endif
 #ifdef THREECHECK
-    if (!((string)Options["UCI_Variant"]).compare("threecheck"))
+    if (!(Options["UCI_Variant"].compare("threecheck")))
         variant |= THREECHECK_VARIANT;
 #endif
       StateListPtr states(new std::deque<StateInfo>(1));
