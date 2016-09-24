@@ -43,6 +43,8 @@
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -102,6 +104,28 @@ typedef uint64_t Bitboard;
 
 const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
+
+//static const constexpr char* variants[] doesn't play nicely with uci.h
+static std::vector<std::string> variants = {"standard"
+#ifdef ANTI
+,"antichess"
+#endif
+#ifdef ATOMIC
+,"atomic"
+#endif
+#ifdef HORDE
+,"horde"
+#endif
+#ifdef KINGOFTHEHILL
+,"kingofthehill"
+#endif
+#ifdef RACE
+,"racingkings"
+#endif
+#ifdef THREECHECK
+,"threecheck"
+#endif
+};
 
 /// A move needs 16 bits to be stored
 ///
