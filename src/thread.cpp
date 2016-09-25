@@ -201,7 +201,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
       th->maxPly = 0;
       th->rootDepth = DEPTH_ZERO;
       th->rootMoves = rootMoves;
-      th->rootPos.set(pos.fen(), pos.variant(), &setupStates->back(), th);
+      th->rootPos.set(pos.fen(), pos.is_chess960(), pos.variant(), &setupStates->back(), th);
   }
 
   setupStates->back() = tmp; // Restore st->previous, cleared by Position::set()

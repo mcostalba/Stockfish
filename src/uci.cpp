@@ -64,8 +64,6 @@ namespace {
     string token, fen;
 
     int variant = STANDARD_VARIANT;
-    if (Options["UCI_Chess960"])
-        variant = CHESS960_VARIANT;
 #ifdef ATOMIC
     if (!(Options["UCI_Variant"].compare("atomic")))
         variant |= ATOMIC_VARIANT;
@@ -118,7 +116,8 @@ namespace {
         return;
 
     States = StateListPtr(new std::deque<StateInfo>(1));
-    pos.set(fen, variant, &States->back(), Threads.main());
+    pos.set(fen, Options["UCI_Chess960"], variant, &States->back(), Threads.main());
+    sync_cout << "info string variant " << (string)Options["UCI_Variant"] << " startpos " << pos.fen() << sync_endl;
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
@@ -197,7 +196,7 @@ void UCI::loop(int argc, char* argv[]) {
   Position pos;
   string token, cmd;
 
-  pos.set(StartFEN, false, &States->back(), Threads.main());
+  pos.set(StartFEN, false, STANDARD_VARIANT, &States->back(), Threads.main());
 
   for (int i = 1; i < argc; ++i)
       cmd += std::string(argv[i]) + " ";

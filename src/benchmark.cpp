@@ -156,8 +156,6 @@ void benchmark(const Position& current, istream& is) {
   for (size_t i = 0; i < fens.size(); ++i)
   {
       int variant = STANDARD_VARIANT;
-      if (Options["UCI_Chess960"])
-          variant |= CHESS960_VARIANT;
 #ifdef ATOMIC
     if (!(Options["UCI_Variant"].compare("atomic")))
         variant |= ATOMIC_VARIANT;
@@ -187,7 +185,7 @@ void benchmark(const Position& current, istream& is) {
         variant |= THREECHECK_VARIANT;
 #endif
       StateListPtr states(new std::deque<StateInfo>(1));
-      pos.set(fens[i], variant, &states->back(), Threads.main());
+      pos.set(fens[i], Options["UCI_Chess960"], variant, &states->back(), Threads.main());
 
       cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
 

@@ -30,14 +30,13 @@
 #include "types.h"
 
 #define STANDARD_VARIANT 0
-#define CHESS960_VARIANT 1 << 1
-#define ATOMIC_VARIANT 1 << 2
-#define HORDE_VARIANT 1 << 3
-#define HOUSE_VARIANT 1 << 4
-#define KOTH_VARIANT 1 << 5
-#define RACE_VARIANT 1 << 6
-#define THREECHECK_VARIANT 1 << 7
-#define ANTI_VARIANT 1 << 8
+#define ATOMIC_VARIANT 1 << 1
+#define HORDE_VARIANT 1 << 2
+#define HOUSE_VARIANT 1 << 3
+#define KOTH_VARIANT 1 << 4
+#define RACE_VARIANT 1 << 5
+#define THREECHECK_VARIANT 1 << 6
+#define ANTI_VARIANT 1 << 7
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -90,7 +89,7 @@ public:
   Position& operator=(const Position&) = delete;
 
   // FEN string input/output
-  Position& set(const std::string& fenStr, int v, StateInfo* si, Thread* th);
+  Position& set(const std::string& fenStr, bool isChess960, int v, StateInfo* si, Thread* th);
   const std::string fen() const;
 
   // Position representation
@@ -164,8 +163,8 @@ public:
   Color side_to_move() const;
   Phase game_phase() const;
   int game_ply() const;
-  int variant() const;
   bool is_chess960() const;
+  int variant() const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -251,6 +250,7 @@ private:
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
+  bool chess960;
   int var;
 
 };
@@ -586,12 +586,12 @@ inline bool Position::is_race_loss() const {
 }
 #endif
 
-inline int Position::variant() const {
-  return var;
+inline bool Position::is_chess960() const {
+  return chess960;
 }
 
-inline bool Position::is_chess960() const {
-  return var & CHESS960_VARIANT;
+inline int Position::variant() const {
+  return var;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
