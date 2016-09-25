@@ -49,6 +49,11 @@ namespace {
     const Square K = Chess960 ? kto > kfrom ? DELTA_W : DELTA_E
                               : KingSide    ? DELTA_W : DELTA_E;
 
+#ifdef ANTI
+    if (pos.is_anti()) {}
+    else
+    {
+#endif
     for (Square s = kto; s != kfrom; s += K)
         if (pos.attackers_to(s) & enemies)
         {
@@ -64,6 +69,9 @@ namespace {
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
     if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
         return moveList;
+#ifdef ANTI
+    }
+#endif
 
     Move m = make<CASTLING>(kfrom, rfrom);
 
