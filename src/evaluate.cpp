@@ -156,7 +156,8 @@ namespace {
   // ThreatBySafePawn[PieceType] contains bonuses according to which piece
   // type is attacked by a pawn which is protected or is not attacked.
   const Score ThreatBySafePawn[PIECE_TYPE_NB] = {
-    S(0, 0), S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215) };
+    S(0, 0), S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215)
+  };
 
   // Threat[by minor/by rook][attacked PieceType] contains
   // bonuses according to which piece type attacks which one.
@@ -243,8 +244,8 @@ namespace {
   template<Color Us>
   void eval_init(const Position& pos, EvalInfo& ei) {
 
-    const Color  Them = (Us == WHITE ? BLACK   : WHITE);
-    const Square Down = (Us == WHITE ? DELTA_S : DELTA_N);
+    const Color  Them = (Us == WHITE ? BLACK : WHITE);
+    const Square Down = (Us == WHITE ? SOUTH : NORTH);
 
     ei.pinnedPieces[Us] = pos.pinned_pieces(Us);
     Bitboard b = ei.attackedBy[Them][KING];
@@ -255,7 +256,7 @@ namespace {
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
-        ei.kingRing[Them] = b | shift_bb<Down>(b);
+        ei.kingRing[Them] = b | shift<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
         ei.kingAttackersCount[Us] = popcount(b);
         ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
@@ -341,7 +342,7 @@ namespace {
                 && pos.is_chess960()
                 && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
             {
-                Square d = pawn_push(Us) + (file_of(s) == FILE_A ? DELTA_E : DELTA_W);
+                Square d = pawn_push(Us) + (file_of(s) == FILE_A ? EAST : WEST);
                 if (pos.piece_on(s + d) == make_piece(Us, PAWN))
                     score -= !pos.empty(s + d + pawn_push(Us))                ? TrappedBishopA1H1 * 4
                             : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? TrappedBishopA1H1 * 2
@@ -413,8 +414,8 @@ namespace {
   template<Color Us, bool DoTrace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK   : WHITE);
-    const Square  Up = (Us == WHITE ? DELTA_N : DELTA_S);
+    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Square  Up = (Us == WHITE ? NORTH : SOUTH);
 
     Bitboard undefended, b, b1, b2, safe, other;
     int kingDanger;
@@ -474,7 +475,7 @@ namespace {
         // ... and some other potential checks, only requiring the square to be
         // safe from pawn-attacks, and not being occupied by a blocked pawn.
         other = ~(   ei.attackedBy[Us][PAWN]
-                  | (pos.pieces(Them, PAWN) & shift_bb<Up>(pos.pieces(PAWN))));
+                  | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
 #ifdef THREECHECK
         if (pos.is_three_check() && pos.checks_given(Them))
             other = safe = ~pos.pieces(Them);
@@ -573,12 +574,12 @@ namespace {
   template<Color Us, bool DoTrace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them        = (Us == WHITE ? BLACK    : WHITE);
-    const Square Up         = (Us == WHITE ? DELTA_N  : DELTA_S);
-    const Square Left       = (Us == WHITE ? DELTA_NW : DELTA_SE);
-    const Square Right      = (Us == WHITE ? DELTA_NE : DELTA_SW);
-    const Bitboard TRank2BB = (Us == WHITE ? Rank2BB  : Rank7BB);
-    const Bitboard TRank7BB = (Us == WHITE ? Rank7BB  : Rank2BB);
+    const Color Them        = (Us == WHITE ? BLACK      : WHITE);
+    const Square Up         = (Us == WHITE ? NORTH      : SOUTH);
+    const Square Left       = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+    const Square Right      = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
+    const Bitboard TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
+    const Bitboard TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
 
     enum { Minor, Rook };
 
@@ -597,8 +598,8 @@ namespace {
             score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
 
         // Bonus if we threaten to force captures
-        Bitboard push1 = shift_bb<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
-        Bitboard push2 = shift_bb<Up>(shift_bb<Up>(TRank2BB & pos.pieces(Us, PAWN)) & ~pos.pieces()) & ~pos.pieces();
+        Bitboard push1 = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
+        Bitboard push2 = shift<Up>(shift<Up>(TRank2BB & pos.pieces(Us, PAWN)) & ~pos.pieces()) & ~pos.pieces();
         Bitboard pawn_pushes = push1 | push2;
         Bitboard piece_moves =  (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
                               | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
@@ -630,7 +631,7 @@ namespace {
         b = pos.pieces(Us, PAWN) & ( ~ei.attackedBy[Them][ALL_PIECES]
                                     | ei.attackedBy[Us][ALL_PIECES]);
 
-        safeThreats = (shift_bb<Right>(b) | shift_bb<Left>(b)) & weak;
+        safeThreats = (shift<Right>(b) | shift<Left>(b)) & weak;
 
         if (weak ^ safeThreats)
             score += ThreatByHangingPawn;
@@ -680,7 +681,7 @@ namespace {
 
     // Bonus if some pawns can safely push and attack an enemy piece
     b = pos.pieces(Us, PAWN) & ~TRank7BB;
-    b = shift_bb<Up>(b | (shift_bb<Up>(b & TRank2BB) & ~pos.pieces()));
+    b = shift<Up>(b | (shift<Up>(b & TRank2BB) & ~pos.pieces()));
 
 #ifdef ATOMIC
     if (pos.is_atomic())
@@ -691,7 +692,7 @@ namespace {
         & ~ei.attackedBy[Them][PAWN]
         & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
 
-    b =  (shift_bb<Left>(b) | shift_bb<Right>(b))
+    b =  (shift<Left>(b) | shift<Right>(b))
        &  pos.pieces(Them)
        & ~ei.attackedBy[Us][PAWN];
 
@@ -1148,8 +1149,8 @@ Value Eval::evaluate(const Position& pos) {
 
   // Pawns blocked or on ranks 2 and 3 will be excluded from the mobility area
   Bitboard blockedPawns[] = {
-    pos.pieces(WHITE, PAWN) & (shift_bb<DELTA_S>(pos.pieces()) | Rank2BB | Rank3BB),
-    pos.pieces(BLACK, PAWN) & (shift_bb<DELTA_N>(pos.pieces()) | Rank7BB | Rank6BB)
+    pos.pieces(WHITE, PAWN) & (shift<SOUTH>(pos.pieces()) | Rank2BB | Rank3BB),
+    pos.pieces(BLACK, PAWN) & (shift<NORTH>(pos.pieces()) | Rank7BB | Rank6BB)
   };
 
   // Do not include in mobility area squares protected by enemy pawns, or occupied

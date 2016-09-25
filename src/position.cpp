@@ -307,13 +307,13 @@ Position& Position::set(const string& fenStr, bool isChess960, int v, StateInfo*
           st->epSquare = SQ_NONE;
       else if (SquareBB[st->epSquare] & pieces())
           st->epSquare = SQ_NONE;
-      else if (sideToMove == WHITE && (shift_bb<DELTA_N>(SquareBB[st->epSquare]) & pieces()))
+      else if (sideToMove == WHITE && (shift<NORTH>(SquareBB[st->epSquare]) & pieces()))
           st->epSquare = SQ_NONE;
-      else if (sideToMove == BLACK && (shift_bb<DELTA_S>(SquareBB[st->epSquare]) & pieces()))
+      else if (sideToMove == BLACK && (shift<SOUTH>(SquareBB[st->epSquare]) & pieces()))
           st->epSquare = SQ_NONE;
-      else if (sideToMove == WHITE && !(shift_bb<DELTA_S>(SquareBB[st->epSquare]) & pieces(BLACK, PAWN)))
+      else if (sideToMove == WHITE && !(shift<SOUTH>(SquareBB[st->epSquare]) & pieces(BLACK, PAWN)))
           st->epSquare = SQ_NONE;
-      else if (sideToMove == BLACK && !(shift_bb<DELTA_N>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
+      else if (sideToMove == BLACK && !(shift<NORTH>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
   }
   else
