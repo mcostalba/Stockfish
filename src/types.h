@@ -106,7 +106,7 @@ const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
 
 //static const constexpr char* variants[] doesn't play nicely with uci.h
-static std::vector<std::string> variants = {"normal"
+static std::vector<std::string> variants = {"chess"
 #ifdef ATOMIC
 ,"atomic"
 #endif
