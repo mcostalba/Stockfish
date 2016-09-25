@@ -36,6 +36,10 @@ namespace {
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
     Square kfrom = pos.square<KING>(us);
+#ifdef ANTI
+    if (pos.is_anti())
+        kfrom = pos.castling_king_square(Cr);
+#endif
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
     Bitboard enemies = pos.pieces(~us);
@@ -339,8 +343,10 @@ namespace {
             while (b)
                 *moveList++ = make_move(ksq, pop_lsb(&b));
         }
-        return moveList;
+        if (pos.can_capture())
+            return moveList;
     }
+    else
 #endif
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {

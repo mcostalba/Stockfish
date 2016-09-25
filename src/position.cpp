@@ -261,6 +261,20 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
       Color c = islower(token) ? BLACK : WHITE;
       Rank rank = relative_rank(c, RANK_1);
       Square ksq = square<KING>(c);
+#ifdef ANTI
+      if (is_anti())
+      {
+          // X-FEN is ambiguous if there are multiple kings
+          // Assume the first king on the rank has castling rights
+          const Square* kl = squares<KING>(c);
+          while ((ksq = *kl++) != SQ_NONE)
+          {
+              assert(piece_on(ksq) == make_piece(c, KING));
+              if (rank_of(ksq) == rank)
+                  break;
+          }
+      }
+#endif
       if (rank_of(ksq) != rank)
           continue;
       Piece rook = make_piece(c, ROOK);
@@ -280,7 +294,7 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
           continue;
 
       if (rsq != ksq)
-          set_castling_right(c, rsq);
+          set_castling_right(c, ksq, rsq);
   }
 
   // 4. En passant square. Ignore if no pawn capture is possible
@@ -311,7 +325,7 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
 #ifdef THREECHECK
     st->checksGiven[WHITE] = CHECKS_0;
     st->checksGiven[BLACK] = CHECKS_0;
-    if ((v & THREECHECK_VARIANT) != 0)
+    if (is_three_check())
     {
         // 7. Checks given counter for Three-Check positions
         if ((ss >> std::skipws >> token) && token == '+')
@@ -356,15 +370,17 @@ Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) 
 /// Position::set_castling_right() is a helper function used to set castling
 /// rights given the corresponding color and the rook starting square.
 
-void Position::set_castling_right(Color c, Square rfrom) {
+void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 
-  Square kfrom = square<KING>(c);
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastlingRight cr = (c | cs);
 
   st->castlingRights |= cr;
   castlingRightsMask[kfrom] |= cr;
   castlingRightsMask[rfrom] |= cr;
+#ifdef ANTI
+  castlingKingSquare[cr] = kfrom;
+#endif
   castlingRookSquare[cr] = rfrom;
 
   Square kto = relative_square(c, cs == KING_SIDE ? SQ_G1 : SQ_C1);
@@ -1858,9 +1874,16 @@ bool Position::pos_is_ok(int* failedStep) const {
                   if (!can_castle(c | s))
                       continue;
 
+#ifdef ANTI
+                  if (   piece_on(castlingKingSquare[c | s]) != make_piece(c, KING)
+                      || piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
+                      || castlingRightsMask[castlingKingSquare[c | s]] != (c | s)
+                      || castlingRightsMask[castlingRookSquare[c | s]] != (c | s))
+#else
                   if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
                       || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
                       ||(castlingRightsMask[square<KING>(c)] & (c | s)) != (c | s))
+#endif
                       return false;
               }
   }

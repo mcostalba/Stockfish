@@ -111,6 +111,9 @@ public:
   int can_castle(Color c) const;
   int can_castle(CastlingRight cr) const;
   bool castling_impeded(CastlingRight cr) const;
+#ifdef ANTI
+  Square castling_king_square(CastlingRight cr) const;
+#endif
   Square castling_rook_square(CastlingRight cr) const;
 
   // Checking
@@ -215,7 +218,7 @@ public:
 
 private:
   // Initialization helpers (used while setting up a position)
-  void set_castling_right(Color c, Square rfrom);
+  void set_castling_right(Color c, Square kfrom, Square rfrom);
   void set_state(StateInfo* si) const;
   void set_check_info(StateInfo* si) const;
 
@@ -238,6 +241,9 @@ private:
 #endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
+#ifdef ANTI
+  Square castlingKingSquare[CASTLING_RIGHT_NB];
+#endif
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
   uint64_t nodes;
@@ -310,7 +316,7 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 #endif
 #ifdef ANTI
   // There may be zero, one, or multiple kings
-  if (is_anti())
+  if (is_anti() && Pt == KING)
       return SQ_NONE;
 #endif
   assert(pieceCount[make_piece(c, Pt)] == 1);
@@ -354,6 +360,12 @@ inline int Position::can_castle(Color c) const {
 inline bool Position::castling_impeded(CastlingRight cr) const {
   return byTypeBB[ALL_PIECES] & castlingPath[cr];
 }
+
+#ifdef ANTI
+inline Square Position::castling_king_square(CastlingRight cr) const {
+  return castlingKingSquare[cr];
+}
+#endif
 
 inline Square Position::castling_rook_square(CastlingRight cr) const {
   return castlingRookSquare[cr];
