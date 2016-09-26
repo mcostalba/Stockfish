@@ -116,7 +116,7 @@ static std::vector<std::string> variants = {"chess"
 #ifdef HORDE
 ,"horde"
 #endif
-#ifdef KINGOFTHEHILL
+#ifdef KOTH
 ,"kingofthehill"
 #endif
 #ifdef RACE
