@@ -33,6 +33,94 @@ using namespace std;
 
 namespace {
 
+/// move_to_san() takes a position and a legal Move as input and returns its
+/// short algebraic notation representation.
+
+const string move_to_san(Position& pos, Move m) {
+
+  const string PieceToChar(" PNBRQK  pnbrqk");
+
+  if (m == MOVE_NONE)
+      return "(none)";
+
+  if (m == MOVE_NULL)
+      return "(null)";
+
+  assert(MoveList<LEGAL>(pos).contains(m));
+
+  Bitboard others, b;
+  string san;
+  Color us = pos.side_to_move();
+  Square from = from_sq(m);
+  Square to = to_sq(m);
+  Piece pc = pos.piece_on(from);
+  PieceType pt = type_of(pc);
+
+  if (type_of(m) == CASTLING)
+      san = to > from ? "O-O" : "O-O-O";
+  else
+  {
+      if (pt != PAWN)
+      {
+          san = PieceToChar[make_piece(WHITE, pt)]; // Upper case
+
+          // A disambiguation occurs if we have more then one piece of type 'pt'
+          // that can reach 'to' with a legal move.
+          others = b = (pos.attacks_from(pc, to) & pos.pieces(us, pt)) ^ from;
+
+          while (b)
+          {
+              Square s = pop_lsb(&b);
+              if (!pos.legal(make_move(s, to)))
+                  others ^= s;
+          }
+
+          if (!others)
+          { /* Disambiguation is not needed */ }
+
+          else if (!(others & file_bb(from)))
+              san += UCI::square(from)[0];
+
+          else if (!(others & rank_bb(from)))
+              san += UCI::square(from)[1];
+
+          else
+              san += to_string(from);
+      }
+      else if (pos.capture(m))
+          san = UCI::square(from)[0];
+
+      if (pos.capture(m))
+          san += 'x';
+
+      san += UCI::square(to);
+
+      if (type_of(m) == PROMOTION)
+          san += string("=") + PieceToChar[make_piece(WHITE, promotion_type(m))];
+  }
+
+  if (pos.gives_check(m))
+  {
+      StateInfo st;
+      pos.do_move(m, st, true);
+      san += MoveList<LEGAL>(pos).size() ? "+" : "#";
+      pos.undo_move(m);
+  }
+
+  return san;
+}
+
+
+Move san_to_move(Position& pos, string san) {
+
+  for (const auto& m : MoveList<LEGAL>(pos))
+      if (move_to_san(pos, m) == san || move_to_san(pos, m) == san + "+")
+          return m;
+
+  return MOVE_NONE;
+}
+
+
 const vector<string> Defaults = {
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -113,7 +201,7 @@ void benchmark(const Position& current, istream& is) {
   Options["Threads"] = threads;
   Search::clear();
 
-  if (limitType == "time")
+  if (limitType == "time" || limitType == "dbt")
       limits.movetime = stoi(limit); // movetime is in millisecs
 
   else if (limitType == "nodes")
@@ -160,15 +248,64 @@ void benchmark(const Position& current, istream& is) {
 
       cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
 
-      if (limitType == "perft")
-          nodes += Search::perft(pos, limits.depth * ONE_PLY);
-
-      else
+      for (size_t n = 0; n < (limitType == "dbt" ? 2 : 1); ++n)
       {
-          limits.startTime = now();
-          Threads.start_thinking(pos, states, limits);
-          Threads.main()->wait_for_search_finished();
-          nodes += Threads.nodes_searched();
+          if (limitType == "perft")
+              nodes += Search::perft(pos, limits.depth * ONE_PLY);
+
+          else
+          {
+              limits.startTime = now();
+              Threads.start_thinking(pos, states, limits);
+              Threads.main()->wait_for_search_finished();
+              nodes += Threads.nodes_searched();
+
+              if (limitType == "dbt")
+              {
+                  const Search::RootMove& rm = Threads.main()->rootMoves[0];
+                  if (!n)
+                  {
+                      std::cerr << pos << "\n\nWarm-up best move: "
+                                << (pos.side_to_move() ? ".." : "")
+                                << move_to_san(pos, rm.pv[0])
+                                << ", score: " << UCI::value(rm.score) << std::endl;
+
+                      // Extract best move from fen string
+                      auto start = fens[i].find("bm ") + 3;
+                      auto end = fens[i].find(";", start);
+                      string bm = fens[i].substr(start, end - start);
+
+                      // Trim white space
+                      start = bm.find_first_not_of(' ');
+                      end = bm.find_last_not_of(' ');
+                      bm = bm.substr(start, (end - start + 1));
+
+                      Move move = san_to_move(pos, bm);
+                      if (move == MOVE_NONE)
+                      {
+                          std::cerr << "Invalid best move: " << std::endl;
+                          break;
+                      }
+                      else if (move == rm.pv[0])
+                      {
+                          std::cerr << "Best move already found!" << std::endl;
+                          break;
+                      }
+
+                      std::cerr << "Forcing best move: "
+                                << (pos.side_to_move() ? ".." : "")
+                                << bm << std::endl;
+
+                      // Force best move and research
+                      states = std::move(Threads.setupStates);
+                      states->push_back(StateInfo());
+                      pos.do_move(move, states->back(), pos.gives_check(move));
+                  }
+                  else
+                      std::cerr << "After forcing best move"
+                                << ", score: " << UCI::value(-rm.score) << std::endl;
+              }
+          }
       }
   }
 
