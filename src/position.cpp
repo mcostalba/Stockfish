@@ -319,19 +319,15 @@ Position& Position::set(const string& fenStr, bool isChess960, int v, StateInfo*
   else
       st->epSquare = SQ_NONE;
 
-  // 5-6. Halfmove clock and fullmove number
-  ss >> std::skipws >> st->rule50 >> gamePly;
-
 #ifdef THREECHECK
     st->checksGiven[WHITE] = CHECKS_0;
     st->checksGiven[BLACK] = CHECKS_0;
     if (is_three_check())
     {
         // 7. Checks given counter for Three-Check positions
-        if ((ss >> std::skipws >> token) && token == '+')
+        if ((ss >> std::skipws >> token))
         {
-            ss >> token;
-            switch(token - '0')
+            switch('3' - token)
             {
             case 0: st->checksGiven[WHITE] = CHECKS_0; break;
             case 1: st->checksGiven[WHITE] = CHECKS_1; break;
@@ -339,20 +335,21 @@ Position& Position::set(const string& fenStr, bool isChess960, int v, StateInfo*
             case 3: st->checksGiven[WHITE] = CHECKS_3; break;
             default: st->checksGiven[WHITE] = CHECKS_NB;
             }
-            if ((ss >> token) && token == '+') {
-                ss >> token;
-                switch(token - '0')
-                {
-                case 0: st->checksGiven[BLACK] = CHECKS_0; break;
-                case 1: st->checksGiven[BLACK] = CHECKS_1; break;
-                case 2: st->checksGiven[BLACK] = CHECKS_2; break;
-                case 3: st->checksGiven[BLACK] = CHECKS_3; break;
-                default : st->checksGiven[BLACK] = CHECKS_NB;
-                }
+            ss >> token >> token;
+            switch('3' - token)
+            {
+            case 0: st->checksGiven[BLACK] = CHECKS_0; break;
+            case 1: st->checksGiven[BLACK] = CHECKS_1; break;
+            case 2: st->checksGiven[BLACK] = CHECKS_2; break;
+            case 3: st->checksGiven[BLACK] = CHECKS_3; break;
+            default : st->checksGiven[BLACK] = CHECKS_NB;
             }
         }
     }
 #endif
+
+  // 5-6. Halfmove clock and fullmove number
+  ss >> std::skipws >> st->rule50 >> gamePly;
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
@@ -563,7 +560,7 @@ const string Position::fen() const {
   }
 #ifdef HOUSE
   if (is_house())
-      ss << '/'; // TODO: pieces in hand
+      ss << "[]"; // TODO: pieces in hand
 #endif
 
   ss << (sideToMove == WHITE ? " w " : " b ");
@@ -583,13 +580,13 @@ const string Position::fen() const {
   if (!can_castle(WHITE) && !can_castle(BLACK))
       ss << '-';
 
-  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ")
-     << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
-
+  ss << (ep_square() == SQ_NONE ? " - " : " " + UCI::square(ep_square()) + " ");
 #ifdef THREECHECK
   if (is_three_check())
-      ss << " +" << st->checksGiven[WHITE] << "+" << st->checksGiven[BLACK];
+      ss << (CHECKS_3 - st->checksGiven[WHITE]) << "+" << (CHECKS_3 - st->checksGiven[BLACK]) << " ";
 #endif
+  ss << st->rule50 << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
+
 
   return ss.str();
 }

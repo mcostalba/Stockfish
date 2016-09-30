@@ -46,6 +46,10 @@ namespace {
   // FEN string of the initial position, race variant
   const char* StartFENRace = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
 #endif
+#ifdef THREECHECK
+  // FEN string of the initial position, horde variant
+  const char* StartFENThreeCheck = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
+#endif
 
   // A list to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
@@ -103,6 +107,11 @@ namespace {
 #ifdef RACE
         if(variant & RACE_VARIANT)
             fen = StartFENRace;
+        else
+#endif
+#ifdef THREECHECK
+        if(variant & THREECHECK_VARIANT)
+            fen = StartFENThreeCheck;
         else
 #endif
         fen = StartFEN;
