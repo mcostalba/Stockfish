@@ -122,6 +122,9 @@ static std::vector<std::string> variants = {"chess"
 #ifdef RACE
 ,"racingkings"
 #endif
+#ifdef RELAY
+,"relay"
+#endif
 #ifdef THREECHECK
 ,"threecheck"
 #endif

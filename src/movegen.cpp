@@ -300,7 +300,11 @@ namespace {
   ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Color us,
                           Bitboard target) {
 
+#ifdef RELAY
+    assert((pos.is_relay() || Pt != KING) && Pt != PAWN);
+#else
     assert(Pt != KING && Pt != PAWN);
+#endif
 
     const Square* pl = pos.squares<Pt>(us);
 
@@ -317,6 +321,25 @@ namespace {
         }
 
         Bitboard b = pos.attacks_from<Pt>(from) & target;
+#ifdef RELAY
+        if (pos.is_relay())
+        {
+            const PieceType pt = type_of(pos.piece_on(from));
+            if (pt == KNIGHT || PseudoAttacks[KNIGHT][from] & pos.pieces(us, KNIGHT))
+                b |= pos.attacks_from<KNIGHT>(from) & target;
+            if (pt == QUEEN || PseudoAttacks[QUEEN][from] & pos.pieces(us, QUEEN))
+                b |= pos.attacks_from<QUEEN>(from) & target;
+            else
+            {
+                if (PseudoAttacks[BISHOP][from] & pos.pieces(us, BISHOP))
+                    b |= pos.attacks_from<BISHOP>(from) & target;
+                if (PseudoAttacks[ROOK][from] & pos.pieces(us, ROOK))
+                    b |= pos.attacks_from<ROOK>(from) & target;
+                if (PseudoAttacks[KING][from] & pos.pieces(us, KING))
+                    b |= pos.attacks_from<KING>(from) & target;
+            }
+        }
+#endif
 
         if (Checks)
             b &= pos.check_squares(Pt);

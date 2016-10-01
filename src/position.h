@@ -36,9 +36,10 @@ enum Variant {
   HORDE_VARIANT,
   KOTH_VARIANT,
   RACE_VARIANT,
+  RELAY_VARIANT,
   THREECHECK_VARIANT,
   HOUSE_VARIANT,
-  VARIANT_NB = 7
+  VARIANT_NB = 8
 };
 
 /// StateInfo struct stores information needed to restore a Position object to
@@ -192,6 +193,9 @@ public:
   bool is_race_win() const;
   bool is_race_draw() const;
   bool is_race_loss() const;
+#endif
+#ifdef RELAY
+  bool is_relay() const;
 #endif
 #ifdef THREECHECK
   bool is_three_check() const;
@@ -586,6 +590,12 @@ inline bool Position::is_race_draw() const {
 inline bool Position::is_race_loss() const {
   return rank_of(square<KING>(~sideToMove)) == RANK_8
         && rank_of(square<KING>(sideToMove)) < (sideToMove == WHITE ? RANK_8 : RANK_7);
+}
+#endif
+
+#ifdef RELAY
+inline bool Position::is_relay() const {
+  return var == RELAY_VARIANT;
 }
 #endif
 

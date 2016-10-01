@@ -92,6 +92,10 @@ namespace {
     if (!(Options["UCI_Variant"].compare("racingkings")))
         variant = RACE_VARIANT;
 #endif
+#ifdef RELAY
+    if (!(Options["UCI_Variant"].compare("relay")))
+        variant = RELAY_VARIANT;
+#endif
 #ifdef THREECHECK
     if (!(Options["UCI_Variant"].compare("threecheck")))
         variant = THREECHECK_VARIANT;
