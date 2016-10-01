@@ -67,50 +67,50 @@ namespace {
     Move m;
     string token, fen;
 
-    int variant = STANDARD_VARIANT;
+    Variant variant = CHESS_VARIANT;
 #ifdef ATOMIC
     if (!(Options["UCI_Variant"].compare("atomic")))
-        variant |= ATOMIC_VARIANT;
+        variant = ATOMIC_VARIANT;
 #endif
 #ifdef HOUSE
     if (!(Options["UCI_Variant"].compare("crazyhouse")))
-        variant |= HOUSE_VARIANT;
+        variant = HOUSE_VARIANT;
 #endif
 #ifdef ANTI
     if (!(Options["UCI_Variant"].compare("giveaway")))
-        variant |= ANTI_VARIANT;
+        variant = ANTI_VARIANT;
 #endif
 #ifdef HORDE
     if (!(Options["UCI_Variant"].compare("horde")))
-        variant |= HORDE_VARIANT;
+        variant = HORDE_VARIANT;
 #endif
 #ifdef KOTH
     if (!(Options["UCI_Variant"].compare("kingofthehill")))
-        variant |= KOTH_VARIANT;
+        variant = KOTH_VARIANT;
 #endif
 #ifdef RACE
     if (!(Options["UCI_Variant"].compare("racingkings")))
-        variant |= RACE_VARIANT;
+        variant = RACE_VARIANT;
 #endif
 #ifdef THREECHECK
     if (!(Options["UCI_Variant"].compare("threecheck")))
-        variant |= THREECHECK_VARIANT;
+        variant = THREECHECK_VARIANT;
 #endif
 
     is >> token;
     if (token == "startpos")
     {
 #ifdef HORDE
-        if(variant & HORDE_VARIANT)
+        if(variant == HORDE_VARIANT)
             fen = StartFENHorde;
         else
 #ifdef RACE
-        if(variant & RACE_VARIANT)
+        if(variant == RACE_VARIANT)
             fen = StartFENRace;
         else
 #endif
 #ifdef THREECHECK
-        if(variant & THREECHECK_VARIANT)
+        if(variant == THREECHECK_VARIANT)
             fen = StartFENThreeCheck;
         else
 #endif
@@ -205,7 +205,7 @@ void UCI::loop(int argc, char* argv[]) {
   Position pos;
   string token, cmd;
 
-  pos.set(StartFEN, false, STANDARD_VARIANT, &States->back(), Threads.main());
+  pos.set(StartFEN, false, CHESS_VARIANT, &States->back(), Threads.main());
 
   for (int i = 1; i < argc; ++i)
       cmd += std::string(argv[i]) + " ";

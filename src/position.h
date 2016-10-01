@@ -29,14 +29,17 @@
 #include "bitboard.h"
 #include "types.h"
 
-#define STANDARD_VARIANT 0
-#define ATOMIC_VARIANT 1 << 1
-#define HORDE_VARIANT 1 << 2
-#define HOUSE_VARIANT 1 << 3
-#define KOTH_VARIANT 1 << 4
-#define RACE_VARIANT 1 << 5
-#define THREECHECK_VARIANT 1 << 6
-#define ANTI_VARIANT 1 << 7
+enum Variant {
+  CHESS_VARIANT,
+  ANTI_VARIANT,
+  ATOMIC_VARIANT,
+  HORDE_VARIANT,
+  KOTH_VARIANT,
+  RACE_VARIANT,
+  THREECHECK_VARIANT,
+  HOUSE_VARIANT,
+  VARIANT_NB = 7
+};
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -89,7 +92,7 @@ public:
   Position& operator=(const Position&) = delete;
 
   // FEN string input/output
-  Position& set(const std::string& fenStr, bool isChess960, int v, StateInfo* si, Thread* th);
+  Position& set(const std::string& fenStr, bool isChess960, Variant v, StateInfo* si, Thread* th);
   const std::string fen() const;
 
   // Position representation
@@ -164,7 +167,7 @@ public:
   Phase game_phase() const;
   int game_ply() const;
   bool is_chess960() const;
-  int variant() const;
+  Variant variant() const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -251,7 +254,7 @@ private:
   Thread* thisThread;
   StateInfo* st;
   bool chess960;
-  int var;
+  Variant var;
 
 };
 
@@ -325,7 +328,7 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 
 #ifdef THREECHECK
 inline bool Position::is_three_check() const {
-  return var & THREECHECK_VARIANT;
+  return var == THREECHECK_VARIANT;
 }
 
 inline bool Position::is_three_check_win() const {
@@ -473,7 +476,7 @@ inline bool Position::opposite_bishops() const {
 
 #ifdef ATOMIC
 inline bool Position::is_atomic() const {
-  return var & ATOMIC_VARIANT;
+  return var == ATOMIC_VARIANT;
 }
 
 // Loss if king is captured (Atomic)
@@ -489,7 +492,7 @@ inline bool Position::is_atomic_loss() const {
 
 #ifdef HORDE
 inline bool Position::is_horde() const {
-  return var & HORDE_VARIANT;
+  return var == HORDE_VARIANT;
 }
 
 inline bool Position::is_horde_color(Color c) const {
@@ -504,7 +507,7 @@ inline bool Position::is_horde_loss() const {
 
 #ifdef ANTI
 inline bool Position::is_anti() const {
-  return var & ANTI_VARIANT;
+  return var == ANTI_VARIANT;
 }
 
 inline bool Position::is_anti_loss() const {
@@ -532,13 +535,13 @@ inline bool Position::can_capture() const {
 
 #ifdef HOUSE
 inline bool Position::is_house() const {
-  return var & HOUSE_VARIANT;
+  return var == HOUSE_VARIANT;
 }
 #endif
 
 #ifdef KOTH
 inline bool Position::is_koth() const {
-  return var & KOTH_VARIANT;
+  return var == KOTH_VARIANT;
 }
 
 // Win if king is in the center (KOTH)
@@ -564,7 +567,7 @@ inline int Position::koth_distance(Color c) const {
 
 #ifdef RACE
 inline bool Position::is_race() const {
-  return var & RACE_VARIANT;
+  return var == RACE_VARIANT;
 }
 
 // Win if king is on the eighth rank (Racing Kings)
@@ -590,7 +593,7 @@ inline bool Position::is_chess960() const {
   return chess960;
 }
 
-inline int Position::variant() const {
+inline Variant Position::variant() const {
   return var;
 }
 

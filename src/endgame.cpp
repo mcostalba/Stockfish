@@ -100,7 +100,7 @@ namespace {
                 + sides[1] + char(8 - sides[1].length() + '0') + " w - - 0 10";
 
     StateInfo st;
-    return Position().set(fen, false, STANDARD_VARIANT, &st, nullptr).material_key();
+    return Position().set(fen, false, CHESS_VARIANT, &st, nullptr).material_key();
   }
 
 } // namespace
