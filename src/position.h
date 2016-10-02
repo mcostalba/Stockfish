@@ -71,6 +71,10 @@ struct StateInfo {
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinnersForKing[COLOR_NB];
+#ifdef RELAY
+  Square     pieceListRelay[PIECE_NB][16];
+  Bitboard   byTypeBBRelay[PIECE_TYPE_NB];
+#endif
   Bitboard   checkSquares[PIECE_TYPE_NB];
 };
 
