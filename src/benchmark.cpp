@@ -240,6 +240,7 @@ void benchmark(const Position& current, istream& is) {
   uint64_t nodes = 0;
   TimePoint elapsed = now();
   Position pos;
+  Move bestMove = MOVE_NONE;
 
   for (size_t i = 0; i < fens.size(); ++i)
   {
@@ -255,6 +256,35 @@ void benchmark(const Position& current, istream& is) {
 
           else
           {
+              if (limitType == "dbt" && n == 0)
+              {
+                  std::cerr << pos << "\n" << std::endl;
+
+                  // Extract best move from fen string
+                  auto start = fens[i].find("bm ") + 3;
+                  auto end = fens[i].find(";", start);
+                  string bm = fens[i].substr(start, end - start);
+
+                  // Trim white space
+                  start = bm.find_first_not_of(' ');
+                  end = bm.find_last_not_of(' ');
+                  bm = bm.substr(start, (end - start + 1));
+
+                  bestMove = san_to_move(pos, bm);
+                  if (bestMove == MOVE_NONE)
+                  {
+                      std::cerr << "Invalid best move: " << bm << std::endl;
+                      break;
+                  }
+
+                  std::cerr << "Forcing best move: "
+                            << (pos.side_to_move() == WHITE ? "" : "..")
+                            << move_to_san(pos, bestMove);
+
+                  states->push_back(StateInfo());
+                  pos.do_move(bestMove, states->back(), pos.gives_check(bestMove));
+              }
+
               limits.startTime = now();
               Threads.start_thinking(pos, states, limits);
               Threads.main()->wait_for_search_finished();
@@ -263,47 +293,23 @@ void benchmark(const Position& current, istream& is) {
               if (limitType == "dbt")
               {
                   const Search::RootMove& rm = Threads.main()->rootMoves[0];
-                  if (!n)
+                  if (n == 0)
                   {
-                      std::cerr << pos << "\n\nWarm-up best move: "
-                                << (pos.side_to_move() ? ".." : "")
+                      std::cerr << ", score: " << UCI::value(-rm.score) << std::endl;
+
+                      states = StateListPtr(new std::deque<StateInfo>(1));
+                      pos.set(fens[i], Options["UCI_Chess960"], &states->back(), Threads.main());
+                  }
+                  else
+                  {
+                      std::cerr << "After research: "
+                                << (pos.side_to_move() == WHITE ? "" : "..")
                                 << move_to_san(pos, rm.pv[0])
                                 << ", score: " << UCI::value(rm.score) << std::endl;
 
-                      // Extract best move from fen string
-                      auto start = fens[i].find("bm ") + 3;
-                      auto end = fens[i].find(";", start);
-                      string bm = fens[i].substr(start, end - start);
-
-                      // Trim white space
-                      start = bm.find_first_not_of(' ');
-                      end = bm.find_last_not_of(' ');
-                      bm = bm.substr(start, (end - start + 1));
-
-                      Move move = san_to_move(pos, bm);
-                      if (move == MOVE_NONE)
-                      {
-                          std::cerr << "Invalid best move: " << std::endl;
-                          break;
-                      }
-                      else if (move == rm.pv[0])
-                      {
-                          std::cerr << "Best move already found!" << std::endl;
-                          break;
-                      }
-
-                      std::cerr << "Forcing best move: "
-                                << (pos.side_to_move() ? ".." : "")
-                                << bm << std::endl;
-
-                      // Force best move and research
-                      states = std::move(Threads.setupStates);
-                      states->push_back(StateInfo());
-                      pos.do_move(move, states->back(), pos.gives_check(move));
+                      if (bestMove == rm.pv[0])
+                          std::cerr << "Best move found!" << std::endl;
                   }
-                  else
-                      std::cerr << "After forcing best move"
-                                << ", score: " << UCI::value(-rm.score) << std::endl;
               }
           }
       }
