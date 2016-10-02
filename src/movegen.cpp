@@ -300,11 +300,7 @@ namespace {
   ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Color us,
                           Bitboard target) {
 
-#ifdef RELAY
-    assert((pos.is_relay() || Pt != KING) && Pt != PAWN);
-#else
     assert(Pt != KING && Pt != PAWN);
-#endif
 
     const Square* pl = pos.squares<Pt>(us);
 
@@ -324,14 +320,14 @@ namespace {
 #ifdef RELAY
         if (pos.is_relay())
         {
-            const Bitboard occupied = pos.pieces();
-            if (attacks_bb<KNIGHT>(from, occupied) & pos.pieces(us, KNIGHT))
+            const Bitboard defenders = pos.attackers_to(from) & pos.pieces(us);
+            if (defenders & pos.pieces(KNIGHT))
                 b |= pos.attacks_from<KNIGHT>(from) & target;
-            if (attacks_bb<BISHOP>(from, occupied) & pos.pieces(us, QUEEN, BISHOP))
+            if (defenders & pos.pieces(QUEEN, BISHOP))
                 b |= pos.attacks_from<BISHOP>(from) & target;
-            if (attacks_bb<ROOK>(from, occupied) & pos.pieces(us, QUEEN, ROOK))
+            if (defenders & pos.pieces(QUEEN, ROOK))
                 b |= pos.attacks_from<ROOK>(from) & target;
-            if (attacks_bb<KING>(from, occupied) & pos.square<KING>(us))
+            if (defenders & pos.pieces(KING))
                 b |= pos.attacks_from<KING>(from) & target;
         }
 #endif
@@ -378,6 +374,18 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = pos.attacks_from<KING>(ksq) & target;
+#ifdef RELAY
+        if (pos.is_relay())
+        {
+            const Bitboard defenders = pos.attackers_to(ksq) & pos.pieces(Us);
+            if (defenders & pos.pieces(KNIGHT))
+                b |= pos.attacks_from<KNIGHT>(ksq) & target;
+            if (defenders & pos.pieces(QUEEN, BISHOP))
+                b |= pos.attacks_from<BISHOP>(ksq) & target;
+            if (defenders & pos.pieces(QUEEN, ROOK))
+                b |= pos.attacks_from<ROOK>(ksq) & target;
+        }
+#endif
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
     }
