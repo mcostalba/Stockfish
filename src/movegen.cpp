@@ -324,20 +324,15 @@ namespace {
 #ifdef RELAY
         if (pos.is_relay())
         {
-            const PieceType pt = type_of(pos.piece_on(from));
-            if (pt == KNIGHT || PseudoAttacks[KNIGHT][from] & pos.pieces(us, KNIGHT))
+            const Bitboard occupied = pos.pieces();
+            if (attacks_bb<KNIGHT>(from, occupied) & pos.pieces(us, KNIGHT))
                 b |= pos.attacks_from<KNIGHT>(from) & target;
-            if (pt == QUEEN || PseudoAttacks[QUEEN][from] & pos.pieces(us, QUEEN))
-                b |= pos.attacks_from<QUEEN>(from) & target;
-            else
-            {
-                if (PseudoAttacks[BISHOP][from] & pos.pieces(us, BISHOP))
-                    b |= pos.attacks_from<BISHOP>(from) & target;
-                if (PseudoAttacks[ROOK][from] & pos.pieces(us, ROOK))
-                    b |= pos.attacks_from<ROOK>(from) & target;
-                if (PseudoAttacks[KING][from] & pos.pieces(us, KING))
-                    b |= pos.attacks_from<KING>(from) & target;
-            }
+            if (attacks_bb<BISHOP>(from, occupied) & pos.pieces(us, QUEEN, BISHOP))
+                b |= pos.attacks_from<BISHOP>(from) & target;
+            if (attacks_bb<ROOK>(from, occupied) & pos.pieces(us, QUEEN, ROOK))
+                b |= pos.attacks_from<ROOK>(from) & target;
+            if (attacks_bb<KING>(from, occupied) & pos.square<KING>(us))
+                b |= pos.attacks_from<KING>(from) & target;
         }
 #endif
 
