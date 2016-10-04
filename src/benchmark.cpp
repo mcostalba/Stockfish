@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iostream>
 #include <istream>
+#include <sstream>
 #include <vector>
 
 #include "misc.h"
@@ -275,15 +276,14 @@ void benchmark(const Position& current, istream& is) {
                       auto end = fens[i].find(";", start);
                       string bm = fens[i].substr(start, end - start);
 
-                      // Trim white space
-                      start = bm.find_first_not_of(' ');
-                      end = bm.find_last_not_of(' ');
-                      bm = bm.substr(start, (end - start + 1));
+                      // Trim white space and extract first move
+                      std::stringstream ss(bm);
+                      ss >> bm;
 
                       Move move = san_to_move(pos, bm);
                       if (move == MOVE_NONE)
                       {
-                          std::cerr << "Invalid best move: " << std::endl;
+                          std::cerr << "Invalid best move: " << bm << std::endl;
                           break;
                       }
                       else if (move == rm.pv[0])
