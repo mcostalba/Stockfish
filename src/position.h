@@ -59,6 +59,14 @@ struct StateInfo {
 // In a std::deque references to elements are unaffected upon resizing
 typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
 
+class Position;
+typedef std::pair<const Position&, Move> SEE;
+
+bool operator>=(const SEE&, Value);
+inline bool operator> (const SEE& see, Value v) { return see >= v + 1; }
+inline bool operator< (const SEE& see, Value v) { return !(see >= v); }
+inline bool operator<=(const SEE& see, Value v) { return !(see >= v + 1); }
+
 
 /// Position class stores information regarding the board representation as
 /// pieces, side to move, hash keys, castling info, etc. Important methods are
@@ -133,7 +141,7 @@ public:
   void undo_null_move();
 
   // Static Exchange Evaluation
-  bool see_ge(Move m, Value value) const;
+  const SEE see(Move m) const { return SEE(*this, m); }
 
   // Accessing hash keys
   Key key() const;
@@ -159,6 +167,8 @@ public:
   void flip();
 
 private:
+  friend bool operator>=(const SEE&, Value);
+
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
@@ -373,7 +383,6 @@ inline Piece Position::captured_piece() const {
 inline Thread* Position::this_thread() const {
   return thisThread;
 }
-
 
 inline void Position::put_piece(Piece pc, Square s) {
 

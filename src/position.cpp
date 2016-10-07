@@ -954,40 +954,36 @@ Key Position::key_after(Move m) const {
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
 }
 
-/// Position::see_ge (Static Exchange Evaluation Greater or Equal) tests if the SEE value of move is
-/// greater or equal to the given value
-bool Position::see_ge(Move m, Value v) const {
+/// Static Exchange Evaluation Greater or Equal tests if the SEE value of move
+/// is greater or equal to the given value. We'll use an algorithm similar to
+/// alpha-beta pruning with a null window.
+bool operator>=(const SEE& see, Value v) {
 
-  // We'll use an algorithm similar to alpha-beta pruning with a null window
+  const Position& pos = see.first;
+  Move move = see.second;
 
-  assert(is_ok(m));
+  assert(is_ok(move));
 
-  // Castling moves are implemented as king capturing the rook so cannot
-  // be handled correctly. Simply assume the SEE value is VALUE_ZERO that is always correct
-  // unless in the rare case the rook ends up under attack.
-  if (type_of(m) == CASTLING)
+  // Castling moves are implemented as king capturing the rook so cannot be
+  // handled correctly. Simply assume the SEE value is VALUE_ZERO that is always
+  // correct unless in the rare case the rook ends up under attack.
+  if (type_of(move) == CASTLING)
     return VALUE_ZERO >= v;
 
-  Square from = from_sq(m), to = to_sq(m);
+  Square from = from_sq(move), to = to_sq(move);
+  PieceType nextVictim = type_of(pos.piece_on(from));
+  Color stm = ~color_of(pos.piece_on(from)); // First consider opponent's move
+  Value balance; // Values of the pieces taken by us minus opponent's ones
+  Bitboard occupied, stmAttackers;
 
-  PieceType nextVictim = type_of(piece_on(from));
-
-  // We'll first consider a move by the opponent
-  Color stm = ~color_of(piece_on(from));
-
-  // the sum of the values of the pieces taken by us minus the corresponding sum of the opponent
-  Value balance;
-
-  Bitboard occupied;
-
-  if (type_of(m) == ENPASSANT)
+  if (type_of(move) == ENPASSANT)
   {
       occupied = SquareBB[to - pawn_push(~stm)]; // Remove the captured pawn
       balance = PieceValue[MG][PAWN];
   }
   else
   {
-      balance = PieceValue[MG][piece_on(to)];
+      balance = PieceValue[MG][pos.piece_on(to)];
       occupied = 0;
   }
 
@@ -1002,35 +998,34 @@ bool Position::see_ge(Move m, Value v) const {
   if (balance >= v)
     return true;
 
-  // true if the opponent is to move and false if we are to move
-  bool relativeStm = true;
-  Bitboard stmAttackers;
+  bool relativeStm = true; // True if the opponent is to move
+  occupied ^= pos.pieces() ^ from ^ to;
 
-  occupied ^= pieces() ^ from ^ to;
-
-  // Find all attackers to the destination square, with the moving piece
-  // removed, but possibly an X-ray attacker added behind it.
-  Bitboard attackers = attackers_to(to, occupied) & occupied;
+  // Find all attackers to the destination square, with the moving piece removed,
+  // but possibly an X-ray attacker added behind it.
+  Bitboard attackers = pos.attackers_to(to, occupied) & occupied;
 
   while (true)
   {
-      stmAttackers = attackers & pieces(stm);
+      stmAttackers = attackers & pos.pieces(stm);
 
       // Don't allow pinned pieces to attack pieces except the king as long all
       // pinners are on their original square.
-      if (!(st->pinnersForKing[stm] & ~occupied))
-          stmAttackers &= ~st->blockersForKing[stm];
+      if (!(pos.st->pinnersForKing[stm] & ~occupied))
+          stmAttackers &= ~pos.st->blockersForKing[stm];
 
       if (!stmAttackers)
           return relativeStm;
 
       // Locate and remove the next least valuable attacker
-      nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
+      nextVictim = min_attacker<PAWN>(pos.byTypeBB, to, stmAttackers, occupied, attackers);
 
       if (nextVictim == KING)
-          return relativeStm == bool(attackers & pieces(~stm));
+          return relativeStm == bool(attackers & pos.pieces(~stm));
 
-      balance = relativeStm ? balance + PieceValue[MG][nextVictim] : balance - PieceValue[MG][nextVictim];
+      balance += relativeStm ?  PieceValue[MG][nextVictim]
+                             : -PieceValue[MG][nextVictim];
+
       relativeStm = !relativeStm;
 
       if (relativeStm == (balance >= v))
@@ -1039,6 +1034,7 @@ bool Position::see_ge(Move m, Value v) const {
       stm = ~stm;
   }
 }
+
 
 /// Position::is_draw() tests whether the position is drawn by 50-move rule
 /// or by repetition. It does not detect stalemates.
