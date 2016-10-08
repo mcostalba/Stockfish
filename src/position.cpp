@@ -1499,164 +1499,92 @@ Key Position::key_after(Move m) const {
 }
 
 
-/// Position::see() is a static exchange evaluator: It tries to estimate the
-/// material gain or loss resulting from a move.
+/// Position::see_ge (Static Exchange Evaluation Greater or Equal) tests if the
+/// SEE value of move is greater or equal to the given value. We'll use an
+/// algorithm similar to alpha-beta pruning with a null window.
 
-Value Position::see_sign(Move m) const {
+bool Position::see_ge(Move m, Value v) const {
 
   assert(is_ok(m));
 
 #ifdef THREECHECK
   if (is_three_check() && gives_check(m))
-      return VALUE_KNOWN_WIN;
-#endif
-  // Early return if SEE cannot be negative because captured piece value
-  // is not less then capturing one. Note that king moves always return
-  // here because king midgame value is set to 0.
-#ifdef ATOMIC
-  if (is_atomic()) {} else
-#endif
-#ifdef ANTI
-  if (PieceValueAnti[MG][moved_piece(m)] <= PieceValueAnti[MG][piece_on(to_sq(m))])
-      return VALUE_KNOWN_WIN;
-  else
-#endif
-  if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
-      return VALUE_KNOWN_WIN;
-
-  return see(m);
-}
-
-Value Position::see(Move m) const {
-
-  Square from, to;
-  Bitboard occupied, attackers, stmAttackers;
-#ifdef HORDE
-  Value swapList[SQUARE_NB];
-#else
-  Value swapList[32];
-#endif
-  int slIndex = 1;
-  PieceType nextVictim;
-  Color stm;
-
-  assert(is_ok(m));
-
-  from = from_sq(m);
-  to = to_sq(m);
-#ifdef ANTI
-  if (is_anti())
-      swapList[0] = PieceValueAnti[MG][piece_on(to)];
-  else
-#endif
-  swapList[0] = PieceValue[MG][piece_on(to)];
-  stm = color_of(piece_on(from));
-  occupied = pieces() ^ from;
-#ifdef ATOMIC
-  if (is_atomic())
-  {
-      if (capture(m))
-      {
-          Value blast_eval = VALUE_ZERO;
-          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
-          if (blast & pieces(~stm,KING))
-              return VALUE_MATE;
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-                  if (c == stm)
-                      blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
-                  else
-                      blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
-          return blast_eval + PieceValue[MG][piece_on(to_sq(m))] - PieceValue[MG][moved_piece(m)];
-      }
-      else
-      {
-          Bitboard b = attackers_to(to, occupied) & occupied & pieces(~stm) & ~pieces(KING);
-          Value best_capture = VALUE_ZERO;
-
-          // Loop over attacking pieces to find the best capture
-          while (b)
-          {
-              Square s = pop_lsb(&b);
-
-              Value blast_eval = VALUE_ZERO;
-              Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from] & ~SquareBB[s];
-              if (blast & pieces(~stm,KING))
-                  continue;
-              if (blast & pieces(stm,KING))
-                  return -VALUE_MATE;
-              for (Color c = WHITE; c <= BLACK; ++c)
-                  for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-                      if (c == stm)
-                          blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
-                      else
-                          blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[MG][pt];
-              best_capture = std::min(blast_eval + PieceValue[MG][piece_on(s)] - PieceValue[MG][moved_piece(m)], best_capture);
-          }
-          return best_capture;
-      }
-  }
+      return true;
 #endif
 
-  // Castling moves are implemented as king capturing the rook so cannot
-  // be handled correctly. Simply return VALUE_ZERO that is always correct
-  // unless in the rare case the rook ends up under attack.
+  // Castling moves are implemented as king capturing the rook so cannot be
+  // handled correctly. Simply assume the SEE value is VALUE_ZERO that is always
+  // correct unless in the rare case the rook ends up under attack.
   if (type_of(m) == CASTLING)
-      return VALUE_ZERO;
+      return VALUE_ZERO >= v;
+
+  Square from = from_sq(m), to = to_sq(m);
+  PieceType nextVictim = type_of(piece_on(from));
+  Color stm = ~color_of(piece_on(from)); // First consider opponent's move
+  Value balance; // Values of the pieces taken by us minus opponent's ones
+  Bitboard occupied, stmAttackers;
 
   if (type_of(m) == ENPASSANT)
   {
-      occupied ^= to - pawn_push(stm); // Remove the captured pawn
+      occupied = SquareBB[to - pawn_push(~stm)]; // Remove the captured pawn
 #ifdef ANTI
       if (is_anti())
-          swapList[0] = PieceValueAnti[MG][PAWN];
+          balance = PieceValueAnti[MG][PAWN];
       else
 #endif
-      swapList[0] = PieceValue[MG][PAWN];
+      balance = PieceValue[MG][PAWN];
+  }
+  else
+  {
+#ifdef ANTI
+      if (is_anti())
+          balance = PieceValueAnti[MG][piece_on(to)];
+      else
+#endif
+      balance = PieceValue[MG][piece_on(to)];
+      occupied = 0;
   }
 
-  // Find all attackers to the destination square, with the moving piece
-  // removed, but possibly an X-ray attacker added behind it.
-  attackers = attackers_to(to, occupied) & occupied;
+  if (balance < v)
+      return false;
 
-  // If the opponent has no attackers we are finished
-  stm = ~stm;
-  stmAttackers = attackers & pieces(stm);
-  occupied ^= to; // For the case when captured piece is a pinner
-
-  // Don't allow pinned pieces to attack pieces except the king as long all
-  // pinners are on their original square.
 #ifdef ANTI
   if (is_anti()) {} else
 #endif
-  if (!(st->pinnersForKing[stm] & ~occupied))
-      stmAttackers &= ~st->blockersForKing[stm];
+  if (nextVictim == KING)
+      return true;
 
-  if (!stmAttackers)
-        return swapList[0];
-
-  // The destination square is defended, which makes things rather more
-  // difficult to compute. We proceed by building up a "swap list" containing
-  // the material gain or loss at each stop in a sequence of captures to the
-  // destination square, where the sides alternately capture, and always
-  // capture with the least valuable piece. After each capture, we look for
-  // new X-ray attacks from behind the capturing piece.
-  nextVictim = type_of(piece_on(from));
-
-  do {
-#ifdef HORDE
-      assert(is_horde() ? slIndex < SQUARE_NB : slIndex < 32);
-#else
-      assert(slIndex < 32);
-#endif
-
-      // Add the new entry to the swap list
 #ifdef ANTI
-      if (is_anti())
-          swapList[slIndex] = -swapList[slIndex - 1] + PieceValueAnti[MG][nextVictim];
-      else
+  if (is_anti())
+      balance -= PieceValueAnti[MG][nextVictim];
+  else
 #endif
-      swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][nextVictim];
+  balance -= PieceValue[MG][nextVictim];
+
+  if (balance >= v)
+      return true;
+
+  bool relativeStm = true; // True if the opponent is to move
+  occupied ^= pieces() ^ from ^ to;
+
+  // Find all attackers to the destination square, with the moving piece removed,
+  // but possibly an X-ray attacker added behind it.
+  Bitboard attackers = attackers_to(to, occupied) & occupied;
+
+  while (true)
+  {
+      stmAttackers = attackers & pieces(stm);
+
+      // Don't allow pinned pieces to attack pieces except the king as long all
+      // pinners are on their original square.
+#ifdef ANTI
+      if (is_anti()) {} else
+#endif
+      if (!(st->pinnersForKing[stm] & ~occupied))
+          stmAttackers &= ~st->blockersForKing[stm];
+
+      if (!stmAttackers)
+          return relativeStm;
 
       // Locate and remove the next least valuable attacker
 #ifdef ANTI
@@ -1665,31 +1593,30 @@ Value Position::see(Move m) const {
       else
 #endif
       nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
-      stm = ~stm;
-      stmAttackers = attackers & pieces(stm);
 
       // Don't allow pinned pieces to attack pieces except the king
 #ifdef ANTI
       if (is_anti()) {} else
 #endif
-      if (   nextVictim != KING
-          && !(st->pinnersForKing[stm] & ~occupied))
-          stmAttackers &= ~st->blockersForKing[stm];
-
-      ++slIndex;
+      if (nextVictim == KING)
+          return relativeStm == bool(attackers & pieces(~stm));
 
 #ifdef ANTI
-  } while (stmAttackers && (nextVictim != (is_anti() ? NO_PIECE_TYPE : KING) || (--slIndex, false))); // Stop before a king capture
-#else
-  } while (stmAttackers && (nextVictim != KING || (--slIndex, false))); // Stop before a king capture
+      if (is_anti())
+          balance += relativeStm ?  PieceValueAnti[MG][nextVictim]
+                                 : -PieceValueAnti[MG][nextVictim];
+      else
 #endif
+      balance += relativeStm ?  PieceValue[MG][nextVictim]
+                             : -PieceValue[MG][nextVictim];
 
-  // Having built the swap list, we negamax through it to find the best
-  // achievable score from the point of view of the side to move.
-  while (--slIndex)
-      swapList[slIndex - 1] = std::min(-swapList[slIndex], swapList[slIndex - 1]);
+      relativeStm = !relativeStm;
 
-  return swapList[0];
+      if (relativeStm == (balance >= v))
+          return relativeStm;
+
+      stm = ~stm;
+  }
 }
 
 
