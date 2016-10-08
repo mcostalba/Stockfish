@@ -599,6 +599,10 @@ Phase Position::game_phase() const {
   if (is_atomic())
       npm += npm;
 #endif
+#ifdef ANTI
+  if (is_anti())
+      npm = -npm;
+#endif
 
   npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
 
