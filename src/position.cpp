@@ -512,7 +512,7 @@ void Position::set_state(StateInfo* si) const {
   for (Piece pc : Pieces)
   {
       if (type_of(pc) != PAWN && type_of(pc) != KING)
-          si->nonPawnMaterial[color_of(pc)] += pieceCount[pc] * PieceValue[var][MG][pc];
+          si->nonPawnMaterial[color_of(pc)] += pieceCount[pc] * PieceValue[CHESS_VARIANT][MG][pc];
 
       for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
           si->materialKey ^= Zobrist::psq[var][pc][cnt];
@@ -598,10 +598,6 @@ Phase Position::game_phase() const {
 #ifdef ATOMIC
   if (is_atomic())
       npm += npm;
-#endif
-#ifdef ANTI
-  if (is_anti())
-      npm = -npm;
 #endif
 
   npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
@@ -1086,7 +1082,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[var][captured][capsq];
       }
       else
-          st->nonPawnMaterial[them] -= PieceValue[var][MG][captured];
+          st->nonPawnMaterial[them] -= PieceValue[CHESS_VARIANT][MG][captured];
 
       // Update board and piece lists
       remove_piece(captured, capsq);
@@ -1106,7 +1102,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               if (bpc != NO_PIECE && type_of(bpc) != PAWN)
               {
                   Color bc = color_of(st->blast[bsq]);
-                  st->nonPawnMaterial[bc] -= PieceValue[var][MG][type_of(bpc)];
+                  st->nonPawnMaterial[bc] -= PieceValue[CHESS_VARIANT][MG][type_of(bpc)];
 
                   // Update board and piece lists
                   remove_piece(bpc, bsq);
@@ -1180,7 +1176,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Update material (hash key already updated)
       st->materialKey ^= Zobrist::psq[var][pc][pieceCount[pc]];
       if (type_of(pc) != PAWN)
-          st->nonPawnMaterial[us] -= PieceValue[var][MG][type_of(pc)];
+          st->nonPawnMaterial[us] -= PieceValue[CHESS_VARIANT][MG][type_of(pc)];
   }
   else
 #endif
@@ -1228,7 +1224,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->psq += PSQT::psq[var][promotion][to] - PSQT::psq[var][pc][to];
 
           // Update material
-          st->nonPawnMaterial[us] += PieceValue[var][MG][promotion];
+          st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][promotion];
       }
 
       // Update pawn hash key and prefetch access to pawnsTable
