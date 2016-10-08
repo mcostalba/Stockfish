@@ -72,9 +72,9 @@ namespace {
     if (!(Options["UCI_Variant"].compare("atomic")))
         variant = ATOMIC_VARIANT;
 #endif
-#ifdef HOUSE
+#ifdef CRAZYHOUSE
     if (!(Options["UCI_Variant"].compare("crazyhouse")))
-        variant = HOUSE_VARIANT;
+        variant = CRAZYHOUSE_VARIANT;
 #endif
 #ifdef ANTI
     if (!(Options["UCI_Variant"].compare("giveaway")))

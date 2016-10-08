@@ -169,7 +169,7 @@ public:
   bool is_horde_color(Color c) const;
   bool is_horde_loss() const;
 #endif
-#ifdef HOUSE
+#ifdef CRAZYHOUSE
   bool is_house() const;
 #endif
 #ifdef KOTH
@@ -527,9 +527,9 @@ inline bool Position::can_capture() const {
 }
 #endif
 
-#ifdef HOUSE
+#ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
-  return var == HOUSE_VARIANT;
+  return var == CRAZYHOUSE_VARIANT;
 }
 #endif
 

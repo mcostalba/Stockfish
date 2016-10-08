@@ -39,6 +39,12 @@ Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
   { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
 },
 #endif
+#ifdef CRAZYHOUSE
+{
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+},
+#endif
 #ifdef HORDE
 {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },

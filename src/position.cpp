@@ -551,7 +551,7 @@ const string Position::fen() const {
       if (r > RANK_1)
           ss << '/';
   }
-#ifdef HOUSE
+#ifdef CRAZYHOUSE
   if (is_house())
       ss << "[]"; // TODO: pieces in hand
 #endif

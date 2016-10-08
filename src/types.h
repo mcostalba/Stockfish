@@ -113,6 +113,9 @@ enum Variant {
 #ifdef ATOMIC
   ATOMIC_VARIANT,
 #endif
+#ifdef CRAZYHOUSE
+  CRAZYHOUSE_VARIANT,
+#endif
 #ifdef HORDE
   HORDE_VARIANT,
 #endif
@@ -128,9 +131,6 @@ enum Variant {
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
-#ifdef HOUSE
-  HOUSE_VARIANT,
-#endif
   VARIANT_NB
 };
 
@@ -141,6 +141,9 @@ static std::vector<std::string> variants = {"chess"
 #endif
 #ifdef ANTI
 ,"giveaway"
+#endif
+#ifdef CRAZYHOUSE
+,"crazyhouse"
 #endif
 #ifdef HORDE
 ,"horde"
