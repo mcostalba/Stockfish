@@ -135,10 +135,10 @@ void MovePicker::score<CAPTURES>() {
   for (auto& m : *this)
 #ifdef RACE
       if (pos.is_race())
-          m.value = PieceValue[MG][pos.piece_on(to_sq(m))] - Value(200 * relative_rank(BLACK, to_sq(m)));
+          m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))] - Value(200 * relative_rank(BLACK, to_sq(m)));
       else
 #endif
-      m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
+      m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
                - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
 }
 
@@ -171,7 +171,7 @@ void MovePicker::score<EVASIONS>() {
 
   for (auto& m : *this)
       if (pos.capture(m))
-          m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
+          m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
                    - Value(type_of(pos.moved_piece(m))) + HistoryStats::Max;
       else
           m.value = history[pos.moved_piece(m)][to_sq(m)] + fromTo.get(c, m);

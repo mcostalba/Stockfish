@@ -29,19 +29,6 @@
 #include "bitboard.h"
 #include "types.h"
 
-enum Variant {
-  CHESS_VARIANT,
-  ANTI_VARIANT,
-  ATOMIC_VARIANT,
-  HORDE_VARIANT,
-  KOTH_VARIANT,
-  RACE_VARIANT,
-  RELAY_VARIANT,
-  THREECHECK_VARIANT,
-  HOUSE_VARIANT,
-  VARIANT_NB = 8
-};
-
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
 /// board (by calling Position::do_move), a StateInfo object must be passed.

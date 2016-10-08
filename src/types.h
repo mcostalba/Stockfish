@@ -105,6 +105,35 @@ typedef uint64_t Bitboard;
 const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
 
+enum Variant {
+  CHESS_VARIANT,
+#ifdef ANTI
+  ANTI_VARIANT,
+#endif
+#ifdef ATOMIC
+  ATOMIC_VARIANT,
+#endif
+#ifdef HORDE
+  HORDE_VARIANT,
+#endif
+#ifdef KOTH
+  KOTH_VARIANT,
+#endif
+#ifdef RACE
+  RACE_VARIANT,
+#endif
+#ifdef RELAY
+  RELAY_VARIANT,
+#endif
+#ifdef THREECHECK
+  THREECHECK_VARIANT,
+#endif
+#ifdef HOUSE
+  HOUSE_VARIANT,
+#endif
+  VARIANT_NB
+};
+
 //static const constexpr char* variants[] doesn't play nicely with uci.h
 static std::vector<std::string> variants = {"chess"
 #ifdef ATOMIC
@@ -250,10 +279,7 @@ enum Piece {
 
 const Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
                          B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
-extern Value PieceValue[PHASE_NB][PIECE_NB];
-#ifdef ANTI
-extern Value PieceValueAnti[PHASE_NB][PIECE_NB];
-#endif
+extern Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB];
 
 enum Depth {
 
@@ -345,6 +371,7 @@ inline T operator/(T d, int i) { return T(int(d) / i); }        \
 inline int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
+ENABLE_FULL_OPERATORS_ON(Variant)
 ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(PieceType)
 ENABLE_FULL_OPERATORS_ON(Piece)

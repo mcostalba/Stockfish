@@ -36,15 +36,12 @@
 using std::string;
 
 namespace PSQT {
-  extern Score psq[PIECE_NB][SQUARE_NB];
-#ifdef ANTI
-  extern Score psqAnti[PIECE_NB][SQUARE_NB];
-#endif
+  extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 }
 
 namespace Zobrist {
 
-  Key psq[PIECE_NB][SQUARE_NB];
+  Key psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
   Key side;
@@ -150,9 +147,10 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Piece pc : Pieces)
-      for (Square s = SQ_A1; s <= SQ_H8; ++s)
-          Zobrist::psq[pc][s] = rng.rand<Key>();
+  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
+      for (Piece pc : Pieces)
+          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+              Zobrist::psq[var][pc][s] = rng.rand<Key>();
 
   for (File f = FILE_A; f <= FILE_H; ++f)
       Zobrist::enpassant[f] = rng.rand<Key>();
@@ -493,13 +491,8 @@ void Position::set_state(StateInfo* si) const {
   {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
-      si->key ^= Zobrist::psq[pc][s];
-#ifdef ANTI
-      if (is_anti())
-          si->psq += PSQT::psqAnti[pc][s];
-      else
-#endif
-      si->psq += PSQT::psq[pc][s];
+      si->key ^= Zobrist::psq[var][pc][s];
+      si->psq += PSQT::psq[var][pc][s];
   }
 
   if (si->epSquare != SQ_NONE)
@@ -513,16 +506,16 @@ void Position::set_state(StateInfo* si) const {
   for (Bitboard b = pieces(PAWN); b; )
   {
       Square s = pop_lsb(&b);
-      si->pawnKey ^= Zobrist::psq[piece_on(s)][s];
+      si->pawnKey ^= Zobrist::psq[var][piece_on(s)][s];
   }
 
   for (Piece pc : Pieces)
   {
       if (type_of(pc) != PAWN && type_of(pc) != KING)
-          si->nonPawnMaterial[color_of(pc)] += pieceCount[pc] * PieceValue[MG][pc];
+          si->nonPawnMaterial[color_of(pc)] += pieceCount[pc] * PieceValue[var][MG][pc];
 
       for (int cnt = 0; cnt < pieceCount[pc]; ++cnt)
-          si->materialKey ^= Zobrist::psq[pc][cnt];
+          si->materialKey ^= Zobrist::psq[var][pc][cnt];
   }
 
 #ifdef THREECHECK
@@ -1060,8 +1053,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Square rfrom, rto;
       do_castling<true>(us, from, to, rfrom, rto);
 
-      st->psq += PSQT::psq[captured][rto] - PSQT::psq[captured][rfrom];
-      k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
+      st->psq += PSQT::psq[var][captured][rto] - PSQT::psq[var][captured][rfrom];
+      k ^= Zobrist::psq[var][captured][rfrom] ^ Zobrist::psq[var][captured][rto];
       captured = NO_PIECE;
   }
 
@@ -1086,17 +1079,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               board[capsq] = NO_PIECE; // Not done by remove_piece()
           }
 
-          st->pawnKey ^= Zobrist::psq[captured][capsq];
+          st->pawnKey ^= Zobrist::psq[var][captured][capsq];
       }
       else
-          st->nonPawnMaterial[them] -= PieceValue[MG][captured];
+          st->nonPawnMaterial[them] -= PieceValue[var][MG][captured];
 
       // Update board and piece lists
       remove_piece(captured, capsq);
 
       // Update material hash key and prefetch access to materialTable
-      k ^= Zobrist::psq[captured][capsq];
-      st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
+      k ^= Zobrist::psq[var][captured][capsq];
+      st->materialKey ^= Zobrist::psq[var][captured][pieceCount[captured]];
 #ifdef ATOMIC
       if (is_atomic()) // Remove the blast piece(s)
       {
@@ -1109,17 +1102,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               if (bpc != NO_PIECE && type_of(bpc) != PAWN)
               {
                   Color bc = color_of(st->blast[bsq]);
-                  st->nonPawnMaterial[bc] -= PieceValue[MG][type_of(bpc)];
+                  st->nonPawnMaterial[bc] -= PieceValue[var][MG][type_of(bpc)];
 
                   // Update board and piece lists
                   remove_piece(bpc, bsq);
 
                   // Update material hash key
-                  k ^= Zobrist::psq[bpc][bsq];
-                  st->materialKey ^= Zobrist::psq[bpc][pieceCount[bpc]];
+                  k ^= Zobrist::psq[var][bpc][bsq];
+                  st->materialKey ^= Zobrist::psq[var][bpc][pieceCount[bpc]];
 
                   // Update incremental scores
-                  st->psq -= PSQT::psq[bpc][bsq];
+                  st->psq -= PSQT::psq[var][bpc][bsq];
 
                   // Update castling rights if needed
                   if (st->castlingRights && castlingRightsMask[bsq])
@@ -1136,12 +1129,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       prefetch(thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
-#ifdef ANTI
-      if (is_anti())
-          st->psq -= PSQT::psqAnti[captured][capsq];
-      else
-#endif
-      st->psq -= PSQT::psq[captured][capsq];
+      st->psq -= PSQT::psq[var][captured][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -1149,11 +1137,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 #ifdef ATOMIC
   if (is_atomic() && captured)
-      k ^= Zobrist::psq[pc][from];
+      k ^= Zobrist::psq[var][pc][from];
   else
 #endif
   // Update hash key
-  k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+  k ^= Zobrist::psq[var][pc][from] ^ Zobrist::psq[var][pc][to];
 
   // Reset en passant square
   if (st->epSquare != SQ_NONE)
@@ -1186,9 +1174,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->blast[from] = piece_on(from);
       remove_piece(pc, from);
       // Update material (hash key already updated)
-      st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
+      st->materialKey ^= Zobrist::psq[var][pc][pieceCount[pc]];
       if (type_of(pc) != PAWN)
-          st->nonPawnMaterial[us] -= PieceValue[MG][type_of(pc)];
+          st->nonPawnMaterial[us] -= PieceValue[var][MG][type_of(pc)];
   }
   else
 #endif
@@ -1227,30 +1215,25 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           put_piece(promotion, to);
 
           // Update hash keys
-          k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
-          st->pawnKey ^= Zobrist::psq[pc][to];
-          st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
-                            ^ Zobrist::psq[pc][pieceCount[pc]];
+          k ^= Zobrist::psq[var][pc][to] ^ Zobrist::psq[var][promotion][to];
+          st->pawnKey ^= Zobrist::psq[var][pc][to];
+          st->materialKey ^=  Zobrist::psq[var][promotion][pieceCount[promotion]-1]
+                            ^ Zobrist::psq[var][pc][pieceCount[pc]];
 
           // Update incremental score
-#ifdef ANTI
-          if (is_anti())
-              st->psq += PSQT::psqAnti[promotion][to] - PSQT::psqAnti[pc][to];
-          else
-#endif
-          st->psq += PSQT::psq[promotion][to] - PSQT::psq[pc][to];
+          st->psq += PSQT::psq[var][promotion][to] - PSQT::psq[var][pc][to];
 
           // Update material
-          st->nonPawnMaterial[us] += PieceValue[MG][promotion];
+          st->nonPawnMaterial[us] += PieceValue[var][MG][promotion];
       }
 
       // Update pawn hash key and prefetch access to pawnsTable
 #ifdef ATOMIC
       if (is_atomic() && captured)
-          st->pawnKey ^= Zobrist::psq[make_piece(us, PAWN)][from];
+          st->pawnKey ^= Zobrist::psq[var][make_piece(us, PAWN)][from];
       else
 #endif
-      st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+      st->pawnKey ^= Zobrist::psq[var][pc][from] ^ Zobrist::psq[var][pc][to];
       prefetch(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
@@ -1259,16 +1242,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
 #ifdef ATOMIC
   if (is_atomic() && captured)
-      st->psq -= PSQT::psq[pc][from];
+      st->psq -= PSQT::psq[var][pc][from];
   else
 #endif
   // Update incremental scores
-#ifdef ANTI
-  if (is_anti())
-      st->psq += PSQT::psqAnti[pc][to] - PSQT::psqAnti[pc][from];
-  else
-#endif
-  st->psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];
+  st->psq += PSQT::psq[var][pc][to] - PSQT::psq[var][pc][from];
 
   // Set capture piece
   st->capturedPiece = captured;
@@ -1479,7 +1457,7 @@ Key Position::key_after(Move m) const {
 
   if (captured)
   {
-      k ^= Zobrist::psq[captured][to];
+      k ^= Zobrist::psq[var][captured][to];
 #ifdef ATOMIC
       if (is_atomic())
       {
@@ -1488,14 +1466,14 @@ Key Position::key_after(Move m) const {
           {
               Square bsq = pop_lsb(&blast);
               Piece bpc = piece_on(bsq);
-              k ^= Zobrist::psq[bpc][bsq];
+              k ^= Zobrist::psq[var][bpc][bsq];
           }
-          return k ^ Zobrist::psq[pc][from];
+          return k ^ Zobrist::psq[var][pc][from];
       }
 #endif
   }
 
-  return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
+  return k ^ Zobrist::psq[var][pc][to] ^ Zobrist::psq[var][pc][from];
 }
 
 
@@ -1527,21 +1505,11 @@ bool Position::see_ge(Move m, Value v) const {
   if (type_of(m) == ENPASSANT)
   {
       occupied = SquareBB[to - pawn_push(~stm)]; // Remove the captured pawn
-#ifdef ANTI
-      if (is_anti())
-          balance = PieceValueAnti[MG][PAWN];
-      else
-#endif
-      balance = PieceValue[MG][PAWN];
+      balance = PieceValue[var][MG][PAWN];
   }
   else
   {
-#ifdef ANTI
-      if (is_anti())
-          balance = PieceValueAnti[MG][piece_on(to)];
-      else
-#endif
-      balance = PieceValue[MG][piece_on(to)];
+      balance = PieceValue[var][MG][piece_on(to)];
       occupied = 0;
   }
 
@@ -1554,12 +1522,7 @@ bool Position::see_ge(Move m, Value v) const {
   if (nextVictim == KING)
       return true;
 
-#ifdef ANTI
-  if (is_anti())
-      balance -= PieceValueAnti[MG][nextVictim];
-  else
-#endif
-  balance -= PieceValue[MG][nextVictim];
+  balance -= PieceValue[var][MG][nextVictim];
 
   if (balance >= v)
       return true;
@@ -1601,14 +1564,8 @@ bool Position::see_ge(Move m, Value v) const {
       if (nextVictim == KING)
           return relativeStm == bool(attackers & pieces(~stm));
 
-#ifdef ANTI
-      if (is_anti())
-          balance += relativeStm ?  PieceValueAnti[MG][nextVictim]
-                                 : -PieceValueAnti[MG][nextVictim];
-      else
-#endif
-      balance += relativeStm ?  PieceValue[MG][nextVictim]
-                             : -PieceValue[MG][nextVictim];
+      balance += relativeStm ?  PieceValue[var][MG][nextVictim]
+                             : -PieceValue[var][MG][nextVictim];
 
       relativeStm = !relativeStm;
 
