@@ -38,12 +38,12 @@ static void prt_str(Position& pos, char *str, int mirror)
 
   color = !mirror ? WHITE : BLACK;
   for (pt = KING; pt >= PAWN; --pt)
-    for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
+    for (i = popcount(pos.pieces(make_piece(color, pt))); i > 0; i--)
       *str++ = pchr[6 - pt];
   *str++ = 'v';
   color = ~color;
   for (pt = KING; pt >= PAWN; --pt)
-    for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
+    for (i = popcount(pos.pieces(make_piece(color, pt))); i > 0; i--)
       *str++ = pchr[6 - pt];
   *str++ = 0;
 }
@@ -59,11 +59,11 @@ static uint64 calc_key(Position& pos, int mirror)
 
   color = !mirror ? WHITE : BLACK;
   for (pt = PAWN; pt <= KING; ++pt)
-    for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
+    for (i = popcount(pos.pieces(make_piece(color, pt))); i > 0; i--)
       key ^= Zobrist::psq[make_piece(WHITE, pt)][i - 1];
   color = ~color;
   for (pt = PAWN; pt <= KING; ++pt)
-    for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
+    for (i = popcount(pos.pieces(make_piece(color, pt))); i > 0; i--)
       key ^= Zobrist::psq[make_piece(BLACK, pt)][i - 1];
 
   return key;
@@ -180,8 +180,8 @@ static int probe_wdl_table(Position& pos, int *success)
     struct TBEntry_piece *entry = (struct TBEntry_piece *)ptr;
     ubyte *pc = entry->pieces[bside];
     for (i = 0; i < entry->num;) {
-      Bitboard bb = pos.pieces((Color)((pc[i] ^ cmirror) >> 3),
-                                      (PieceType)(pc[i] & 0x07));
+      Bitboard bb = pos.pieces(make_piece((Color)((pc[i] ^ cmirror) >> 3),
+                                      (PieceType)(pc[i] & 0x07)));
       do {
         p[i++] = pop_lsb(&bb);
       } while (bb);
@@ -191,7 +191,7 @@ static int probe_wdl_table(Position& pos, int *success)
   } else {
     struct TBEntry_pawn *entry = (struct TBEntry_pawn *)ptr;
     int k = entry->file[0].pieces[0][0] ^ cmirror;
-    Bitboard bb = pos.pieces((Color)(k >> 3), (PieceType)(k & 0x07));
+    Bitboard bb = pos.pieces(make_piece((Color)(k >> 3), (PieceType)(k & 0x07)));
     i = 0;
     do {
       p[i++] = pop_lsb(&bb) ^ mirror;
@@ -199,8 +199,8 @@ static int probe_wdl_table(Position& pos, int *success)
     int f = pawn_file(entry, p);
     ubyte *pc = entry->file[f].pieces[bside];
     for (; i < entry->num;) {
-      bb = pos.pieces((Color)((pc[i] ^ cmirror) >> 3),
-                                    (PieceType)(pc[i] & 0x07));
+      bb = pos.pieces(make_piece((Color)((pc[i] ^ cmirror) >> 3),
+                                    (PieceType)(pc[i] & 0x07)));
       do {
         p[i++] = pop_lsb(&bb) ^ mirror;
       } while (bb);
@@ -280,8 +280,8 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
     }
     ubyte *pc = entry->pieces;
     for (i = 0; i < entry->num;) {
-      Bitboard bb = pos.pieces((Color)((pc[i] ^ cmirror) >> 3),
-                                    (PieceType)(pc[i] & 0x07));
+      Bitboard bb = pos.pieces(make_piece((Color)((pc[i] ^ cmirror) >> 3),
+                                    (PieceType)(pc[i] & 0x07)));
       do {
         p[i++] = pop_lsb(&bb);
       } while (bb);
@@ -297,7 +297,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
   } else {
     struct DTZEntry_pawn *entry = (struct DTZEntry_pawn *)ptr;
     int k = entry->file[0].pieces[0] ^ cmirror;
-    Bitboard bb = pos.pieces((Color)(k >> 3), (PieceType)(k & 0x07));
+    Bitboard bb = pos.pieces(make_piece((Color)(k >> 3), (PieceType)(k & 0x07)));
     i = 0;
     do {
       p[i++] = pop_lsb(&bb) ^ mirror;
@@ -309,8 +309,8 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
     }
     ubyte *pc = entry->file[f].pieces;
     for (; i < entry->num;) {
-      bb = pos.pieces((Color)((pc[i] ^ cmirror) >> 3),
-                            (PieceType)(pc[i] & 0x07));
+      bb = pos.pieces(make_piece((Color)((pc[i] ^ cmirror) >> 3),
+                            (PieceType)(pc[i] & 0x07)));
       do {
         p[i++] = pop_lsb(&bb) ^ mirror;
       } while (bb);

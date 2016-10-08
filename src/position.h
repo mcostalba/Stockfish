@@ -80,12 +80,10 @@ public:
 
   // Position representation
   Bitboard pieces() const;
-  Bitboard pieces(Piece pc) const;
-  Bitboard pieces(PieceType pt) const;
-  Bitboard pieces(PieceType pt1, PieceType pt2) const;
   Bitboard pieces(Color c) const;
-  Bitboard pieces(Color c, PieceType pt) const;
-  Bitboard pieces(Color c, PieceType pt1, PieceType pt2) const;
+  Bitboard pieces(Piece pc) const;
+  template<PieceType Pt, Piece WP = make_piece(WHITE, Pt), Piece BP = make_piece(BLACK, Pt)> Bitboard pieces() const;
+  template<Color C, PieceType Pt, Piece Pc = make_piece(C, Pt)> Bitboard pieces() const;
   Piece piece_on(Square s) const;
   Square ep_square() const;
   bool empty(Square s) const;
@@ -213,28 +211,20 @@ inline Bitboard Position::pieces() const {
   return byPieceBB[ALL_PIECES];
 }
 
-inline Bitboard Position::pieces(PieceType pt) const {
-  return byPieceBB[make_piece(WHITE, pt)] | byPieceBB[make_piece(BLACK, pt)];
-}
-
-inline Bitboard Position::pieces(PieceType pt1, PieceType pt2) const {
-  return pieces(pt1) | pieces(pt2);
-}
-
 inline Bitboard Position::pieces(Color c) const {
   return byColorBB[c];
-}
-
-inline Bitboard Position::pieces(Color c, PieceType pt) const {
-  return byPieceBB[make_piece(c, pt)];
 }
 
 inline Bitboard Position::pieces(Piece pc) const {
   return byPieceBB[pc];
 }
 
-inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
-  return pieces(c, pt1) | pieces(c, pt2);
+template <PieceType Pt, Piece WP, Piece BP> inline Bitboard Position::pieces() const {
+  return byPieceBB[WP] | byPieceBB[BP];
+}
+
+template <Color C, PieceType Pt, Piece Pc> inline Bitboard Position::pieces() const {
+  return byPieceBB[Pc];
 }
 
 template<PieceType Pt> inline int Position::count(Color c) const {
@@ -307,7 +297,7 @@ inline Bitboard Position::check_squares(PieceType pt) const {
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
-  return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
+  return !(pieces(make_piece(~c, PAWN)) & passed_pawn_mask(c, s));
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {

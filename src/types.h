@@ -356,7 +356,7 @@ inline Square make_square(File f, Rank r) {
   return Square((r << 3) + f);
 }
 
-inline Piece make_piece(Color c, PieceType pt) {
+constexpr inline Piece make_piece(Color c, PieceType pt) {
   return Piece((c << 3) + pt);
 }
 

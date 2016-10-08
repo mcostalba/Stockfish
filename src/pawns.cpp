@@ -103,8 +103,8 @@ namespace {
     const Square* pl = pos.squares<PAWN>(Us);
     const Bitboard* pawnAttacksBB = StepAttacksBB[make_piece(Us, PAWN)];
 
-    Bitboard ourPawns   = pos.pieces(Us  , PAWN);
-    Bitboard theirPawns = pos.pieces(Them, PAWN);
+    Bitboard ourPawns   = pos.pieces<Us  , PAWN>();
+    Bitboard theirPawns = pos.pieces<Them, PAWN>();
 
     e->passedPawns[Us]   = e->pawnAttacksSpan[Us] = 0;
     e->semiopenFiles[Us] = 0xFF;
@@ -233,7 +233,7 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
   enum { NoFriendlyPawn, Unblocked, BlockedByPawn, BlockedByKing };
 
-  Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));
+  Bitboard b = pos.pieces<PAWN>() & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
   Value safety = MaxSafetyBonus;
@@ -269,7 +269,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   castlingRights[Us] = pos.can_castle(Us);
   int minKingPawnDistance = 0;
 
-  Bitboard pawns = pos.pieces(Us, PAWN);
+  Bitboard pawns = pos.pieces<Us, PAWN>();
   if (pawns)
       while (!(DistanceRingBB[ksq][minKingPawnDistance++] & pawns)) {}
 

@@ -267,8 +267,8 @@ namespace {
     while ((s = *pl++) != SQ_NONE)
     {
         // Find attacked squares, including x-ray attacks for bishops and rooks
-        b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
-          : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
+        b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces<Us, QUEEN>())
+          : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces<Us, QUEEN>() ^ pos.pieces<Us, ROOK>())
                          : pos.attacks_from<Pt>(s);
 
         if (ei.pinnedPieces[Us] & s)
@@ -308,7 +308,7 @@ namespace {
 
             // Bonus when behind a pawn
             if (    relative_rank(Us, s) < RANK_5
-                && (pos.pieces(PAWN) & (s + pawn_push(Us))))
+                && (pos.pieces<PAWN>() & (s + pawn_push(Us))))
                 score += MinorBehindPawn;
 
             // Penalty for pawns on the same color square as the bishop
@@ -334,7 +334,7 @@ namespace {
         {
             // Bonus for aligning with enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
-                score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s]);
+                score += RookOnPawn * popcount(pos.pieces<Them, PAWN>() & PseudoAttacks[ROOK][s]);
 
             // Bonus when on an open or semi-open file
             if (ei.pi->semiopen_file(Us, file_of(s)))
@@ -356,7 +356,7 @@ namespace {
         {
             // Penalty if any relative pin or discovered attack against the queen
             Bitboard pinners;
-            if (pos.slider_blockers(pos.pieces(Them, ROOK, BISHOP), s, pinners))
+            if (pos.slider_blockers((pos.pieces<Them, ROOK>() | pos.pieces<Them, BISHOP>()), s, pinners))
                 score -= WeakQueen;
         }
     }
@@ -439,7 +439,7 @@ namespace {
         // ... and some other potential checks, only requiring the square to be
         // safe from pawn-attacks, and not being occupied by a blocked pawn.
         other = ~(   ei.attackedBy[Us][PAWN]
-                  | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
+                  | (pos.pieces<Them, PAWN>() & shift<Up>(pos.pieces<PAWN>())));
 
         b1 = pos.attacks_from<ROOK  >(ksq);
         b2 = pos.attacks_from<BISHOP>(ksq);
@@ -520,17 +520,17 @@ namespace {
     Score score = SCORE_ZERO;
 
     // Small bonus if the opponent has loose pawns or pieces
-    if (   (pos.pieces(Them) ^ pos.pieces(Them, QUEEN, KING))
+    if (   (pos.pieces(Them) ^ pos.pieces<Them, QUEEN>() ^ pos.pieces<Them, KING>())
         & ~(ei.attackedBy[Us][ALL_PIECES] | ei.attackedBy[Them][ALL_PIECES]))
         score += LooseEnemies;
 
     // Non-pawn enemies attacked by a pawn
-    weak = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Us][PAWN];
+    weak = (pos.pieces(Them) ^ pos.pieces<Them, PAWN>()) & ei.attackedBy[Us][PAWN];
 
     if (weak)
     {
-        b = pos.pieces(Us, PAWN) & ( ~ei.attackedBy[Them][ALL_PIECES]
-                                    | ei.attackedBy[Us][ALL_PIECES]);
+        b = pos.pieces<Us, PAWN>() & ( ~ei.attackedBy[Them][ALL_PIECES]
+                                      | ei.attackedBy[Us][ALL_PIECES]);
 
         safeThreats = (shift<Right>(b) | shift<Left>(b)) & weak;
 
@@ -542,7 +542,7 @@ namespace {
     }
 
     // Non-pawn enemies defended by a pawn
-    defended = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Them][PAWN];
+    defended = (pos.pieces(Them) ^ pos.pieces<Them, PAWN>()) & ei.attackedBy[Them][PAWN];
 
     // Enemies not defended by a pawn and under our attack
     weak =   pos.pieces(Them)
@@ -556,7 +556,7 @@ namespace {
         while (b)
             score += Threat[Minor][type_of(pos.piece_on(pop_lsb(&b)))];
 
-        b = (pos.pieces(Them, QUEEN) | weak) & ei.attackedBy[Us][ROOK];
+        b = (pos.pieces<Them, QUEEN>() | weak) & ei.attackedBy[Us][ROOK];
         while (b)
             score += Threat[Rook ][type_of(pos.piece_on(pop_lsb(&b)))];
 
@@ -568,7 +568,7 @@ namespace {
     }
 
     // Bonus if some pawns can safely push and attack an enemy piece
-    b = pos.pieces(Us, PAWN) & ~TRank7BB;
+    b = pos.pieces<Us, PAWN>() & ~TRank7BB;
     b = shift<Up>(b | (shift<Up>(b & TRank2BB) & ~pos.pieces()));
 
     b &=  ~pos.pieces()
@@ -605,7 +605,7 @@ namespace {
         Square s = pop_lsb(&b);
 
         assert(pos.pawn_passed(Us, s));
-        assert(!(pos.pieces(PAWN) & forward_bb(Us, s)));
+        assert(!(pos.pieces<PAWN>() & forward_bb(Us, s)));
 
         int r = relative_rank(Us, s) - RANK_2;
         int rr = r * (r - 1);
@@ -632,7 +632,7 @@ namespace {
                 // in the pawn's path attacked or occupied by the enemy.
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
-                Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
+                Bitboard bb = forward_bb(Them, s) & (pos.pieces<ROOK>() | pos.pieces<QUEEN>()) & pos.attacks_from<ROOK>(s);
 
                 if (!(pos.pieces(Us) & bb))
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
@@ -687,12 +687,12 @@ namespace {
     // SpaceMask. A square is unsafe if it is attacked by an enemy
     // pawn, or if it is undefended and attacked by an enemy piece.
     Bitboard safe =   SpaceMask
-                   & ~pos.pieces(Us, PAWN)
+                   & ~pos.pieces<Us, PAWN>()
                    & ~ei.attackedBy[Them][PAWN]
                    & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
 
     // Find all squares which are at most three squares behind some friendly pawn
-    Bitboard behind = pos.pieces(Us, PAWN);
+    Bitboard behind = pos.pieces<Us, PAWN>();
     behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
     behind |= (Us == WHITE ? behind >> 16 : behind << 16);
 
@@ -746,7 +746,7 @@ namespace {
             // is almost a draw, in case of KBP vs KB, it is even more a draw.
             if (   pos.non_pawn_material(WHITE) == BishopValueMg
                 && pos.non_pawn_material(BLACK) == BishopValueMg)
-                sf = more_than_one(pos.pieces(PAWN)) ? ScaleFactor(31) : ScaleFactor(9);
+                sf = more_than_one(pos.pieces<PAWN>()) ? ScaleFactor(31) : ScaleFactor(9);
 
             // Endgame with opposite-colored bishops, but also other pieces. Still
             // a bit drawish, but not as drawish as with only the two bishops.
@@ -804,8 +804,8 @@ Value Eval::evaluate(const Position& pos) {
 
   // Pawns blocked or on ranks 2 and 3 will be excluded from the mobility area
   Bitboard blockedPawns[] = {
-    pos.pieces(WHITE, PAWN) & (shift<SOUTH>(pos.pieces()) | Rank2BB | Rank3BB),
-    pos.pieces(BLACK, PAWN) & (shift<NORTH>(pos.pieces()) | Rank7BB | Rank6BB)
+    pos.pieces<WHITE, PAWN>() & (shift<SOUTH>(pos.pieces()) | Rank2BB | Rank3BB),
+    pos.pieces<BLACK, PAWN>() & (shift<NORTH>(pos.pieces()) | Rank7BB | Rank6BB)
   };
 
   // Do not include in mobility area squares protected by enemy pawns, or occupied

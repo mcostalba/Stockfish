@@ -242,7 +242,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
-      if (!(attackers_to(st->epSquare) & pieces(sideToMove, PAWN)))
+      if (!(attackers_to(st->epSquare) & pieces(make_piece(sideToMove, PAWN))))
           st->epSquare = SQ_NONE;
   }
   else
@@ -340,7 +340,7 @@ void Position::set_state(StateInfo* si) const {
 
   si->key ^= Zobrist::castling[si->castlingRights];
 
-  for (Bitboard b = pieces(PAWN); b; )
+  for (Bitboard b = pieces<PAWN>(); b; )
   {
       Square s = pop_lsb(&b);
       si->pawnKey ^= Zobrist::psq[piece_on(s)][s];
@@ -433,8 +433,8 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   pinners = 0;
 
   // Snipers are sliders that attack 's' when a piece is removed
-  Bitboard snipers = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
-                      | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
+  Bitboard snipers = (  (PseudoAttacks[ROOK  ][s] & (pieces<QUEEN>() | pieces<ROOK>()))
+                      | (PseudoAttacks[BISHOP][s] & (pieces<QUEEN>() | pieces<BISHOP>()))) & sliders;
 
   while (snipers)
   {
@@ -457,12 +457,12 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
 Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 
-  return  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
-        | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-        | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
-        | (attacks_bb<ROOK  >(s, occupied) & pieces(ROOK,   QUEEN))
-        | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-        | (attacks_from<KING>(s)           & pieces(KING));
+  return  (attacks_from<PAWN>(s, BLACK)    & pieces(W_PAWN))
+        | (attacks_from<PAWN>(s, WHITE)    & pieces(B_PAWN))
+        | (attacks_from<KNIGHT>(s)         & pieces<KNIGHT>())
+        | (attacks_bb<ROOK  >(s, occupied) & (pieces<ROOK>() | pieces<QUEEN>()))
+        | (attacks_bb<BISHOP>(s, occupied) & (pieces<BISHOP>() | pieces<QUEEN>()))
+        | (attacks_from<KING>(s)           & pieces<KING>());
 }
 
 
@@ -493,8 +493,11 @@ bool Position::legal(Move m) const {
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
 
-      return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
-            && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
+      Bitboard hSliders = pieces(make_piece(~us, QUEEN)) | pieces(make_piece(~us, ROOK));
+      Bitboard dSliders = pieces(make_piece(~us, QUEEN)) | pieces(make_piece(~us, BISHOP));
+
+      return   !(attacks_bb<  ROOK>(ksq, occupied) & hSliders)
+            && !(attacks_bb<BISHOP>(ksq, occupied) & dSliders);
   }
 
   // If the moving piece is a king, check whether the destination
@@ -617,9 +620,11 @@ bool Position::gives_check(Move m) const {
   {
       Square capsq = make_square(file_of(to), rank_of(from));
       Bitboard b = (pieces() ^ from ^ capsq) | to;
+      Bitboard hSliders = pieces(make_piece(sideToMove, QUEEN)) | pieces(make_piece(sideToMove, ROOK));
+      Bitboard dSliders = pieces(make_piece(sideToMove, QUEEN)) | pieces(make_piece(sideToMove, BISHOP));
 
-      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
-            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
+      return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & hSliders)
+            | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & dSliders);
   }
   case CASTLING:
   {
@@ -755,7 +760,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
       if (   (int(to) ^ int(from)) == 16
-          && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
+          && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(make_piece(them, PAWN))))
       {
           st->epSquare = (from + to) / 2;
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
@@ -1145,8 +1150,8 @@ bool Position::pos_is_ok(int* failedStep) const {
               ||(pieces(WHITE) | pieces(BLACK)) != pieces())
               return false;
 
-          for (PieceType p1 = PAWN; p1 <= KING; ++p1)
-              for (PieceType p2 = PAWN; p2 <= KING; ++p2)
+          for (Piece p1 = W_PAWN; p1 <= W_KING; ++p1) // FIXME
+              for (Piece p2 = W_PAWN; p2 <= W_KING; ++p2)
                   if (p1 != p2 && (pieces(p1) & pieces(p2)))
                       return false;
       }

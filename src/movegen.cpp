@@ -52,8 +52,12 @@ namespace {
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
-        return moveList;
+    if (Chess960)
+    {
+        Bitboard b = pos.pieces(make_piece(~us, ROOK)) | pos.pieces(make_piece(~us, QUEEN));
+        if (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & b)
+            return moveList;
+    }
 
     Move m = make<CASTLING>(kfrom, rfrom);
 
@@ -104,8 +108,8 @@ namespace {
 
     Bitboard emptySquares;
 
-    Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
+    Bitboard pawnsOn7    = pos.pieces<Us, PAWN>() &  TRank7BB;
+    Bitboard pawnsNotOn7 = pos.pieces<Us, PAWN>() & ~TRank7BB;
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));
@@ -370,7 +374,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Color us = pos.side_to_move();
   Square ksq = pos.square<KING>(us);
   Bitboard sliderAttacks = 0;
-  Bitboard sliders = pos.checkers() & ~pos.pieces(KNIGHT, PAWN);
+  Bitboard sliders = pos.checkers() & ~(pos.pieces<KNIGHT>() | pos.pieces<PAWN>());
 
   // Find all the squares attacked by slider checkers. We will remove them from
   // the king evasions in order to skip known illegal moves, which avoids any

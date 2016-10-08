@@ -169,7 +169,7 @@ Entry* probe(const Position& pos) {
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
 
-  if (npm_w + npm_b == VALUE_ZERO && pos.pieces(PAWN)) // Only pawns on the board
+  if (npm_w + npm_b == VALUE_ZERO && pos.pieces<PAWN>()) // Only pawns on the board
   {
       if (!pos.count<PAWN>(BLACK))
       {

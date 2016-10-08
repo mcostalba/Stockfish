@@ -359,7 +359,7 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
   // No assertions about the material of weakSide, because we want draws to
   // be detected even when the weaker side has some pawns.
 
-  Bitboard pawns = pos.pieces(strongSide, PAWN);
+  Bitboard pawns = pos.pieces(make_piece(strongSide, PAWN));
   File pawnsFile = file_of(lsb(pawns));
 
   // All pawns are on a single rook file?
@@ -377,12 +377,12 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
 
   // If all the pawns are on the same B or G file, then it's potentially a draw
   if (    (pawnsFile == FILE_B || pawnsFile == FILE_G)
-      && !(pos.pieces(PAWN) & ~file_bb(pawnsFile))
+      && !(pos.pieces<PAWN>() & ~file_bb(pawnsFile))
       && pos.non_pawn_material(weakSide) == 0
       && pos.count<PAWN>(weakSide) >= 1)
   {
       // Get weakSide pawn that is closest to the home rank
-      Square weakPawnSq = backmost_sq(weakSide, pos.pieces(weakSide, PAWN));
+      Square weakPawnSq = backmost_sq(weakSide, pos.pieces(make_piece(weakSide, PAWN)));
 
       Square strongKingSq = pos.square<KING>(strongSide);
       Square weakKingSq = pos.square<KING>(weakSide);
@@ -391,7 +391,7 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
       // There's potential for a draw if our pawn is blocked on the 7th rank,
       // the bishop cannot attack it or they only have one pawn left
       if (   relative_rank(strongSide, weakPawnSq) == RANK_7
-          && (pos.pieces(strongSide, PAWN) & (weakPawnSq + pawn_push(weakSide)))
+          && (pos.pieces(make_piece(strongSide, PAWN)) & (weakPawnSq + pawn_push(weakSide)))
           && (opposite_colors(bishopSq, weakPawnSq) || pos.count<PAWN>(strongSide) == 1))
       {
           int strongKingDist = distance(weakPawnSq, strongKingSq);
@@ -429,7 +429,7 @@ ScaleFactor Endgame<KQKRPs>::operator()(const Position& pos) const {
   if (    relative_rank(weakSide, kingSq) <= RANK_2
       &&  relative_rank(weakSide, pos.square<KING>(strongSide)) >= RANK_4
       &&  relative_rank(weakSide, rsq) == RANK_3
-      && (  pos.pieces(weakSide, PAWN)
+      && (  pos.pieces(make_piece(weakSide, PAWN))
           & pos.attacks_from<KING>(kingSq)
           & pos.attacks_from<PAWN>(rsq, strongSide)))
           return SCALE_FACTOR_DRAW;
@@ -545,7 +545,7 @@ ScaleFactor Endgame<KRPKB>::operator()(const Position& pos) const {
   assert(verify_material(pos, weakSide, BishopValueMg, 0));
 
   // Test for a rook pawn
-  if (pos.pieces(PAWN) & (FileABB | FileHBB))
+  if (pos.pieces<PAWN>() & (FileABB | FileHBB))
   {
       Square ksq = pos.square<KING>(weakSide);
       Square bsq = pos.square<BISHOP>(weakSide);
@@ -621,7 +621,7 @@ ScaleFactor Endgame<KPsK>::operator()(const Position& pos) const {
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
   Square ksq = pos.square<KING>(weakSide);
-  Bitboard pawns = pos.pieces(strongSide, PAWN);
+  Bitboard pawns = pos.pieces(make_piece(strongSide, PAWN));
 
   // If all pawns are ahead of the king, on a single rook file and
   // the king is within one file of the pawns, it's a draw.
@@ -675,7 +675,7 @@ ScaleFactor Endgame<KBPKB>::operator()(const Position& pos) const {
       {
           Bitboard path = forward_bb(strongSide, pawnSq);
 
-          if (path & pos.pieces(weakSide, KING))
+          if (path & pos.pieces(make_piece(weakSide, KING)))
               return SCALE_FACTOR_DRAW;
 
           if (  (pos.attacks_from<BISHOP>(weakBishopSq) & path)
@@ -737,14 +737,14 @@ ScaleFactor Endgame<KBPPKB>::operator()(const Position& pos) const {
     if (   ksq == blockSq1
         && opposite_colors(ksq, wbsq)
         && (   bbsq == blockSq2
-            || (pos.attacks_from<BISHOP>(blockSq2) & pos.pieces(weakSide, BISHOP))
+            || (pos.attacks_from<BISHOP>(blockSq2) & pos.pieces(make_piece(weakSide, BISHOP)))
             || distance(r1, r2) >= 2))
         return SCALE_FACTOR_DRAW;
 
     else if (   ksq == blockSq2
              && opposite_colors(ksq, wbsq)
              && (   bbsq == blockSq1
-                 || (pos.attacks_from<BISHOP>(blockSq1) & pos.pieces(weakSide, BISHOP))))
+                 || (pos.attacks_from<BISHOP>(blockSq1) & pos.pieces(make_piece(weakSide, BISHOP)))))
         return SCALE_FACTOR_DRAW;
     else
         return SCALE_FACTOR_NONE;
