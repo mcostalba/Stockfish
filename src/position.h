@@ -174,7 +174,6 @@ private:
   // Data members
   Piece board[SQUARE_NB];
   Bitboard byPieceBB[PIECE_NB];
-  Bitboard byColorBB[COLOR_NB];
   int pieceCount[PIECE_NB];
   Square pieceList[PIECE_NB][16];
   int index[SQUARE_NB];
@@ -208,11 +207,11 @@ inline Piece Position::moved_piece(Move m) const {
 }
 
 inline Bitboard Position::pieces() const {
-  return byPieceBB[ALL_PIECES];
+  return byPieceBB[ALL_W_PIECES] | byPieceBB[ALL_B_PIECES];
 }
 
 inline Bitboard Position::pieces(Color c) const {
-  return byColorBB[c];
+  return byPieceBB[make_piece(c, ALL_PIECES)];
 }
 
 inline Bitboard Position::pieces(Piece pc) const {
@@ -372,40 +371,43 @@ inline Thread* Position::this_thread() const {
 
 inline void Position::put_piece(Piece pc, Square s) {
 
+  Piece allPieces = make_piece(color_of(pc), ALL_PIECES);
+
   board[s] = pc;
-  byPieceBB[ALL_PIECES]   |= s;
-  byPieceBB[pc]           |= s;
-  byColorBB[color_of(pc)] |= s;
+  byPieceBB[allPieces] |= s;
+  byPieceBB[pc]        |= s;
   index[s] = pieceCount[pc]++;
   pieceList[pc][index[s]] = s;
-  pieceCount[make_piece(color_of(pc), ALL_PIECES)]++;
+  pieceCount[allPieces]++;
 }
 
 inline void Position::remove_piece(Piece pc, Square s) {
+
+  Piece allPieces = make_piece(color_of(pc), ALL_PIECES);
 
   // WARNING: This is not a reversible operation. If we remove a piece in
   // do_move() and then replace it in undo_move() we will put it at the end of
   // the list and not in its original place, it means index[] and pieceList[]
   // are not invariant to a do_move() + undo_move() sequence.
-  byPieceBB[ALL_PIECES]   ^= s;
-  byPieceBB[pc]           ^= s;
-  byColorBB[color_of(pc)] ^= s;
+  byPieceBB[allPieces] ^= s;
+  byPieceBB[pc]        ^= s;
   /* board[s] = NO_PIECE;  Not needed, overwritten by the capturing one */
   Square lastSquare = pieceList[pc][--pieceCount[pc]];
   index[lastSquare] = index[s];
   pieceList[pc][index[lastSquare]] = lastSquare;
   pieceList[pc][pieceCount[pc]] = SQ_NONE;
-  pieceCount[make_piece(color_of(pc), ALL_PIECES)]--;
+  pieceCount[allPieces]--;
 }
 
 inline void Position::move_piece(Piece pc, Square from, Square to) {
 
+  Piece allPieces = make_piece(color_of(pc), ALL_PIECES);
+
   // index[from] is not updated and becomes stale. This works as long as index[]
   // is accessed just by known occupied squares.
   Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
-  byPieceBB[ALL_PIECES]   ^= from_to_bb;
-  byPieceBB[pc]           ^= from_to_bb;
-  byColorBB[color_of(pc)] ^= from_to_bb;
+  byPieceBB[allPieces] ^= from_to_bb;
+  byPieceBB[pc]        ^= from_to_bb;
   board[from] = NO_PIECE;
   board[to] = pc;
   index[to] = index[from];
