@@ -593,7 +593,7 @@ Phase Position::game_phase() const {
   Value npm = st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
 #ifdef HORDE
   if (is_horde())
-      npm = st->nonPawnMaterial[BLACK] + st->nonPawnMaterial[BLACK];
+      npm = 2 * st->nonPawnMaterial[is_horde_color(WHITE) ? BLACK : WHITE];
 #endif
 #ifdef ATOMIC
   if (is_atomic())
