@@ -276,6 +276,7 @@ void benchmark(const Position& current, istream& is) {
                       auto end = fens[i].find(";", start);
                       string bm = fens[i].substr(start, end - start);
                       replace(bm.begin(), bm.end(), ',' , ' ');
+                      replace(bm.begin(), bm.end(), '!' , ' ');
 
                       // Trim white space and extract first move
                       std::stringstream ss(bm);
