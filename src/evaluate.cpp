@@ -194,8 +194,7 @@ namespace {
 #endif
 
 #ifdef ATOMIC
-  Score CloseEnemiesAtomic = S( 17,   0);
-  Score PawnBonusAtomic    = S(200, 199);
+  const Score CloseEnemiesAtomic = S( 17,   0);
 #endif
 
   // PassedFile[File] contains a bonus according to the file of a passed pawn
@@ -1211,10 +1210,6 @@ Value Eval::evaluate(const Position& pos) {
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
 #ifdef HORDE
   }
-#endif
-#ifdef ATOMIC
-  if (pos.is_atomic())
-      score += (pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) * PawnBonusAtomic;
 #endif
 
   // Evaluate scale factor for the winning side

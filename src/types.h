@@ -263,6 +263,13 @@ enum Value : int {
   QueenValueMgAnti  = -936,  QueenValueEgAnti  = -829,
   KingValueMgAnti   = -230,  KingValueEgAnti   = -168,
 #endif
+#ifdef ATOMIC
+  PawnValueMgAtomic   = 421,   PawnValueEgAtomic   = 477,
+  KnightValueMgAtomic = 472,   KnightValueEgAtomic = 779,
+  BishopValueMgAtomic = 667,   BishopValueEgAtomic = 912,
+  RookValueMgAtomic   = 877,   RookValueEgAtomic   = 1477,
+  QueenValueMgAtomic  = 2203,  QueenValueEgAtomic  = 2815,
+#endif
 #ifdef HORDE
   PawnValueMgHorde   = 350,   PawnValueEgHorde   = 350,
   KnightValueMgHorde = 753,   KnightValueEgHorde = 832,
@@ -270,6 +277,13 @@ enum Value : int {
   RookValueMgHorde   = 1285,  RookValueEgHorde   = 1371,
   QueenValueMgHorde  = 2513,  QueenValueEgHorde  = 2650,
   KingValueMgHorde   = 1000,  KingValueEgHorde   = 1000,
+#endif
+#ifdef THREECHECK
+  PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
+  KnightValueMgThreeCheck = 691,   KnightValueEgThreeCheck = 850,
+  BishopValueMgThreeCheck = 829,   BishopValueEgThreeCheck = 845,
+  RookValueMgThreeCheck   = 1222,  RookValueEgThreeCheck   = 1386,
+  QueenValueMgThreeCheck  = 2274,  QueenValueEgThreeCheck  = 2573,
 #endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
