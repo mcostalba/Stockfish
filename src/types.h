@@ -271,6 +271,13 @@ enum Value : int {
   QueenValueMgHorde  = 2513,  QueenValueEgHorde  = 2650,
   KingValueMgHorde   = 1000,  KingValueEgHorde   = 1000,
 #endif
+#ifdef THREECHECK
+  PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
+  KnightValueMgThreeCheck = 691,   KnightValueEgThreeCheck = 850,
+  BishopValueMgThreeCheck = 829,   BishopValueEgThreeCheck = 845,
+  RookValueMgThreeCheck   = 1222,  RookValueEgThreeCheck   = 1386,
+  QueenValueMgThreeCheck  = 2274,  QueenValueEgThreeCheck  = 2573,
+#endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
