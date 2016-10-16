@@ -263,6 +263,14 @@ enum Value : int {
   QueenValueMgAnti  = -936,  QueenValueEgAnti  = -829,
   KingValueMgAnti   = -230,  KingValueEgAnti   = -168,
 #endif
+#ifdef HORDE
+  PawnValueMgHorde   = 350,   PawnValueEgHorde   = 350,
+  KnightValueMgHorde = 753,   KnightValueEgHorde = 832,
+  BishopValueMgHorde = 826,   BishopValueEgHorde = 897,
+  RookValueMgHorde   = 1285,  RookValueEgHorde   = 1371,
+  QueenValueMgHorde  = 2513,  QueenValueEgHorde  = 2650,
+  KingValueMgHorde   = 1000,  KingValueEgHorde   = 1000,
+#endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
