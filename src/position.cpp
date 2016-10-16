@@ -147,10 +147,9 @@ void Position::init() {
 
   PRNG rng(1070372);
 
-  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
-      for (Piece pc : Pieces)
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
-              Zobrist::psq[var][pc][s] = rng.rand<Key>();
+  for (Piece pc : Pieces)
+      for (Square s = SQ_A1; s <= SQ_H8; ++s)
+          Zobrist::psq[CHESS_VARIANT][pc][s] = rng.rand<Key>();
 
   for (File f = FILE_A; f <= FILE_H; ++f)
       Zobrist::enpassant[f] = rng.rand<Key>();
@@ -167,6 +166,11 @@ void Position::init() {
   }
 
   Zobrist::side = rng.rand<Key>();
+
+  for (Variant var = Variant(CHESS_VARIANT + 1); var < VARIANT_NB; ++var)
+      for (Piece pc : Pieces)
+          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+              Zobrist::psq[var][pc][s] = rng.rand<Key>();
 #ifdef THREECHECK
   for (Color c = WHITE; c <= BLACK; ++c)
       for (CheckCount n : Checks)
@@ -519,9 +523,9 @@ void Position::set_state(StateInfo* si) const {
   }
 
 #ifdef THREECHECK
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (CheckCount n : Checks)
-          si->key ^= Zobrist::checks[c][n];
+  if (is_three_check())
+      for (Color c = WHITE; c <= BLACK; ++c)
+          si->key ^= Zobrist::checks[c][si->checksGiven[c]];
 #endif
 }
 
@@ -1161,8 +1165,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef THREECHECK
   if (is_three_check() && givesCheck)
   {
-      ++(st->checksGiven[us]);
-      CheckCount checksGiven = checks_given(us);
+      k ^= Zobrist::checks[us][st->checksGiven[us]];
+      CheckCount checksGiven = ++(st->checksGiven[us]);
       assert(checksGiven < CHECKS_NB);
       k ^= Zobrist::checks[us][checksGiven];
   }
