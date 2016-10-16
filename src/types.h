@@ -263,6 +263,13 @@ enum Value : int {
   QueenValueMgAnti  = -936,  QueenValueEgAnti  = -829,
   KingValueMgAnti   = -230,  KingValueEgAnti   = -168,
 #endif
+#ifdef ATOMIC
+  PawnValueMgAtomic   = 421,   PawnValueEgAtomic   = 477,
+  KnightValueMgAtomic = 472,   KnightValueEgAtomic = 779,
+  BishopValueMgAtomic = 667,   BishopValueEgAtomic = 912,
+  RookValueMgAtomic   = 877,   RookValueEgAtomic   = 1477,
+  QueenValueMgAtomic  = 2203,  QueenValueEgAtomic  = 2815,
+#endif
 #ifdef HORDE
   PawnValueMgHorde   = 350,   PawnValueEgHorde   = 350,
   KnightValueMgHorde = 753,   KnightValueEgHorde = 832,

@@ -35,8 +35,8 @@ Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 #endif
 #ifdef ATOMIC
 {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+  { VALUE_ZERO, PawnValueMgAtomic, KnightValueMgAtomic, BishopValueMgAtomic, RookValueMgAtomic, QueenValueMgAtomic },
+  { VALUE_ZERO, PawnValueEgAtomic, KnightValueEgAtomic, BishopValueEgAtomic, RookValueEgAtomic, QueenValueEgAtomic },
 },
 #endif
 #ifdef CRAZYHOUSE
