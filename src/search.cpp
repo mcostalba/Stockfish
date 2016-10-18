@@ -718,8 +718,6 @@ namespace {
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
     {
-        ss->currentMove = ttMove; // Can be MOVE_NONE
-
         // If ttMove is quiet, update killers, history, counter move on TT hit
         if (ttValue >= beta && ttMove)
         {
@@ -1087,7 +1085,7 @@ moves_loop: // When in check search starts from here
       if (pos.is_race() && type_of(moved_piece) == KING && rank_of(to_sq(move)) > rank_of(from_sq(move))) {} else
 #endif
       if (  !rootNode
-          &&  bestValue > VALUE_MATED_IN_MAX_PLY)
+          && bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           if (   !captureOrPromotion
               && !givesCheck
@@ -1115,6 +1113,7 @@ moves_loop: // When in check search starts from here
 
               // Futility pruning: parent node
               if (   lmrDepth < 7
+                  && !inCheck
                   && ss->staticEval + 256 + 200 * lmrDepth <= alpha)
                   continue;
 
@@ -1130,6 +1129,7 @@ moves_loop: // When in check search starts from here
                   continue;
           }
           else if (   depth < 7 * ONE_PLY
+                   && !extension
                    && !pos.see_ge(move, Value(-35 * depth / ONE_PLY * depth / ONE_PLY)))
                   continue;
       }
@@ -1502,10 +1502,7 @@ moves_loop: // When in check search starts from here
         && ttValue != VALUE_NONE // Only in case of TT access race
         && (ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
                             : (tte->bound() &  BOUND_UPPER)))
-    {
-        ss->currentMove = ttMove; // Can be MOVE_NONE
         return ttValue;
-    }
 
     // Evaluate the position statically
     if (InCheck)
