@@ -245,7 +245,29 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           put_piece(Piece(idx), sq);
           ++sq;
       }
+#ifdef CRAZYHOUSE
+      // Set flag for promoted pieces
+      else if (is_house() && token == '~')
+          promotedPieces |= sq;
+      // Stop before pieces in hand
+      else if (is_house() && token == '[')
+          break;
+#endif
   }
+
+#ifdef CRAZYHOUSE
+  // Pieces in hand
+  if (is_house())
+  {
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == ']')
+              continue;
+          else if ((idx = PieceToChar.find(token)) != string::npos)
+              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+      }
+  }
+#endif
 
   // 2. Active color
   ss >> token;
@@ -549,15 +571,32 @@ const string Position::fen() const {
               ss << emptyCnt;
 
           if (f <= FILE_H)
+#ifdef CRAZYHOUSE
+          {
+#endif
               ss << PieceToChar[piece_on(make_square(f, r))];
+#ifdef CRAZYHOUSE
+              // Set promoted pieces
+              if (is_house() && is_promoted(make_square(f, r)))
+                  ss << "~";
+          }
+#endif
       }
 
       if (r > RANK_1)
           ss << '/';
   }
+
 #ifdef CRAZYHOUSE
+  // pieces in hand
   if (is_house())
-      ss << "[]"; // TODO: pieces in hand
+  {
+      ss << '[';
+      for (Color c = WHITE; c <= BLACK; ++c)
+          for (PieceType pt = QUEEN; pt >= PAWN; --pt)
+              ss << std::string(pieceCountInHand[c][pt], PieceToChar[make_piece(c, pt)]);
+      ss << ']';
+  }
 #endif
 
   ss << (sideToMove == WHITE ? " w " : " b ");
@@ -1090,6 +1129,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Update board and piece lists
       remove_piece(captured, capsq);
+#ifdef CRAZYHOUSE
+      if (is_house())
+      {
+          st->capturedpromoted = is_promoted(to);
+          if (captured)
+              add_to_hand(~color_of(captured), is_promoted(to) ? PAWN : type_of(captured));
+          promotedPieces -= to;
+      }
+#endif
 
       // Update material hash key and prefetch access to materialTable
       k ^= Zobrist::psq[var][captured][capsq];
@@ -1217,6 +1265,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
+#ifdef CRAZYHOUSE
+          if (is_house())
+              promotedPieces = promotedPieces | to;
+#endif
 
           // Update hash keys
           k ^= Zobrist::psq[var][pc][to] ^ Zobrist::psq[var][promotion][to];
@@ -1275,6 +1327,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
+#ifdef CRAZYHOUSE
+  if (is_house() && is_promoted(from))
+      promotedPieces = (promotedPieces - from) | to;
+#endif
+
   sideToMove = ~sideToMove;
 
   // Update king attacks used for fast check detection
@@ -1327,6 +1384,10 @@ void Position::undo_move(Move m) {
       remove_piece(pc, to);
       pc = make_piece(us, PAWN);
       put_piece(pc, to);
+#ifdef CRAZYHOUSE
+      if (is_house())
+          promotedPieces -= to;
+#endif
 #ifdef ATOMIC
       }
 #endif
@@ -1345,6 +1406,10 @@ void Position::undo_move(Move m) {
       else
 #endif
       move_piece(pc, to, from); // Put the piece back at the source square
+#ifdef CRAZYHOUSE
+      if (is_house() && is_promoted(to))
+          promotedPieces = (promotedPieces - to) | from;
+#endif
 
       if (st->capturedPiece)
       {
@@ -1377,6 +1442,14 @@ void Position::undo_move(Move m) {
           }
 #endif
           put_piece(st->capturedPiece, capsq); // Restore the captured piece
+#ifdef CRAZYHOUSE
+          if (is_house())
+          {
+              remove_from_hand(~color_of(st->capturedPiece), st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
+              if (st->capturedpromoted)
+                  promotedPieces |= to;
+          }
+#endif
       }
   }
 

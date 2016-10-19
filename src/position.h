@@ -55,6 +55,9 @@ struct StateInfo {
 #ifdef ATOMIC
   Piece      blast[SQUARE_NB];
 #endif
+#ifdef CRAZYHOUSE
+  bool       capturedpromoted;
+#endif
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinnersForKing[COLOR_NB];
@@ -171,6 +174,10 @@ public:
 #endif
 #ifdef CRAZYHOUSE
   bool is_house() const;
+  bool has_in_hand(Color c, PieceType pt) const;
+  void add_to_hand(Color c, PieceType pt);
+  void remove_from_hand(Color c, PieceType pt);
+  bool is_promoted(Square s) const;
 #endif
 #ifdef KOTH
   bool is_koth() const;
@@ -234,6 +241,10 @@ private:
   Square pieceList[PIECE_NB][SQUARE_NB];
 #else
   Square pieceList[PIECE_NB][16];
+#endif
+#ifdef CRAZYHOUSE
+  int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  Bitboard promotedPieces;
 #endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
@@ -530,6 +541,22 @@ inline bool Position::can_capture() const {
 #ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
+}
+
+inline bool Position::has_in_hand(Color c, PieceType pt) const {
+  return pieceCountInHand[c][pt];
+}
+
+inline void Position::add_to_hand(Color c, PieceType pt) {
+  pieceCountInHand[c][pt]++;
+}
+
+inline void Position::remove_from_hand(Color c, PieceType pt) {
+  pieceCountInHand[c][pt]--;
+}
+
+inline bool Position::is_promoted(Square s) const {
+  return promotedPieces & s;
 }
 #endif
 
