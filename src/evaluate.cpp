@@ -1129,6 +1129,9 @@ Value Eval::evaluate(const Position& pos) {
 #ifdef ANTI
   if (pos.is_anti()) {} else
 #endif
+#ifdef CRAZYHOUSE
+  if (pos.is_house()) {} else
+#endif
   if (ei.me->specialized_eval_exists())
       return ei.me->evaluate(pos);
 
