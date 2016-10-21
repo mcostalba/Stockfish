@@ -864,6 +864,9 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti() && pos.can_capture()) {} else
 #endif
+#ifdef HORDE
+    if (pos.is_horde()) {} else
+#endif
     if (   !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
