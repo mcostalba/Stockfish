@@ -65,8 +65,61 @@ namespace {
   enum NodeType { NonPV, PV };
 
   // Razoring and futility margin based on depth
-  const int razor_margin[4] = { 483, 570, 603, 554 };
-  Value futility_margin(Depth d) { return Value(150 * d / ONE_PLY); }
+  const int razor_margin[VARIANT_NB][4] = {
+  { 483, 570, 603, 554 },
+#ifdef ANTI
+  { 1932, 2280, 2412, 2216 },
+#endif
+#ifdef ATOMIC
+  { 1932, 2280, 2412, 2216 },
+#endif
+#ifdef CRAZYHOUSE
+  { 483, 570, 603, 554 },
+#endif
+#ifdef HORDE
+  { 483, 570, 603, 554 },
+#endif
+#ifdef KOTH
+  { 483, 570, 603, 554 },
+#endif
+#ifdef RACE
+  { 1000, 1000, 1000, 1000 },
+#endif
+#ifdef RELAY
+  { 483, 570, 603, 554 },
+#endif
+#ifdef THREECHECK
+  { 2000, 2000, 2000, 2000 },
+#endif
+  };
+  const int futility_margin_factor[VARIANT_NB] = {
+  150,
+#ifdef ANTI
+  600,
+#endif
+#ifdef ATOMIC
+  600,
+#endif
+#ifdef CRAZYHOUSE
+  150,
+#endif
+#ifdef HORDE
+  150,
+#endif
+#ifdef KOTH
+  150,
+#endif
+#ifdef RACE
+  400,
+#endif
+#ifdef RELAY
+  150,
+#endif
+#ifdef THREECHECK
+  300,
+#endif
+  };
+  Value futility_margin(Variant var, Depth d) { return Value(futility_margin_factor[var] * d / ONE_PLY); }
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16]; // [improving][depth]
@@ -587,7 +640,6 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning;
     Piece moved_piece;
     int moveCount, quietCount;
-    int variantScale;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -821,32 +873,15 @@ namespace {
         goto moves_loop;
 
     // Step 6. Razoring (skipped when in check)
-    variantScale = 1;
-#ifdef ATOMIC
-    if (pos.is_atomic())
-        variantScale += 3;
-#endif
-#ifdef ANTI
-    if (pos.is_anti())
-        variantScale += 3;
-#endif
-#ifdef RACE
-    if (pos.is_race())
-        variantScale += raceRank / 2;
-#endif
-#ifdef THREECHECK
-    if (pos.is_three_check())
-        variantScale += checks;
-#endif
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
         &&  ttMove == MOVE_NONE
-        &&  eval + (razor_margin[depth / ONE_PLY] * variantScale) <= alpha)
+        &&  eval + razor_margin[pos.variant()][depth / ONE_PLY] <= alpha)
     {
         if (depth <= ONE_PLY)
             return qsearch<NonPV, false>(pos, ss, alpha, beta, DEPTH_ZERO);
 
-        Value ralpha = alpha - (razor_margin[depth / ONE_PLY] * variantScale);
+        Value ralpha = alpha - razor_margin[pos.variant()][depth / ONE_PLY];
         Value v = qsearch<NonPV, false>(pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
         if (v <= ralpha)
             return v;
@@ -855,7 +890,7 @@ namespace {
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
-        &&  eval - (futility_margin(depth) * variantScale) >= beta
+        &&  eval - futility_margin(pos.variant(), depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
         &&  pos.non_pawn_material(pos.side_to_move()))
         return eval;
