@@ -197,6 +197,14 @@ namespace {
   const Score CloseEnemiesAtomic = S( 17,   0);
 #endif
 
+#ifdef RACE
+  // Bonus for distance of king from 8th rank
+  const Score KingRaceBonus[RANK_NB] = {
+    S(14216, 14428), S(5931, 5364), S(4372, 3800), S(2678, 2467),
+    S( 1577,  1515), S( 960,  914), S( 518,  480), S(   0,    0)
+  };
+#endif
+
   // PassedFile[File] contains a bonus according to the file of a passed pawn
   const Score PassedFile[FILE_NB] = {
     S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
@@ -758,11 +766,10 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         int s = relative_rank(BLACK, ksq);
-        for (Rank i = Rank(rank_of(ksq) + 1); i < RANK_8; ++i)
+        for (Rank i = Rank(rank_of(ksq) + 1); i <= RANK_8; ++i)
             if (!(rank_bb(i) & DistanceRingBB[ksq][i - 1 - rank_of(ksq)] & ~ei.attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
                 s++;
-        Value v = MidgameLimit / (s + 1);
-        score = make_score(v, v);
+        score = KingRaceBonus[std::min(s, 7)];
     }
     else
     {
