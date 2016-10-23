@@ -187,6 +187,13 @@ namespace {
   };
 #endif
 
+#ifdef KOTH
+  const Score KothDistanceBonus[6] = {
+    S(1634, 1553), S(400, 384), S(165, 174), S(83, 87), S(49, 50), S(0, 0)
+  };
+  const Score KothSafeCenter = S(159, 211);
+#endif
+
 #ifdef ANTI
   const Score ForcedCaptureAnti = S(1135, 1470);
   const Score PieceCountAnti    = S(122, 124);
@@ -783,10 +790,11 @@ namespace {
         Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
         for (int i = 0; i<4; i++)
         {
-            int dist = distance(ksq, center[i])+popcount(pos.attackers_to(center[i]) & pos.pieces(Them))+popcount(pos.pieces(Us) & center[i]) ;
+            int dist = distance(ksq, center[i])
+                      + popcount(pos.attackers_to(center[i]) & pos.pieces(Them))
+                      + popcount(pos.pieces(Us) & center[i]) ;
             assert(dist > 0);
-            Value bonus = RookValueMg / (dist * dist);
-            score += make_score(bonus, bonus);
+            score += KothDistanceBonus[std::min(dist - 1, 5)];
         }
     }
 #endif
@@ -966,10 +974,8 @@ namespace {
 #endif
 #ifdef KOTH
     if (pos.is_koth())
-    {
-        int koth_bonus = 200 * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
-        return make_score(bonus * weight * weight / 22, 0) + make_score(koth_bonus, koth_bonus);
-    }
+        return make_score(bonus * weight * weight / 22, 0)
+              + KothSafeCenter * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
 #endif
 
     return make_score(bonus * weight * weight / 18, 0);
