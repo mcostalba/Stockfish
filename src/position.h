@@ -178,6 +178,8 @@ public:
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
   bool is_promoted(Square s) const;
+  void drop_piece(Piece pc, Square s);
+  void undrop_piece(Piece pc, Square s);
 #endif
 #ifdef KOTH
   bool is_koth() const;
@@ -277,6 +279,10 @@ inline Piece Position::piece_on(Square s) const {
 }
 
 inline Piece Position::moved_piece(Move m) const {
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return dropped_piece(m);
+#endif
   return board[from_sq(m)];
 }
 
@@ -690,5 +696,18 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
   index[to] = index[from];
   pieceList[pc][index[to]] = to;
 }
+
+#ifdef CRAZYHOUSE
+inline void Position::drop_piece(Piece pc, Square s) {
+  put_piece(pc, s);
+  pieceCountInHand[color_of(pc)][type_of(pc)]--;
+}
+
+inline void Position::undrop_piece(Piece pc, Square s) {
+  remove_piece(pc, s);
+  board[s] = NO_PIECE;
+  pieceCountInHand[color_of(pc)][type_of(pc)]++;
+}
+#endif
 
 #endif // #ifndef POSITION_H_INCLUDED
