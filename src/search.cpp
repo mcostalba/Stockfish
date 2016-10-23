@@ -644,13 +644,6 @@ namespace {
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
-#ifdef RACE
-    int raceRank = pos.is_race() ?
-        rank_of(pos.square<KING>(pos.side_to_move())) + rank_of(pos.square<KING>(~pos.side_to_move())) : 0;
-#endif
-#ifdef THREECHECK
-    int checks = pos.is_three_check() ? pos.checks_count() : CHECKS_0;
-#endif
     moveCount = quietCount =  ss->moveCount = 0;
     bestValue = -VALUE_INFINITE;
     ss->ply = (ss-1)->ply + 1;
@@ -949,19 +942,7 @@ namespace {
     if (pos.is_anti()) {} else
 #endif
     if (   !PvNode
-#ifdef RACE
-#ifdef THREECHECK
-        &&  depth >= (5 + checks + raceRank) * ONE_PLY
-#else
-        &&  depth >= (5 + raceRank) * ONE_PLY
-#endif
-#else
-#ifdef THREECHECK
-        &&  depth >= (5 + checks) * ONE_PLY
-#else
         &&  depth >= 5 * ONE_PLY
-#endif
-#endif
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
         Value rbeta = std::min(beta + 200, VALUE_INFINITE);
@@ -1013,19 +994,7 @@ moves_loop: // When in check search starts from here
                ||(ss-2)->staticEval == VALUE_NONE;
 
     singularExtensionNode =   !rootNode
-#ifdef RACE
-#ifdef THREECHECK
-                           &&  depth >= 8 * ONE_PLY - checks - raceRank
-#else
-                           &&  depth >= 8 * ONE_PLY - raceRank
-#endif
-#else
-#ifdef THREECHECK
-                           &&  depth >= 8 * ONE_PLY - checks
-#else
                            &&  depth >= 8 * ONE_PLY
-#endif
-#endif
                            &&  ttMove != MOVE_NONE
                            &&  ttValue != VALUE_NONE
                            && !excludedMove // Recursive singular search is not allowed
@@ -1072,19 +1041,7 @@ moves_loop: // When in check search starts from here
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
 
-#ifdef RACE
-#ifdef THREECHECK
-      moveCountPruning =   depth < (16 - checks - raceRank) * ONE_PLY
-#else
-      moveCountPruning =   depth < (16 - raceRank) * ONE_PLY
-#endif
-#else
-#ifdef THREECHECK
-      moveCountPruning =   depth < (16 - checks) * ONE_PLY
-#else
       moveCountPruning =   depth < 16 * ONE_PLY
-#endif
-#endif
                         && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
 
       // Step 12. Extend checks
@@ -1135,12 +1092,6 @@ moves_loop: // When in check search starts from here
 
               // Reduced depth of the next LMR search
               int lmrDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO) / ONE_PLY;
-#ifdef RACE
-              lmrDepth -= raceRank * ONE_PLY;
-#endif
-#ifdef THREECHECK
-              lmrDepth -= checks * ONE_PLY;
-#endif
 
               // Countermoves based pruning
               if (   lmrDepth < 3
@@ -1190,19 +1141,7 @@ moves_loop: // When in check search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
-#ifdef RACE
-#ifdef THREECHECK
-      if (    depth >= (3 + checks + raceRank) * ONE_PLY
-#else
-      if (    depth >= (3 + raceRank) * ONE_PLY
-#endif
-#else
-#ifdef THREECHECK
-      if (    depth >= (3 + checks) * ONE_PLY
-#else
       if (    depth >= 3 * ONE_PLY
-#endif
-#endif
           &&  moveCount > 1
           && (!captureOrPromotion || moveCountPruning))
       {
