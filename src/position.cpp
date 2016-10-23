@@ -802,6 +802,9 @@ bool Position::legal(Move m) const {
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP) {} else
+#endif
   if (type_of(piece_on(from)) == KING)
       return type_of(m) == CASTLING || !(attackers_to(to_sq(m)) & pieces(~us));
 
@@ -957,6 +960,10 @@ bool Position::gives_check(Move m) const {
   Square from = from_sq(m);
   Square to = to_sq(m);
 
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return st->checkSquares[type_of(dropped_piece(m))] & to;
+#endif
 #ifdef HORDE
   if (is_horde() && is_horde_color(~sideToMove))
       return false;
@@ -1077,7 +1084,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Color them = ~us;
   Square from = from_sq(m);
   Square to = to_sq(m);
+#ifdef CRAZYHOUSE
+  Piece pc = type_of(m) == DROP ? dropped_piece(m) : piece_on(from);
+#else
   Piece pc = piece_on(from);
+#endif
   Piece captured = type_of(m) == ENPASSANT ? make_piece(them, PAWN) : piece_on(to);
 
   assert(color_of(pc) == us);
@@ -1133,8 +1144,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (is_house())
       {
           st->capturedpromoted = is_promoted(to);
-          if (captured)
-              add_to_hand(~color_of(captured), is_promoted(to) ? PAWN : type_of(captured));
+          add_to_hand(~color_of(captured), is_promoted(to) ? PAWN : type_of(captured));
           promotedPieces -= to;
       }
 #endif
@@ -1193,6 +1203,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   // Update hash key
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      k ^= Zobrist::psq[var][pc][to];
+  else
+#endif
   k ^= Zobrist::psq[var][pc][from] ^ Zobrist::psq[var][pc][to];
 
   // Reset en passant square
@@ -1203,6 +1218,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update castling rights if needed
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP) {} else
+#endif
   if (st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       int cr = castlingRightsMask[from] | castlingRightsMask[to];
@@ -1233,6 +1251,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   // Move the piece. The tricky Chess960 castling is handled earlier
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      drop_piece(pc, to);
+  else
+#endif
   if (type_of(m) != CASTLING)
       move_piece(pc, from, to);
 
@@ -1289,6 +1312,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[var][make_piece(us, PAWN)][from];
       else
 #endif
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      st->pawnKey ^= Zobrist::psq[var][pc][to];
+  else
+#endif
       st->pawnKey ^= Zobrist::psq[var][pc][from] ^ Zobrist::psq[var][pc][to];
       prefetch(thisThread->pawnsTable[st->pawnKey]);
 
@@ -1302,10 +1330,19 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   // Update incremental scores
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      st->psq += PSQT::psq[var][pc][to];
+  else
+#endif
   st->psq += PSQT::psq[var][pc][to] - PSQT::psq[var][pc][from];
 
   // Set capture piece
   st->capturedPiece = captured;
+#ifdef CRAZYHOUSE
+  if (is_house() && !captured)
+      st->capturedpromoted = false;
+#endif
 
   // Update the key with the final value
   st->key = k;
@@ -1328,7 +1365,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
 #ifdef CRAZYHOUSE
-  if (is_house() && is_promoted(from))
+  if (is_house() && type_of(m) != DROP && is_promoted(from))
       promotedPieces = (promotedPieces - from) | to;
 #endif
 
@@ -1403,6 +1440,11 @@ void Position::undo_move(Move m) {
 #ifdef ATOMIC
       if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
           put_piece(pc, from);
+      else
+#endif
+#ifdef CRAZYHOUSE
+      if (type_of(m) == DROP)
+          undrop_piece(pc, to); // Remove the dropped piece
       else
 #endif
       move_piece(pc, to, from); // Put the piece back at the source square
@@ -1528,7 +1570,11 @@ Key Position::key_after(Move m) const {
 
   Square from = from_sq(m);
   Square to = to_sq(m);
+#ifdef CRAZYHOUSE
+  Piece pc = type_of(m) == DROP ? dropped_piece(m) : piece_on(from);
+#else
   Piece pc = piece_on(from);
+#endif
   Piece captured = piece_on(to);
   Key k = st->key ^ Zobrist::side;
 
@@ -1574,8 +1620,13 @@ bool Position::see_ge(Move m, Value v) const {
       return VALUE_ZERO >= v;
 
   Square from = from_sq(m), to = to_sq(m);
+#ifdef CRAZYHOUSE
+  PieceType nextVictim = type_of(type_of(m) == DROP ? dropped_piece(m) : piece_on(from));
+  Color stm = ~color_of(type_of(m) == DROP ? dropped_piece(m) : piece_on(from)); // First consider opponent's move
+#else
   PieceType nextVictim = type_of(piece_on(from));
   Color stm = ~color_of(piece_on(from)); // First consider opponent's move
+#endif
   Value balance; // Values of the pieces taken by us minus opponent's ones
   Bitboard occupied, stmAttackers;
 
@@ -1656,6 +1707,11 @@ bool Position::see_ge(Move m, Value v) const {
       return true;
 
   bool relativeStm = true; // True if the opponent is to move
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      occupied ^= pieces() ^ to;
+  else
+#endif
   occupied ^= pieces() ^ from ^ to;
 
   // Find all attackers to the destination square, with the moving piece removed,

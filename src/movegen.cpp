@@ -125,6 +125,28 @@ namespace {
     return moveList;
   }
 
+#ifdef CRAZYHOUSE
+  template<GenType Type, bool Checks>
+  ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard target) {
+    if (Type == CAPTURES)
+        return moveList;
+
+    for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
+    {
+        if (!pos.has_in_hand(pos.side_to_move(), pt))
+            continue;
+        Bitboard b = ~pos.pieces() & target;
+        if (pt == PAWN)
+            b &= ~(RankBB[RANK_1] | RankBB[RANK_8]);
+        if (Checks)
+            b &= pos.check_squares(pt);
+        while (b)
+            *moveList++ = make_drop(pop_lsb(&b), make_piece(pos.side_to_move(), pt));
+    }
+
+    return moveList;
+  }
+#endif
 
   template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
@@ -403,6 +425,10 @@ namespace {
             moveList = generate_castling<MakeCastling<Us, QUEEN_SIDE>::right, Checks, false>(pos, moveList, Us);
         }
     }
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        moveList = generate_drops<Type, Checks>(pos, moveList, target);
+#endif
 
     return moveList;
   }
@@ -604,6 +630,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
           *cur = (--moveList)->move;
 #ifdef ATOMIC
       else if (pos.is_atomic() && pos.capture(*cur) && !pos.legal(*cur))
+          *cur = (--moveList)->move;
+#endif
+#ifdef CRAZYHOUSE
+      else if (type_of(*cur) == DROP && !pos.legal(*cur))
           *cur = (--moveList)->move;
 #endif
       else

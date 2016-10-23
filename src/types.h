@@ -184,6 +184,9 @@ enum MoveType {
   PROMOTION = 1 << 14,
   ENPASSANT = 2 << 14,
   CASTLING  = 3 << 14
+#ifdef CRAZYHOUSE
+  ,DROP = 1 << 17
+#endif
 };
 
 enum Color {
@@ -504,6 +507,10 @@ inline Square pawn_push(Color c) {
 }
 
 inline Square from_sq(Move m) {
+#ifdef CRAZYHOUSE
+  if (m & DROP)
+      return SQ_NONE;
+#endif
   return Square((m >> 6) & 0x3F);
 }
 
@@ -512,6 +519,10 @@ inline Square to_sq(Move m) {
 }
 
 inline MoveType type_of(Move m) {
+#ifdef CRAZYHOUSE
+  if (m & DROP)
+      return DROP;
+#endif
   return MoveType(m & (3 << 14));
 }
 
@@ -535,6 +546,16 @@ inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 #endif
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
+
+#ifdef CRAZYHOUSE
+inline Move make_drop(Square to, Piece pc) {
+  return Move(DROP + (pc << 18) + to);
+}
+
+inline Piece dropped_piece(Move m) {
+  return Piece((m >> 18) & 15);
+}
+#endif
 
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
