@@ -68,6 +68,9 @@ struct Entry {
 #ifdef ANTI
     if (pos.is_anti()) return SCALE_FACTOR_NORMAL;
 #endif
+#ifdef CRAZYHOUSE
+    if (pos.is_house()) return SCALE_FACTOR_NORMAL;
+#endif
     ScaleFactor sf = scalingFunction[c] ? (*scalingFunction[c])(pos)
                                         :  SCALE_FACTOR_NONE;
     return sf != SCALE_FACTOR_NONE ? sf : ScaleFactor(factor[c]);
