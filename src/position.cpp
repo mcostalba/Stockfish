@@ -248,7 +248,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 #ifdef CRAZYHOUSE
       // Set flag for promoted pieces
       else if (is_house() && token == '~')
-          promotedPieces |= sq;
+          promotedPieces |= sq - Square(1);
       // Stop before pieces in hand
       else if (is_house() && token == '[')
           break;
