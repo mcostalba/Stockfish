@@ -191,6 +191,9 @@ Entry* probe(const Position& pos) {
 #ifdef ANTI
           if (pos.is_anti()) {} else
 #endif
+#ifdef CRAZYHOUSE
+          if (pos.is_house()) {} else
+#endif
           assert(pos.count<PAWN>(WHITE) >= 2);
 
           e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
@@ -214,6 +217,9 @@ Entry* probe(const Position& pos) {
 #endif
 #ifdef ANTI
           if (pos.is_anti()) {} else
+#endif
+#ifdef CRAZYHOUSE
+          if (pos.is_house()) {} else
 #endif
           assert(pos.count<PAWN>(BLACK) >= 2);
 

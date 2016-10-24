@@ -703,6 +703,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef ANTI
   if (pos.is_anti()) return false;
 #endif
+#ifdef CRAZYHOUSE
+  if (pos.is_house()) return false;
+#endif
 
   int dtz = probe_dtz(pos, &success);
   if (!success) return false;
@@ -826,6 +829,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #endif
 #ifdef ANTI
   if (pos.is_anti()) return false;
+#endif
+#ifdef CRAZYHOUSE
+  if (pos.is_house()) return false;
 #endif
 
   int wdl = Tablebases::probe_wdl(pos, &success);

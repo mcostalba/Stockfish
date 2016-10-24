@@ -803,6 +803,9 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti()) {} else
 #endif
+#ifdef CRAZYHOUSE
+    if (pos.is_house()) {} else
+#endif
     if (!rootNode && TB::Cardinality)
     {
         int piecesCnt = pos.count<ALL_PIECES>(WHITE) + pos.count<ALL_PIECES>(BLACK);
