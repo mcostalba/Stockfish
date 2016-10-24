@@ -810,6 +810,10 @@ bool Position::legal(Move m) const {
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return true;
+#endif
   return   !(pinned_pieces(us) & from)
         ||  aligned(from, to_sq(m), square<KING>(us));
 }
@@ -918,7 +922,11 @@ bool Position::pseudo_legal(const Move m) const {
                && empty(to - pawn_push(us))))
           return false;
   }
+#ifdef CRAZYHOUSE
+  else if (type_of(m) != DROP && !(attacks_from(pc, from) & to))
+#else
   else if (!(attacks_from(pc, from) & to))
+#endif
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves
@@ -1011,10 +1019,17 @@ bool Position::gives_check(Move m) const {
 #endif
 
   // Is there a direct check?
+#ifdef CRAZYHOUSE
+  if (st->checkSquares[type_of(type_of(m) == DROP ? dropped_piece(m) : piece_on(from))] & to)
+#else
   if (st->checkSquares[type_of(piece_on(from))] & to)
+#endif
       return true;
 
   // Is there a discovered check?
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP) {} else
+#endif
   if (   (discovered_check_candidates() & from)
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
@@ -1049,6 +1064,10 @@ bool Position::gives_check(Move m) const {
       return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
+#ifdef CRAZYHOUSE
+  case DROP:
+      return false;
+#endif
   default:
       assert(false);
       return false;
@@ -1397,7 +1416,11 @@ void Position::undo_move(Move m) {
 #endif
 
   assert(empty(to) || color_of(piece_on(to)) == us);
+#ifdef CRAZYHOUSE
+  assert(type_of(m) == DROP || empty(from) || type_of(m) == CASTLING);
+#else
   assert(empty(from) || type_of(m) == CASTLING);
+#endif
 #ifdef ANTI
   assert(is_anti() || type_of(st->capturedPiece) != KING);
 #else
@@ -1596,6 +1619,10 @@ Key Position::key_after(Move m) const {
 #endif
   }
 
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return k ^ Zobrist::psq[var][pc][to];
+#endif
   return k ^ Zobrist::psq[var][pc][to] ^ Zobrist::psq[var][pc][from];
 }
 
