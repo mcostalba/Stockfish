@@ -887,7 +887,11 @@ bool Position::pseudo_legal(const Move m) const {
 #endif
 
   // Use a slower but simpler function for uncommon cases
+#ifdef CRAZYHOUSE
   if (type_of(m) != NORMAL && type_of(m) != DROP)
+#else
+  if (type_of(m) != NORMAL)
+#endif
       return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
