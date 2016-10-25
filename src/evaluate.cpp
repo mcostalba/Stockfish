@@ -232,6 +232,7 @@ namespace {
   const Score Hanging             = S(48, 27);
   const Score ThreatByPawnPush    = S(38, 22);
   const Score Unstoppable         = S( 0, 20);
+  const Score PawnlessFlank       = S(20, 80);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -562,7 +563,8 @@ namespace {
 #endif
 
     // King tropism: firstly, find squares that opponent attacks in our king flank
-    b = ei.attackedBy[Them][ALL_PIECES] & KingFlank[Us][file_of(ksq)];
+    File kf = file_of(ksq);
+    b = ei.attackedBy[Them][ALL_PIECES] & KingFlank[Us][kf];
 
     assert(((Us == WHITE ? b << 4 : b >> 4) & b) == 0);
     assert(popcount(Us == WHITE ? b << 4 : b >> 4) == popcount(b));
@@ -578,6 +580,10 @@ namespace {
     else
 #endif
     score -= CloseEnemies * popcount(b);
+
+    // Penalty when our king is on a pawnless flank
+    if (!(pos.pieces(PAWN) & (KingFlank[WHITE][kf] | KingFlank[BLACK][kf])))
+        score -= PawnlessFlank;
 
     if (DoTrace)
         Trace::add(KING, Us, score);
