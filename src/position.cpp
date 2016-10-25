@@ -811,7 +811,7 @@ bool Position::legal(Move m) const {
   // is moving along the ray towards or away from the king.
 #ifdef CRAZYHOUSE
   if (type_of(m) == DROP)
-      return true;
+      return empty(to_sq(m));
 #endif
   return   !(pinned_pieces(us) & from)
         ||  aligned(from, to_sq(m), square<KING>(us));

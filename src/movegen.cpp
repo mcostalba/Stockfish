@@ -374,7 +374,8 @@ namespace {
 #ifdef CRAZYHOUSE
     if (pos.is_house() && Type != CAPTURES)
     {
-        Bitboard b = Type == EVASIONS ? (target - pos.checkers()) : target;
+        Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
+                     Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
         moveList = generate_drops<Us, KNIGHT, Checks>(pos, moveList, b);
         moveList = generate_drops<Us, BISHOP, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,   ROOK, Checks>(pos, moveList, b);
