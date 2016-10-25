@@ -571,16 +571,14 @@ const string Position::fen() const {
               ss << emptyCnt;
 
           if (f <= FILE_H)
-#ifdef CRAZYHOUSE
           {
-#endif
               ss << PieceToChar[piece_on(make_square(f, r))];
 #ifdef CRAZYHOUSE
               // Set promoted pieces
               if (is_house() && is_promoted(make_square(f, r)))
                   ss << "~";
-          }
 #endif
+          }
       }
 
       if (r > RANK_1)
@@ -799,6 +797,7 @@ bool Position::legal(Move m) const {
       }
   }
 #endif
+
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
@@ -1332,9 +1331,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       else
 #endif
 #ifdef CRAZYHOUSE
-  if (type_of(m) == DROP)
-      st->pawnKey ^= Zobrist::psq[var][pc][to];
-  else
+      if (type_of(m) == DROP)
+          st->pawnKey ^= Zobrist::psq[var][pc][to];
+      else
 #endif
       st->pawnKey ^= Zobrist::psq[var][pc][from] ^ Zobrist::psq[var][pc][to];
       prefetch(thisThread->pawnsTable[st->pawnKey]);

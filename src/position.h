@@ -634,7 +634,11 @@ inline bool Position::capture_or_promotion(Move m) const {
     return (type_of(board[from]) == KING && rank_of(to) >= rank_of(from)) || !empty(to);
   }
 #endif
+#ifdef CRAZYHOUSE
+  return type_of(m) != NORMAL ? type_of(m) != DROP && type_of(m) != CASTLING : !empty(to_sq(m));
+#else
   return type_of(m) != NORMAL ? type_of(m) != CASTLING : !empty(to_sq(m));
+#endif
 }
 
 inline bool Position::capture(Move m) const {

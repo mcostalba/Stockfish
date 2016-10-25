@@ -126,22 +126,14 @@ namespace {
   }
 
 #ifdef CRAZYHOUSE
-  template<GenType Type, bool Checks>
-  ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard target) {
-    if (Type == CAPTURES)
-        return moveList;
-
-    for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
+  template<Color Us, PieceType Pt, bool Checks>
+  ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard b) {
+    if (pos.has_in_hand(Us, Pt))
     {
-        if (!pos.has_in_hand(pos.side_to_move(), pt))
-            continue;
-        Bitboard b = ~pos.pieces() & target;
-        if (pt == PAWN)
-            b &= ~(RankBB[RANK_1] | RankBB[RANK_8]);
         if (Checks)
-            b &= pos.check_squares(pt);
+            b &= pos.check_squares(Pt);
         while (b)
-            *moveList++ = make_drop(pop_lsb(&b), make_piece(pos.side_to_move(), pt));
+            *moveList++ = make_drop(pop_lsb(&b), make_piece(Us, Pt));
     }
 
     return moveList;
@@ -215,6 +207,14 @@ namespace {
                 b2 |= dc2;
             }
         }
+#ifdef CRAZYHOUSE
+        // Do not require drops to be check (unless already required by target)
+        if (pos.is_house())
+        {
+            Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
+            moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
+        }
+#endif
 
         while (b1)
         {
@@ -371,6 +371,16 @@ namespace {
     const bool Checks = Type == QUIET_CHECKS;
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
+#ifdef CRAZYHOUSE
+    if (pos.is_house() && Type != CAPTURES)
+    {
+        Bitboard b = Type == EVASIONS ? (target - pos.checkers()) : target;
+        moveList = generate_drops<Us, KNIGHT, Checks>(pos, moveList, b);
+        moveList = generate_drops<Us, BISHOP, Checks>(pos, moveList, b);
+        moveList = generate_drops<Us,   ROOK, Checks>(pos, moveList, b);
+        moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
+    }
+#endif
     moveList = generate_moves<KNIGHT, Checks>(pos, moveList, Us, target);
     moveList = generate_moves<BISHOP, Checks>(pos, moveList, Us, target);
     moveList = generate_moves<  ROOK, Checks>(pos, moveList, Us, target);
@@ -425,10 +435,6 @@ namespace {
             moveList = generate_castling<MakeCastling<Us, QUEEN_SIDE>::right, Checks, false>(pos, moveList, Us);
         }
     }
-#ifdef CRAZYHOUSE
-    if (pos.is_house())
-        moveList = generate_drops<Type, Checks>(pos, moveList, target);
-#endif
 
     return moveList;
   }
@@ -626,14 +632,13 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
       if (   (validate || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
+#ifdef CRAZYHOUSE
+          && type_of(*cur) != DROP
+#endif
           && !pos.legal(*cur))
           *cur = (--moveList)->move;
 #ifdef ATOMIC
       else if (pos.is_atomic() && pos.capture(*cur) && !pos.legal(*cur))
-          *cur = (--moveList)->move;
-#endif
-#ifdef CRAZYHOUSE
-      else if (type_of(*cur) == DROP && !pos.legal(*cur))
           *cur = (--moveList)->move;
 #endif
       else
