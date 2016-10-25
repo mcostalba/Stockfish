@@ -703,6 +703,7 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 
 #ifdef CRAZYHOUSE
 inline void Position::drop_piece(Piece pc, Square s) {
+  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
   put_piece(pc, s);
   pieceCountInHand[color_of(pc)][type_of(pc)]--;
 }
@@ -711,6 +712,7 @@ inline void Position::undrop_piece(Piece pc, Square s) {
   remove_piece(pc, s);
   board[s] = NO_PIECE;
   pieceCountInHand[color_of(pc)][type_of(pc)]++;
+  assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
 }
 #endif
 
