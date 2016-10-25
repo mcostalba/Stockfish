@@ -889,7 +889,7 @@ bool Position::pseudo_legal(const Move m) const {
 #endif
 
   // Use a slower but simpler function for uncommon cases
-  if (type_of(m) != NORMAL)
+  if (type_of(m) != NORMAL && type_of(m) != DROP)
       return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
@@ -902,10 +902,18 @@ bool Position::pseudo_legal(const Move m) const {
       return false;
 
   // The destination square cannot be occupied by a friendly piece
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP && (!pieceCountInHand[us][type_of(pc)] || !empty(to)))
+      return false;
+  else
+#endif
   if (pieces(us) & to)
       return false;
 
   // Handle the special case of a pawn move
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP) {} else
+#endif
   if (type_of(pc) == PAWN)
   {
       // We have already handled promotion moves, so destination
@@ -921,11 +929,7 @@ bool Position::pseudo_legal(const Move m) const {
                && empty(to - pawn_push(us))))
           return false;
   }
-#ifdef CRAZYHOUSE
-  else if (type_of(m) != DROP && !(attacks_from(pc, from) & to))
-#else
   else if (!(attacks_from(pc, from) & to))
-#endif
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves
