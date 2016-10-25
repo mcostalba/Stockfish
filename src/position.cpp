@@ -782,6 +782,11 @@ bool Position::legal(Move m) const {
             && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
   }
 
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
+#endif
+
 #ifdef ATOMIC
   if (is_atomic() && type_of(piece_on(from)) == KING && type_of(m) != CASTLING)
   {
@@ -801,18 +806,11 @@ bool Position::legal(Move m) const {
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
-#ifdef CRAZYHOUSE
-  if (type_of(m) == DROP) {} else
-#endif
   if (type_of(piece_on(from)) == KING)
       return type_of(m) == CASTLING || !(attackers_to(to_sq(m)) & pieces(~us));
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
-#ifdef CRAZYHOUSE
-  if (type_of(m) == DROP)
-      return empty(to_sq(m));
-#endif
   return   !(pinned_pieces(us) & from)
         ||  aligned(from, to_sq(m), square<KING>(us));
 }
