@@ -102,7 +102,11 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
+#ifdef CRAZYHOUSE
+const int MAX_MOVES = 512;
+#else
 const int MAX_MOVES = 256;
+#endif
 const int MAX_PLY   = 128;
 
 enum Variant {
