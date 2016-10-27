@@ -36,7 +36,11 @@
 using std::string;
 
 namespace PSQT {
+#ifdef CRAZYHOUSE
+  extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
+#else
   extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
+#endif
 }
 
 namespace Zobrist {
@@ -520,6 +524,13 @@ void Position::set_state(StateInfo* si) const {
       si->key ^= Zobrist::psq[var][pc][s];
       si->psq += PSQT::psq[var][pc][s];
   }
+#ifdef CRAZYHOUSE
+  if (is_house())
+  {
+      for (Piece pc : Pieces)
+          si->psq += pieceCountInHand[color_of(pc)][type_of(pc)] * PSQT::psq[var][pc][SQ_NONE];
+  }
+#endif
 
   if (si->epSquare != SQ_NONE)
       si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
@@ -1169,6 +1180,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           st->capturedpromoted = is_promoted(to);
           add_to_hand(~color_of(captured), is_promoted(to) ? PAWN : type_of(captured));
+          st->psq += PSQT::psq[var][is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured][SQ_NONE];
           promotedPieces -= to;
       }
 #endif
@@ -1354,11 +1366,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   // Update incremental scores
-#ifdef CRAZYHOUSE
-  if (type_of(m) == DROP)
-      st->psq += PSQT::psq[var][pc][to];
-  else
-#endif
   st->psq += PSQT::psq[var][pc][to] - PSQT::psq[var][pc][from];
 
   // Set capture piece

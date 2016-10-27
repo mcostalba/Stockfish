@@ -150,7 +150,11 @@ const Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
 
 #undef S
 
+#ifdef CRAZYHOUSE
+Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
+#else
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
+#endif
 
 // init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] adding the piece value, then the black halves of the
@@ -171,6 +175,10 @@ void init() {
               psq[var][ pc][ s] = v + Bonus[pc][rank_of(s)][f];
               psq[var][~pc][~s] = -psq[var][pc][s];
           }
+#ifdef CRAZYHOUSE
+          psq[var][ pc][SQ_NONE] = v;
+          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
+#endif
       }
 }
 
