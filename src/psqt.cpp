@@ -41,8 +41,8 @@ Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 #endif
 #ifdef CRAZYHOUSE
 {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+  { VALUE_ZERO, PawnValueMgHouse, KnightValueMgHouse, BishopValueMgHouse, RookValueMgHouse, QueenValueMgHouse },
+  { VALUE_ZERO, PawnValueEgHouse, KnightValueEgHouse, BishopValueEgHouse, RookValueEgHouse, QueenValueEgHouse },
 },
 #endif
 #ifdef HORDE
@@ -150,7 +150,11 @@ const Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
 
 #undef S
 
+#ifdef CRAZYHOUSE
+Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
+#else
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
+#endif
 
 // init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] adding the piece value, then the black halves of the
@@ -171,6 +175,10 @@ void init() {
               psq[var][ pc][ s] = v + Bonus[pc][rank_of(s)][f];
               psq[var][~pc][~s] = -psq[var][pc][s];
           }
+#ifdef CRAZYHOUSE
+          psq[var][ pc][SQ_NONE] = v;
+          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
+#endif
       }
 }
 
