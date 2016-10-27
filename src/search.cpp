@@ -70,7 +70,7 @@ namespace {
   { 1932, 2280, 2412, 2216 },
 #endif
 #ifdef ATOMIC
-  { 1932, 2280, 2412, 2216 },
+  { 1867, 2341, 2501, 2218 },
 #endif
 #ifdef CRAZYHOUSE
   { 483, 570, 603, 554 },
@@ -97,7 +97,7 @@ namespace {
   600,
 #endif
 #ifdef ATOMIC
-  600,
+  560,
 #endif
 #ifdef CRAZYHOUSE
   150,
