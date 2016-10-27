@@ -70,7 +70,7 @@ namespace {
   { 1932, 2280, 2412, 2216 },
 #endif
 #ifdef ATOMIC
-  { 1932, 2280, 2412, 2216 },
+  { 1867, 2341, 2501, 2218 },
 #endif
 #ifdef CRAZYHOUSE
   { 483, 570, 603, 554 },
@@ -82,7 +82,7 @@ namespace {
   { 483, 570, 603, 554 },
 #endif
 #ifdef RACE
-  { 1000, 1000, 1000, 1000 },
+  { 1017, 986, 1017, 990 },
 #endif
 #ifdef RELAY
   { 483, 570, 603, 554 },
@@ -97,7 +97,7 @@ namespace {
   600,
 #endif
 #ifdef ATOMIC
-  600,
+  560,
 #endif
 #ifdef CRAZYHOUSE
   150,
@@ -109,7 +109,7 @@ namespace {
   150,
 #endif
 #ifdef RACE
-  400,
+  365,
 #endif
 #ifdef RELAY
   150,
