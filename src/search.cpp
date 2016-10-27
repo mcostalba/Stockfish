@@ -82,7 +82,7 @@ namespace {
   { 483, 570, 603, 554 },
 #endif
 #ifdef RACE
-  { 1000, 1000, 1000, 1000 },
+  { 1017, 986, 1017, 990 },
 #endif
 #ifdef RELAY
   { 483, 570, 603, 554 },
@@ -109,7 +109,7 @@ namespace {
   150,
 #endif
 #ifdef RACE
-  400,
+  365,
 #endif
 #ifdef RELAY
   150,
