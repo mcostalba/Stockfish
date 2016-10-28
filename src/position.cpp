@@ -647,10 +647,6 @@ Phase Position::game_phase() const {
   if (is_horde())
       npm = 2 * st->nonPawnMaterial[is_horde_color(WHITE) ? BLACK : WHITE];
 #endif
-#ifdef ATOMIC
-  if (is_atomic())
-      npm += npm;
-#endif
 
   npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
 
