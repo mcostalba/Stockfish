@@ -271,18 +271,18 @@ enum Value : int {
   KingValueMgAnti   = -230,  KingValueEgAnti   = -168,
 #endif
 #ifdef ATOMIC
-  PawnValueMgAtomic   = 421,   PawnValueEgAtomic   = 477,
-  KnightValueMgAtomic = 472,   KnightValueEgAtomic = 779,
-  BishopValueMgAtomic = 667,   BishopValueEgAtomic = 912,
-  RookValueMgAtomic   = 877,   RookValueEgAtomic   = 1477,
-  QueenValueMgAtomic  = 2203,  QueenValueEgAtomic  = 2815,
+  PawnValueMgAtomic   = 366,   PawnValueEgAtomic   = 445,
+  KnightValueMgAtomic = 519,   KnightValueEgAtomic = 787,
+  BishopValueMgAtomic = 655,   BishopValueEgAtomic = 876,
+  RookValueMgAtomic   = 887,   RookValueEgAtomic   = 1356,
+  QueenValueMgAtomic  = 2027,  QueenValueEgAtomic  = 2915,
 #endif
 #ifdef CRAZYHOUSE
-  PawnValueMgHouse   = 300,   PawnValueEgHouse   = 300,
-  KnightValueMgHouse = 600,   KnightValueEgHouse = 600,
-  BishopValueMgHouse = 600,   BishopValueEgHouse = 600,
-  RookValueMgHouse   = 600,   RookValueEgHouse   = 600,
-  QueenValueMgHouse  = 1200,  QueenValueEgHouse  = 1200,
+  PawnValueMgHouse   = 251,   PawnValueEgHouse   = 271,
+  KnightValueMgHouse = 515,   KnightValueEgHouse = 615,
+  BishopValueMgHouse = 598,   BishopValueEgHouse = 622,
+  RookValueMgHouse   = 695,   RookValueEgHouse   = 732,
+  QueenValueMgHouse  = 1014,  QueenValueEgHouse  = 1139,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 406,   PawnValueEgHorde   = 427,
@@ -291,6 +291,12 @@ enum Value : int {
   RookValueMgHorde   = 1341,  RookValueEgHorde   = 1175,
   QueenValueMgHorde  = 2777,  QueenValueEgHorde  = 3182,
   KingValueMgHorde   = 2041,  KingValueEgHorde   = 975,
+#endif
+#ifdef RACE
+  KnightValueMgRace = 720,   KnightValueEgRace = 801,
+  BishopValueMgRace = 904,   BishopValueEgRace = 929,
+  RookValueMgRace   = 1265,  RookValueEgRace  = 1731,
+  QueenValueMgRace  = 2198,  QueenValueEgRace = 2226,
 #endif
 #ifdef THREECHECK
   PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
