@@ -442,12 +442,6 @@ namespace {
 
     // King shelter and enemy pawns storm
     Score score = ei.pi->king_safety<Us>(pos, ksq);
-#ifdef RACE
-    if (pos.is_race())
-        score = make_score(0, 0);
-    else
-    {
-#endif
 
     // Main king safety evaluation
     if (ei.kingAttackersCount[Them])
@@ -558,9 +552,6 @@ namespace {
             score -= make_score(std::min(kingDanger * kingDanger / 4096,  2 * int(BishopValueMg)), 0);
         }
     }
-#ifdef RACE
-    }
-#endif
 
     // King tropism: firstly, find squares that opponent attacks in our king flank
     File kf = file_of(ksq);
@@ -1189,6 +1180,9 @@ Value Eval::evaluate(const Position& pos) {
 
 #ifdef ANTI
   if (pos.is_anti()) {} else
+#endif
+#ifdef RACE
+  if (pos.is_race()) {} else
 #endif
   // Evaluate kings after all other pieces because we need full attack
   // information when computing the king safety evaluation.
