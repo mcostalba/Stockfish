@@ -334,7 +334,7 @@ string UCI::move(Move m, bool chess960) {
       to = make_square(to > from ? FILE_G : FILE_C, rank_of(from));
 
 #ifdef CRAZYHOUSE
-  string move = ((type_of(m) == DROP) ? std::string{" PNBRQK  pnbrqk "[dropped_piece(m)], '@'} : UCI::square(from)) + UCI::square(to);
+  string move = ((type_of(m) == DROP) ? std::string{" PNBRQK  PNBRQK "[dropped_piece(m)], '@'} : UCI::square(from)) + UCI::square(to);
 #else
   string move = UCI::square(from) + UCI::square(to);
 #endif
