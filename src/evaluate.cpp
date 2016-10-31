@@ -233,6 +233,7 @@ namespace {
   const Score ThreatByPawnPush    = S(38, 22);
   const Score Unstoppable         = S( 0, 20);
   const Score PawnlessFlank       = S(20, 80);
+  const Score HinderPassedPawn    = S( 7,  0);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -756,13 +757,8 @@ namespace {
   Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
-#ifdef RACE
-    const Color Up = pos.is_race() ? WHITE : Us;
-#else
-    const Color Up = Us;
-#endif
 
-    Bitboard b, squaresToQueen, defendedSquares, unsafeSquares;
+    Bitboard b, bb, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
 
 #ifdef RACE
@@ -770,8 +766,8 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         int s = relative_rank(BLACK, ksq);
-        for (Rank i = Rank(rank_of(ksq) + 1); i <= RANK_8; ++i)
-            if (!(rank_bb(i) & DistanceRingBB[ksq][i - 1 - rank_of(ksq)] & ~ei.attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
+        for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
+            if (!(rank_bb(r) & DistanceRingBB[ksq][r - 1 - kr] & ~ei.attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
                 s++;
         score = KingRaceBonus[std::min(s, 7)];
     }
@@ -802,14 +798,17 @@ namespace {
         assert(pos.pawn_passed(Us, s));
         assert(!(pos.pieces(PAWN) & forward_bb(Us, s)));
 
-        int r = relative_rank(Up, s) - RANK_2;
+        bb = forward_bb(Us, s) & (ei.attackedBy[Them][ALL_PIECES] | pos.pieces(Them));
+        score -= HinderPassedPawn * popcount(bb);
+
+        int r = relative_rank(Us, s) - RANK_2;
         int rr = r * (r - 1);
 
         Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
 
         if (rr)
         {
-            Square pawnPush = pawn_push(Up);
+            Square pawnPush = pawn_push(Us);
             Square blockSq = s + pawnPush;
 #ifdef HORDE
             if (pos.is_horde())
@@ -843,7 +842,7 @@ namespace {
                 {
                     ebonus -= distance(ksq, blockSq) * 2 * rr;
                     // If blockSq is not the queening square then consider also a second push
-                    if (relative_rank(Up, blockSq) != RANK_8)
+                    if (relative_rank(Us, blockSq) != RANK_8)
                         ebonus -= distance(ksq, blockSq + pawnPush) * rr;
                 }
             }
@@ -855,7 +854,7 @@ namespace {
                      - distance(pos.square<KING>(Us  ), blockSq) * 2 * rr;
 
             // If blockSq is not the queening square then consider also a second push
-            if (relative_rank(Up, blockSq) != RANK_8)
+            if (relative_rank(Us, blockSq) != RANK_8)
                 ebonus -= distance(pos.square<KING>(Us), blockSq + pawnPush) * rr;
             }
 
@@ -867,7 +866,7 @@ namespace {
                 // in the pawn's path attacked or occupied by the enemy.
                 defendedSquares = unsafeSquares = squaresToQueen = forward_bb(Us, s);
 
-                Bitboard bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
+                bb = forward_bb(Them, s) & pos.pieces(ROOK, QUEEN) & pos.attacks_from<ROOK>(s);
 
                 if (!(pos.pieces(Us) & bb))
                     defendedSquares &= ei.attackedBy[Us][ALL_PIECES];
