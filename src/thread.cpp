@@ -22,6 +22,7 @@
 #include <cassert>
 
 #include "movegen.h"
+#include "numa.h"
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
@@ -95,6 +96,8 @@ void Thread::start_searching(bool resume) {
 /// Thread::idle_loop() is where the thread is parked when it has no work to do
 
 void Thread::idle_loop() {
+
+  Numa::instance().bindThisThread(idx);
 
   while (!exit)
   {

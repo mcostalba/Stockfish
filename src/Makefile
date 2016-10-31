@@ -39,7 +39,7 @@ PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
-	material.o misc.o movegen.o movepick.o pawns.o position.o psqt.o \
+	material.o misc.o movegen.o movepick.o numa.o pawns.o position.o psqt.o \
 	search.o thread.o timeman.o tt.o uci.o ucioption.o syzygy/tbprobe.o
 
 ### ==========================================================================
@@ -142,6 +142,11 @@ endif
 CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti -std=c++11 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS += $(EXTRALDFLAGS)
+
+### link with numa on linux, windows doesn't require a library for numa
+ifeq ($(UNAME),Linux)
+  LDFLAGS += -lnuma
+endif
 
 ifeq ($(COMP),)
 	COMP=gcc
