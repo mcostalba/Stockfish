@@ -640,6 +640,11 @@ namespace {
         score += LooseEnemies;
 
     // Non-pawn enemies attacked by a pawn
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        weak = 0;
+    else
+#endif
     weak = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Us][PAWN];
 
     if (weak)
