@@ -577,6 +577,10 @@ namespace {
     if (!(pos.pieces(PAWN) & (KingFlank[WHITE][kf] | KingFlank[BLACK][kf])))
         score -= PawnlessFlank;
 
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        score *= 2;
+#endif
     if (DoTrace)
         Trace::add(KING, Us, score);
 
