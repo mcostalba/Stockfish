@@ -840,14 +840,6 @@ namespace {
             }
             else
 #endif
-#ifdef ATOMIC
-            if (pos.is_atomic())
-            {
-                // Adjust bonus based on proximity to promotion
-                ebonus += relative_rank(Us, s) * 5 * rr;
-            }
-            else
-#endif
 #ifdef ANTI
             if (pos.is_anti())
             {
