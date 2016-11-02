@@ -177,6 +177,12 @@ namespace {
     { V(5), V( 5), V(31), V(73), V(166), V(252) },
     { V(7), V(14), V(38), V(73), V(166), V(252) }
   };
+#ifdef ATOMIC
+  const Value PassedAtomic[][RANK_NB] = {
+    { V(106), V(124), V(147), V(165), V(169), V(177) },
+    { V(103), V(118), V(148), V(155), V(142), V(153) }
+  };
+#endif
 
 #ifdef THREECHECK
   const Score ChecksGivenBonus[CHECKS_NB] = {
@@ -814,6 +820,10 @@ namespace {
         int rr = r * (r - 1);
 
         Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
+#ifdef ATOMIC
+        if (pos.is_atomic())
+            mbonus = PassedAtomic[MG][r], ebonus = PassedAtomic[EG][r];
+#endif
 
         if (rr)
         {
