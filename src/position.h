@@ -174,7 +174,7 @@ public:
 #endif
 #ifdef CRAZYHOUSE
   bool is_house() const;
-  bool has_in_hand(Color c, PieceType pt) const;
+  int count_in_hand(Color c, PieceType pt) const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
   bool is_promoted(Square s) const;
@@ -544,7 +544,7 @@ inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
 }
 
-inline bool Position::has_in_hand(Color c, PieceType pt) const {
+inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
 }
 

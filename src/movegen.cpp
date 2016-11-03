@@ -128,7 +128,7 @@ namespace {
 #ifdef CRAZYHOUSE
   template<Color Us, PieceType Pt, bool Checks>
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard b) {
-    if (pos.has_in_hand(Us, Pt))
+    if (pos.count_in_hand(Us, Pt))
     {
         if (Checks)
             b &= pos.check_squares(Pt);

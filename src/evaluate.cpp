@@ -210,6 +210,14 @@ namespace {
   const Score CloseEnemiesAtomic = S( 17,   0);
 #endif
 
+#ifdef CRAZYHOUSE
+  const int KingDangerInHand[PIECE_TYPE_NB] = {
+    0, 106, 119, 27, 61, 71
+  };
+
+  const Score CloseEnemiesHouse = S( 5,   7);
+#endif
+
 #ifdef RACE
   // Bonus for distance of king from 8th rank
   const Score KingRaceBonus[RANK_NB] = {
@@ -474,6 +482,12 @@ namespace {
                     - 717 * !pos.count<QUEEN>(Them)
                     -   7 * mg_value(score) / 5 - 5;
 
+#ifdef CRAZYHOUSE
+        if (pos.is_house())
+            for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
+                kingDanger += KingDangerInHand[pt] * pos.count_in_hand(Them, pt);
+#endif
+
         // Analyse the enemy's safe queen contact checks. Firstly, find the
         // undefended squares around the king reachable by the enemy queen...
         b = undefended & ei.attackedBy[Them][QUEEN] & ~pos.pieces(Them);
@@ -575,6 +589,11 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic())
         score -= CloseEnemiesAtomic * popcount(b);
+    else
+#endif
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        score -= CloseEnemiesHouse * popcount(b);
     else
 #endif
     score -= CloseEnemies * popcount(b);
