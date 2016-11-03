@@ -841,23 +841,7 @@ namespace {
             else
 #endif
 #ifdef ANTI
-            if (pos.is_anti())
-            {
-                // Adjust bonus based on the kings' proximities
-                Square ksq;
-                const Square* kl = pos.squares<KING>(Them);
-                while ((ksq = *kl++) != SQ_NONE)
-                    ebonus += distance(ksq, blockSq) * 5 * rr;
-                kl = pos.squares<KING>(Us);
-                while ((ksq = *kl++) != SQ_NONE)
-                {
-                    ebonus -= distance(ksq, blockSq) * 2 * rr;
-                    // If blockSq is not the queening square then consider also a second push
-                    if (relative_rank(Us, blockSq) != RANK_8)
-                        ebonus -= distance(ksq, blockSq + pawnPush) * rr;
-                }
-            }
-            else
+            if (pos.is_anti()) {} else
 #endif
             {
             // Adjust bonus based on the king's proximity
