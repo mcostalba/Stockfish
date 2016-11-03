@@ -201,9 +201,9 @@ namespace {
 #endif
 
 #ifdef ANTI
-  const Score ForcedCaptureAnti = S(1135, 1470);
-  const Score PieceCountAnti    = S(122, 124);
-  const Score ThreatsAnti[]     = { S(234, 293), S(468, 382) };
+  const Score ForcedCaptureAnti = S(1217, 1566);
+  const Score PieceCountAnti    = S(123, 122);
+  const Score ThreatsAnti[]     = { S(232, 285), S(455, 373) };
 #endif
 
 #ifdef ATOMIC
