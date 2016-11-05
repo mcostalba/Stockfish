@@ -212,10 +212,10 @@ namespace {
 
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
-    0, 106, 119, 27, 61, 71
+    0, 124, 129, 27, 73, 71
   };
 
-  const Score CloseEnemiesHouse = S( 5,   7);
+  const Score CloseEnemiesHouse = S( 5,   10);
 #endif
 
 #ifdef RACE
