@@ -88,6 +88,7 @@ public:
 
   // FEN string input/output
   Position& set(const std::string& fenStr, bool isChess960, Variant v, StateInfo* si, Thread* th);
+  Position& set(const std::string& code, Color c, StateInfo* si);
   const std::string fen() const;
 
   // Position representation
@@ -142,9 +143,9 @@ public:
   bool opposite_bishops() const;
 
   // Doing and undoing moves
-  void do_move(Move m, StateInfo& st, bool givesCheck);
+  void do_move(Move m, StateInfo& newSt, bool givesCheck);
   void undo_move(Move m);
-  void do_null_move(StateInfo& st);
+  void do_null_move(StateInfo& newSt);
   void undo_null_move();
 
   // Static Exchange Evaluation
@@ -264,7 +265,7 @@ private:
 
 };
 
-extern std::ostream& operator<<(std::ostream& os, const Position& pos);
+extern std::ostream& operator<<(std::ostream& os, Position& pos);
 
 inline Color Position::side_to_move() const {
   return sideToMove;
