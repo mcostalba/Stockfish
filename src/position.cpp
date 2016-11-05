@@ -1129,7 +1129,7 @@ void Position::flip() {
 
 bool Position::pos_is_ok(int* failedStep) const {
 
-  const bool Fast = false; // Quick (default) or full check?
+  const bool Fast = true; // Quick (default) or full check?
 
   enum { Default, King, Bitboards, State, Castling };
 
