@@ -194,7 +194,6 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
 
   std::memset(this, 0, sizeof(Position));
   std::memset(si, 0, sizeof(StateInfo));
-  std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   st = si;
 
   ss >> std::noskipws;
@@ -747,7 +746,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       else
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
 
-      // Update board and piece lists
+      // Update board
       remove_piece(captured, capsq);
 
       // Update material hash key and prefetch access to materialTable
@@ -1130,9 +1129,9 @@ void Position::flip() {
 
 bool Position::pos_is_ok(int* failedStep) const {
 
-  const bool Fast = true; // Quick (default) or full check?
+  const bool Fast = false; // Quick (default) or full check?
 
-  enum { Default, King, Bitboards, State, Lists, Castling };
+  enum { Default, King, Bitboards, State, Castling };
 
   for (int step = Default; step <= (Fast ? Default : Castling); step++)
   {
@@ -1172,17 +1171,6 @@ bool Position::pos_is_ok(int* failedStep) const {
           if (std::memcmp(&si, st, sizeof(StateInfo)))
               return false;
       }
-
-      if (step == Lists)
-          for (Piece pc : Pieces)
-          {
-              if (pieceCount[pc] != popcount(pieces(color_of(pc), type_of(pc))))
-                  return false;
-
-              for (int i = 0; i < pieceCount[pc]; ++i)
-                  if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
-                      return false;
-          }
 
       if (step == Castling)
           for (Color c = WHITE; c <= BLACK; ++c)
