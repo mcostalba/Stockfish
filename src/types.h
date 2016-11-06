@@ -140,11 +140,11 @@ enum Variant {
 
 //static const constexpr char* variants[] doesn't play nicely with uci.h
 static std::vector<std::string> variants = {"chess"
-#ifdef ATOMIC
-,"atomic"
-#endif
 #ifdef ANTI
 ,"giveaway"
+#endif
+#ifdef ATOMIC
+,"atomic"
 #endif
 #ifdef CRAZYHOUSE
 ,"crazyhouse"
