@@ -214,6 +214,9 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
       }
   }
 
+  st->kingSquare[WHITE] = lsb(pieces(WHITE, KING));
+  st->kingSquare[BLACK] = lsb(pieces(BLACK, KING));
+
   // 2. Active color
   ss >> token;
   sideToMove = (token == 'w' ? WHITE : BLACK);
@@ -824,6 +827,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Reset rule 50 draw counter
       st->rule50 = 0;
   }
+  else if (type_of(pc) == KING)
+      st->kingSquare[us] = to;
 
   // Update incremental scores
   st->psq += PSQT::psq[pc][to] - PSQT::psq[pc][from];

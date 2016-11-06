@@ -45,6 +45,7 @@ struct StateInfo {
   int    pliesFromNull;
   Score  psq;
   Square epSquare;
+  Square kingSquare[2];
 
   // Not copied when making a move (will be recomputed anyhow)
   Key        key;
@@ -235,6 +236,10 @@ template<PieceType Pt> inline int Position::count(Color c) const {
 template<PieceType Pt> inline Square Position::square(Color c) const {
   assert(pieceCount[make_piece(c, Pt)] == 1);
   return lsb(pieces(c, Pt));
+}
+
+template<> inline Square Position::square<KING>(Color c) const {
+  return st->kingSquare[c];
 }
 
 inline Square Position::ep_square() const {
