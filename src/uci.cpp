@@ -37,24 +37,41 @@ extern void benchmark(const Position& pos, istream& is);
 
 namespace {
 
-  // FEN string of the initial position, normal variant
-  const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Variant variant_from_name(string s) {
+      for (Variant v = CHESS_VARIANT; v < VARIANT_NB; ++v)
+          if (variants[v] == s)
+              return v;
+      return CHESS_VARIANT;
+  }
+
+  // FEN strings of the initial positions
+  const string StartFENs[VARIANT_NB] = {
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#ifdef ANTI
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#endif
+#ifdef ATOMIC
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#endif
 #ifdef CRAZYHOUSE
-  // FEN string of the initial position, crazyhouse variant
-  const char* StartFENCrazyhouse = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1";
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
 #endif
 #ifdef HORDE
-  // FEN string of the initial position, horde variant
-  const char* StartFENHorde = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
+  ,"rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1"
+#endif
+#ifdef KOTH
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #endif
 #ifdef RACE
-  // FEN string of the initial position, race variant
-  const char* StartFENRace = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
+  ,"8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1"
+#endif
+#ifdef RELAY
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #endif
 #ifdef THREECHECK
-  // FEN string of the initial position, three-check variant
-  const char* StartFENThreeCheck = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1";
+  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1"
 #endif
+  };
 
   // A list to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
@@ -72,64 +89,12 @@ namespace {
     Move m;
     string token, fen;
 
-    Variant variant = CHESS_VARIANT;
-#ifdef ATOMIC
-    if (!(Options["UCI_Variant"].compare("atomic")))
-        variant = ATOMIC_VARIANT;
-#endif
-#ifdef CRAZYHOUSE
-    if (!(Options["UCI_Variant"].compare("crazyhouse")))
-        variant = CRAZYHOUSE_VARIANT;
-#endif
-#ifdef ANTI
-    if (!(Options["UCI_Variant"].compare("giveaway")))
-        variant = ANTI_VARIANT;
-#endif
-#ifdef HORDE
-    if (!(Options["UCI_Variant"].compare("horde")))
-        variant = HORDE_VARIANT;
-#endif
-#ifdef KOTH
-    if (!(Options["UCI_Variant"].compare("kingofthehill")))
-        variant = KOTH_VARIANT;
-#endif
-#ifdef RACE
-    if (!(Options["UCI_Variant"].compare("racingkings")))
-        variant = RACE_VARIANT;
-#endif
-#ifdef RELAY
-    if (!(Options["UCI_Variant"].compare("relay")))
-        variant = RELAY_VARIANT;
-#endif
-#ifdef THREECHECK
-    if (!(Options["UCI_Variant"].compare("threecheck")))
-        variant = THREECHECK_VARIANT;
-#endif
+    Variant variant = variant_from_name(Options["UCI_Variant"]);
 
     is >> token;
     if (token == "startpos")
     {
-#ifdef CRAZYHOUSE
-        if(variant == CRAZYHOUSE_VARIANT)
-            fen = StartFENCrazyhouse;
-        else
-#endif
-#ifdef HORDE
-        if(variant == HORDE_VARIANT)
-            fen = StartFENHorde;
-        else
-#endif
-#ifdef RACE
-        if(variant == RACE_VARIANT)
-            fen = StartFENRace;
-        else
-#endif
-#ifdef THREECHECK
-        if(variant == THREECHECK_VARIANT)
-            fen = StartFENThreeCheck;
-        else
-#endif
-        fen = StartFEN;
+        fen = StartFENs[variant];
         is >> token; // Consume "moves" token if any
     }
     else if (token == "fen")
@@ -140,7 +105,6 @@ namespace {
 
     States = StateListPtr(new std::deque<StateInfo>(1));
     pos.set(fen, Options["UCI_Chess960"], variant, &States->back(), Threads.main());
-    sync_cout << "info string variant " << (string)Options["UCI_Variant"] << " startpos " << pos.fen() << sync_endl;
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
@@ -168,7 +132,11 @@ namespace {
         value += string(" ", value.empty() ? 0 : 1) + token;
 
     if (Options.count(name))
+    {
         Options[name] = value;
+        if (name == "UCI_Variant")
+            sync_cout << "info string variant " << (string)Options["UCI_Variant"] << " startpos " << StartFENs[variant_from_name(Options["UCI_Variant"])] << sync_endl;
+    }
     else
         sync_cout << "No such option: " << name << sync_endl;
   }
@@ -219,7 +187,7 @@ void UCI::loop(int argc, char* argv[]) {
   Position pos;
   string token, cmd;
 
-  pos.set(StartFEN, false, CHESS_VARIANT, &States->back(), Threads.main());
+  pos.set(StartFENs[CHESS_VARIANT], false, CHESS_VARIANT, &States->back(), Threads.main());
 
   for (int i = 1; i < argc; ++i)
       cmd += std::string(argv[i]) + " ";
