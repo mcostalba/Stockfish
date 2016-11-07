@@ -265,6 +265,7 @@ void Search::clear() {
       th->counterMoves.clear();
       th->fromTo.clear();
       th->counterMoveHistory.clear();
+      th->resetCalls = true;
   }
 
   Threads.main()->previousScore = VALUE_INFINITE;
