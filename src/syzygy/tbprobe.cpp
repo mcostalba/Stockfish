@@ -1149,13 +1149,65 @@ void* init(Entry& e, const Position& pos) {
         b += std::string(popcount(pos.pieces(BLACK, pt)), PieceToChar[pt]);
     }
 
-    const uint8_t TB_MAGIC[][4] = { { 0xD7, 0x66, 0x0C, 0xA5 },
-                                    { 0x71, 0xE8, 0x23, 0x5D } };
+    const uint8_t TB_MAGIC[VARIANT_NB][2][4] = {
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#ifdef ANTI
+        {
+            { 0xD6, 0xF5, 0x1B, 0x50 },
+            { 0xBC, 0x55, 0xBC, 0x21 }
+        },
+#endif
+#ifdef ATOMIC
+        {
+            { 0x91, 0xA9, 0x5E, 0xEB },
+            { 0x55, 0x8D, 0xA4, 0x49 }
+        },
+#endif
+#ifdef CRAZYHOUSE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef HORDE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef KOTH
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RACE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RELAY
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef THREECHECK
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+    };
 
     fname =  (e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w)
            + (IsWDL ? ".rtbw" : ".rtbz");
 
-    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[IsWDL]);
+    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[pos.variant()][IsWDL]);
     if (data)
         e.hasPawns ? do_init(e, e.pawnTable, data) : do_init(e, e.pieceTable, data);
 
