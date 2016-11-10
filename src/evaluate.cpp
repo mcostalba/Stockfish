@@ -171,18 +171,62 @@ namespace {
   // pawns or pieces which are not pawn-defended.
   const Score ThreatByKing[2] = { S(3, 62), S(9, 138) };
 
-  // Passed[mg/eg][Rank] contains midgame and endgame bonuses for passed pawns.
+  // Passed[variant][mg/eg][Rank] contains midgame and endgame bonuses for passed pawns.
   // We don't use a Score because we process the two components independently.
-  const Value Passed[][RANK_NB] = {
-    { V(5), V( 5), V(31), V(73), V(166), V(252) },
-    { V(7), V(14), V(38), V(73), V(166), V(252) }
-  };
-#ifdef ATOMIC
-  const Value PassedAtomic[][RANK_NB] = {
-    { V(106), V(124), V(147), V(165), V(169), V(177) },
-    { V(103), V(118), V(148), V(155), V(142), V(153) }
-  };
+  const Value Passed[VARIANT_NB][2][RANK_NB] = {
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#ifdef ANTI
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
 #endif
+#ifdef ATOMIC
+    {
+      { V(106), V(124), V(147), V(165), V(169), V(177) },
+      { V(103), V(118), V(148), V(155), V(142), V(153) }
+    },
+#endif
+#ifdef CRAZYHOUSE
+    {
+      { V(15), V(23), V(13), V( 88), V(177), V(229) },
+      { V(27), V(13), V(19), V(111), V(140), V(203) }
+    },
+#endif
+#ifdef HORDE
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+#ifdef KOTH
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+#ifdef RACE
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+#ifdef RELAY
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+#ifdef THREECHECK
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+  };
 
 #ifdef THREECHECK
   const Score ChecksGivenBonus[CHECKS_NB] = {
@@ -838,11 +882,7 @@ namespace {
         int r = relative_rank(Us, s) - RANK_2;
         int rr = r * (r - 1);
 
-        Value mbonus = Passed[MG][r], ebonus = Passed[EG][r];
-#ifdef ATOMIC
-        if (pos.is_atomic())
-            mbonus = PassedAtomic[MG][r], ebonus = PassedAtomic[EG][r];
-#endif
+        Value mbonus = Passed[pos.variant()][MG][r], ebonus = Passed[pos.variant()][EG][r];
 
         if (rr)
         {

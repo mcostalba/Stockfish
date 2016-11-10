@@ -52,12 +52,73 @@ namespace {
     S(17, 16), S(33, 32), S(0, 0), S(0, 0)
   };
 
-  // Weakness of our pawn shelter in front of the king by [distance from edge][rank]
-  const Value ShelterWeakness[][RANK_NB] = {
+  // Weakness of our pawn shelter in front of the king by [variant][distance from edge][rank]
+  const Value ShelterWeakness[VARIANT_NB][4][RANK_NB] = {
+  {
     { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
     { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
     { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
     { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#ifdef ANTI
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
+#ifdef ATOMIC
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
+#ifdef CRAZYHOUSE
+  {
+    { V(119), V( 3), V(41), V(65), V( 60), V( 83), V(116) },
+    { V(165), V( 0), V(60), V(92), V( 93), V( 92), V( 96) },
+    { V( 98), V( 0), V(78), V(68), V(108), V( 98), V(121) },
+    { V( 88), V(17), V(56), V(85), V( 91), V( 97), V(138) }
+  },
+#endif
+#ifdef HORDE
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
+#ifdef KOTH
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
+#ifdef RACE
+  {},
+#endif
+#ifdef RELAY
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
+#ifdef THREECHECK
+  {
+    { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
+    { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
+    { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
+    { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+  },
+#endif
   };
 
   // Danger of enemy pawns moving toward our king by [type][distance from edge][rank]
@@ -246,7 +307,7 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
       b  = theirPawns & file_bb(f);
       Rank rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
 
-      safety -=  ShelterWeakness[std::min(f, FILE_H - f)][rkUs]
+      safety -=  ShelterWeakness[pos.variant()][std::min(f, FILE_H - f)][rkUs]
                + StormDanger
                  [f == file_of(ksq) && rkThem == relative_rank(Us, ksq) + 1 ? BlockedByKing  :
                   rkUs   == RANK_1                                          ? NoFriendlyPawn :
