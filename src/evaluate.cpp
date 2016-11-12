@@ -245,16 +245,16 @@ namespace {
 #endif
 
 #ifdef ANTI
-  const Score PieceCountAnti    = S(123, 122);
-  const Score ThreatsAnti[]     = { S(232, 285), S(455, 373) };
+  const Score PieceCountAnti    = S(122, 119);
+  const Score ThreatsAnti[]     = { S(216, 279), S(441, 341) };
   const Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
     {
-      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) },
-      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) }
+      { S(111, 127), S(102,  95), S(121, 183), S(140,  37), S(120,  99), S( 55, 11), S( 88,  93) },
+      { S( 56,  69), S( 72, 124), S(109, 154), S( 98, 149), S(129, 113), S(147, 72), S(157, 152) }
     },
     {
-      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) },
-      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) }
+      { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
+      { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
     }
   };
 #endif
@@ -1310,6 +1310,9 @@ Value Eval::evaluate(const Position& pos) {
               - evaluate_space<BLACK>(pos, ei);
 
   // Evaluate position potential for the winning side
+#ifdef ANTI
+  if (pos.is_anti()) {} else
+#endif
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
 #ifdef HORDE
   }
