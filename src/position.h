@@ -143,6 +143,7 @@ public:
   bool opposite_bishops() const;
 
   // Doing and undoing moves
+  void do_move(Move m, StateInfo& newSt);
   void do_move(Move m, StateInfo& newSt, bool givesCheck);
   void undo_move(Move m);
   void do_null_move(StateInfo& newSt);
@@ -716,5 +717,9 @@ inline void Position::undrop_piece(Piece pc, Square s) {
   assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
 }
 #endif
+
+inline void Position::do_move(Move m, StateInfo& newSt) {
+  do_move(m, newSt, gives_check(m));
+}
 
 #endif // #ifndef POSITION_H_INCLUDED
