@@ -860,6 +860,10 @@ namespace {
         tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                   ss->staticEval, TT.generation());
     }
+#ifdef ANTI
+    if (pos.is_anti() && pos.can_capture())
+        goto moves_loop;
+#endif
 
     if (ss->skipEarlyPruning)
         goto moves_loop;
@@ -888,9 +892,6 @@ namespace {
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-#ifdef ANTI
-    if (pos.is_anti() && pos.can_capture()) {} else
-#endif
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
