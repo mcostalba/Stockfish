@@ -245,9 +245,18 @@ namespace {
 #endif
 
 #ifdef ANTI
-  const Score ForcedCaptureAnti = S(1217, 1566);
   const Score PieceCountAnti    = S(123, 122);
   const Score ThreatsAnti[]     = { S(232, 285), S(455, 373) };
+  const Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
+    {
+      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) },
+      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) }
+    },
+    {
+      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) },
+      { S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100), S(100, 100) }
+    }
+  };
 #endif
 
 #ifdef ATOMIC
@@ -382,15 +391,26 @@ namespace {
             ei.kingAdjacentZoneAttacksCount[Us] += popcount(b & ei.attackedBy[Them][KING]);
         }
 
+#ifdef ANTI
+        if (pos.is_anti()) {} else
+#endif
         if (Pt == QUEEN)
             b &= ~(  ei.attackedBy[Them][KNIGHT]
                    | ei.attackedBy[Them][BISHOP]
                    | ei.attackedBy[Them][ROOK]);
 
         int mob = popcount(b & mobilityArea[Us]);
+#ifdef ANTI
+        if (pos.is_anti())
+            mob = popcount(b);
+#endif
 
         mobility[Us] += MobilityBonus[Pt][mob];
 
+#ifdef ANTI
+        if (pos.is_anti())
+            continue;
+#endif
         if (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus for outpost squares
@@ -677,28 +697,42 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti())
     {
-        // Penalty if we attack only unprotected pieces and opponent does not attack any pieces
-        if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ~ei.attackedBy[Them][ALL_PIECES])
-            && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES])
-            && !(ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score -= ForcedCaptureAnti;
-        // if both colors attack pieces, penalize more the color with more pieces
-        else if ((ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them)) && (ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us)))
-            score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
+        bool we_attack = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
+        bool they_attack = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
 
+        // Penalties for possible captures
+        if (we_attack)
+        {
+            // Penalty if we attack only unprotected pieces and opponent does not attack any pieces
+            bool only_unprotected = (ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ~ei.attackedBy[Them][ALL_PIECES])
+                && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES]);
+            for (PieceType pt = PAWN; pt <= KING; ++pt)
+            {
+                if (ei.attackedBy[Us][pt] & pos.pieces(Them) & ~ei.attackedBy2[Us])
+                    score -= AttacksAnti[they_attack][only_unprotected][pt];
+                else if (ei.attackedBy[Us][pt] & pos.pieces(Them))
+                    score -= AttacksAnti[they_attack][only_unprotected][NO_PIECE_TYPE];
+            }
+            // if both colors attack pieces, penalize more the color with more pieces
+            if (they_attack)
+                score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
+        }
         // Bonus if we threaten to force captures
-        Bitboard push1 = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
-        Bitboard push2 = shift<Up>(shift<Up>(TRank2BB & pos.pieces(Us, PAWN)) & ~pos.pieces()) & ~pos.pieces();
-        Bitboard pawn_pushes = push1 | push2;
-        Bitboard piece_moves =  (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
-                              | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
-        Bitboard movesbb = pawn_pushes | piece_moves;
-        Bitboard unprotected_pawn_pushes = pawn_pushes & ~ei.attackedBy[Us][ALL_PIECES];
-        Bitboard unprotected_piece_moves = piece_moves & ~ei.attackedBy2[Us];
-        Bitboard unprotected_moves = unprotected_pawn_pushes | unprotected_piece_moves;
+        if (!we_attack || they_attack)
+        {
+            Bitboard push1 = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
+            Bitboard push2 = shift<Up>(shift<Up>(TRank2BB & pos.pieces(Us, PAWN)) & ~pos.pieces()) & ~pos.pieces();
+            Bitboard pawn_pushes = push1 | push2;
+            Bitboard piece_moves =  (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                                | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
+            Bitboard movesbb = pawn_pushes | piece_moves;
+            Bitboard unprotected_pawn_pushes = pawn_pushes & ~ei.attackedBy[Us][ALL_PIECES];
+            Bitboard unprotected_piece_moves = piece_moves & ~ei.attackedBy2[Us];
+            Bitboard unprotected_moves = unprotected_pawn_pushes | unprotected_piece_moves;
 
-        score += popcount(ei.attackedBy[Them][ALL_PIECES] & movesbb) * ThreatsAnti[0];
-        score += popcount(ei.attackedBy[Them][ALL_PIECES] & unprotected_moves) * ThreatsAnti[1];
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & movesbb) * ThreatsAnti[0];
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & unprotected_moves) * ThreatsAnti[1];
+        }
     }
     else
     {
