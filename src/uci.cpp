@@ -37,13 +37,6 @@ extern void benchmark(const Position& pos, istream& is);
 
 namespace {
 
-  Variant variant_from_name(string s) {
-      for (Variant v = CHESS_VARIANT; v < VARIANT_NB; ++v)
-          if (variants[v] == s)
-              return v;
-      return CHESS_VARIANT;
-  }
-
   // FEN strings of the initial positions
   const string StartFENs[VARIANT_NB] = {
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -89,7 +82,7 @@ namespace {
     Move m;
     string token, fen;
 
-    Variant variant = variant_from_name(Options["UCI_Variant"]);
+    Variant variant = UCI::variant_from_name(Options["UCI_Variant"]);
 
     is >> token;
     if (token == "startpos")
@@ -134,8 +127,11 @@ namespace {
     if (Options.count(name))
     {
         Options[name] = value;
-        if (name == "UCI_Variant")
-            sync_cout << "info string variant " << (string)Options["UCI_Variant"] << " startpos " << StartFENs[variant_from_name(Options["UCI_Variant"])] << sync_endl;
+        if (name == "UCI_Variant") {
+            Variant variant = UCI::variant_from_name(value);
+            sync_cout << "info string variant " << (string)Options["UCI_Variant"] << " startpos " << StartFENs[variant] << sync_endl;
+            Tablebases::init(Options["SyzygyPath"], variant);
+        }
     }
     else
         sync_cout << "No such option: " << name << sync_endl;
@@ -224,7 +220,7 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ucinewgame")
       {
           Search::clear();
-          Tablebases::init(Options["SyzygyPath"]);
+          Tablebases::init(Options["SyzygyPath"], UCI::variant_from_name(Options["UCI_Variant"]));
           Time.availableNodes = 0;
       }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
@@ -329,4 +325,14 @@ Move UCI::to_move(const Position& pos, string& str) {
           return m;
 
   return MOVE_NONE;
+}
+
+
+Variant UCI::variant_from_name(const string& str) {
+
+  for (Variant v = CHESS_VARIANT; v < VARIANT_NB; ++v)
+      if (variants[v] == str)
+          return v;
+
+  return CHESS_VARIANT;
 }

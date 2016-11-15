@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   Search::init();
   Pawns::init();
   Threads.init();
-  Tablebases::init(Options["SyzygyPath"]);
+  Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
   TT.resize(Options["Hash"]);
 
   UCI::loop(argc, argv);
