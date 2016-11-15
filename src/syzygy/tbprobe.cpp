@@ -1218,6 +1218,15 @@ void* init(Entry& e, const Position& pos) {
 template<typename E, typename T = typename Ret<E>::type>
 T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 
+#ifdef ATOMIC
+    if (pos.is_atomic()) {
+        if (pos.is_atomic_loss())
+            return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
+        if (pos.is_atomic_win())
+            return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
+    }
+#endif
+
     if (!(pos.pieces() ^ pos.pieces(KING)))
         return T(WDLDraw); // KvK
 
