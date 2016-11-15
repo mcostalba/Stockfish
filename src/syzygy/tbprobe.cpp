@@ -54,6 +54,62 @@ int Tablebases::MaxCardinality;
 
 namespace {
 
+const char* WdlSuffixes[VARIANT_NB] = {
+    ".rtbw",
+#ifdef ANTI
+    ".gtbw",
+#endif
+#ifdef ATOMIC
+    ".atbw",
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
+const char* DtzSuffixes[VARIANT_NB] = {
+    ".rtbz",
+#ifdef ANTI
+    ".gtbz",
+#endif
+#ifdef ATOMIC
+    ".atbz",
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
 // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
 enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, SingleValue = 128 };
 
@@ -134,7 +190,7 @@ struct Atomic {
 };
 
 struct WDLEntry : public Atomic {
-    WDLEntry(const std::string& code);
+    WDLEntry(const std::string& code, Variant v);
    ~WDLEntry();
 
     void* baseAddress;
@@ -144,6 +200,7 @@ struct WDLEntry : public Atomic {
     int pieceCount;
     bool hasPawns;
     bool hasUniquePieces;
+    Variant variant;
     union {
         struct {
             PairsData* precomp;
@@ -169,6 +226,7 @@ struct DTZEntry : public Atomic {
     int pieceCount;
     bool hasPawns;
     bool hasUniquePieces;
+    Variant variant;
     union {
         struct {
             PairsData* precomp;
@@ -295,7 +353,7 @@ public:
       dtzTable.clear();
   }
   size_t size() const { return wdlTable.size(); }
-  void insert(const std::vector<PieceType>& pieces);
+  void insert(const std::vector<PieceType>& pieces, Variant variant);
 };
 
 HashTable EntryTable;
@@ -401,13 +459,14 @@ public:
 
 std::string TBFile::Paths;
 
-WDLEntry::WDLEntry(const std::string& code) {
+WDLEntry::WDLEntry(const std::string& code, Variant v) {
 
     StateInfo st;
     Position pos;
 
     memset(this, 0, sizeof(WDLEntry));
 
+    variant = v;
     ready = false;
     key = pos.set(code, WHITE, &st).material_key();
     pieceCount = popcount(pos.pieces());
@@ -455,6 +514,7 @@ DTZEntry::DTZEntry(const WDLEntry& wdl) {
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
     hasUniquePieces = wdl.hasUniquePieces;
+    variant = wdl.variant;
 
     if (hasPawns) {
         pawnTable.pawnCount[0] = wdl.pawnTable.pawnCount[0];
@@ -474,14 +534,17 @@ DTZEntry::~DTZEntry() {
         delete pieceTable.precomp;
 }
 
-void HashTable::insert(const std::vector<PieceType>& pieces) {
+void HashTable::insert(const std::vector<PieceType>& pieces, Variant variant) {
+
+    if (!WdlSuffixes[variant])
+        return;
 
     std::string code;
 
     for (PieceType pt : pieces)
         code += PieceToChar[pt];
 
-    TBFile file(code.insert(code.find('K', 1), "v") + ".rtbw"); // KRK -> KRvK
+    TBFile file(code.insert(code.find('K', 1), "v") + WdlSuffixes[variant]); // KRK -> KRvK
 
     if (!file.is_open())
         return;
@@ -490,7 +553,7 @@ void HashTable::insert(const std::vector<PieceType>& pieces) {
 
     MaxCardinality = std::max((int)pieces.size(), MaxCardinality);
 
-    wdlTable.push_back(WDLEntry(code));
+    wdlTable.push_back(WDLEntry(code, variant));
     dtzTable.push_back(DTZEntry(wdlTable.back()));
 
     insert(wdlTable.back().key , &wdlTable.back(), &dtzTable.back());
@@ -853,10 +916,30 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
                  +  rank_of(squares[0])         * 7 * 6
                  + (rank_of(squares[1]) - adjust1)  * 6
                  + (rank_of(squares[2]) - adjust2);
-    } else
-        // We don't have at least 3 unique pieces, like in KRRvKBB, just map
-        // the kings.
-        idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+    } else {
+#ifdef ATOMIC
+        if (entry->variant == ATOMIC_VARIANT) {
+            int adjust = squares[1] > squares[0];
+
+            if (off_A1H8(squares[0]))
+                idx =   MapA1D1D4[squares[0]] * 63
+                     + (squares[1] - adjust);
+
+            else if (off_A1H8(squares[1]))
+                idx =  6 * 63
+                     + rank_of(squares[0]) * 28
+                     + MapB1H1H7[squares[1]];
+
+            else
+                idx =   6 * 63 + 4 * 28
+                     +  rank_of(squares[0]) * 7
+                     + (rank_of(squares[1]) - adjust);
+        } else
+#endif
+            // We don't have at least 3 unique pieces, like in KRRvKBB, just map
+            // the kings.
+            idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+    }
 
 encode_remaining:
     idx *= d->groupIdx[0];
@@ -933,9 +1016,12 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
     for (int k = 0; next < n || k == order[0] || k == order[1]; ++k)
         if (k == order[0]) // Leading pawns or pieces
         {
+            // Kings may touch in atomic chess and giveaway
+            int kingConfigurations = (e.variant == CHESS_VARIANT) ? 462 : 518;
+
             d->groupIdx[0] = idx;
             idx *=         e.hasPawns ? LeadPawnsSize[d->groupLen[0]][f]
-                  : e.hasUniquePieces ? 31332 : 462;
+                  : e.hasUniquePieces ? 31332 : kingConfigurations;
         }
         else if (k == order[1]) // Remaining pawns
         {
@@ -1205,9 +1291,9 @@ void* init(Entry& e, const Position& pos) {
     };
 
     fname =  (e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w)
-           + (IsWDL ? ".rtbw" : ".rtbz");
+           + (IsWDL ? WdlSuffixes[e.variant] : DtzSuffixes[e.variant]);
 
-    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[pos.variant()][IsWDL]);
+    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
     if (data)
         e.hasPawns ? do_init(e, e.pawnTable, data) : do_init(e, e.pieceTable, data);
 
@@ -1315,7 +1401,7 @@ WDLScore search(Position& pos, ProbeState* result) {
 
 } // namespace
 
-void Tablebases::init(const std::string& paths) {
+void Tablebases::init(const std::string& paths, Variant variant) {
 
     EntryTable.clear();
     MaxCardinality = 0;
@@ -1419,28 +1505,28 @@ void Tablebases::init(const std::string& paths) {
         }
 
     for (PieceType p1 = PAWN; p1 < KING; ++p1) {
-        EntryTable.insert({KING, p1, KING});
+        EntryTable.insert({KING, p1, KING}, variant);
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
-            EntryTable.insert({KING, p1, p2, KING});
-            EntryTable.insert({KING, p1, KING, p2});
+            EntryTable.insert({KING, p1, p2, KING}, variant);
+            EntryTable.insert({KING, p1, KING, p2}, variant);
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                EntryTable.insert({KING, p1, p2, KING, p3});
+                EntryTable.insert({KING, p1, p2, KING, p3}, variant);
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
-                EntryTable.insert({KING, p1, p2, p3, KING});
+                EntryTable.insert({KING, p1, p2, p3, KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, p4, KING});
+                    EntryTable.insert({KING, p1, p2, p3, p4, KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, KING, p4});
+                    EntryTable.insert({KING, p1, p2, p3, KING, p4}, variant);
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    EntryTable.insert({KING, p1, p2, KING, p3, p4});
+                    EntryTable.insert({KING, p1, p2, KING, p3, p4}, variant);
         }
     }
 
