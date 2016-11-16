@@ -1868,7 +1868,11 @@ bool Position::is_draw() const {
       return true;
 
   StateInfo* stp = st;
+#ifdef CRAZYHOUSE
+  for (int i = 2, rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+#else
   for (int i = 2, rep = 1, e = std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+#endif
   {
       stp = stp->previous->previous;
 
