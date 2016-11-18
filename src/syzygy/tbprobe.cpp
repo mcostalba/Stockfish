@@ -281,6 +281,17 @@ int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
 int LeadPawnIdx[5][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
 int LeadPawnsSize[5][4];       // [leadPawnsCnt][FILE_A..FILE_D]
 
+const int Triangle[SQUARE_NB] = {
+    6, 0, 1, 2, 2, 1, 0, 6,
+    0, 7, 3, 4, 4, 3, 7, 0,
+    1, 3, 8, 5, 5, 8, 3, 1,
+    2, 4, 5, 9, 9, 5, 4, 2,
+    2, 4, 5, 9, 9, 5, 4, 2,
+    1, 3, 8, 5, 5, 8, 3, 1,
+    0, 7, 3, 4, 4, 3, 7, 0,
+    6, 0, 1, 2, 2, 1, 0, 6
+};
+
 const int MapPP[10][SQUARE_NB] = {
     {  0, -1,  1,  2,  3,  4,  5,  6,
        7,  8,  9, 10, 11, 12, 13, 14,
@@ -375,6 +386,7 @@ const int MultTwist[] = {
     14, 60, 52, 44, 43, 51, 59, 13
 };
 
+const Bitboard Test45 = 0x1030700000000ULL; // A5-C5-A7 triangle
 const int InvTriangle[] = { 1, 2, 3, 10, 11, 19, 0, 9, 18, 27 };
 int MultIdx[5][10];
 int MultFactor[5];
@@ -1069,10 +1081,32 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
             // the kings.
             idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
 
-    } else {
+    } else if (entry->minLikeMan == 2) {
+        if (Triangle[squares[0]] > Triangle[squares[1]])
+            std::swap(squares[0], squares[1]);
 
+        if (file_of(squares[0]) > FILE_D)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 7;
+
+        if (rank_of(squares[0]) > RANK_4)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 070;
+
+        if (off_A1H8(squares[0]) > 0 || (off_A1H8(squares[0]) == 0 && off_A1H8(squares[1]) > 0))
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i]);
+
+        if ((Test45 & squares[1]) && Triangle[squares[0]] == Triangle[squares[1]]) {
+            std::swap(squares[0], squares[1]);
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i] ^ 070);
+        }
+
+        idx = MapPP[Triangle[squares[0]]][squares[1]];
+    } else {
         // TODO: Decode like man tables for giveaway/suicide.
-        assert(false);
+        std::cout << "NOT IMPLEMENTED (minLikeMan > 2) !!!!!!!!!" << std::endl;
     }
 
 encode_remaining:
@@ -1454,6 +1488,14 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
     }
 #endif
 
+#ifdef ANTI
+    if (pos.is_anti()) {
+        if (pos.is_anti_loss())
+            return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
+        if (pos.is_anti_win())
+            return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
+    } else
+#endif
     if (!(pos.pieces() ^ pos.pieces(KING)))
         return T(WDLDraw); // KvK
 
