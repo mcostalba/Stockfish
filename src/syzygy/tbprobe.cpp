@@ -265,6 +265,7 @@ int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
 int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
+Square flipdiag(Square square) { return Square(((square >> 3) | (square << 3)) & 63); }
 
 const Value WDL_to_value[] = {
    -VALUE_MATE + MAX_PLY + 1,
@@ -972,7 +973,7 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
 
         if (off_A1H8(squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
             for (int j = i; j < size; ++j)
-                squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                squares[j] = flipdiag(squares[j]);
         break;
     }
 
