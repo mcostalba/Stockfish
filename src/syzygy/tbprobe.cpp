@@ -914,9 +914,17 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
                  +  rank_of(squares[0])         * 7 * 6
                  + (rank_of(squares[1]) - adjust1)  * 6
                  + (rank_of(squares[2]) - adjust2);
-    } else {
+    } else if (entry->numUniquePieces == 2) {
+
+        bool connectedKings = false;
 #ifdef ATOMIC
-        if (entry->variant == ATOMIC_VARIANT) {
+        connectedKings = connectedKings || entry->variant == ATOMIC_VARIANT;
+#endif
+#ifdef ANTI
+        connectedKings = connectedKings || entry->variant == ANTI_VARIANT;
+#endif
+
+        if (connectedKings) {
             int adjust = squares[1] > squares[0];
 
             if (off_A1H8(squares[0]))
