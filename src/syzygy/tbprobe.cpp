@@ -221,6 +221,7 @@ struct TBEntry : public Atomic {
     int pieceCount;
     bool hasPawns;
     int numUniquePieces;
+    int minLikeMan;
     Variant variant;
 };
 
@@ -278,6 +279,104 @@ const std::string PieceToChar = " PNBRQK  pnbrqk";
 int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
 int LeadPawnIdx[5][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
 int LeadPawnsSize[5][4];       // [leadPawnsCnt][FILE_A..FILE_D]
+
+const int MapPP[10][SQUARE_NB] = {
+    {  0, -1,  1,  2,  3,  4,  5,  6,
+       7,  8,  9, 10, 11, 12, 13, 14,
+      15, 16, 17, 18, 19, 20, 21, 22,
+      23, 24, 25, 26, 27, 28, 29, 30,
+      31, 32, 33, 34, 35, 36, 37, 38,
+      39, 40, 41, 42, 43, 44, 45, 46,
+      -1, 47, 48, 49, 50, 51, 52, 53,
+      54, 55, 56, 57, 58, 59, 60, 61 },
+    { 62, -1, -1, 63, 64, 65, -1, 66,
+      -1, 67, 68, 69, 70, 71, 72, -1,
+      73, 74, 75, 76, 77, 78, 79, 80,
+      81, 82, 83, 84, 85, 86, 87, 88,
+      89, 90, 91, 92, 93, 94, 95, 96,
+      -1, 97, 98, 99,100,101,102,103,
+      -1,104,105,106,107,108,109, -1,
+     110, -1,111,112,113,114, -1,115 },
+    {116, -1, -1, -1,117, -1, -1,118,
+      -1,119,120,121,122,123,124, -1,
+      -1,125,126,127,128,129,130, -1,
+     131,132,133,134,135,136,137,138,
+      -1,139,140,141,142,143,144,145,
+      -1,146,147,148,149,150,151, -1,
+      -1,152,153,154,155,156,157, -1,
+     158, -1, -1,159,160, -1, -1,161 },
+    {162, -1, -1, -1, -1, -1, -1,163,
+      -1,164, -1,165,166,167,168, -1,
+      -1,169,170,171,172,173,174, -1,
+      -1,175,176,177,178,179,180, -1,
+      -1,181,182,183,184,185,186, -1,
+      -1, -1,187,188,189,190,191, -1,
+      -1,192,193,194,195,196,197, -1,
+     198, -1, -1, -1, -1, -1, -1,199 },
+    {200, -1, -1, -1, -1, -1, -1,201,
+      -1,202, -1, -1,203, -1,204, -1,
+      -1, -1,205,206,207,208, -1, -1,
+      -1,209,210,211,212,213,214, -1,
+      -1, -1,215,216,217,218,219, -1,
+      -1, -1,220,221,222,223, -1, -1,
+      -1,224, -1,225,226, -1,227, -1,
+     228, -1, -1, -1, -1, -1, -1,229 },
+    {230, -1, -1, -1, -1, -1, -1,231,
+      -1,232, -1, -1, -1, -1,233, -1,
+      -1, -1,234, -1,235,236, -1, -1,
+      -1, -1,237,238,239,240, -1, -1,
+      -1, -1, -1,241,242,243, -1, -1,
+      -1, -1,244,245,246,247, -1, -1,
+      -1,248, -1, -1, -1, -1,249, -1,
+     250, -1, -1, -1, -1, -1, -1,251 },
+    { -1, -1, -1, -1, -1, -1, -1,259,
+      -1,252, -1, -1, -1, -1,260, -1,
+      -1, -1,253, -1, -1,261, -1, -1,
+      -1, -1, -1,254,262, -1, -1, -1,
+      -1, -1, -1, -1,255, -1, -1, -1,
+      -1, -1, -1, -1, -1,256, -1, -1,
+      -1, -1, -1, -1, -1, -1,257, -1,
+      -1, -1, -1, -1, -1, -1, -1,258 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1,268, -1,
+      -1, -1,263, -1, -1,269, -1, -1,
+      -1, -1, -1,264,270, -1, -1, -1,
+      -1, -1, -1, -1,265, -1, -1, -1,
+      -1, -1, -1, -1, -1,266, -1, -1,
+      -1, -1, -1, -1, -1, -1,267, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1,274, -1, -1,
+      -1, -1, -1,271,275, -1, -1, -1,
+      -1, -1, -1, -1,272, -1, -1, -1,
+      -1, -1, -1, -1, -1,273, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1,277, -1, -1, -1,
+      -1, -1, -1, -1,276, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 }
+};
+
+const int MultTwist[] = {
+    15, 63, 55, 47, 40, 48, 56, 12,
+    62, 11, 39, 31, 24, 32,  8, 57,
+    54, 38,  7, 23, 16,  4, 33, 49,
+    46, 30, 22,  3,  0, 17, 25, 41,
+    45, 29, 21,  2,  1, 18, 26, 42,
+    53, 37,  6, 20, 19,  5, 34, 50,
+    61, 10, 36, 28, 27, 35,  9, 58,
+    14, 60, 52, 44, 43, 51, 59, 13
+};
+
+const int InvTriangle[] = { 1, 2, 3, 10, 11, 19, 0, 9, 18, 27 };
+int MultIdx[5][10];
+int MultFactor[5];
 
 enum { BigEndian, LittleEndian };
 
@@ -475,6 +574,13 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
+    for (Color c = WHITE; c <= BLACK; ++c)
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+            int count = popcount(pos.pieces(c, pt));
+            if (2 <= count && (count < minLikeMan || !minLikeMan))
+                minLikeMan = count;
+        }
+
     if (hasPawns) {
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
@@ -512,6 +618,7 @@ DTZEntry::DTZEntry(const WDLEntry& wdl) {
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
     numUniquePieces = wdl.numUniquePieces;
+    minLikeMan = wdl.minLikeMan;
     variant = wdl.variant;
 
     if (hasPawns) {
@@ -941,10 +1048,14 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
                      +  rank_of(squares[0]) * 7
                      + (rank_of(squares[1]) - adjust);
         } else
-#endif
             // We don't have at least 3 unique pieces, like in KRRvKBB, just map
             // the kings.
             idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+
+    } else {
+
+        // TODO: Decode like man tables for giveaway/suicide.
+        assert(false);
     }
 
 encode_remaining:
@@ -1022,12 +1133,19 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
     for (int k = 0; next < n || k == order[0] || k == order[1]; ++k)
         if (k == order[0]) // Leading pawns or pieces
         {
-            // Kings may touch in atomic chess and giveaway
-            int kingConfigurations = (e.variant == CHESS_VARIANT) ? 462 : 518;
-
             d->groupIdx[0] = idx;
-            idx *=         e.hasPawns ? LeadPawnsSize[d->groupLen[0]][f]
-                  : (e.numUniquePieces >= 3) ? 31332 : kingConfigurations;
+
+            if (e.hasPawns)
+                idx *= LeadPawnsSize[d->groupLen[0]][f];
+            else if (e.numUniquePieces >= 3)
+                idx *= 31332;
+            else if (e.numUniquePieces == 2)
+                // Standard or Atomic/Giveaway
+                idx *= (e.variant == CHESS_VARIANT) ? 462 : 518;
+            else if (e.minLikeMan == 2)
+                idx *= 278;
+            else
+                idx *= MultFactor[e.minLikeMan - 1];
         }
         else if (k == order[1]) // Remaining pawns
         {
@@ -1471,6 +1589,16 @@ void Tablebases::init(const std::string& paths, Variant variant) {
         for (int k = 0; k < 6 && k <= n; ++k) // Pieces
             Binomial[k][n] =  (k > 0 ? Binomial[k - 1][n - 1] : 0)
                             + (k < n ? Binomial[k    ][n - 1] : 0);
+
+    // For antichess (with less than two unique pieces).
+    for (int i = 0; i < 5; i++) {
+        int s = 0;
+        for (int j = 0; j < 10; j++) {
+            MultIdx[i][j] = s;
+            s += (i == 0) ? 1 : Binomial[i - 1][MultTwist[InvTriangle[j]]];
+        }
+        MultFactor[i] = s;
+    }
 
     // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
     // available squares when the leading one is in 's'. Moreover the pawn with
