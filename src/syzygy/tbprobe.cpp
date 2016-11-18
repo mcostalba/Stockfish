@@ -220,7 +220,7 @@ struct TBEntry : public Atomic {
     Key key2;
     int pieceCount;
     bool hasPawns;
-    bool hasUniquePieces;
+    int numUniquePieces;
     Variant variant;
 };
 
@@ -471,9 +471,9 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
     hasPawns = pos.pieces(PAWN);
 
     for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt < KING; ++pt)
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
             if (popcount(pos.pieces(c, pt)) == 1)
-                hasUniquePieces = true;
+                numUniquePieces++;
 
     if (hasPawns) {
         // Set the leading color. In case both sides have pawns the leading color
@@ -511,7 +511,7 @@ DTZEntry::DTZEntry(const WDLEntry& wdl) {
     key2 = wdl.key2;
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
-    hasUniquePieces = wdl.hasUniquePieces;
+    numUniquePieces = wdl.numUniquePieces;
     variant = wdl.variant;
 
     if (hasPawns) {
@@ -880,7 +880,7 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
     //
     // In case we have at least 3 unique pieces (inlcuded kings) we encode them
     // together.
-    if (entry->hasUniquePieces) {
+    if (entry->numUniquePieces >= 3) {
 
         int adjust1 =  squares[1] > squares[0];
         int adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
@@ -982,7 +982,7 @@ encode_remaining:
 template<typename T>
 void set_groups(T& e, PairsData* d, int order[], File f) {
 
-    int n = 0, firstLen = e.hasPawns ? 0 : e.hasUniquePieces ? 3 : 2;
+    int n = 0, firstLen = e.hasPawns ? 0 : (e.numUniquePieces >= 3) ? 3 : 2;
     d->groupLen[n] = 1;
 
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
@@ -1019,7 +1019,7 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
 
             d->groupIdx[0] = idx;
             idx *=         e.hasPawns ? LeadPawnsSize[d->groupLen[0]][f]
-                  : e.hasUniquePieces ? 31332 : kingConfigurations;
+                  : (e.numUniquePieces >= 3) ? 31332 : kingConfigurations;
         }
         else if (k == order[1]) // Remaining pawns
         {
