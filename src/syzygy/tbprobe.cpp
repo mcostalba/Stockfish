@@ -1105,8 +1105,31 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
 
         idx = MapPP[Triangle[squares[0]]][squares[1]];
     } else {
-        // TODO: Decode like man tables for giveaway/suicide.
-        std::cout << "NOT IMPLEMENTED (minLikeMan > 2) !!!!!!!!!" << std::endl;
+        for (int i = 1; i < d->groupLen[0]; ++i)
+            if (Triangle[squares[0]] > Triangle[squares[i]])
+                std::swap(squares[0], squares[i]);
+
+        if (file_of(squares[0]) > FILE_D)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 7;
+
+        if (rank_of(squares[0]) > RANK_4)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 070;
+
+        if (off_A1H8(squares[0]) > 0)
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i]);
+
+        for (int i = 1; i < d->groupLen[0]; i++)
+            for (int j = i + 1; j < d->groupLen[0]; j++)
+                if (MultTwist[squares[i]] > MultTwist[squares[j]])
+                    std::swap(squares[i], squares[j]);
+
+        idx = MultIdx[d->groupLen[0] - 1][Triangle[squares[0]]];
+
+        for (int i = 1; i < d->groupLen[0]; ++i)
+            idx += Binomial[i - 1][MultTwist[squares[i]]];
     }
 
 encode_remaining:
