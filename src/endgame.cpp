@@ -90,31 +90,31 @@ namespace {
 
 Endgames::Endgames() {
 
-  add<KPK>("KPK");
-  add<KNNK>("KNNK");
-  add<KBNK>("KBNK");
-  add<KRKP>("KRKP");
-  add<KRKB>("KRKB");
-  add<KRKN>("KRKN");
-  add<KQKP>("KQKP");
-  add<KQKR>("KQKR");
+  add<KPK>("KPvK");
+  add<KNNK>("KNNvK");
+  add<KBNK>("KBNvK");
+  add<KRKP>("KRvKP");
+  add<KRKB>("KRvKB");
+  add<KRKN>("KRvKN");
+  add<KQKP>("KQvKP");
+  add<KQKR>("KQvKR");
 
-  add<KNPK>("KNPK");
-  add<KNPKB>("KNPKB");
-  add<KRPKR>("KRPKR");
-  add<KRPKB>("KRPKB");
-  add<KBPKB>("KBPKB");
-  add<KBPKN>("KBPKN");
-  add<KBPPKB>("KBPPKB");
-  add<KRPPKRP>("KRPPKRP");
+  add<KNPK>("KNPvK");
+  add<KNPKB>("KNPvKB");
+  add<KRPKR>("KRPvKR");
+  add<KRPKB>("KRPvKB");
+  add<KBPKB>("KBPvKB");
+  add<KBPKN>("KBPvKN");
+  add<KBPPKB>("KBPPvKB");
+  add<KRPPKRP>("KRPPvKRP");
 }
 
 
 template<EndgameType E, typename T>
 void Endgames::add(const string& code) {
   StateInfo st;
-  map<T>()[Position().set(code, WHITE, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(WHITE));
-  map<T>()[Position().set(code, BLACK, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(BLACK));
+  map<T>()[Position().set(code, WHITE, CHESS_VARIANT, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(WHITE));
+  map<T>()[Position().set(code, BLACK, CHESS_VARIANT, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(BLACK));
 }
 
 

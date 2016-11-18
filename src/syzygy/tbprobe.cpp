@@ -411,8 +411,19 @@ class HashTable {
     typedef std::pair<WDLEntry*, DTZEntry*> EntryPair;
     typedef std::pair<Key, EntryPair> Entry;
 
+#ifdef ANTI
+    static const int TBHASHBITS = 12;
+#else
     static const int TBHASHBITS = 10;
+#endif
+
+#if defined(ANTI)
+    static const int HSHMAX     = 12;
+#elif defined(ATOMIC)
+    static const int HSHMAX     = 8;
+#else
     static const int HSHMAX     = 5;
+#endif
 
     Entry hashTable[1 << TBHASHBITS][HSHMAX];
 
@@ -450,7 +461,7 @@ public:
       dtzTable.clear();
   }
   size_t size() const { return wdlTable.size(); }
-  void insert(const std::vector<PieceType>& pieces, Variant variant);
+  void insert(const std::vector<PieceType>& w, const std::vector<PieceType>& b, Variant variant);
 };
 
 HashTable EntryTable;
@@ -565,7 +576,7 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
 
     variant = v;
     ready = false;
-    key = pos.set(code, WHITE, &st).material_key();
+    key = pos.set(code, WHITE, v, &st).material_key();
     pieceCount = popcount(pos.pieces());
     hasPawns = pos.pieces(PAWN);
 
@@ -592,7 +603,7 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
         pawnTable.pawnCount[1] = pos.count<PAWN>(c ? BLACK : WHITE);
     }
 
-    key2 = pos.set(code, BLACK, &st).material_key();
+    key2 = pos.set(code, BLACK, v, &st).material_key();
 }
 
 WDLEntry::~WDLEntry() {
@@ -639,24 +650,29 @@ DTZEntry::~DTZEntry() {
         delete pieceTable.precomp;
 }
 
-void HashTable::insert(const std::vector<PieceType>& pieces, Variant variant) {
+void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceType>& b, Variant variant) {
 
     if (!WdlSuffixes[variant])
         return;
 
     std::string code;
 
-    for (PieceType pt : pieces)
+    for (PieceType pt : w)
         code += PieceToChar[pt];
 
-    TBFile file(code.insert(code.find('K', 1), "v") + WdlSuffixes[variant]); // KRK -> KRvK
+    code += "v";
+
+    for (PieceType pt: b)
+        code += PieceToChar[pt];
+
+    TBFile file(code + WdlSuffixes[variant]);
 
     if (!file.is_open())
         return;
 
     file.close();
 
-    MaxCardinality = std::max((int)pieces.size(), MaxCardinality);
+    MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
     wdlTable.push_back(WDLEntry(code, variant));
     dtzTable.push_back(DTZEntry(wdlTable.back()));
@@ -1638,29 +1654,51 @@ void Tablebases::init(const std::string& paths, Variant variant) {
             LeadPawnsSize[leadPawnsCnt][f] = idx;
         }
 
+#ifdef ANTI
+    if (variant == ANTI_VARIANT) {
+        for (PieceType p1 = PAWN; p1 <= KING; ++p1) {
+            for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
+                EntryTable.insert({p1}, {p2}, variant);
+
+                for (PieceType p3 = PAWN; p3 <= KING; ++p3)
+                    EntryTable.insert({p1, p2}, {p3}, variant);
+
+                for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
+                    for (PieceType p4 = PAWN; p4 <= KING; ++p4)
+                        EntryTable.insert({p1, p2, p3}, {p4}, variant);
+                }
+
+                for (PieceType p3 = PAWN; p3 <= p1; ++p3)
+                    for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
+                        EntryTable.insert({p1, p2}, {p3, p4}, variant);
+            }
+        }
+    } else
+#endif
+
     for (PieceType p1 = PAWN; p1 < KING; ++p1) {
-        EntryTable.insert({KING, p1, KING}, variant);
+        EntryTable.insert({KING, p1}, {KING}, variant);
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
-            EntryTable.insert({KING, p1, p2, KING}, variant);
-            EntryTable.insert({KING, p1, KING, p2}, variant);
+            EntryTable.insert({KING, p1, p2}, {KING}, variant);
+            EntryTable.insert({KING, p1}, {KING, p2}, variant);
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                EntryTable.insert({KING, p1, p2, KING, p3}, variant);
+                EntryTable.insert({KING, p1, p2}, {KING, p3}, variant);
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
-                EntryTable.insert({KING, p1, p2, p3, KING}, variant);
+                EntryTable.insert({KING, p1, p2, p3}, {KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, p4, KING}, variant);
+                    EntryTable.insert({KING, p1, p2, p3, p4}, {KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, KING, p4}, variant);
+                    EntryTable.insert({KING, p1, p2, p3}, {KING, p4}, variant);
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    EntryTable.insert({KING, p1, p2, KING, p3, p4}, variant);
+                    EntryTable.insert({KING, p1, p2}, {KING, p3, p4}, variant);
         }
     }
 
