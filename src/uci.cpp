@@ -38,31 +38,31 @@ extern void benchmark(const Position& pos, istream& is);
 namespace {
 
   // FEN strings of the initial positions
-  const string StartFENs[VARIANT_NB] = {
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  const string StartFENs[SUBVARIANT_NB] = {
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #ifdef ANTI
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef ATOMIC
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef CRAZYHOUSE
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
 #endif
 #ifdef HORDE
-  ,"rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1"
+  "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1",
 #endif
 #ifdef KOTH
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef RACE
-  ,"8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1"
+  "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1",
 #endif
 #ifdef RELAY
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef THREECHECK
-  ,"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1"
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1",
 #endif
   };
 
@@ -330,7 +330,7 @@ Move UCI::to_move(const Position& pos, string& str) {
 
 Variant UCI::variant_from_name(const string& str) {
 
-  for (Variant v = CHESS_VARIANT; v < VARIANT_NB; ++v)
+  for (Variant v = CHESS_VARIANT; v < SUBVARIANT_NB; ++v)
       if (variants[v] == str)
           return v;
 

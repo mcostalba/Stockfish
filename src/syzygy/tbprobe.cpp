@@ -54,7 +54,7 @@ int Tablebases::MaxCardinality;
 
 namespace {
 
-const char* WdlSuffixes[VARIANT_NB] = {
+const char* WdlSuffixes[SUBVARIANT_NB] = {
     ".rtbw",
 #ifdef ANTI
     ".gtbw",
@@ -106,11 +106,11 @@ const char* PawnlessWdlSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
-    nullptr
+    nullptr,
 #endif
 };
 
-const char* DtzSuffixes[VARIANT_NB] = {
+const char* DtzSuffixes[SUBVARIANT_NB] = {
     ".rtbz",
 #ifdef ANTI
     ".gtbz",
@@ -134,7 +134,7 @@ const char* DtzSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
-    nullptr
+    nullptr,
 #endif
 };
 
@@ -1504,7 +1504,7 @@ void* init(Entry& e, const Position& pos) {
         b += std::string(popcount(pos.pieces(BLACK, pt)), PieceToChar[pt]);
     }
 
-    const uint8_t TB_MAGIC[VARIANT_NB][2][4] = {
+    const uint8_t TB_MAGIC[SUBVARIANT_NB][2][4] = {
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }

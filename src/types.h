@@ -110,6 +110,7 @@ const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
 
 enum Variant {
+  //main variants
   CHESS_VARIANT,
 #ifdef ANTI
   ANTI_VARIANT,
@@ -135,35 +136,41 @@ enum Variant {
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
-  VARIANT_NB
+  VARIANT_NB,
+  LAST_VARIANT = VARIANT_NB - 1,
+  //subvariants
+  SUBVARIANT_NB,
 };
 
 //static const constexpr char* variants[] doesn't play nicely with uci.h
-static std::vector<std::string> variants = {"chess"
+static std::vector<std::string> variants = {
+//main variants
+"chess",
 #ifdef ANTI
-,"giveaway"
+"giveaway",
 #endif
 #ifdef ATOMIC
-,"atomic"
+"atomic",
 #endif
 #ifdef CRAZYHOUSE
-,"crazyhouse"
+"crazyhouse",
 #endif
 #ifdef HORDE
-,"horde"
+"horde",
 #endif
 #ifdef KOTH
-,"kingofthehill"
+"kingofthehill",
 #endif
 #ifdef RACE
-,"racingkings"
+"racingkings",
 #endif
 #ifdef RELAY
-,"relay"
+"relay",
 #endif
 #ifdef THREECHECK
-,"threecheck"
+"threecheck",
 #endif
+//subvariants
 };
 
 /// A move needs 16 bits to be stored

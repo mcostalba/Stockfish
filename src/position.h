@@ -164,6 +164,7 @@ public:
   int game_ply() const;
   bool is_chess960() const;
   Variant variant() const;
+  Variant subvariant() const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -263,6 +264,7 @@ private:
   StateInfo* st;
   bool chess960;
   Variant var;
+  Variant subvar;
 
 };
 
@@ -633,6 +635,10 @@ inline bool Position::is_chess960() const {
 
 inline Variant Position::variant() const {
   return var;
+}
+
+inline Variant Position::subvariant() const {
+    return subvar;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
