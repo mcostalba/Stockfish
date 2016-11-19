@@ -267,6 +267,11 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           var = ANTI_VARIANT;
           break;
 #endif
+#ifdef CRAZYHOUSE //loop
+      case LOOP_VARIANT:
+          var = CRAZYHOUSE_VARIANT;
+          break;
+#endif
       default:
           assert(false);
       }
@@ -295,7 +300,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       }
 #ifdef CRAZYHOUSE
       // Set flag for promoted pieces
-      else if (is_house() && token == '~')
+      else if (is_house() && !is_loop() && token == '~')
           promotedPieces |= sq - Square(1);
       // Stop before pieces in hand
       else if (is_house() && token == '[')
@@ -1405,7 +1410,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           remove_piece(pc, to);
           put_piece(promotion, to);
 #ifdef CRAZYHOUSE
-          if (is_house())
+          if (is_house() && !is_loop())
               promotedPieces = promotedPieces | to;
 #endif
 

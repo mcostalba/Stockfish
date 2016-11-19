@@ -67,6 +67,9 @@ namespace {
 #ifdef ANTI //suicide
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
 #endif
+#ifdef CRAZYHOUSE //loop
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
+#endif
   };
 
   // A list to keep track of the position states along the setup moves (from the

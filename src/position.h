@@ -177,6 +177,7 @@ public:
 #endif
 #ifdef CRAZYHOUSE
   bool is_house() const;
+  bool is_loop() const;
   int count_in_hand(Color c, PieceType pt) const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
@@ -561,6 +562,10 @@ inline bool Position::can_capture() const {
 #ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
+}
+
+inline bool Position::is_loop() const {
+  return subvar == LOOP_VARIANT;
 }
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {

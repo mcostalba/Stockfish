@@ -142,6 +142,9 @@ enum Variant {
 #ifdef ANTI //suicide
   SUICIDE_VARIANT,
 #endif
+#ifdef CRAZYHOUSE //loop
+  LOOP_VARIANT,
+#endif
   SUBVARIANT_NB,
 };
 
@@ -176,6 +179,9 @@ static std::vector<std::string> variants = {
 //subvariants
 #ifdef ANTI //suicide
 "suicide",
+#endif
+#ifdef CRAZYHOUSE //loop
+"loop",
 #endif
 };
 
