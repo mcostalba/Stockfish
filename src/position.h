@@ -208,6 +208,8 @@ public:
 #endif
 #ifdef ANTI
   bool is_anti() const;
+  bool is_suicide() const;
+  Value suicide_stalemate(int ply, Value draw) const;
   bool is_anti_win() const;
   bool is_anti_loss() const;
   bool can_capture() const;
@@ -518,6 +520,19 @@ inline bool Position::is_horde_loss() const {
 #ifdef ANTI
 inline bool Position::is_anti() const {
   return var == ANTI_VARIANT;
+}
+
+inline bool Position::is_suicide() const {
+    return subvar == SUICIDE_VARIANT;
+}
+
+inline Value Position::suicide_stalemate(int ply, Value draw) const {
+    int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
+    if (balance > 0)
+        return mated_in(ply);
+    if (balance < 0)
+        return mate_in(ply + 1);
+    return draw;
 }
 
 inline bool Position::is_anti_loss() const {

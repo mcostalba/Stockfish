@@ -139,6 +139,9 @@ enum Variant {
   VARIANT_NB,
   LAST_VARIANT = VARIANT_NB - 1,
   //subvariants
+#ifdef ANTI //suicide
+  SUICIDE_VARIANT,
+#endif
   SUBVARIANT_NB,
 };
 
@@ -171,6 +174,9 @@ static std::vector<std::string> variants = {
 "threecheck",
 #endif
 //subvariants
+#ifdef ANTI //suicide
+"suicide",
+#endif
 };
 
 /// A move needs 16 bits to be stored

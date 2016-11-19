@@ -1293,7 +1293,9 @@ moves_loop: // When in check search starts from here
 #endif
 #ifdef HORDE
         if (pos.is_horde() && pos.is_horde_loss())
-            bestValue = excludedMove ? alpha : mated_in(ss->ply);
+            bestValue = excludedMove ? alpha
+            : pos.is_suicide() ? pos.suicide_stalemate(ss->ply, DrawValue[pos.side_to_move()])
+            : mate_in(ss->ply+1);
         else
 #endif
 #ifdef ANTI

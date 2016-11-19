@@ -262,6 +262,11 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   else
       switch(v)
       {
+#ifdef ANTI //suicide
+      case SUICIDE_VARIANT:
+          var = ANTI_VARIANT;
+          break;
+#endif
       default:
           assert(false);
       }
