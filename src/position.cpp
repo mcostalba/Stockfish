@@ -1867,18 +1867,24 @@ bool Position::is_draw() const {
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  StateInfo* stp = st;
 #ifdef CRAZYHOUSE
-  for (int i = 2, rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+  int e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 #else
-  for (int i = 2, rep = 1, e = std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+  int e = std::min(st->rule50, st->pliesFromNull);
 #endif
-  {
+
+  if (e < 4)
+    return false;
+
+  StateInfo* stp = st->previous->previous;
+
+  do {
       stp = stp->previous->previous;
 
-      if (stp->key == st->key && (++rep >= 2 + (gamePly - i < thisThread->rootPos.game_ply())))
-          return true; // Draw at first repetition in search, and second repetition in game tree.
-  }
+      if (stp->key == st->key)
+          return true; // Draw at first repetition
+
+  } while ((e -= 2) >= 4);
 
   return false;
 }
