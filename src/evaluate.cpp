@@ -1263,6 +1263,11 @@ Value Eval::evaluate(const Position& pos) {
 
   // Evaluate all pieces but king and pawns
   score += evaluate_pieces<DoTrace>(pos, ei, mobility, mobilityArea);
+#ifdef ANTI
+  if (pos.is_anti())
+      score += 2 * (mobility[WHITE] - mobility[BLACK]);
+  else
+#endif
   score += mobility[WHITE] - mobility[BLACK];
 
 #ifdef ANTI
