@@ -27,8 +27,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#else
-#include <numa.h>
 #endif
 
 WinProcGroup::WinProcGroup() {
@@ -113,93 +111,6 @@ WinProcGroup::WinProcGroup() {
             threadToGroup.push_back(n);
     for (int t = 0; t < threads - cores; t++)
         threadToGroup.push_back(t % nodes);
-#else
-    if (numa_available() == -1)
-        return;
-
-    const int maxNode = numa_max_node();
-    if (maxNode == 0)
-        return;
-
-    std::set<int> nodesToUse;
-    bitmask* runNodes = numa_get_run_node_mask();
-    int nBits = numa_bitmask_nbytes(runNodes) * 8;
-    for (int i = 0; i < nBits; i++)
-        if (numa_bitmask_isbitset(runNodes, i))
-            nodesToUse.insert(i);
-
-    std::map<int, NodeInfo> nodeInfo;
-    std::string baseDir("/sys/devices/system/cpu");
-    for (int i = 0; ; i++) {
-        std::string cpuDir(baseDir + "/cpu" + num2Str(i));
-        if (i > 0) {
-            std::ifstream is(cpuDir + "/online");
-            if (!is)
-                break;
-            std::string line;
-            std::getline(is, line);
-            if (!is || is.eof() || (line != "1"))
-                continue;
-        }
-
-        int node = -1;
-        for (int n = 0; n <= maxNode; n++) {
-            std::ifstream is(cpuDir + "/node" + num2Str(n));
-            if (is) {
-                node = n;
-                break;
-            }
-        }
-        if (node < 0)
-            continue;
-
-        nodeInfo[node].node = node;
-        nodeInfo[node].numThreads++;
-
-        std::ifstream is(cpuDir + "/topology/thread_siblings_list");
-        if (is) {
-            std::string line;
-            std::getline(is, line);
-            if (is && !is.eof()) {
-                auto pos = line.find_first_of(",-");
-                if (pos != std::string::npos)
-                    line = line.substr(0, pos);
-                int num;
-                if (str2Num(line, num)) {
-                    if (i == num)
-                        nodeInfo[node].numCores++;
-                }
-            }
-        }
-    }
-
-    std::vector<NodeInfo> nodes;
-    for (int node : nodesToUse) {
-        auto it = nodeInfo.find(node);
-        if (it != nodeInfo.end())
-            nodes.push_back(it->second);
-    }
-    std::sort(nodes.begin(), nodes.end(), [](const NodeInfo& a, const NodeInfo& b) {
-        if (a.numCores != b.numCores)
-            return a.numCores > b.numCores;
-        return a.numThreads > b.numThreads;
-    });
-
-    for (const NodeInfo& ni : nodes)
-        for (int i = 0; i < ni.numCores; i++)
-            threadToNode.push_back(ni.node);
-
-    bool done = false;
-    while (!done) {
-        done = true;
-        for (NodeInfo& ni : nodes) {
-            if (ni.numThreads > ni.numCores) {
-                threadToNode.push_back(ni.node);
-                ni.numThreads--;
-                done = false;
-            }
-        }
-    }
 #endif
 }
 
@@ -230,9 +141,5 @@ void WinProcGroup::bindThisThread(size_t idx) const {
             std::cout << "Failed to bind thread " << idx << " to node " << node << std::endl;
     }
 #endif
-#else
-    numa_run_on_node(node);
-    numa_set_preferred(node);
-    std::cout << "Bind thread " << idx << " to node " << node << std::endl;
 #endif
 }
