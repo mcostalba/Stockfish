@@ -16,6 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _WIN32
+
+WinProcGroup::WinProcGroup() {}
+void WinProcGroup::bindThisThread(size_t) const {}
+
+#else
+
+#if _WIN32_WINNT < 0x0601
+#undef  _WIN32_WINNT
+#define _WIN32_WINNT 0x0601 // Force to include newest API (Win 7 or later)
+#endif
+
+#include <windows.h>
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -25,93 +39,59 @@
 #include "bitboard.h"
 #include "win_groups.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 WinProcGroup::WinProcGroup() {
-#ifdef _WIN32
-    int threads = 0;
-    int nodes = 0;
-    int cores = 0;
-    DWORD returnLength = 0;
-    DWORD byteOffset = 0;
 
-#if _WIN32_WINNT >= 0x0601
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buffer = nullptr;
-    while (true) {
-        if (GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
-            break;
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            free(buffer);
-            buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(returnLength);
-            if (!buffer)
-                return;
-        } else {
-            free(buffer);
-            return;
-        }
-    }
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* ptr = buffer;
-    while ((ptr->Size > 0) && (byteOffset + ptr->Size <= returnLength)) {
-        switch (ptr->Relationship) {
-        case RelationNumaNode:
-            nodes++;
-            break;
-        case RelationProcessorCore:
-            cores++;
-            threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
-            break;
-        default:
-            break;
-        }
-        byteOffset += ptr->Size;
-        ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(((char*)ptr) + ptr->Size);
-    }
-#else
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION* buffer = nullptr;
-    while (true)
-    {
-        if (GetLogicalProcessorInformation(buffer, &returnLength))
-            break;
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-            free(buffer);
-            buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION*)malloc(returnLength);
-            if (!buffer)
-                return;
-        }
-        else
-        {
-            free(buffer);
-            return;
-        }
-    }
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION* ptr = buffer;
-    while (byteOffset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= returnLength)
-    {
-        switch (ptr->Relationship) {
-        case RelationNumaNode:
-            nodes++;
-            break;
-        case RelationProcessorCore:
-            cores++;
-            threads += popcount(ptr->ProcessorMask);
-            break;
-        default:
-            break;
-        }
-        byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-        ptr++;
-    }
-#endif
-    free(buffer);
+  int threads = 0;
+  int nodes = 0;
+  int cores = 0;
+  DWORD returnLength = 0;
+  DWORD byteOffset = 0;
 
-    for (int n = 0; n < nodes; n++)
-        for (int i = 0; i < cores / nodes; i++)
-            threadToGroup.push_back(n);
-    for (int t = 0; t < threads - cores; t++)
-        threadToGroup.push_back(t % nodes);
-#endif
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buffer = nullptr;
+  while (true)
+  {
+      if (GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
+          break;
+
+      else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+      {
+          free(buffer);
+          buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(returnLength);
+          if (!buffer)
+              return;
+      }
+      else
+      {
+          free(buffer);
+          return;
+      }
+  }
+
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* ptr = buffer;
+  while ((ptr->Size > 0) && (byteOffset + ptr->Size <= returnLength))
+  {
+      switch (ptr->Relationship)
+      {
+      case RelationNumaNode:
+          nodes++;
+          break;
+      case RelationProcessorCore:
+          cores++;
+          threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+          break;
+      default:
+          break;
+      }
+      byteOffset += ptr->Size;
+      ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(((char*)ptr) + ptr->Size);
+  }
+
+  for (int n = 0; n < nodes; n++)
+      for (int i = 0; i < cores / nodes; i++)
+          threadToGroup.push_back(n);
+
+  for (int t = 0; t < threads - cores; t++)
+      threadToGroup.push_back(t % nodes);
 }
 
 void WinProcGroup::bindThisThread(size_t idx) const {
@@ -119,27 +99,18 @@ void WinProcGroup::bindThisThread(size_t idx) const {
   if (idx >= threadToGroup.size())
       return;
 
-  int node = threadToGroup[idx];
+  int group = threadToGroup[idx];
+  GROUP_AFFINITY mask;
 
-#ifdef _WIN32
-#if _WIN32_WINNT >= 0x0601
-    GROUP_AFFINITY mask;
-    if (GetNumaNodeProcessorMaskEx(node, &mask))
-    {
-        if (SetThreadGroupAffinity(GetCurrentThread(), &mask, NULL))
-            std::cout << "Bind thread " << idx << " to group " << node << std::endl;
-        else
-            std::cout << "Failed to bind thread " << idx << " to group " << node << std::endl;
-    }
-#else
-    ULONGLONG mask;
-    if (GetNumaNodeProcessorMask(node, &mask))
-    {
-        if (SetThreadAffinityMask(GetCurrentThread(), mask))
-            std::cout << "Bind thread " << idx << " to node " << node << std::endl;
-        else
-            std::cout << "Failed to bind thread " << idx << " to node " << node << std::endl;
-    }
-#endif
-#endif
+  if (!GetNumaNodeProcessorMaskEx(group, &mask))
+      return;
+
+  if (SetThreadGroupAffinity(GetCurrentThread(), &mask, nullptr))
+      std::cout << "Bind thread ";
+  else
+      std::cout << "Failed to bind thread ";
+
+  std::cout << idx << " to group " << group << std::endl;
 }
+
+#endif
