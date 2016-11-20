@@ -16,31 +16,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NUMA_H
-#define NUMA_H
+#ifndef WIN_GROUPS_H
+#define WIN_GROUPS_H
 
+#include <cstddef>  // For size_t
 #include <vector>
 
 
-/// Bind a threads to the best suitable NUMA node
-class Numa {
+/// Bind a thread to the best suitable processor group
+class WinProcGroup {
 public:
-    static Numa& instance() {
-      static Numa numa;
-      return numa;
+    static WinProcGroup& instance() {
+      static WinProcGroup obj;
+      return obj;
     }
 
     /// Disable NUMA awareness. Useful when running several single-threaded
     /// test games simultaneously on NUMA hardware.
-    void disable() { threadToNode.clear(); }
+    void disable() { threadToGroup.clear(); }
 
-    /// Bind current thread to NUMA node determined by threadToNode
+    /// Bind current thread to the processor group determined by threadToGroup
     void bindThisThread(size_t idx) const;
 
 private:
-    Numa();
+    WinProcGroup();
 
-    std::vector<int> threadToNode;
+    std::vector<int> threadToGroup;
 };
 
 #endif

@@ -23,7 +23,7 @@
 #include <set>
 
 #include "bitboard.h"
-#include "numa.h"
+#include "win_groups.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -31,7 +31,7 @@
 #include <numa.h>
 #endif
 
-Numa::Numa() {
+WinProcGroup::WinProcGroup() {
 #ifdef _WIN32
     int threads = 0;
     int nodes = 0;
@@ -110,9 +110,9 @@ Numa::Numa() {
 
     for (int n = 0; n < nodes; n++)
         for (int i = 0; i < cores / nodes; i++)
-            threadToNode.push_back(n);
+            threadToGroup.push_back(n);
     for (int t = 0; t < threads - cores; t++)
-        threadToNode.push_back(t % nodes);
+        threadToGroup.push_back(t % nodes);
 #else
     if (numa_available() == -1)
         return;
@@ -203,12 +203,12 @@ Numa::Numa() {
 #endif
 }
 
-void Numa::bindThisThread(size_t idx) const {
+void WinProcGroup::bindThisThread(size_t idx) const {
 
-  if (idx >= threadToNode.size())
+  if (idx >= threadToGroup.size())
       return;
 
-  int node = threadToNode[idx];
+  int node = threadToGroup[idx];
 
 #ifdef _WIN32
 #if _WIN32_WINNT >= 0x0601

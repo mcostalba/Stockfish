@@ -22,10 +22,10 @@
 #include <cassert>
 
 #include "movegen.h"
-#include "numa.h"
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
+#include "win_groups.h"
 #include "syzygy/tbprobe.h"
 
 ThreadPool Threads; // Global object
@@ -97,7 +97,7 @@ void Thread::start_searching(bool resume) {
 
 void Thread::idle_loop() {
 
-  Numa::instance().bindThisThread(idx);
+  WinProcGroup::instance().bindThisThread(idx);
 
   while (!exit)
   {
