@@ -37,7 +37,11 @@ static void WinProcGroup::bindThisThread(size_t) {}
 #include <set>
 
 #include "bitboard.h"
-#include "win_groups.h"
+
+/// Build group allocation list out of logical processor information
+struct WinProcGroupInfo : public std::vector<int> {
+  WinProcGroupInfo();
+};
 
 static bool check_win_API() {
 
@@ -47,7 +51,7 @@ static bool check_win_API() {
         && GetProcAddress(k32, "SetThreadGroupAffinity");
 }
 
-WinProcGroup::WinProcGroup() {
+WinProcGroupInfo::WinProcGroupInfo() {
 
   int threads = 0;
   int nodes = 0;
@@ -99,18 +103,24 @@ WinProcGroup::WinProcGroup() {
 
   for (int n = 0; n < nodes; n++)
       for (int i = 0; i < cores / nodes; i++)
-          threadToGroup.push_back(n);
+          push_back(n);
 
   for (int t = 0; t < threads - cores; t++)
-      threadToGroup.push_back(t % nodes);
+      push_back(t % nodes);
 }
 
-void WinProcGroup::bindThisThread(size_t idx) {
 
-  if (idx >= instance().threadToGroup.size())
+namespace WinProcGroup {
+
+/// Bind current thread to the best Windows Processor Group
+void bindThisThread(size_t idx) {
+
+  static WinProcGroupInfo gi; // Retrieve CPU info at first call
+
+  if (idx >= gi.size())
       return;
 
-  int group = instance().threadToGroup[idx];
+  int group = gi[idx];
   GROUP_AFFINITY mask;
 
   if (!GetNumaNodeProcessorMaskEx(group, &mask))
@@ -122,6 +132,8 @@ void WinProcGroup::bindThisThread(size_t idx) {
       std::cout << "Failed to bind thread ";
 
   std::cout << idx << " to group " << group << std::endl;
+}
+
 }
 
 #endif

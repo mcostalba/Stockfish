@@ -25,8 +25,11 @@
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
-#include "win_groups.h"
 #include "syzygy/tbprobe.h"
+
+namespace WinProcGroup {
+  void bindThisThread(size_t idx);
+}
 
 ThreadPool Threads; // Global object
 
