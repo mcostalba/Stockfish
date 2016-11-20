@@ -26,20 +26,20 @@
 /// Bind a thread to the best suitable processor group
 class WinProcGroup {
 public:
+    /// Disable NUMA awareness. Useful when running several single-threaded
+    /// test games simultaneously on NUMA hardware.
+    static void disable() { instance().threadToGroup.clear(); }
+
+    /// Bind current thread to the processor group determined by threadToGroup
+    static void bindThisThread(size_t idx);
+
+private:
+    WinProcGroup();
+
     static WinProcGroup& instance() {
       static WinProcGroup obj;
       return obj;
     }
-
-    /// Disable NUMA awareness. Useful when running several single-threaded
-    /// test games simultaneously on NUMA hardware.
-    void disable() { threadToGroup.clear(); }
-
-    /// Bind current thread to the processor group determined by threadToGroup
-    void bindThisThread(size_t idx) const;
-
-private:
-    WinProcGroup();
 
     std::vector<int> threadToGroup;
 };

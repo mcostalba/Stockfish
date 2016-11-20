@@ -97,7 +97,7 @@ void Thread::start_searching(bool resume) {
 
 void Thread::idle_loop() {
 
-  WinProcGroup::instance().bindThisThread(idx);
+  WinProcGroup::bindThisThread(idx);
 
   while (!exit)
   {

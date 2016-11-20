@@ -19,7 +19,7 @@
 #ifndef _WIN32
 
 WinProcGroup::WinProcGroup() {}
-void WinProcGroup::bindThisThread(size_t) const {}
+static void WinProcGroup::bindThisThread(size_t) {}
 
 #else
 
@@ -94,12 +94,12 @@ WinProcGroup::WinProcGroup() {
       threadToGroup.push_back(t % nodes);
 }
 
-void WinProcGroup::bindThisThread(size_t idx) const {
+void WinProcGroup::bindThisThread(size_t idx) {
 
-  if (idx >= threadToGroup.size())
+  if (idx >= instance().threadToGroup.size())
       return;
 
-  int group = threadToGroup[idx];
+  int group = instance().threadToGroup[idx];
   GROUP_AFFINITY mask;
 
   if (!GetNumaNodeProcessorMaskEx(group, &mask))
