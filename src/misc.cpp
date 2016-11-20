@@ -202,12 +202,11 @@ void bindThisThread(size_t) {}
 
 #else
 
-typedef std::vector<int> GroupVec;
+/// get_group() retrieves logical processor information using Windows specific
+/// API and returns the best group id for the thread with index idx. Original
+/// code from Texel by Peter Österlund.
 
-/// get_groups() retrieves logical processor information using Windows specific
-/// API. Original code from Texel by Peter Österlund.
-
-GroupVec get_groups() {
+int get_group(size_t idx) {
 
   int threads = 0;
   int nodes = 0;
@@ -215,16 +214,16 @@ GroupVec get_groups() {
   DWORD returnLength = 0;
   DWORD byteOffset = 0;
 
-  // Early exit if the needed API are not avilable at runtime
+  // Early exit if the needed API are not available at runtime
   HMODULE WINAPI k32 = GetModuleHandle("Kernel32.dll");
   if (   !GetProcAddress(k32, "GetLogicalProcessorInformationEx")
       || !GetProcAddress(k32, "GetNumaNodeProcessorMaskEx")
       || !GetProcAddress(k32, "SetThreadGroupAffinity"))
-      return GroupVec();
+      return -1;
 
   // First call to get returnLength. We expect it to fail due to null buffer
   if (GetLogicalProcessorInformationEx(RelationAll, nullptr, &returnLength))
-      return GroupVec();
+      return -1;
 
   // Once we know returnLength, allocate the buffer
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
@@ -234,7 +233,7 @@ GroupVec get_groups() {
   if (!GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
   {
       free(buffer);
-      return GroupVec();
+      return -1;
   }
 
   while ((ptr->Size > 0) && (byteOffset + ptr->Size <= returnLength))
@@ -254,7 +253,7 @@ GroupVec get_groups() {
 
   free(buffer);
 
-  GroupVec groups;
+  std::vector<int> groups;
 
   for (int n = 0; n < nodes; n++)
       for (int i = 0; i < cores / nodes; i++)
@@ -263,7 +262,7 @@ GroupVec get_groups() {
   for (int t = 0; t < threads - cores; t++)
       groups.push_back(t % nodes);
 
-  return groups;
+  return idx < groups.size() ? groups[idx] : -1;
 }
 
 
@@ -271,13 +270,14 @@ GroupVec get_groups() {
 
 void bindThisThread(size_t idx) {
 
-  static GroupVec groups = get_groups();
+  // Use a local variable instead of a static: slower but thread-safe
+  int group = get_group(idx);
 
-  if (idx >= groups.size())
+  if (group == -1)
       return;
 
   GROUP_AFFINITY mask;
-  if (!GetNumaNodeProcessorMaskEx(groups[idx], &mask))
+  if (!GetNumaNodeProcessorMaskEx(group, &mask))
       return;
 
   if (SetThreadGroupAffinity(GetCurrentThread(), &mask, nullptr))
@@ -285,7 +285,7 @@ void bindThisThread(size_t idx) {
   else
       std::cout << "Failed to bind thread ";
 
-  std::cout << idx << " to group " << groups[idx] << std::endl;
+  std::cout << idx << " to group " << group << std::endl;
 }
 
 #endif
