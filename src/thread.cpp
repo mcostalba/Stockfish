@@ -27,10 +27,6 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-namespace WinProcGroup {
-  void bindThisThread(size_t idx);
-}
-
 ThreadPool Threads; // Global object
 
 /// Thread constructor launches the thread and then waits until it goes to sleep

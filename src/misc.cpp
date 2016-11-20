@@ -18,10 +18,18 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if _WIN32_WINNT < 0x0601
+#undef  _WIN32_WINNT
+#define _WIN32_WINNT 0x0601 // Force to include newest API (Win 7 or later)
+#endif
+
+#include <windows.h> // For processor groups
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include "misc.h"
 #include "thread.h"
@@ -185,3 +193,101 @@ void prefetch(void* addr) {
 }
 
 #endif
+
+namespace WinProcGroup {
+
+#ifndef _WIN32
+
+void bindThisThread(size_t) {}
+
+#else
+
+typedef std::vector<int> GroupVec;
+
+/// get_groups() retrieves logical processor information using Windows specific
+/// API. Original code from Texel by Peter Österlund.
+
+GroupVec get_groups() {
+
+  int threads = 0;
+  int nodes = 0;
+  int cores = 0;
+  DWORD returnLength = 0;
+  DWORD byteOffset = 0;
+
+  // Early exit if the needed API are not avilable at runtime
+  HMODULE WINAPI k32 = GetModuleHandle("Kernel32.dll");
+  if (   !GetProcAddress(k32, "GetLogicalProcessorInformationEx")
+      || !GetProcAddress(k32, "GetNumaNodeProcessorMaskEx")
+      || !GetProcAddress(k32, "SetThreadGroupAffinity"))
+      return GroupVec();
+
+  // First call to get returnLength. We expect it to fail due to null buffer
+  if (GetLogicalProcessorInformationEx(RelationAll, nullptr, &returnLength))
+      return GroupVec();
+
+  // Once we know returnLength, allocate the buffer
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
+  ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(returnLength);
+
+  // Second call, now we expect to succeed
+  if (!GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
+  {
+      free(buffer);
+      return GroupVec();
+  }
+
+  while ((ptr->Size > 0) && (byteOffset + ptr->Size <= returnLength))
+  {
+      if (ptr->Relationship == RelationNumaNode)
+          nodes++;
+
+      else if (ptr->Relationship == RelationProcessorCore)
+      {
+          cores++;
+          threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+      }
+
+      byteOffset += ptr->Size;
+      ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(((char*)ptr) + ptr->Size);
+  }
+
+  free(buffer);
+
+  GroupVec groups;
+
+  for (int n = 0; n < nodes; n++)
+      for (int i = 0; i < cores / nodes; i++)
+          groups.push_back(n);
+
+  for (int t = 0; t < threads - cores; t++)
+      groups.push_back(t % nodes);
+
+  return groups;
+}
+
+
+/// bindThisThread() set the current thread group affinity
+
+void bindThisThread(size_t idx) {
+
+  static GroupVec groups = get_groups();
+
+  if (idx >= groups.size())
+      return;
+
+  GROUP_AFFINITY mask;
+  if (!GetNumaNodeProcessorMaskEx(groups[idx], &mask))
+      return;
+
+  if (SetThreadGroupAffinity(GetCurrentThread(), &mask, nullptr))
+      std::cout << "Bind thread ";
+  else
+      std::cout << "Failed to bind thread ";
+
+  std::cout << idx << " to group " << groups[idx] << std::endl;
+}
+
+#endif
+
+} // namespace WinProcGroup
