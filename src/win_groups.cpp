@@ -62,27 +62,21 @@ WinProcGroupInfo::WinProcGroupInfo() {
   if (!check_win_API())
       return;
 
-  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buffer = nullptr;
-  while (true)
-  {
-      if (GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
-          break;
+  // First call to get returnLength. We expect it to fail due to null buffer
+  if (GetLogicalProcessorInformationEx(RelationAll, nullptr, &returnLength))
+      return;
 
-      else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-      {
-          free(buffer);
-          buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(returnLength);
-          if (!buffer)
-              return;
-      }
-      else
-      {
-          free(buffer);
-          return;
-      }
+  // Once we know returnLength, allocate the buffer
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
+  ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(returnLength);
+
+  // Second call, now we expect to succeed
+  if (!GetLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
+  {
+      free(buffer);
+      return;
   }
 
-  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* ptr = buffer;
   while ((ptr->Size > 0) && (byteOffset + ptr->Size <= returnLength))
   {
       switch (ptr->Relationship)
@@ -100,6 +94,8 @@ WinProcGroupInfo::WinProcGroupInfo() {
       byteOffset += ptr->Size;
       ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(((char*)ptr) + ptr->Size);
   }
+
+  free(buffer);
 
   for (int n = 0; n < nodes; n++)
       for (int i = 0; i < cores / nodes; i++)
