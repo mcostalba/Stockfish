@@ -39,6 +39,14 @@ static void WinProcGroup::bindThisThread(size_t) {}
 #include "bitboard.h"
 #include "win_groups.h"
 
+static bool check_win_API() {
+
+  HMODULE WINAPI k32 = GetModuleHandle("Kernel32.dll");
+  return   GetProcAddress(k32, "GetLogicalProcessorInformationEx")
+        && GetProcAddress(k32, "GetNumaNodeProcessorMaskEx")
+        && GetProcAddress(k32, "SetThreadGroupAffinity");
+}
+
 WinProcGroup::WinProcGroup() {
 
   int threads = 0;
@@ -46,6 +54,9 @@ WinProcGroup::WinProcGroup() {
   int cores = 0;
   DWORD returnLength = 0;
   DWORD byteOffset = 0;
+
+  if (!check_win_API())
+      return;
 
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buffer = nullptr;
   while (true)
