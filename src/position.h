@@ -76,6 +76,7 @@ public:
 
   // FEN string input/output
   Position& set(const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th);
+  Position& set(const std::string& code, Color c, StateInfo* si);
   const std::string fen() const;
 
   // Position representation
@@ -127,9 +128,10 @@ public:
   bool opposite_bishops() const;
 
   // Doing and undoing moves
-  void do_move(Move m, StateInfo& st, bool givesCheck);
+  void do_move(Move m, StateInfo& newSt);
+  void do_move(Move m, StateInfo& newSt, bool givesCheck);
   void undo_move(Move m);
-  void do_null_move(StateInfo& st);
+  void do_null_move(StateInfo& newSt);
   void undo_null_move();
 
   // Static Exchange Evaluation
@@ -188,7 +190,7 @@ private:
   bool chess960;
 };
 
-extern std::ostream& operator<<(std::ostream& os, const Position& pos);
+extern std::ostream& operator<<(std::ostream& os, Position& pos);
 
 inline Color Position::side_to_move() const {
   return sideToMove;
@@ -409,6 +411,10 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
   board[to] = pc;
   index[to] = index[from];
   pieceList[pc][index[to]] = to;
+}
+
+inline void Position::do_move(Move m, StateInfo& newSt) {
+  do_move(m, newSt, gives_check(m));
 }
 
 #endif // #ifndef POSITION_H_INCLUDED
