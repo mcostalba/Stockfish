@@ -273,7 +273,7 @@ int get_group(size_t idx) {
 }
 
 
-/// bindThisThread() set the current thread group affinity
+/// bindThisThread() set the group affinity of the current thread
 
 void bindThisThread(size_t idx) {
 
@@ -284,15 +284,8 @@ void bindThisThread(size_t idx) {
       return;
 
   GROUP_AFFINITY mask;
-  if (!GetNumaNodeProcessorMaskEx(group, &mask))
-      return;
-
-  if (SetThreadGroupAffinity(GetCurrentThread(), &mask, nullptr))
-      std::cout << "Bind thread ";
-  else
-      std::cout << "Failed to bind thread ";
-
-  std::cout << idx << " to group " << group << std::endl;
+  if (GetNumaNodeProcessorMaskEx(group, &mask))
+      SetThreadGroupAffinity(GetCurrentThread(), &mask, nullptr);
 }
 
 #endif
