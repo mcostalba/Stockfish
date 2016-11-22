@@ -32,19 +32,123 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Isolated pawn penalty by opposed flag
-  const Score Isolated[2] = { S(45, 40), S(30, 27) };
+  const Score Isolated[VARIANT_NB][2] = {
+    { S(45, 40), S(30, 27) },
+#ifdef ANTI
+    { S(50, 80), S(54, 69) },
+#endif
+#ifdef ATOMIC
+    { S(45, 40), S(30, 27) },
+#endif
+#ifdef CRAZYHOUSE
+    { S(45, 40), S(30, 27) },
+#endif
+#ifdef HORDE
+    { S(45, 40), S(30, 27) },
+#endif
+#ifdef KOTH
+    { S(45, 40), S(30, 27) },
+#endif
+#ifdef RACE
+    {},
+#endif
+#ifdef RELAY
+    { S(45, 40), S(30, 27) },
+#endif
+#ifdef THREECHECK
+    { S(45, 40), S(30, 27) },
+#endif
+  };
 
   // Backward pawn penalty by opposed flag
-  const Score Backward[2] = { S(56, 33), S(41, 19) };
+  const Score Backward[VARIANT_NB][2] = {
+    { S(56, 33), S(41, 19) },
+#ifdef ANTI
+    { S(64, 25), S(26, 50) },
+#endif
+#ifdef ATOMIC
+    { S(56, 33), S(41, 19) },
+#endif
+#ifdef CRAZYHOUSE
+    { S(56, 33), S(41, 19) },
+#endif
+#ifdef HORDE
+    { S(56, 33), S(41, 19) },
+#endif
+#ifdef KOTH
+    { S(56, 33), S(41, 19) },
+#endif
+#ifdef RACE
+    {},
+#endif
+#ifdef RELAY
+    { S(56, 33), S(41, 19) },
+#endif
+#ifdef THREECHECK
+    { S(56, 33), S(41, 19) },
+#endif
+  };
 
   // Unsupported pawn penalty for pawns which are neither isolated or backward
-  const Score Unsupported = S(17, 8);
+  const Score Unsupported[VARIANT_NB] = {
+    S( 17,   8),
+#ifdef ANTI
+    S(-45, -48),
+#endif
+#ifdef ATOMIC
+    S( 17,   8),
+#endif
+#ifdef CRAZYHOUSE
+    S( 17,   8),
+#endif
+#ifdef HORDE
+    S( 17,   8),
+#endif
+#ifdef KOTH
+    S( 17,   8),
+#endif
+#ifdef RACE
+    S(  0,   0),
+#endif
+#ifdef RELAY
+    S( 17,   8),
+#endif
+#ifdef THREECHECK
+    S( 17,   8),
+#endif
+  };
 
   // Connected pawn bonus by opposed, phalanx, twice supported and rank
   Score Connected[2][2][2][RANK_NB];
 
   // Doubled pawn penalty
-  const Score Doubled = S(18,38);
+  const Score Doubled[VARIANT_NB] = {
+    S(18, 38),
+#ifdef ANTI
+    S( 4, 51),
+#endif
+#ifdef ATOMIC
+    S(18, 38),
+#endif
+#ifdef CRAZYHOUSE
+    S(18, 38),
+#endif
+#ifdef HORDE
+    S(18, 38),
+#endif
+#ifdef KOTH
+    S(18, 38),
+#endif
+#ifdef RACE
+    S( 0,  0),
+#endif
+#ifdef RELAY
+    S(18, 38),
+#endif
+#ifdef THREECHECK
+    S(18, 38),
+#endif
+  };
 
   // Lever bonus by rank
   const Score Lever[RANK_NB] = {
@@ -218,19 +322,19 @@ namespace {
 
         // Score this pawn
         if (!neighbours)
-            score -= Isolated[opposed];
+            score -= Isolated[pos.variant()][opposed];
 
         else if (backward)
-            score -= Backward[opposed];
+            score -= Backward[pos.variant()][opposed];
 
         else if (!supported)
-            score -= Unsupported;
+            score -= Unsupported[pos.variant()];
 
         if (connected)
             score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
         if (doubled)
-            score -= Doubled;
+            score -= Doubled[pos.variant()];
 
         if (lever)
             score += Lever[relative_rank(Us, s)];
