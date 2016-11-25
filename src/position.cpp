@@ -49,7 +49,7 @@ namespace Zobrist {
   Key psq[PIECE_NB][SQUARE_NB];
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
-  Key side;
+  Key side, noPawns;
   Key variant[VARIANT_NB];
 #ifdef CRAZYHOUSE
   Key inHand[PIECE_NB][17];
@@ -186,6 +186,7 @@ void Position::init() {
   }
 
   Zobrist::side = rng.rand<Key>();
+  Zobrist::noPawns = rng.rand<Key>();
 
   for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
       Zobrist::variant[var] = var == CHESS_VARIANT ? 0 : rng.rand<Key>();
@@ -507,8 +508,9 @@ void Position::set_check_info(StateInfo* si) const {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->pawnKey = si->materialKey = 0;
+  si->key = si->materialKey = 0;
   si->key ^= Zobrist::variant[var];
+  si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
   set_check_info(si);
