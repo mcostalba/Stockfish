@@ -608,8 +608,16 @@ inline bool Position::is_race_draw() const {
 
 // Loss if king is on the eighth rank (Racing Kings)
 inline bool Position::is_race_loss() const {
-  return rank_of(square<KING>(~sideToMove)) == RANK_8
-        && rank_of(square<KING>(sideToMove)) < (sideToMove == WHITE ? RANK_8 : RANK_7);
+  if (rank_of(square<KING>(~sideToMove)) != RANK_8)
+      return false;
+  if (rank_of(square<KING>(sideToMove)) < (sideToMove == WHITE ? RANK_8 : RANK_7))
+      return true;
+  // Check whether the black king can move to the eighth rank
+  Bitboard b = attacks_from<KING>(square<KING>(sideToMove)) & rank_bb(RANK_8) & ~pieces(sideToMove);
+  while (b)
+      if (!(attackers_to(pop_lsb(&b)) & pieces(~sideToMove)))
+          return false;
+  return true;
 }
 #endif
 
