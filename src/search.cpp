@@ -100,7 +100,7 @@ namespace {
   560,
 #endif
 #ifdef CRAZYHOUSE
-  150,
+  125,
 #endif
 #ifdef HORDE
   150,
