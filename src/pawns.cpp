@@ -102,7 +102,7 @@ namespace {
     S( 17,   8),
 #endif
 #ifdef HORDE
-    S( 17,   8),
+    S( 47,  50),
 #endif
 #ifdef KOTH
     S( 17,   8),
