@@ -80,7 +80,11 @@ struct FromToStats {
   }
 
 private:
+#ifdef CRAZYHOUSE
+  Value table[COLOR_NB][SQUARE_NB+1][SQUARE_NB];
+#else
   Value table[COLOR_NB][SQUARE_NB][SQUARE_NB];
+#endif
 };
 
 
