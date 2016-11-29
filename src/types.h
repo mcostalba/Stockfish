@@ -285,7 +285,7 @@ enum Value : int {
   QueenValueMgHouse  = 936,   QueenValueEgHouse  = 1222,
 #endif
 #ifdef HORDE
-  PawnValueMgHorde   = 406,   PawnValueEgHorde   = 427,
+  PawnValueMgHorde   = 370,   PawnValueEgHorde   = 427,
   KnightValueMgHorde = 708,   KnightValueEgHorde = 851,
   BishopValueMgHorde = 736,   BishopValueEgHorde = 859,
   RookValueMgHorde   = 1341,  RookValueEgHorde   = 1175,
