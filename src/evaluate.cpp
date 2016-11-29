@@ -533,7 +533,7 @@ namespace {
     2 * int(BishopValueMg),
 #endif
 #ifdef THREECHECK
-    2 * int(BishopValueMg),
+    4 * int(BishopValueMg),
 #endif
   };
 
