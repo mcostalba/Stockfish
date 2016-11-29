@@ -47,7 +47,7 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
   Value(20),
 #endif
 #ifdef RACE
-  Value(20),
+  Value(100),
 #endif
 #ifdef RELAY
   Value(20),
