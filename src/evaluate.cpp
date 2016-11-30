@@ -509,6 +509,34 @@ namespace {
       CenterFiles & BlackCamp, KingSide  & BlackCamp, KingSide  & BlackCamp, KingSide    & BlackCamp },
   };
 
+  const int maxDanger[VARIANT_NB] = {
+    2 * int(BishopValueMg),
+#ifdef ANTI
+    2 * int(BishopValueMg),
+#endif
+#ifdef ATOMIC
+    2 * int(BishopValueMg),
+#endif
+#ifdef CRAZYHOUSE
+    2 * int(BishopValueMg),
+#endif
+#ifdef HORDE
+    2 * int(BishopValueMg),
+#endif
+#ifdef KOTH
+    2 * int(BishopValueMg),
+#endif
+#ifdef RACE
+    2 * int(BishopValueMg),
+#endif
+#ifdef RELAY
+    2 * int(BishopValueMg),
+#endif
+#ifdef THREECHECK
+    4 * int(BishopValueMg),
+#endif
+  };
+
   template<Color Us, bool DoTrace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
@@ -634,7 +662,7 @@ namespace {
                 }
             }
 #endif
-            score -= make_score(std::min(kingDanger * kingDanger / 4096,  2 * int(BishopValueMg)), 0);
+            score -= make_score(std::min(kingDanger * kingDanger / 4096, maxDanger[pos.variant()]), 0);
         }
     }
 
