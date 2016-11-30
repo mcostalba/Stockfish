@@ -29,7 +29,33 @@ class Position;
 
 namespace Eval {
 
-const Value Tempo = Value(20); // Must be visible to search
+const Value Tempo[VARIANT_NB] = { // Must be visible to search
+  Value(20),
+#ifdef ANTI
+  Value(20),
+#endif
+#ifdef ATOMIC
+  Value(20),
+#endif
+#ifdef CRAZYHOUSE
+  Value(100),
+#endif
+#ifdef HORDE
+  Value(20),
+#endif
+#ifdef KOTH
+  Value(20),
+#endif
+#ifdef RACE
+  Value(100),
+#endif
+#ifdef RELAY
+  Value(20),
+#endif
+#ifdef THREECHECK
+  Value(20),
+#endif
+};
 
 std::string trace(const Position& pos);
 
