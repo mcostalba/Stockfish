@@ -38,7 +38,7 @@ namespace {
     { S(50, 80), S(54, 69) },
 #endif
 #ifdef ATOMIC
-    { S(45, 40), S(30, 27) },
+    { S(25, 27), S(27, 18) },
 #endif
 #ifdef CRAZYHOUSE
     { S(45, 40), S(30, 27) },
@@ -67,7 +67,7 @@ namespace {
     { S(64, 25), S(26, 50) },
 #endif
 #ifdef ATOMIC
-    { S(56, 33), S(41, 19) },
+    { S(41, 25), S(41, 13) },
 #endif
 #ifdef CRAZYHOUSE
     { S(56, 33), S(41, 19) },
@@ -96,7 +96,7 @@ namespace {
     S(-45, -48),
 #endif
 #ifdef ATOMIC
-    S( 17,   8),
+    S( 45,   0),
 #endif
 #ifdef CRAZYHOUSE
     S( 17,   8),
@@ -128,7 +128,7 @@ namespace {
     S( 4, 51),
 #endif
 #ifdef ATOMIC
-    S(18, 38),
+    S( 5, 42),
 #endif
 #ifdef CRAZYHOUSE
     S(18, 38),
