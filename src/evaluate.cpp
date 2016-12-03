@@ -268,7 +268,7 @@ namespace {
     0, 124, 129, 27, 73, 71
   };
 
-  const Score CloseEnemiesHouse = S(10, 20);
+  const Score CloseEnemiesHouse = S( 5,   10);
 #endif
 
 #ifdef RACE
@@ -295,7 +295,7 @@ namespace {
   const Score OtherCheck          = S(10, 10);
   const Score ThreatByHangingPawn = S(71, 61);
   const Score LooseEnemies        = S( 0, 25);
-  const Score WeakQueen           = S(35,  0);
+  const Score WeakQueen           = S(50, 10);
   const Score Hanging             = S(48, 27);
   const Score ThreatByPawnPush    = S(38, 22);
   const Score Unstoppable         = S( 0, 20);
@@ -725,6 +725,10 @@ namespace {
     if (!(pos.pieces(PAWN) & (KingFlank[WHITE][kf] | KingFlank[BLACK][kf])))
         score -= PawnlessFlank;
 
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        score *= 2;
+#endif
     if (DoTrace)
         Trace::add(KING, Us, score);
 
