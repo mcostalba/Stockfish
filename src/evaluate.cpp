@@ -583,7 +583,7 @@ namespace {
 #endif
                             )
                     -   7 * mg_value(score) / 5 - 5;
-        Bitboard h = 0, h1 = 0;
+        Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
         if (pos.is_house()) {
