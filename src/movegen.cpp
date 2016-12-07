@@ -628,34 +628,9 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
 template<>
 ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
-#ifdef ATOMIC
-  if (pos.is_atomic() && (pos.is_atomic_win() || pos.is_atomic_loss()))
+  // Return immediately at end of variant
+  if (pos.is_variant_end())
       return moveList;
-#endif
-#ifdef HORDE
-  if (pos.is_horde() && pos.is_horde_loss())
-      return moveList;
-#endif
-#ifdef KOTH
-  if (pos.is_koth() && (pos.is_koth_win() || pos.is_koth_loss()))
-      return moveList;
-#endif
-#ifdef LOSERS
-  if (pos.is_losers() && (pos.is_losers_win() || pos.is_losers_loss()))
-      return moveList;
-#endif
-#ifdef RACE
-  if (pos.is_race() && (pos.is_race_draw() || pos.is_race_win() || pos.is_race_loss()))
-      return moveList;
-#endif
-#ifdef THREECHECK
-  if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
-      return moveList;
-#endif
-#ifdef ANTI
-  if (pos.is_anti() && (pos.is_anti_win() || pos.is_anti_loss()))
-      return moveList;
-#endif
 
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
   bool validate = pinned;

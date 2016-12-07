@@ -169,6 +169,10 @@ public:
   bool is_chess960() const;
   Variant variant() const;
   Variant subvariant() const;
+  bool is_variant_end() const;
+  Value variant_result(int ply = 0, Value draw_value = VALUE_DRAW) const;
+  Value checkmate_value(int ply = 0) const;
+  Value stalemate_value(int ply = 0, Value draw_value = VALUE_DRAW) const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -227,7 +231,6 @@ public:
 #endif
 #ifdef SUICIDE
   bool is_suicide() const;
-  Value suicide_stalemate(int ply, Value draw) const;
 #endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
@@ -612,15 +615,6 @@ inline bool Position::can_capture_losers() const {
 inline bool Position::is_suicide() const {
     return subvar == SUICIDE_VARIANT;
 }
-
-inline Value Position::suicide_stalemate(int ply, Value draw) const {
-    int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
-    if (balance > 0)
-        return mated_in(ply);
-    if (balance < 0)
-        return mate_in(ply + 1);
-    return draw;
-}
 #endif
 
 #ifdef CRAZYHOUSE
@@ -727,6 +721,140 @@ inline Variant Position::variant() const {
 
 inline Variant Position::subvariant() const {
     return subvar;
+}
+
+inline bool Position::is_variant_end() const {
+  switch (var)
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      return is_anti_win() || is_anti_loss();
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      return is_atomic_win() || is_atomic_loss();
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      return is_horde_loss();
+#endif
+#ifdef KOTH
+  case KOTH_VARIANT:
+      return is_koth_win() || is_koth_loss();
+#endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      return is_losers_win() || is_losers_loss();
+#endif
+#ifdef RACE
+  case RACE_VARIANT:
+      return is_race_draw() || is_race_win() || is_race_loss();
+#endif
+#ifdef THREECHECK
+  case THREECHECK_VARIANT:
+      return is_three_check_win() || is_three_check_loss();
+#endif
+  default:
+      return false;
+  }
+}
+
+inline Value Position::variant_result(int ply, Value draw_value) const {
+  switch (var)
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      if (is_anti_win())
+          return mate_in(ply + 1);
+      if (is_anti_loss())
+          return mated_in(ply);
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      if (is_atomic_win())
+          return mate_in(ply + 1);
+      if (is_atomic_loss())
+          return mated_in(ply);
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      if (is_horde_loss())
+          return mated_in(ply);
+#endif
+#ifdef KOTH
+  case KOTH_VARIANT:
+      if (is_koth_win())
+          return mate_in(ply + 1);
+      if (is_koth_loss())
+          return mated_in(ply);
+#endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      if (is_losers_win())
+          return mate_in(ply + 1);
+      if (is_losers_loss())
+          return mated_in(ply);
+#endif
+#ifdef RACE
+  case RACE_VARIANT:
+      if (is_race_draw())
+          return draw_value;
+      if (is_race_win())
+          return mate_in(ply + 1);
+      if (is_race_loss())
+          return mated_in(ply);
+#endif
+#ifdef THREECHECK
+  case THREECHECK_VARIANT:
+      if (is_three_check_win())
+          return mate_in(ply + 1);
+      if (is_three_check_loss())
+          return mated_in(ply);
+#endif
+  default:;
+  }
+  // variant_result should not be called if is_variant_end is false.
+  assert(false);
+  return VALUE_ZERO;
+}
+
+inline Value Position::checkmate_value(int ply) const {
+#ifdef ANTI
+  assert(!is_anti());
+#endif
+#ifdef RACE
+  assert(!is_race());
+#endif
+#ifdef LOSERS
+  if (is_losers())
+      return mate_in(ply + 1);
+#endif
+  return mated_in(ply);
+}
+
+inline Value Position::stalemate_value(int ply, Value draw_value) const {
+#ifdef ANTI
+  if (is_anti())
+  {
+#ifdef SUICIDE
+      if (is_suicide())
+      {
+          int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
+          if (balance > 0)
+              return mated_in(ply);
+          if (balance < 0)
+              return mate_in(ply + 1);
+          return draw_value;
+      }
+#endif
+      return mate_in(ply + 1);
+  }
+#endif
+#ifdef LOSERS
+  if (is_losers())
+      return mate_in(ply + 1);
+#endif
+  return draw_value;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
