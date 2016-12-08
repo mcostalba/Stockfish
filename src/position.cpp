@@ -267,7 +267,13 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           sq += Square(token - '0'); // Advance the given number of files
 
       else if (token == '/')
+      {
+#ifdef CRAZYHOUSE
+          if (is_house() && sq < Square(16))
+              break;
+#endif
           sq -= Square(16);
+      }
 
       else if ((idx = PieceToChar.find(token)) != string::npos)
       {
