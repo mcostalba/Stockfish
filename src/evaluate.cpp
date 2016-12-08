@@ -579,7 +579,7 @@ namespace {
                     + 134 * (popcount(b) + !!ei.pinnedPieces[Us])
                     - 717 * (!(pos.count<QUEEN>(Them)
 #ifdef CRAZYHOUSE
-                               || pos.is_house() && pos.count_in_hand(Them, QUEEN))
+                               || pos.is_house())
 #endif
                             )
                     -   7 * mg_value(score) / 5 - 5;
