@@ -380,36 +380,35 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       st->epSquare = SQ_NONE;
 
 #ifdef THREECHECK
-    st->checksGiven[WHITE] = CHECKS_0;
-    st->checksGiven[BLACK] = CHECKS_0;
-    if (is_three_check())
-    {
-        // 7. Checks given counter for Three-Check positions
-        if ((ss >> std::skipws >> token))
-        {
-            switch('3' - token)
-            {
-            case 0: st->checksGiven[WHITE] = CHECKS_0; break;
-            case 1: st->checksGiven[WHITE] = CHECKS_1; break;
-            case 2: st->checksGiven[WHITE] = CHECKS_2; break;
-            case 3: st->checksGiven[WHITE] = CHECKS_3; break;
-            default: st->checksGiven[WHITE] = CHECKS_NB;
-            }
-            ss >> token >> token;
-            switch('3' - token)
-            {
-            case 0: st->checksGiven[BLACK] = CHECKS_0; break;
-            case 1: st->checksGiven[BLACK] = CHECKS_1; break;
-            case 2: st->checksGiven[BLACK] = CHECKS_2; break;
-            case 3: st->checksGiven[BLACK] = CHECKS_3; break;
-            default : st->checksGiven[BLACK] = CHECKS_NB;
-            }
-        }
-    }
+  // Remaining checks counter for Three-Check positions
+  st->checksGiven[WHITE] = CHECKS_0;
+  st->checksGiven[BLACK] = CHECKS_0;
+
+  ss >> std::skipws >> token;
+
+  if (is_three_check() && ss.peek() == '+')
+  {
+      st->checksGiven[WHITE] = CheckCount(std::max(std::min('3' - token, 3), 0));
+      ss >> token >> token;
+      st->checksGiven[BLACK] = CheckCount(std::max(std::min('3' - token, 3), 0));
+  }
+  else
+      ss.putback(token);
 #endif
 
   // 5-6. Halfmove clock and fullmove number
   ss >> std::skipws >> st->rule50 >> gamePly;
+
+#ifdef THREECHECK
+  // Checks given in Three-Check positions
+  if (is_three_check() && (ss >> token) && token == '+')
+  {
+      ss >> token;
+      st->checksGiven[WHITE] = CheckCount(std::max(std::min(token - '0', 3), 0));
+      ss >> token >> token;
+      st->checksGiven[BLACK] = CheckCount(std::max(std::min(token - '0', 3), 0));
+  }
+#endif
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
