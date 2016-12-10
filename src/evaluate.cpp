@@ -259,16 +259,10 @@ namespace {
   };
 #endif
 
-#ifdef ATOMIC
-  const Score CloseEnemiesAtomic = S( 17,   0);
-#endif
-
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
     0, 124, 129, 27, 73, 71
   };
-
-  const Score CloseEnemiesHouse = S(10, 20);
 #endif
 
 #ifdef RACE
@@ -290,7 +284,33 @@ namespace {
   const Score BishopPawns         = S( 8, 12);
   const Score RookOnPawn          = S( 8, 24);
   const Score TrappedRook         = S(92,  0);
-  const Score CloseEnemies        = S( 7,  0);
+  const Score CloseEnemies[VARIANT_NB] = {
+    S( 7,  0),
+#ifdef ANTI
+    S( 0,  0),
+#endif
+#ifdef ATOMIC
+    S(17,  0),
+#endif
+#ifdef CRAZYHOUSE
+    S(10, 20),
+#endif
+#ifdef HORDE
+    S( 7,  0),
+#endif
+#ifdef KOTH
+    S( 7,  0),
+#endif
+#ifdef RACE
+    S( 0,  0),
+#endif
+#ifdef RELAY
+    S( 7,  0),
+#endif
+#ifdef THREECHECK
+    S( 7,  0),
+#endif
+  };
   const Score SafeCheck           = S(20, 20);
   const Score OtherCheck          = S(10, 10);
   const Score ThreatByHangingPawn = S(71, 61);
@@ -709,17 +729,7 @@ namespace {
     b =  (Us == WHITE ? b << 4 : b >> 4)
        | (b & ei.attackedBy2[Them] & ~ei.attackedBy[Us][PAWN]);
 
-#ifdef ATOMIC
-    if (pos.is_atomic())
-        score -= CloseEnemiesAtomic * popcount(b);
-    else
-#endif
-#ifdef CRAZYHOUSE
-    if (pos.is_house())
-        score -= CloseEnemiesHouse * popcount(b);
-    else
-#endif
-    score -= CloseEnemies * popcount(b);
+    score -= CloseEnemies[pos.variant()] * popcount(b);
 
     // Penalty when our king is on a pawnless flank
     if (!(pos.pieces(PAWN) & (KingFlank[WHITE][kf] | KingFlank[BLACK][kf])))
