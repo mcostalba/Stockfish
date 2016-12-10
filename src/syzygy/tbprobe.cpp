@@ -1937,6 +1937,11 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     if (*result == ZEROING_BEST_MOVE)
         return dtz_before_zeroing(wdl);
 
+#ifdef ANTI
+    if (*result == THREAT && wdl > WDLDraw)
+        return wdl == WDLWin ? 2 : 102;
+#endif
+
     int dtz = probe_table<DTZEntry>(pos, result, wdl);
 
     if (*result == FAIL)
