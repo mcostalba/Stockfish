@@ -1129,7 +1129,7 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
         idx = MultIdx[d->groupLen[0] - 1][Triangle[squares[0]]];
 
         for (int i = 1; i < d->groupLen[0]; ++i)
-            idx += Binomial[i - 1][MultTwist[squares[i]]];
+            idx += Binomial[i][MultTwist[squares[i]]];
     }
 
 encode_remaining:
@@ -1791,7 +1791,7 @@ void Tablebases::init(const std::string& paths, Variant variant) {
         int s = 0;
         for (int j = 0; j < 10; j++) {
             MultIdx[i][j] = s;
-            s += (i == 0) ? 1 : Binomial[i - 1][MultTwist[InvTriangle[j]]];
+            s += (i == 0) ? 1 : Binomial[i][MultTwist[InvTriangle[j]]];
         }
         MultFactor[i] = s;
     }
