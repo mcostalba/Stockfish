@@ -1492,8 +1492,32 @@ void* init(Entry& e, const Position& pos) {
            + (IsWDL ? WdlSuffixes[e.variant] : DtzSuffixes[e.variant]);
 
     uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
-    if (data)
+    if (data) {
         e.hasPawns ? do_init(e, e.pawnTable, data) : do_init(e, e.pieceTable, data);
+
+#ifdef ANTI
+        if (!e.hasPawns) {
+            // Recalculate table key.
+            std::string w2, b2;
+            for (int i = 0; i < e.pieceCount; i++) {
+                Piece piece = item(e.pieceTable, WHITE, FILE_A).precomp->pieces[i];
+                if (color_of(piece) == WHITE)
+                    w2 += PieceToChar[type_of(piece)];
+                else
+                    b2 += PieceToChar[type_of(piece)];
+            }
+
+            Position pos2;
+            StateInfo st;
+            Key key = pos2.set(w2 + "v" + b2, WHITE, pos.variant(), &st).material_key();
+
+            if (key != e.key)
+                std::swap(e.key, e.key2);
+
+            assert(e.key == key);
+        }
+#endif
+    }
 
     e.ready.store(true, std::memory_order_release);
     return e.baseAddress;
