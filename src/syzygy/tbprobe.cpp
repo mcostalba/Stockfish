@@ -1530,6 +1530,90 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
     return do_probe_table(pos, entry, wdl, result);
 }
 
+#ifdef ANTI
+template <bool Threats = false>
+WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result);
+
+WDLScore sprobe_captures(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result) {
+
+    auto moveList = MoveList<CAPTURES>(pos);
+    StateInfo st;
+
+    for (const Move& move : moveList) {
+        pos.do_move(move, st);
+        WDLScore v = -sprobe_ab(pos, -beta, -alpha, result);
+        pos.undo_move(move);
+
+        if (*result == FAIL)
+            return WDLDraw;
+
+        if (v > alpha) {
+            alpha = v;
+            if (alpha >= beta)
+                break;
+        }
+    }
+
+    if (moveList.size())
+        *result = ZEROING_BEST_MOVE;
+
+    return alpha;
+}
+
+template<bool Threats = false>
+WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result) {
+
+    WDLScore v;
+    bool threatFound = false;
+
+    if (popcount(pos.pieces(~pos.side_to_move())) > 1) {
+        v = sprobe_captures(pos, alpha, beta, result);
+        if (*result == ZEROING_BEST_MOVE || *result == FAIL)
+            return v;
+    } else {
+        auto moveList = MoveList<CAPTURES>(pos);
+        if (moveList.size()) {
+            *result = ZEROING_BEST_MOVE;
+            return WDLLoss;
+        }
+    }
+
+    if (Threats || popcount(pos.pieces()) >= 6) {
+        StateInfo st;
+        auto moveList = MoveList<LEGAL>(pos);
+
+        for (const Move& move : moveList) {
+            pos.do_move(move, st);
+            v = -sprobe_captures(pos, -beta, -alpha, result);
+            pos.undo_move(move);
+
+            if (*result == FAIL)
+                return WDLDraw;
+            else if (*result == ZEROING_BEST_MOVE && v > alpha) {
+                threatFound = true;
+                alpha = v;
+                if (alpha >= beta) {
+                    *result = THREAT;
+                    return v;
+                }
+            }
+        }
+    }
+
+    v = probe_table<WDLEntry>(pos, result);
+    if (*result == FAIL)
+        return WDLDraw;
+
+    if (v > alpha)
+        return v;
+
+    if (threatFound)
+        *result = THREAT;
+
+    return alpha;
+}
+#endif
+
 // For a position where the side to move has a winning capture it is not necessary
 // to store a winning value so the generator treats such positions as "don't cares"
 // and tries to assign to it a value that improves the compression ratio. Similarly,
@@ -1545,6 +1629,12 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 // the state to ZEROING_BEST_MOVE.
 template<bool CheckZeroingMoves = false>
 WDLScore search(Position& pos, ProbeState* result) {
+
+#ifdef ANTI
+    if (pos.is_anti()) {
+        return sprobe_ab<CheckZeroingMoves>(pos, WDLLoss, WDLWin, result);
+    }
+#endif
 
     WDLScore value, bestValue = WDLLoss;
     StateInfo st;
