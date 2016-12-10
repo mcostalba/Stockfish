@@ -308,7 +308,7 @@ namespace {
     S( 7,  0),
 #endif
 #ifdef THREECHECK
-    S( 7,  0),
+    S(15,  0),
 #endif
   };
   const Score SafeCheck           = S(20, 20);
