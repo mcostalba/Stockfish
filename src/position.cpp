@@ -1882,9 +1882,9 @@ bool Position::is_draw() const {
       return true;
 
 #ifdef CRAZYHOUSE
-  int e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+  int rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 #else
-  int e = std::min(st->rule50, st->pliesFromNull);
+  int rep = 1, e = std::min(st->rule50, st->pliesFromNull);
 #endif
 
   if (e < 4)
@@ -1895,8 +1895,8 @@ bool Position::is_draw() const {
   do {
       stp = stp->previous->previous;
 
-      if (stp->key == st->key)
-          return true; // Draw at first repetition
+      if (stp->key == st->key && (++rep >= 2 + (gamePly - e < thisThread->rootPly)))
+          return true; // Draw at first repetition in search, and second repetition in game tree.
 
   } while ((e -= 2) >= 4);
 
