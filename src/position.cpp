@@ -608,7 +608,7 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, Variant v, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
+  assert(code.length() > 0 && code.length() < 9);
 
   string sides[] = { code.substr(code.find('v') + 1),  // Weak
                      code.substr(0, code.find('v')) }; // Strong
