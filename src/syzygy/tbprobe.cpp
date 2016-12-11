@@ -736,13 +736,19 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
 
     TBFile file(code + WdlSuffixes[variant]);
 
-    if (!file.is_open() && code.find("P") == std::string::npos && PawnlessWdlSuffixes[variant])
-        file = TBFile(code + PawnlessWdlSuffixes[variant]);
+    if (file.is_open())
+        file.close();
+    else {
+        if (code.find("P") == std::string::npos && PawnlessWdlSuffixes[variant]) {
+            TBFile pawnlessFile(code + PawnlessWdlSuffixes[variant]);
+            if (!pawnlessFile.is_open())
+                return;
 
-    if (!file.is_open())
-        return;
-
-    file.close();
+            pawnlessFile.close();
+        }
+        else
+            return;
+    }
 
     MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
@@ -1619,8 +1625,8 @@ void* init(Entry& e, const Position& pos) {
     if (file.is_open())
         data = file.map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
     else if (fname.find("P") == std::string::npos && PawnlessSuffixes[e.variant]) {
-        file = TBFile(fname + PawnlessSuffixes[e.variant]);
-        data = file.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][IsWDL]);
+        TBFile pawnlessFile(fname + PawnlessSuffixes[e.variant]);
+        data = pawnlessFile.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][IsWDL]);
     }
 
     if (data) {
