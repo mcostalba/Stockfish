@@ -1944,6 +1944,9 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
         return dtz_before_zeroing(wdl);
 
 #ifdef ANTI
+    if (pos.pieces(pos.side_to_move()) == pos.pieces(pos.side_to_move(), PAWN))
+        return dtz_before_zeroing(wdl);
+
     if (*result == THREAT && wdl > WDLDraw)
         return wdl == WDLWin ? 2 : 102;
 #endif
