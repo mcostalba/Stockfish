@@ -599,9 +599,9 @@ namespace {
                     + 134 * (popcount(b) + !!ei.pinnedPieces[Us])
                     - 717 * (!(pos.count<QUEEN>(Them)
 #ifdef CRAZYHOUSE
-                               || pos.is_house())
+                               || pos.is_house()
 #endif
-                            )
+                            ))
                     -   7 * mg_value(score) / 5 - 5;
         Bitboard h = 0;
 
