@@ -1569,6 +1569,8 @@ WDLScore sprobe_captures(Position &pos, WDLScore alpha, WDLScore beta, ProbeStat
     auto moveList = MoveList<CAPTURES>(pos);
     StateInfo st;
 
+    *result = OK;
+
     for (const Move& move : moveList) {
         pos.do_move(move, st);
         WDLScore v = -sprobe_ab(pos, -beta, -alpha, result);
@@ -1630,7 +1632,9 @@ WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* res
         }
     }
 
+    *result = OK;
     v = probe_table<WDLEntry>(pos, result);
+
     if (*result == FAIL)
         return WDLDraw;
 
