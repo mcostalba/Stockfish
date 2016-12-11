@@ -82,6 +82,34 @@ const char* WdlSuffixes[VARIANT_NB] = {
 #endif
 };
 
+const char* PawnlessWdlSuffixes[VARIANT_NB] = {
+    nullptr,
+#ifdef ANTI
+    ".stbw",
+#endif
+#ifdef ATOMIC
+    nullptr,
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
 const char* DtzSuffixes[VARIANT_NB] = {
     ".rtbz",
 #ifdef ANTI
@@ -89,6 +117,34 @@ const char* DtzSuffixes[VARIANT_NB] = {
 #endif
 #ifdef ATOMIC
     ".atbz",
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
+const char* PawnlessDtzSuffixes[VARIANT_NB] = {
+    nullptr,
+#ifdef ANTI
+    ".stbz",
+#endif
+#ifdef ATOMIC
+    nullptr,
 #endif
 #ifdef CRAZYHOUSE
     nullptr,
@@ -679,6 +735,9 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
         code += PieceToChar[pt];
 
     TBFile file(code + WdlSuffixes[variant]);
+
+    if (!file.is_open() && code.find("P") == std::string::npos && PawnlessWdlSuffixes[variant])
+        file = TBFile(code + PawnlessWdlSuffixes[variant]);
 
     if (!file.is_open())
         return;
@@ -1494,10 +1553,76 @@ void* init(Entry& e, const Position& pos) {
 #endif
     };
 
-    fname =  (e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w)
-           + (IsWDL ? WdlSuffixes[e.variant] : DtzSuffixes[e.variant]);
+    const uint8_t PAWNLESS_TB_MAGIC[VARIANT_NB][2][4] = {
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#ifdef ANTI
+        {
+            { 0xE4, 0xCF, 0xE7, 0x23 },
+            { 0x7B, 0xF6, 0x93, 0x15 }
+        },
+#endif
+#ifdef ATOMIC
+        {
+            { 0x91, 0xA9, 0x5E, 0xEB },
+            { 0x55, 0x8D, 0xA4, 0x49 }
+        },
+#endif
+#ifdef CRAZYHOUSE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef HORDE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef KOTH
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RACE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RELAY
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef THREECHECK
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+    };
 
-    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
+    fname = e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w;
+
+    const char** Suffixes = IsWDL ? WdlSuffixes : DtzSuffixes;
+    const char** PawnlessSuffixes =  IsWDL ? PawnlessWdlSuffixes : PawnlessDtzSuffixes;
+
+    uint8_t* data = nullptr;
+    TBFile file(fname + Suffixes[e.variant]);
+
+    if (file.is_open())
+        data = file.map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
+    else if (fname.find("P") == std::string::npos && PawnlessSuffixes[e.variant]) {
+        file = TBFile(fname + PawnlessSuffixes[e.variant]);
+        data = file.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][IsWDL]);
+    }
+
     if (data) {
         e.hasPawns ? do_init(e, e.pawnTable, data) : do_init(e, e.pieceTable, data);
 
