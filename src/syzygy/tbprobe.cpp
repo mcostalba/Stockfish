@@ -1592,7 +1592,7 @@ WDLScore sprobe_captures(Position &pos, WDLScore alpha, WDLScore beta, ProbeStat
     return alpha;
 }
 
-template<bool Threats = false>
+template<bool Threats>
 WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result) {
 
     WDLScore v;
