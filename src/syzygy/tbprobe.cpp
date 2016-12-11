@@ -1985,9 +1985,23 @@ void Tablebases::init(const std::string& paths, Variant variant) {
                             EntryTable.insert({p1, p2, p3}, {p4, p5}, variant);
                     }
 
-                    for (PieceType p4 = PAWN; p4 <= p3; ++p4)
-                        for (PieceType p5 = PAWN; p5 <= KING; ++p5)
+                    for (PieceType p4 = PAWN; p4 <= p3; ++p4) {
+                        for (PieceType p5 = PAWN; p5 <= KING; ++p5) {
                             EntryTable.insert({p1, p2, p3, p4}, {p5}, variant);
+
+                            for (PieceType p6 = PAWN; p6 <= p5; ++p6)
+                                EntryTable.insert({p1, p2, p3, p4}, {p5, p6}, variant);
+                        }
+
+                        for (PieceType p5 = PAWN; p5 <= p4; ++p5)
+                            for (PieceType p6 = PAWN; p6 <= KING; ++p6)
+                                EntryTable.insert({p1, p2, p3, p4, p5}, {p6}, variant);
+                    }
+
+                    for (PieceType p4 = PAWN; p4 <= p1; ++p4)
+                        for (PieceType p5 = PAWN; p5 <= (p1 == p4 ? p2 : p4); ++p5)
+                            for (PieceType p6 = PAWN; p6 <= ((p1 == p4 && p5 == p2) ? p3 : p5); ++p6)
+                                EntryTable.insert({p1, p2, p3}, {p4, p5, p6}, variant);
                 }
 
                 for (PieceType p3 = PAWN; p3 <= p1; ++p3)
