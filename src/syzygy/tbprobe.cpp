@@ -1790,9 +1790,8 @@ template<bool CheckZeroingMoves = false>
 WDLScore search(Position& pos, ProbeState* result) {
 
 #ifdef ANTI
-    if (pos.is_anti()) {
+    if (pos.is_anti())
         return sprobe_ab<CheckZeroingMoves>(pos, WDLLoss, WDLWin, result);
-    }
 #endif
 
     WDLScore value, bestValue = WDLLoss;
