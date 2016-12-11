@@ -1383,8 +1383,14 @@ void do_init(Entry& e, T& p, uint8_t* data) {
     data += (uintptr_t)data & 1; // Word alignment
 
     for (File f = FILE_A; f <= MaxFile; ++f)
-        for (int i = 0; i < Sides; i++)
+        for (int i = 0; i < Sides; i++) {
             data = set_sizes(item(p, i, f).precomp, data);
+
+#ifdef ANTI
+            if (!IsWDL && e.variant == ANTI_VARIANT && item(p, i, f).precomp->flags & TBFlag::SingleValue)
+                item(p, i, f).precomp->minSymLen = 1;
+#endif
+        }
 
     if (!IsWDL)
         data = set_dtz_map(e, p, data, MaxFile);
