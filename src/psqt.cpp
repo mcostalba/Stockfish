@@ -22,6 +22,33 @@
 
 #include "types.h"
 
+Value TempoValue[VARIANT_NB][PHASE_NB] = {
+  { TempoMg, TempoEg },
+#ifdef ANTI
+  { TempoMgAnti, TempoEgAnti },
+#endif
+#ifdef ATOMIC
+  { TempoMgAtomic, TempoEgAtomic },
+#endif
+#ifdef CRAZYHOUSE
+  { TempoMgHouse, TempoEgHouse },
+#endif
+#ifdef HORDE
+  { TempoMgHorde, TempoEgHorde },
+#endif
+#ifdef KOTH
+  { TempoMg, TempoEg },
+#endif
+#ifdef RACE
+  { TempoMgRace, TempoEgRace },
+#endif
+#ifdef RELAY
+  { TempoMgRelay, TempoEgRelay },
+#endif
+#ifdef THREECHECK
+  { TempoMgThreeCheck, TempoEgThreeCheck },
+#endif
+};
 Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
@@ -53,8 +80,8 @@ Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 #endif
 #ifdef KOTH
 {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+  { VALUE_ZERO, PawnValueMgHill, KnightValueMgHill, BishopValueMgHill, RookValueMgHill, QueenValueMgHill },
+  { VALUE_ZERO, PawnValueEgHill, KnightValueEgHill, BishopValueEgHill, RookValueEgHill, QueenValueEgHill },
 },
 #endif
 #ifdef RACE
