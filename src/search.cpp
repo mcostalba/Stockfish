@@ -378,6 +378,10 @@ void MainThread::search() {
 
   // Check if there are threads with a better score than main thread
   Thread* bestThread = this;
+  Thread* longestPVThread = this;
+  const int minPlies = 6;
+  const int maxScoreDiff = 10;
+  const int minDepthDiff = 2;
   if (   !this->easyMovePlayed
       &&  Options["MultiPV"] == 1
       && !Limits.depth
@@ -387,7 +391,33 @@ void MainThread::search() {
       for (Thread* th : Threads)
           if (   th->completedDepth > bestThread->completedDepth
               && th->rootMoves[0].score > bestThread->rootMoves[0].score)
-              bestThread = th;
+              longestPVThread = bestThread = th;
+
+      if (bestThread->rootMoves[0].pv.size() < minPlies) {
+          for (Thread* th : Threads) {
+              // Look for the best thread that meets the minimum move criteria.
+              // Don't take a thread unless it's within the appropriate range of score
+              // eval. 
+              if (th->rootMoves[0].pv.size() <= longestPVThread->rootMoves[0].pv.size()) {
+                  continue;
+              }
+              bool possiblePVReplacement = true;
+              for (unsigned int i = 0; i < longestPVThread->rootMoves[0].pv.size(); ++i) {
+                  if (th->rootMoves[0].pv[i] != longestPVThread->rootMoves[0].pv[i]) {
+                      possiblePVReplacement = false;
+                      break;
+                  }
+              }
+              if (!possiblePVReplacement) {
+                  continue;
+              }
+              if (
+                     ((th->rootMoves[0].pv.size() >= minPlies)
+                  ||  (abs(th->rootMoves[0].score - longestPVThread->rootMoves[0].score) > maxScoreDiff))
+                  && ((th->completedDepth + minDepthDiff) >= longestPVThread->completedDepth))
+                  longestPVThread = th;
+          }
+      }
   }
 
   previousScore = bestThread->rootMoves[0].score;
@@ -395,6 +425,11 @@ void MainThread::search() {
   // Send new PV when needed
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+
+
+  // Send longer PV when needed
+  if (longestPVThread != bestThread)
+      sync_cout << UCI::pv(longestPVThread->rootPos, longestPVThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
 
   // Best move could be MOVE_NONE when searching on a terminal position
   sync_cout << "bestmove " << UCI::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());
