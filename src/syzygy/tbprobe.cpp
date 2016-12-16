@@ -2199,12 +2199,6 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef HORDE
     if (pos.is_horde()) return false;
 #endif
-#ifdef ATOMIC
-    if (pos.is_atomic()) return false;
-#endif
-#ifdef ANTI
-    if (pos.is_anti()) return false;
-#endif
 #ifdef CRAZYHOUSE
     if (pos.is_house()) return false;
 #endif
@@ -2351,12 +2345,6 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #endif
 #ifdef HORDE
     if (pos.is_horde()) return false;
-#endif
-#ifdef ATOMIC
-    if (pos.is_atomic()) return false;
-#endif
-#ifdef ANTI
-    if (pos.is_anti()) return false;
 #endif
 #ifdef CRAZYHOUSE
     if (pos.is_house()) return false;
