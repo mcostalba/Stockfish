@@ -381,7 +381,7 @@ void MainThread::search() {
   Thread* longestPVThread = this;
   const int minPlies = 6;
   const int maxScoreDiff = 10;
-  const int minDepthDiff = 2;
+  const int maxDepthDiff = 2;
   if (   !this->easyMovePlayed
       &&  Options["MultiPV"] == 1
       && !Limits.depth
@@ -398,12 +398,12 @@ void MainThread::search() {
               // Look for the best thread that meets the minimum move criteria.
               // Don't take a thread unless it's within the appropriate range of score
               // eval. 
-              if (th->rootMoves[0].pv.size() <= longestPVThread->rootMoves[0].pv.size()) {
+              if (th->rootMoves[0].pv.size() <= bestThread->rootMoves[0].pv.size()) {
                   continue;
               }
               bool possiblePVReplacement = true;
-              for (unsigned int i = 0; i < longestPVThread->rootMoves[0].pv.size(); ++i) {
-                  if (th->rootMoves[0].pv[i] != longestPVThread->rootMoves[0].pv[i]) {
+              for (unsigned int i = 0; i < bestThread->rootMoves[0].pv.size(); ++i) {
+                  if (th->rootMoves[0].pv[i] != bestThread->rootMoves[0].pv[i]) {
                       possiblePVReplacement = false;
                       break;
                   }
@@ -411,11 +411,32 @@ void MainThread::search() {
               if (!possiblePVReplacement) {
                   continue;
               }
-              if (
-                     ((th->rootMoves[0].pv.size() >= minPlies)
-                  ||  (abs(th->rootMoves[0].score - longestPVThread->rootMoves[0].score) > maxScoreDiff))
-                  && ((th->completedDepth + minDepthDiff) >= longestPVThread->completedDepth))
-                  longestPVThread = th;
+
+              if (longestPVThread->rootMoves[0].pv.size() < minPlies)
+              {
+                  // If our current longest is not long enough,
+                  // allow a weakening of score and depth to an absolute max of maxScoreDiff and maxDepthDiff
+                  // compared to the bestThread.
+                  if (   th->rootMoves[0].pv.size() >= longestPVThread->rootMoves[0].pv.size()
+                      && (bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
+                      && (bestThread->completedDepth - th->completedDepth < maxDepthDiff))
+                  {
+                      longestPVThread = th;
+                  }
+              }
+              else
+              {
+                  // Once our longestPVThread is long enough, we will take any thread
+                  // that is ALSO long enough but has a stronger eval/depth
+                  if (
+                          th->rootMoves[0].pv.size() >= minPlies
+                      && (   th->rootMoves[0].score >= longestPVThread->rootMoves[0].score
+                          || th->completedDepth >= longestPVThread->completedDepth)
+                     )
+                  {
+                      longestPVThread = th;
+                  }
+              }
           }
       }
   }
