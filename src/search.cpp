@@ -791,12 +791,6 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
-#ifdef ATOMIC
-    if (pos.is_atomic()) {} else
-#endif
-#ifdef ANTI
-    if (pos.is_anti()) {} else
-#endif
 #ifdef CRAZYHOUSE
     if (pos.is_house()) {} else
 #endif
