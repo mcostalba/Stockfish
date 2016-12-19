@@ -418,7 +418,7 @@ void MainThread::search() {
                   // allow a weakening of score and depth to an absolute max of maxScoreDiff and maxDepthDiff
                   // compared to the bestThread.
                   if (   th->rootMoves[0].pv.size() >= longestPVThread->rootMoves[0].pv.size()
-                      && (bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
+                      && abs(bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
                       && (bestThread->completedDepth - th->completedDepth < maxDepthDiff))
                   {
                       longestPVThread = th;
@@ -430,7 +430,7 @@ void MainThread::search() {
                   // that is ALSO long enough but has a stronger eval/depth
                   if (
                           th->rootMoves[0].pv.size() >= minPlies
-                      && (bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
+                      && abs(bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
                       && (   th->rootMoves[0].score >= longestPVThread->rootMoves[0].score
                           || th->completedDepth >= longestPVThread->completedDepth)
                      )
