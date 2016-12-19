@@ -380,7 +380,7 @@ void MainThread::search() {
   Thread* bestThread = this;
   Thread* longestPVThread = this;
   const int minPlies = 6;
-  const int maxScoreDiff = 10;
+  const int maxScoreDiff = 15;
   const int maxDepthDiff = 2;
   if (   !this->easyMovePlayed
       &&  Options["MultiPV"] == 1
