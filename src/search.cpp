@@ -1532,6 +1532,11 @@ moves_loop: // When in check search starts from here
       {
           assert(type_of(move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
+#ifdef CRAZYHOUSE
+          if (pos.is_house())
+              futilityValue = futilityBase + 2 * PieceValue[pos.variant()][EG][pos.piece_on(to_sq(move))];
+          else
+#endif
           futilityValue = futilityBase + PieceValue[pos.variant()][EG][pos.piece_on(to_sq(move))];
 
           if (futilityValue <= alpha)
