@@ -590,7 +590,8 @@ void Position::set_state(StateInfo* si) const {
 #ifdef CRAZYHOUSE
       if (is_house())
       {
-          si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[CHESS_VARIANT][MG][pc];
+          if (type_of(pc) != PAWN && type_of(pc) != KING)
+              si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[CHESS_VARIANT][MG][pc];
           si->key ^= Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
       }
 #endif
