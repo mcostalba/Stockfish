@@ -102,15 +102,6 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
-// include main variants of respective subvariants
-#if defined(SUICIDE) && !defined(ANTI)
-#  define ANTI
-#endif
-
-#if defined(LOOP) && !defined(CRAZYHOUSE)
-#  define CRAZYHOUSE
-#endif
-
 #ifdef CRAZYHOUSE
 const int MAX_MOVES = 512;
 #else

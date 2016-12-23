@@ -252,6 +252,8 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
+### If defining SUICIDE also define ANTI
+### If defining LOOP also define CRAZYHOUSE
 CXXFLAGS += -DANTI -DATOMIC -DCRAZYHOUSE -DHORDE -DKOTH -DLOOP -DRACE -DSUICIDE -DTHREECHECK
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
