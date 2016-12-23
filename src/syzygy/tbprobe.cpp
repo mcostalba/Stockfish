@@ -82,7 +82,7 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #endif
 };
 
-const char* PawnlessWdlSuffixes[VARIANT_NB] = {
+const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
     ".stbw",
