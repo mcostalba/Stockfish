@@ -102,6 +102,15 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
+// Check whether main variants of subvariants are enabled
+#if defined(LOOP) && !defined(CRAZYHOUSE)
+#error Crazyhouse is required for subvariant loop chess.
+#endif
+
+#if defined(SUICIDE) && !defined(ANTI)
+#error Giveaway (ANTI) is required for subvariant suicide chess.
+#endif
+
 #ifdef CRAZYHOUSE
 const int MAX_MOVES = 512;
 #else
