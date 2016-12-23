@@ -177,13 +177,15 @@ public:
 #endif
 #ifdef CRAZYHOUSE
   bool is_house() const;
-  bool is_loop() const;
   int count_in_hand(Color c, PieceType pt) const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
   bool is_promoted(Square s) const;
   void drop_piece(Piece pc, Square s);
   void undrop_piece(Piece pc, Square s);
+#endif
+#ifdef LOOP
+  bool is_loop() const;
 #endif
 #ifdef KOTH
   bool is_koth() const;
@@ -209,11 +211,13 @@ public:
 #endif
 #ifdef ANTI
   bool is_anti() const;
-  bool is_suicide() const;
-  Value suicide_stalemate(int ply, Value draw) const;
   bool is_anti_win() const;
   bool is_anti_loss() const;
   bool can_capture() const;
+#endif
+#ifdef SUICIDE
+  bool is_suicide() const;
+  Value suicide_stalemate(int ply, Value draw) const;
 #endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
@@ -523,19 +527,6 @@ inline bool Position::is_anti() const {
   return var == ANTI_VARIANT;
 }
 
-inline bool Position::is_suicide() const {
-    return subvar == SUICIDE_VARIANT;
-}
-
-inline Value Position::suicide_stalemate(int ply, Value draw) const {
-    int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
-    if (balance > 0)
-        return mated_in(ply);
-    if (balance < 0)
-        return mate_in(ply + 1);
-    return draw;
-}
-
 inline bool Position::is_anti_loss() const {
   return count<ALL_PIECES>(~sideToMove) == 0;
 }
@@ -559,13 +550,24 @@ inline bool Position::can_capture() const {
 }
 #endif
 
+#ifdef SUICIDE
+inline bool Position::is_suicide() const {
+    return subvar == SUICIDE_VARIANT;
+}
+
+inline Value Position::suicide_stalemate(int ply, Value draw) const {
+    int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
+    if (balance > 0)
+        return mated_in(ply);
+    if (balance < 0)
+        return mate_in(ply + 1);
+    return draw;
+}
+#endif
+
 #ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
-}
-
-inline bool Position::is_loop() const {
-  return subvar == LOOP_VARIANT;
 }
 
 inline int Position::count_in_hand(Color c, PieceType pt) const {
@@ -582,6 +584,12 @@ inline void Position::remove_from_hand(Color c, PieceType pt) {
 
 inline bool Position::is_promoted(Square s) const {
   return promotedPieces & s;
+}
+#endif
+
+#ifdef LOOP
+inline bool Position::is_loop() const {
+  return subvar == LOOP_VARIANT;
 }
 #endif
 

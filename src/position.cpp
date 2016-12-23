@@ -262,12 +262,12 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   else
       switch(v)
       {
-#ifdef ANTI //suicide
+#ifdef SUICIDE
       case SUICIDE_VARIANT:
           var = ANTI_VARIANT;
           break;
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
       case LOOP_VARIANT:
           var = CRAZYHOUSE_VARIANT;
           break;
@@ -300,7 +300,11 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       }
 #ifdef CRAZYHOUSE
       // Set flag for promoted pieces
+#ifdef LOOP
       else if (is_house() && !is_loop() && token == '~')
+#else
+      else if (is_house() && token == '~')
+#endif
           promotedPieces |= sq - Square(1);
       // Stop before pieces in hand
       else if (is_house() && token == '[')
@@ -1409,10 +1413,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
-#ifdef CRAZYHOUSE
+#ifdef LOOP
           if (is_house() && !is_loop())
-              promotedPieces = promotedPieces | to;
+#else
+          if (is_house())
 #endif
+              promotedPieces = promotedPieces | to;
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];

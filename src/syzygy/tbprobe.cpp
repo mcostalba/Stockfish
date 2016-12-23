@@ -108,10 +108,10 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
 #ifdef THREECHECK
     nullptr,
 #endif
-#ifdef ANTI //suicide
+#ifdef SUICIDE
     ".stbw",
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
     nullptr,
 #endif
 };
@@ -142,10 +142,10 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef THREECHECK
     nullptr,
 #endif
-#ifdef ANTI //suicide
+#ifdef SUICIDE
     ".stbz",
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
     nullptr,
 #endif
 };
@@ -1569,13 +1569,13 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
-#ifdef ANTI //suicide
+#ifdef SUICIDE
         {
             { 0xE4, 0xCF, 0xE7, 0x23 },
             { 0x7B, 0xF6, 0x93, 0x15 }
         },
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }

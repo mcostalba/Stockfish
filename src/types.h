@@ -102,6 +102,15 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
+// include main variants of respective subvariants
+#if defined(SUICIDE) && !defined(ANTI)
+#  define ANTI
+#endif
+
+#if defined(LOOP) && !defined(CRAZYHOUSE)
+#  define CRAZYHOUSE
+#endif
+
 #ifdef CRAZYHOUSE
 const int MAX_MOVES = 512;
 #else
@@ -139,10 +148,10 @@ enum Variant {
   VARIANT_NB,
   LAST_VARIANT = VARIANT_NB - 1,
   //subvariants
-#ifdef ANTI //suicide
+#ifdef SUICIDE
   SUICIDE_VARIANT,
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
   LOOP_VARIANT,
 #endif
   SUBVARIANT_NB,
@@ -177,10 +186,10 @@ static std::vector<std::string> variants = {
 "threecheck",
 #endif
 //subvariants
-#ifdef ANTI //suicide
+#ifdef SUICIDE
 "suicide",
 #endif
-#ifdef CRAZYHOUSE //loop
+#ifdef LOOP
 "loop",
 #endif
 };
