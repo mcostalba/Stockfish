@@ -259,16 +259,10 @@ namespace {
   };
 #endif
 
-#ifdef ATOMIC
-  const Score CloseEnemiesAtomic = S( 17,   0);
-#endif
-
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
     0, 124, 129, 27, 73, 71
   };
-
-  const Score CloseEnemiesHouse = S(10, 20);
 #endif
 
 #ifdef RACE
@@ -290,7 +284,33 @@ namespace {
   const Score BishopPawns         = S( 8, 12);
   const Score RookOnPawn          = S( 8, 24);
   const Score TrappedRook         = S(92,  0);
-  const Score CloseEnemies        = S( 7,  0);
+  const Score CloseEnemies[VARIANT_NB] = {
+    S( 7,  0),
+#ifdef ANTI
+    S( 0,  0),
+#endif
+#ifdef ATOMIC
+    S(17,  0),
+#endif
+#ifdef CRAZYHOUSE
+    S(10, 20),
+#endif
+#ifdef HORDE
+    S( 7,  0),
+#endif
+#ifdef KOTH
+    S( 7,  0),
+#endif
+#ifdef RACE
+    S( 0,  0),
+#endif
+#ifdef RELAY
+    S( 7,  0),
+#endif
+#ifdef THREECHECK
+    S(15,  0),
+#endif
+  };
   const Score SafeCheck           = S(20, 20);
   const Score OtherCheck          = S(10, 10);
   const Score ThreatByHangingPawn = S(71, 61);
@@ -298,7 +318,7 @@ namespace {
   const Score WeakQueen           = S(50, 10);
   const Score Hanging             = S(48, 27);
   const Score ThreatByPawnPush    = S(38, 22);
-  const Score Unstoppable         = S( 0, 20);
+  const Score Unstoppable         = S( 0, 45);
   const Score PawnlessFlank       = S(20, 80);
   const Score HinderPassedPawn    = S( 7,  0);
   const Score ThreatByRank        = S(16,  3);
@@ -579,9 +599,9 @@ namespace {
                     + 134 * (popcount(b) + !!ei.pinnedPieces[Us])
                     - 717 * (!(pos.count<QUEEN>(Them)
 #ifdef CRAZYHOUSE
-                               || pos.is_house())
+                               || pos.is_house()
 #endif
-                            )
+                            ))
                     -   7 * mg_value(score) / 5 - 5;
         Bitboard h = 0;
 
@@ -709,17 +729,7 @@ namespace {
     b =  (Us == WHITE ? b << 4 : b >> 4)
        | (b & ei.attackedBy2[Them] & ~ei.attackedBy[Us][PAWN]);
 
-#ifdef ATOMIC
-    if (pos.is_atomic())
-        score -= CloseEnemiesAtomic * popcount(b);
-    else
-#endif
-#ifdef CRAZYHOUSE
-    if (pos.is_house())
-        score -= CloseEnemiesHouse * popcount(b);
-    else
-#endif
-    score -= CloseEnemies * popcount(b);
+    score -= CloseEnemies[pos.variant()] * popcount(b);
 
     // Penalty when our king is on a pawnless flank
     if (!(pos.pieces(PAWN) & (KingFlank[WHITE][kf] | KingFlank[BLACK][kf])))
@@ -1148,14 +1158,14 @@ namespace {
     int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
-    int initiative = 8 * (asymmetry + kingDistance - 15) + 12 * pawns;
+    int initiative = TempoValue[pos.variant()][EG] + 8 * (asymmetry + kingDistance - 15) + 12 * pawns;
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
     // that the endgame score will never be divided by more than two.
     int value = ((eg > 0) - (eg < 0)) * std::max(initiative, -abs(eg / 2));
 
-    return make_score(0, value);
+    return make_score(TempoValue[pos.variant()][MG], value);
   }
 
 
@@ -1357,12 +1367,11 @@ Value Eval::evaluate(const Position& pos) {
   // If both sides have only pawns, score for potential unstoppable pawns
   if (!pos.non_pawn_material(WHITE) && !pos.non_pawn_material(BLACK))
   {
-      Bitboard b;
-      if ((b = ei.pi->passed_pawns(WHITE)) != 0)
-          score += Unstoppable * int(relative_rank(WHITE, frontmost_sq(WHITE, b)));
+      if (ei.pi->passed_pawns(WHITE))
+          score += Unstoppable;
 
-      if ((b = ei.pi->passed_pawns(BLACK)) != 0)
-          score -= Unstoppable * int(relative_rank(BLACK, frontmost_sq(BLACK, b)));
+      if (ei.pi->passed_pawns(BLACK))
+          score -= Unstoppable;
   }
 
   // Evaluate space for both sides, only during opening

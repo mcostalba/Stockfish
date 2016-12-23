@@ -82,6 +82,34 @@ const char* WdlSuffixes[VARIANT_NB] = {
 #endif
 };
 
+const char* PawnlessWdlSuffixes[VARIANT_NB] = {
+    nullptr,
+#ifdef ANTI
+    ".stbw",
+#endif
+#ifdef ATOMIC
+    nullptr,
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
 const char* DtzSuffixes[VARIANT_NB] = {
     ".rtbz",
 #ifdef ANTI
@@ -89,6 +117,34 @@ const char* DtzSuffixes[VARIANT_NB] = {
 #endif
 #ifdef ATOMIC
     ".atbz",
+#endif
+#ifdef CRAZYHOUSE
+    nullptr,
+#endif
+#ifdef HORDE
+    nullptr,
+#endif
+#ifdef KOTH
+    nullptr,
+#endif
+#ifdef RACE
+    nullptr,
+#endif
+#ifdef RELAY
+    nullptr,
+#endif
+#ifdef THREECHECK
+    nullptr
+#endif
+};
+
+const char* PawnlessDtzSuffixes[VARIANT_NB] = {
+    nullptr,
+#ifdef ANTI
+    ".stbz",
+#endif
+#ifdef ATOMIC
+    nullptr,
 #endif
 #ifdef CRAZYHOUSE
     nullptr,
@@ -220,7 +276,8 @@ struct TBEntry : public Atomic {
     Key key2;
     int pieceCount;
     bool hasPawns;
-    bool hasUniquePieces;
+    int numUniquePieces;
+    int minLikeMan;
     Variant variant;
 };
 
@@ -264,6 +321,7 @@ int MapKK[10][SQUARE_NB]; // [MapA1D1D4][SQUARE_NB]
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
 int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
+Square flipdiag(Square square) { return Square(((square >> 3) | (square << 3)) & 63); }
 
 const Value WDL_to_value[] = {
    -VALUE_MATE + MAX_PLY + 1,
@@ -278,6 +336,116 @@ const std::string PieceToChar = " PNBRQK  pnbrqk";
 int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
 int LeadPawnIdx[5][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
 int LeadPawnsSize[5][4];       // [leadPawnsCnt][FILE_A..FILE_D]
+
+const int Triangle[SQUARE_NB] = {
+    6, 0, 1, 2, 2, 1, 0, 6,
+    0, 7, 3, 4, 4, 3, 7, 0,
+    1, 3, 8, 5, 5, 8, 3, 1,
+    2, 4, 5, 9, 9, 5, 4, 2,
+    2, 4, 5, 9, 9, 5, 4, 2,
+    1, 3, 8, 5, 5, 8, 3, 1,
+    0, 7, 3, 4, 4, 3, 7, 0,
+    6, 0, 1, 2, 2, 1, 0, 6
+};
+
+const int MapPP[10][SQUARE_NB] = {
+    {  0, -1,  1,  2,  3,  4,  5,  6,
+       7,  8,  9, 10, 11, 12, 13, 14,
+      15, 16, 17, 18, 19, 20, 21, 22,
+      23, 24, 25, 26, 27, 28, 29, 30,
+      31, 32, 33, 34, 35, 36, 37, 38,
+      39, 40, 41, 42, 43, 44, 45, 46,
+      -1, 47, 48, 49, 50, 51, 52, 53,
+      54, 55, 56, 57, 58, 59, 60, 61 },
+    { 62, -1, -1, 63, 64, 65, -1, 66,
+      -1, 67, 68, 69, 70, 71, 72, -1,
+      73, 74, 75, 76, 77, 78, 79, 80,
+      81, 82, 83, 84, 85, 86, 87, 88,
+      89, 90, 91, 92, 93, 94, 95, 96,
+      -1, 97, 98, 99,100,101,102,103,
+      -1,104,105,106,107,108,109, -1,
+     110, -1,111,112,113,114, -1,115 },
+    {116, -1, -1, -1,117, -1, -1,118,
+      -1,119,120,121,122,123,124, -1,
+      -1,125,126,127,128,129,130, -1,
+     131,132,133,134,135,136,137,138,
+      -1,139,140,141,142,143,144,145,
+      -1,146,147,148,149,150,151, -1,
+      -1,152,153,154,155,156,157, -1,
+     158, -1, -1,159,160, -1, -1,161 },
+    {162, -1, -1, -1, -1, -1, -1,163,
+      -1,164, -1,165,166,167,168, -1,
+      -1,169,170,171,172,173,174, -1,
+      -1,175,176,177,178,179,180, -1,
+      -1,181,182,183,184,185,186, -1,
+      -1, -1,187,188,189,190,191, -1,
+      -1,192,193,194,195,196,197, -1,
+     198, -1, -1, -1, -1, -1, -1,199 },
+    {200, -1, -1, -1, -1, -1, -1,201,
+      -1,202, -1, -1,203, -1,204, -1,
+      -1, -1,205,206,207,208, -1, -1,
+      -1,209,210,211,212,213,214, -1,
+      -1, -1,215,216,217,218,219, -1,
+      -1, -1,220,221,222,223, -1, -1,
+      -1,224, -1,225,226, -1,227, -1,
+     228, -1, -1, -1, -1, -1, -1,229 },
+    {230, -1, -1, -1, -1, -1, -1,231,
+      -1,232, -1, -1, -1, -1,233, -1,
+      -1, -1,234, -1,235,236, -1, -1,
+      -1, -1,237,238,239,240, -1, -1,
+      -1, -1, -1,241,242,243, -1, -1,
+      -1, -1,244,245,246,247, -1, -1,
+      -1,248, -1, -1, -1, -1,249, -1,
+     250, -1, -1, -1, -1, -1, -1,251 },
+    { -1, -1, -1, -1, -1, -1, -1,259,
+      -1,252, -1, -1, -1, -1,260, -1,
+      -1, -1,253, -1, -1,261, -1, -1,
+      -1, -1, -1,254,262, -1, -1, -1,
+      -1, -1, -1, -1,255, -1, -1, -1,
+      -1, -1, -1, -1, -1,256, -1, -1,
+      -1, -1, -1, -1, -1, -1,257, -1,
+      -1, -1, -1, -1, -1, -1, -1,258 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1,268, -1,
+      -1, -1,263, -1, -1,269, -1, -1,
+      -1, -1, -1,264,270, -1, -1, -1,
+      -1, -1, -1, -1,265, -1, -1, -1,
+      -1, -1, -1, -1, -1,266, -1, -1,
+      -1, -1, -1, -1, -1, -1,267, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1,274, -1, -1,
+      -1, -1, -1,271,275, -1, -1, -1,
+      -1, -1, -1, -1,272, -1, -1, -1,
+      -1, -1, -1, -1, -1,273, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 },
+    { -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1,277, -1, -1, -1,
+      -1, -1, -1, -1,276, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1 }
+};
+
+const int MultTwist[] = {
+    15, 63, 55, 47, 40, 48, 56, 12,
+    62, 11, 39, 31, 24, 32,  8, 57,
+    54, 38,  7, 23, 16,  4, 33, 49,
+    46, 30, 22,  3,  0, 17, 25, 41,
+    45, 29, 21,  2,  1, 18, 26, 42,
+    53, 37,  6, 20, 19,  5, 34, 50,
+    61, 10, 36, 28, 27, 35,  9, 58,
+    14, 60, 52, 44, 43, 51, 59, 13
+};
+
+const Bitboard Test45 = 0x1030700000000ULL; // A5-C5-A7 triangle
+const int InvTriangle[] = { 1, 2, 3, 10, 11, 19, 0, 9, 18, 27 };
+int MultIdx[5][10];
+int MultFactor[5];
 
 enum { BigEndian, LittleEndian };
 
@@ -312,8 +480,19 @@ class HashTable {
     typedef std::pair<WDLEntry*, DTZEntry*> EntryPair;
     typedef std::pair<Key, EntryPair> Entry;
 
+#ifdef ANTI
+    static const int TBHASHBITS = 12;
+#else
     static const int TBHASHBITS = 10;
+#endif
+
+#if defined(ANTI)
+    static const int HSHMAX     = 12;
+#elif defined(ATOMIC)
+    static const int HSHMAX     = 8;
+#else
     static const int HSHMAX     = 5;
+#endif
 
     Entry hashTable[1 << TBHASHBITS][HSHMAX];
 
@@ -351,7 +530,7 @@ public:
       dtzTable.clear();
   }
   size_t size() const { return wdlTable.size(); }
-  void insert(const std::vector<PieceType>& pieces, Variant variant);
+  void insert(const std::vector<PieceType>& w, const std::vector<PieceType>& b, Variant variant);
 };
 
 HashTable EntryTable;
@@ -466,14 +645,21 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
 
     variant = v;
     ready = false;
-    key = pos.set(code, WHITE, &st).material_key();
+    key = pos.set(code, WHITE, v, &st).material_key();
     pieceCount = popcount(pos.pieces());
     hasPawns = pos.pieces(PAWN);
 
     for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt < KING; ++pt)
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
             if (popcount(pos.pieces(c, pt)) == 1)
-                hasUniquePieces = true;
+                numUniquePieces++;
+
+    for (Color c = WHITE; c <= BLACK; ++c)
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+            int count = popcount(pos.pieces(c, pt));
+            if (2 <= count && (count < minLikeMan || !minLikeMan))
+                minLikeMan = count;
+        }
 
     if (hasPawns) {
         // Set the leading color. In case both sides have pawns the leading color
@@ -486,7 +672,7 @@ WDLEntry::WDLEntry(const std::string& code, Variant v) {
         pawnTable.pawnCount[1] = pos.count<PAWN>(c ? BLACK : WHITE);
     }
 
-    key2 = pos.set(code, BLACK, &st).material_key();
+    key2 = pos.set(code, BLACK, v, &st).material_key();
 }
 
 WDLEntry::~WDLEntry() {
@@ -511,7 +697,8 @@ DTZEntry::DTZEntry(const WDLEntry& wdl) {
     key2 = wdl.key2;
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
-    hasUniquePieces = wdl.hasUniquePieces;
+    numUniquePieces = wdl.numUniquePieces;
+    minLikeMan = wdl.minLikeMan;
     variant = wdl.variant;
 
     if (hasPawns) {
@@ -532,24 +719,38 @@ DTZEntry::~DTZEntry() {
         delete pieceTable.precomp;
 }
 
-void HashTable::insert(const std::vector<PieceType>& pieces, Variant variant) {
+void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceType>& b, Variant variant) {
 
     if (!WdlSuffixes[variant])
         return;
 
     std::string code;
 
-    for (PieceType pt : pieces)
+    for (PieceType pt : w)
         code += PieceToChar[pt];
 
-    TBFile file(code.insert(code.find('K', 1), "v") + WdlSuffixes[variant]); // KRK -> KRvK
+    code += "v";
 
-    if (!file.is_open())
-        return;
+    for (PieceType pt: b)
+        code += PieceToChar[pt];
 
-    file.close();
+    TBFile file(code + WdlSuffixes[variant]);
 
-    MaxCardinality = std::max((int)pieces.size(), MaxCardinality);
+    if (file.is_open())
+        file.close();
+    else {
+        if (code.find("P") == std::string::npos && PawnlessWdlSuffixes[variant]) {
+            TBFile pawnlessFile(code + PawnlessWdlSuffixes[variant]);
+            if (!pawnlessFile.is_open())
+                return;
+
+            pawnlessFile.close();
+        }
+        else
+            return;
+    }
+
+    MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
     wdlTable.push_back(WDLEntry(code, variant));
     dtzTable.push_back(DTZEntry(wdlTable.back()));
@@ -849,7 +1050,7 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
 
         if (off_A1H8(squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
             for (int j = i; j < size; ++j)
-                squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                squares[j] = flipdiag(squares[j]);
         break;
     }
 
@@ -880,7 +1081,7 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
     //
     // In case we have at least 3 unique pieces (inlcuded kings) we encode them
     // together.
-    if (entry->hasUniquePieces) {
+    if (entry->numUniquePieces >= 3) {
 
         int adjust1 =  squares[1] > squares[0];
         int adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
@@ -914,9 +1115,17 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
                  +  rank_of(squares[0])         * 7 * 6
                  + (rank_of(squares[1]) - adjust1)  * 6
                  + (rank_of(squares[2]) - adjust2);
-    } else {
+    } else if (entry->numUniquePieces == 2) {
+
+        bool connectedKings = false;
 #ifdef ATOMIC
-        if (entry->variant == ATOMIC_VARIANT) {
+        connectedKings = connectedKings || entry->variant == ATOMIC_VARIANT;
+#endif
+#ifdef ANTI
+        connectedKings = connectedKings || entry->variant == ANTI_VARIANT;
+#endif
+
+        if (connectedKings) {
             int adjust = squares[1] > squares[0];
 
             if (off_A1H8(squares[0]))
@@ -933,10 +1142,59 @@ T do_probe_table(const Position& pos,  Entry* entry, WDLScore wdl, ProbeState* r
                      +  rank_of(squares[0]) * 7
                      + (rank_of(squares[1]) - adjust);
         } else
-#endif
             // We don't have at least 3 unique pieces, like in KRRvKBB, just map
             // the kings.
             idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+
+    } else if (entry->minLikeMan == 2) {
+        if (Triangle[squares[0]] > Triangle[squares[1]])
+            std::swap(squares[0], squares[1]);
+
+        if (file_of(squares[0]) > FILE_D)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 7;
+
+        if (rank_of(squares[0]) > RANK_4)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 070;
+
+        if (off_A1H8(squares[0]) > 0 || (off_A1H8(squares[0]) == 0 && off_A1H8(squares[1]) > 0))
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i]);
+
+        if ((Test45 & squares[1]) && Triangle[squares[0]] == Triangle[squares[1]]) {
+            std::swap(squares[0], squares[1]);
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i] ^ 070);
+        }
+
+        idx = MapPP[Triangle[squares[0]]][squares[1]];
+    } else {
+        for (int i = 1; i < d->groupLen[0]; ++i)
+            if (Triangle[squares[0]] > Triangle[squares[i]])
+                std::swap(squares[0], squares[i]);
+
+        if (file_of(squares[0]) > FILE_D)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 7;
+
+        if (rank_of(squares[0]) > RANK_4)
+            for (int i = 0; i < size; ++i)
+                squares[i] ^= 070;
+
+        if (off_A1H8(squares[0]) > 0)
+            for (int i = 0; i < size; ++i)
+                squares[i] = flipdiag(squares[i]);
+
+        for (int i = 1; i < d->groupLen[0]; i++)
+            for (int j = i + 1; j < d->groupLen[0]; j++)
+                if (MultTwist[squares[i]] > MultTwist[squares[j]])
+                    std::swap(squares[i], squares[j]);
+
+        idx = MultIdx[d->groupLen[0] - 1][Triangle[squares[0]]];
+
+        for (int i = 1; i < d->groupLen[0]; ++i)
+            idx += Binomial[i][MultTwist[squares[i]]];
     }
 
 encode_remaining:
@@ -982,7 +1240,7 @@ encode_remaining:
 template<typename T>
 void set_groups(T& e, PairsData* d, int order[], File f) {
 
-    int n = 0, firstLen = e.hasPawns ? 0 : e.hasUniquePieces ? 3 : 2;
+    int n = 0, firstLen = e.hasPawns ? 0 : (e.numUniquePieces >= 3) ? 3 : 2;
     d->groupLen[n] = 1;
 
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
@@ -1014,12 +1272,19 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
     for (int k = 0; next < n || k == order[0] || k == order[1]; ++k)
         if (k == order[0]) // Leading pawns or pieces
         {
-            // Kings may touch in atomic chess and giveaway
-            int kingConfigurations = (e.variant == CHESS_VARIANT) ? 462 : 518;
-
             d->groupIdx[0] = idx;
-            idx *=         e.hasPawns ? LeadPawnsSize[d->groupLen[0]][f]
-                  : e.hasUniquePieces ? 31332 : kingConfigurations;
+
+            if (e.hasPawns)
+                idx *= LeadPawnsSize[d->groupLen[0]][f];
+            else if (e.numUniquePieces >= 3)
+                idx *= 31332;
+            else if (e.numUniquePieces == 2)
+                // Standard or Atomic/Giveaway
+                idx *= (e.variant == CHESS_VARIANT) ? 462 : 518;
+            else if (e.minLikeMan == 2)
+                idx *= 278;
+            else
+                idx *= MultFactor[e.minLikeMan - 1];
         }
         else if (k == order[1]) // Remaining pawns
         {
@@ -1183,8 +1448,14 @@ void do_init(Entry& e, T& p, uint8_t* data) {
     data += (uintptr_t)data & 1; // Word alignment
 
     for (File f = FILE_A; f <= MaxFile; ++f)
-        for (int i = 0; i < Sides; i++)
+        for (int i = 0; i < Sides; i++) {
             data = set_sizes(item(p, i, f).precomp, data);
+
+#ifdef ANTI
+            if (!IsWDL && e.variant == ANTI_VARIANT && item(p, i, f).precomp->flags & TBFlag::SingleValue)
+                item(p, i, f).precomp->minSymLen = 1;
+#endif
+        }
 
     if (!IsWDL)
         data = set_dtz_map(e, p, data, MaxFile);
@@ -1288,12 +1559,102 @@ void* init(Entry& e, const Position& pos) {
 #endif
     };
 
-    fname =  (e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w)
-           + (IsWDL ? WdlSuffixes[e.variant] : DtzSuffixes[e.variant]);
+    const uint8_t PAWNLESS_TB_MAGIC[VARIANT_NB][2][4] = {
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#ifdef ANTI
+        {
+            { 0xE4, 0xCF, 0xE7, 0x23 },
+            { 0x7B, 0xF6, 0x93, 0x15 }
+        },
+#endif
+#ifdef ATOMIC
+        {
+            { 0x91, 0xA9, 0x5E, 0xEB },
+            { 0x55, 0x8D, 0xA4, 0x49 }
+        },
+#endif
+#ifdef CRAZYHOUSE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef HORDE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef KOTH
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RACE
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef RELAY
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef THREECHECK
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+    };
 
-    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
-    if (data)
+    fname = e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w;
+
+    const char** Suffixes = IsWDL ? WdlSuffixes : DtzSuffixes;
+    const char** PawnlessSuffixes =  IsWDL ? PawnlessWdlSuffixes : PawnlessDtzSuffixes;
+
+    uint8_t* data = nullptr;
+    TBFile file(fname + Suffixes[e.variant]);
+
+    if (file.is_open())
+        data = file.map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][IsWDL]);
+    else if (fname.find("P") == std::string::npos && PawnlessSuffixes[e.variant]) {
+        TBFile pawnlessFile(fname + PawnlessSuffixes[e.variant]);
+        data = pawnlessFile.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][IsWDL]);
+    }
+
+    if (data) {
         e.hasPawns ? do_init(e, e.pawnTable, data) : do_init(e, e.pieceTable, data);
+
+#ifdef ANTI
+        if (!e.hasPawns) {
+            // Recalculate table key.
+            std::string w2, b2;
+            for (int i = 0; i < e.pieceCount; i++) {
+                Piece piece = item(e.pieceTable, WHITE, FILE_A).precomp->pieces[i];
+                if (color_of(piece) == WHITE)
+                    w2 += PieceToChar[type_of(piece)];
+                else
+                    b2 += PieceToChar[type_of(piece)];
+            }
+
+            Position pos2;
+            StateInfo st;
+            Key key = pos2.set(w2 + "v" + b2, WHITE, pos.variant(), &st).material_key();
+
+            if (key != e.key)
+                std::swap(e.key, e.key2);
+
+            assert(e.key == key);
+        }
+#endif
+    }
 
     e.ready.store(true, std::memory_order_release);
     return e.baseAddress;
@@ -1311,6 +1672,14 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
     }
 #endif
 
+#ifdef ANTI
+    if (pos.is_anti()) {
+        if (pos.is_anti_loss())
+            return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
+        if (pos.is_anti_win())
+            return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
+    } else
+#endif
     if (!(pos.pieces() ^ pos.pieces(KING)))
         return T(WDLDraw); // KvK
 
@@ -1321,6 +1690,94 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 
     return do_probe_table(pos, entry, wdl, result);
 }
+
+#ifdef ANTI
+template <bool Threats = false>
+WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result);
+
+WDLScore sprobe_captures(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result) {
+
+    auto moveList = MoveList<CAPTURES>(pos);
+    StateInfo st;
+
+    *result = OK;
+
+    for (const Move& move : moveList) {
+        pos.do_move(move, st);
+        WDLScore v = -sprobe_ab(pos, -beta, -alpha, result);
+        pos.undo_move(move);
+
+        if (*result == FAIL)
+            return WDLDraw;
+
+        if (v > alpha) {
+            alpha = v;
+            if (alpha >= beta)
+                break;
+        }
+    }
+
+    if (moveList.size())
+        *result = ZEROING_BEST_MOVE;
+
+    return alpha;
+}
+
+template<bool Threats>
+WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* result) {
+
+    WDLScore v;
+    bool threatFound = false;
+
+    if (popcount(pos.pieces(~pos.side_to_move())) > 1) {
+        v = sprobe_captures(pos, alpha, beta, result);
+        if (*result == ZEROING_BEST_MOVE || *result == FAIL)
+            return v;
+    } else {
+        auto moveList = MoveList<CAPTURES>(pos);
+        if (moveList.size()) {
+            *result = ZEROING_BEST_MOVE;
+            return WDLLoss;
+        }
+    }
+
+    if (Threats || popcount(pos.pieces()) >= 6) {
+        StateInfo st;
+        auto moveList = MoveList<LEGAL>(pos);
+
+        for (const Move& move : moveList) {
+            pos.do_move(move, st);
+            v = -sprobe_captures(pos, -beta, -alpha, result);
+            pos.undo_move(move);
+
+            if (*result == FAIL)
+                return WDLDraw;
+            else if (*result == ZEROING_BEST_MOVE && v > alpha) {
+                threatFound = true;
+                alpha = v;
+                if (alpha >= beta) {
+                    *result = THREAT;
+                    return v;
+                }
+            }
+        }
+    }
+
+    *result = OK;
+    v = probe_table<WDLEntry>(pos, result);
+
+    if (*result == FAIL)
+        return WDLDraw;
+
+    if (v > alpha)
+        return v;
+
+    if (threatFound)
+        *result = THREAT;
+
+    return alpha;
+}
+#endif
 
 // For a position where the side to move has a winning capture it is not necessary
 // to store a winning value so the generator treats such positions as "don't cares"
@@ -1337,6 +1794,11 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 // the state to ZEROING_BEST_MOVE.
 template<bool CheckZeroingMoves = false>
 WDLScore search(Position& pos, ProbeState* result) {
+
+#ifdef ANTI
+    if (pos.is_anti())
+        return sprobe_ab<CheckZeroingMoves>(pos, WDLLoss, WDLWin, result);
+#endif
 
     WDLScore value, bestValue = WDLLoss;
     StateInfo st;
@@ -1464,6 +1926,16 @@ void Tablebases::init(const std::string& paths, Variant variant) {
             Binomial[k][n] =  (k > 0 ? Binomial[k - 1][n - 1] : 0)
                             + (k < n ? Binomial[k    ][n - 1] : 0);
 
+    // For antichess (with less than two unique pieces).
+    for (int i = 0; i < 5; i++) {
+        int s = 0;
+        for (int j = 0; j < 10; j++) {
+            MultIdx[i][j] = s;
+            s += (i == 0) ? 1 : Binomial[i][MultTwist[InvTriangle[j]]];
+        }
+        MultFactor[i] = s;
+    }
+
     // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
     // available squares when the leading one is in 's'. Moreover the pawn with
     // highest MapPawns[] is the leading pawn, the one nearest the edge and,
@@ -1502,29 +1974,73 @@ void Tablebases::init(const std::string& paths, Variant variant) {
             LeadPawnsSize[leadPawnsCnt][f] = idx;
         }
 
+#ifdef ANTI
+    if (variant == ANTI_VARIANT) {
+        for (PieceType p1 = PAWN; p1 <= KING; ++p1) {
+            for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
+                EntryTable.insert({p1}, {p2}, variant);
+
+                for (PieceType p3 = PAWN; p3 <= KING; ++p3)
+                    EntryTable.insert({p1, p2}, {p3}, variant);
+
+                for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
+                    for (PieceType p4 = PAWN; p4 <= KING; ++p4) {
+                        EntryTable.insert({p1, p2, p3}, {p4}, variant);
+
+                        for (PieceType p5 = PAWN; p5 <= p4; ++p5)
+                            EntryTable.insert({p1, p2, p3}, {p4, p5}, variant);
+                    }
+
+                    for (PieceType p4 = PAWN; p4 <= p3; ++p4) {
+                        for (PieceType p5 = PAWN; p5 <= KING; ++p5) {
+                            EntryTable.insert({p1, p2, p3, p4}, {p5}, variant);
+
+                            for (PieceType p6 = PAWN; p6 <= p5; ++p6)
+                                EntryTable.insert({p1, p2, p3, p4}, {p5, p6}, variant);
+                        }
+
+                        for (PieceType p5 = PAWN; p5 <= p4; ++p5)
+                            for (PieceType p6 = PAWN; p6 <= KING; ++p6)
+                                EntryTable.insert({p1, p2, p3, p4, p5}, {p6}, variant);
+                    }
+
+                    for (PieceType p4 = PAWN; p4 <= p1; ++p4)
+                        for (PieceType p5 = PAWN; p5 <= (p1 == p4 ? p2 : p4); ++p5)
+                            for (PieceType p6 = PAWN; p6 <= ((p1 == p4 && p5 == p2) ? p3 : p5); ++p6)
+                                EntryTable.insert({p1, p2, p3}, {p4, p5, p6}, variant);
+                }
+
+                for (PieceType p3 = PAWN; p3 <= p1; ++p3)
+                    for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
+                        EntryTable.insert({p1, p2}, {p3, p4}, variant);
+            }
+        }
+    } else
+#endif
+
     for (PieceType p1 = PAWN; p1 < KING; ++p1) {
-        EntryTable.insert({KING, p1, KING}, variant);
+        EntryTable.insert({KING, p1}, {KING}, variant);
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
-            EntryTable.insert({KING, p1, p2, KING}, variant);
-            EntryTable.insert({KING, p1, KING, p2}, variant);
+            EntryTable.insert({KING, p1, p2}, {KING}, variant);
+            EntryTable.insert({KING, p1}, {KING, p2}, variant);
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                EntryTable.insert({KING, p1, p2, KING, p3}, variant);
+                EntryTable.insert({KING, p1, p2}, {KING, p3}, variant);
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
-                EntryTable.insert({KING, p1, p2, p3, KING}, variant);
+                EntryTable.insert({KING, p1, p2, p3}, {KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, p4, KING}, variant);
+                    EntryTable.insert({KING, p1, p2, p3, p4}, {KING}, variant);
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
-                    EntryTable.insert({KING, p1, p2, p3, KING, p4}, variant);
+                    EntryTable.insert({KING, p1, p2, p3}, {KING, p4}, variant);
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    EntryTable.insert({KING, p1, p2, KING, p3, p4}, variant);
+                    EntryTable.insert({KING, p1, p2}, {KING, p3, p4}, variant);
         }
     }
 
@@ -1582,6 +2098,14 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     // one as in case the best move is a losing ep, so it cannot be probed.
     if (*result == ZEROING_BEST_MOVE)
         return dtz_before_zeroing(wdl);
+
+#ifdef ANTI
+    if (pos.pieces(pos.side_to_move()) == pos.pieces(pos.side_to_move(), PAWN))
+        return dtz_before_zeroing(wdl);
+
+    if (*result == THREAT && wdl > WDLDraw)
+        return wdl == WDLWin ? 2 : 102;
+#endif
 
     int dtz = probe_table<DTZEntry>(pos, result, wdl);
 
@@ -1674,12 +2198,6 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #endif
 #ifdef HORDE
     if (pos.is_horde()) return false;
-#endif
-#ifdef ATOMIC
-    if (pos.is_atomic()) return false;
-#endif
-#ifdef ANTI
-    if (pos.is_anti()) return false;
 #endif
 #ifdef CRAZYHOUSE
     if (pos.is_house()) return false;
@@ -1827,12 +2345,6 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #endif
 #ifdef HORDE
     if (pos.is_horde()) return false;
-#endif
-#ifdef ATOMIC
-    if (pos.is_atomic()) return false;
-#endif
-#ifdef ANTI
-    if (pos.is_anti()) return false;
 #endif
 #ifdef CRAZYHOUSE
     if (pos.is_house()) return false;

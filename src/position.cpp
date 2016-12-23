@@ -589,7 +589,11 @@ void Position::set_state(StateInfo* si) const {
 
 #ifdef CRAZYHOUSE
       if (is_house())
+      {
+          if (type_of(pc) != PAWN && type_of(pc) != KING)
+              si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[CHESS_VARIANT][MG][pc];
           si->key ^= Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+      }
 #endif
   }
 
@@ -602,24 +606,23 @@ void Position::set_state(StateInfo* si) const {
 
 
 /// Position::set() is an overload to initialize the position object with
-/// the given endgame code string like "KBPKN". It is manily an helper to
+/// the given endgame code string like "KBPvKN". It is mainly an helper to
 /// get the material key out of an endgame code. Position is not playable,
 /// indeed is even not guaranteed to be legal.
 
-Position& Position::set(const string& code, Color c, StateInfo* si) {
+Position& Position::set(const string& code, Color c, Variant v, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
-  assert(code[0] == 'K');
+  assert(code.length() > 0 && code.length() < 9);
 
-  string sides[] = { code.substr(code.find('K', 1)),      // Weak
-                     code.substr(0, code.find('K', 1)) }; // Strong
+  string sides[] = { code.substr(code.find('v') + 1),  // Weak
+                     code.substr(0, code.find('v')) }; // Strong
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
   string fenStr =  sides[0] + char(8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
                  + sides[1] + char(8 - sides[1].length() + '0') + " w - - 0 10";
 
-  return set(fenStr, false, CHESS_VARIANT, si, nullptr);
+  return set(fenStr, false, v, si, nullptr);
 }
 
 
@@ -1882,9 +1885,9 @@ bool Position::is_draw() const {
       return true;
 
 #ifdef CRAZYHOUSE
-  int e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+  int rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 #else
-  int e = std::min(st->rule50, st->pliesFromNull);
+  int rep = 1, e = std::min(st->rule50, st->pliesFromNull);
 #endif
 
   if (e < 4)
@@ -1895,8 +1898,8 @@ bool Position::is_draw() const {
   do {
       stp = stp->previous->previous;
 
-      if (stp->key == st->key)
-          return true; // Draw at first repetition
+      if (stp->key == st->key && (++rep >= 2 + (gamePly - e < thisThread->rootPly)))
+          return true; // Draw at first repetition in search, and second repetition in game tree.
 
   } while ((e -= 2) >= 4);
 

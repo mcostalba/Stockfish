@@ -257,12 +257,14 @@ enum Value : int {
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
+  TempoMg       = 0,     TempoEg       = 0,
   PawnValueMg   = 188,   PawnValueEg   = 248,
   KnightValueMg = 753,   KnightValueEg = 832,
   BishopValueMg = 826,   BishopValueEg = 897,
   RookValueMg   = 1285,  RookValueEg   = 1371,
   QueenValueMg  = 2513,  QueenValueEg  = 2650,
 #ifdef ANTI
+  TempoMgAnti       = 0,     TempoEgAnti       = 0,
   PawnValueMgAnti   = -137,  PawnValueEgAnti   = -360,
   KnightValueMgAnti = -130,  KnightValueEgAnti = -41,
   BishopValueMgAnti = -322,  BishopValueEgAnti = -64,
@@ -271,6 +273,7 @@ enum Value : int {
   KingValueMgAnti   = -20,   KingValueEgAnti   =  130,
 #endif
 #ifdef ATOMIC
+  TempoMgAtomic       = 0,     TempoEgAtomic       = 0,
   PawnValueMgAtomic   = 332,   PawnValueEgAtomic   = 438,
   KnightValueMgAtomic = 478,   KnightValueEgAtomic = 736,
   BishopValueMgAtomic = 614,   BishopValueEgAtomic = 823,
@@ -278,6 +281,7 @@ enum Value : int {
   QueenValueMgAtomic  = 1904,  QueenValueEgAtomic  = 2918,
 #endif
 #ifdef CRAZYHOUSE
+  TempoMgHouse       = 0,     TempoEgHouse       = 0,
   PawnValueMgHouse   = 174,   PawnValueEgHouse   = 259,
   KnightValueMgHouse = 445,   KnightValueEgHouse = 667,
   BishopValueMgHouse = 513,   BishopValueEgHouse = 690,
@@ -285,6 +289,7 @@ enum Value : int {
   QueenValueMgHouse  = 936,   QueenValueEgHouse  = 1222,
 #endif
 #ifdef HORDE
+  TempoMgHorde       = 0,     TempoEgHorde       = 0,
   PawnValueMgHorde   = 370,   PawnValueEgHorde   = 427,
   KnightValueMgHorde = 708,   KnightValueEgHorde = 851,
   BishopValueMgHorde = 736,   BishopValueEgHorde = 859,
@@ -292,13 +297,23 @@ enum Value : int {
   QueenValueMgHorde  = 2777,  QueenValueEgHorde  = 3182,
   KingValueMgHorde   = 2041,  KingValueEgHorde   = 975,
 #endif
+#ifdef KOTH
+  TempoMgHill       = 1,     TempoEgHill       = 1,
+  PawnValueMgHill   = 178,   PawnValueEgHill   = 252,
+  KnightValueMgHill = 734,   KnightValueEgHill = 818,
+  BishopValueMgHill = 859,   BishopValueEgHill = 883,
+  RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
+  QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
+#endif
 #ifdef RACE
+  TempoMgRace       = 0,     TempoEgRace       = 0,
   KnightValueMgRace = 720,   KnightValueEgRace = 801,
   BishopValueMgRace = 904,   BishopValueEgRace = 929,
   RookValueMgRace   = 1265,  RookValueEgRace  = 1731,
   QueenValueMgRace  = 2198,  QueenValueEgRace = 2226,
 #endif
 #ifdef THREECHECK
+  TempoMgThreeCheck       = 0,     TempoEgThreeCheck       = 0,
   PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
   KnightValueMgThreeCheck = 691,   KnightValueEgThreeCheck = 850,
   BishopValueMgThreeCheck = 829,   BishopValueEgThreeCheck = 845,
@@ -308,6 +323,7 @@ enum Value : int {
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
+extern Value TempoValue[VARIANT_NB][PHASE_NB];
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,

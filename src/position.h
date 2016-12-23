@@ -88,7 +88,7 @@ public:
 
   // FEN string input/output
   Position& set(const std::string& fenStr, bool isChess960, Variant v, StateInfo* si, Thread* th);
-  Position& set(const std::string& code, Color c, StateInfo* si);
+  Position& set(const std::string& code, Color c, Variant v, StateInfo* si);
   const std::string fen() const;
 
   // Position representation

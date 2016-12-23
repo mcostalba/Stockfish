@@ -22,6 +22,33 @@
 
 #include "types.h"
 
+Value TempoValue[VARIANT_NB][PHASE_NB] = {
+  { TempoMg, TempoEg },
+#ifdef ANTI
+  { TempoMgAnti, TempoEgAnti },
+#endif
+#ifdef ATOMIC
+  { TempoMgAtomic, TempoEgAtomic },
+#endif
+#ifdef CRAZYHOUSE
+  { TempoMgHouse, TempoEgHouse },
+#endif
+#ifdef HORDE
+  { TempoMgHorde, TempoEgHorde },
+#endif
+#ifdef KOTH
+  { TempoMg, TempoEg },
+#endif
+#ifdef RACE
+  { TempoMgRace, TempoEgRace },
+#endif
+#ifdef RELAY
+  { TempoMgRelay, TempoEgRelay },
+#endif
+#ifdef THREECHECK
+  { TempoMgThreeCheck, TempoEgThreeCheck },
+#endif
+};
 Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
@@ -53,8 +80,8 @@ Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 #endif
 #ifdef KOTH
 {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+  { VALUE_ZERO, PawnValueMgHill, KnightValueMgHill, BishopValueMgHill, RookValueMgHill, QueenValueMgHill },
+  { VALUE_ZERO, PawnValueEgHill, KnightValueEgHill, BishopValueEgHill, RookValueEgHill, QueenValueEgHill },
 },
 #endif
 #ifdef RACE
@@ -340,7 +367,7 @@ const Score Bonus[VARIANT_NB][PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
     }
   },
 #endif
-#ifdef KOTH
+#ifdef HORDE
   {
     { },
     { // Pawn
@@ -404,7 +431,7 @@ const Score Bonus[VARIANT_NB][PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
     }
   },
 #endif
-#ifdef HORDE
+#ifdef KOTH
   {
     { },
     { // Pawn
@@ -457,14 +484,14 @@ const Score Bonus[VARIANT_NB][PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
       { S(-1,-75), S(-4,-54), S(-1,-44), S( 0,-30) }
     },
     { // King
-      { S(291, 28), S(344, 76), S(294,103), S(219,112) },
-      { S(289, 70), S(329,119), S(263,170), S(205,159) },
-      { S(226,109), S(271,164), S(202,195), S(136,191) },
-      { S(204,131), S(212,194), S(175,194), S(137,204) },
-      { S(177,132), S(205,187), S(143,224), S( 94,227) },
-      { S(147,118), S(188,178), S(113,199), S( 70,197) },
-      { S(116, 72), S(158,121), S( 93,142), S( 48,161) },
-      { S( 94, 30), S(120, 76), S( 78,101), S( 31,111) }
+      { S(230, 28), S(390,-35), S(397,146), S(352, 83) },
+      { S(243, 37), S(274, 74), S(348,229), S(296,393) },
+      { S(236, 25), S(305,105), S(255, 95), S(254,188) },
+      { S(246,175), S(267,245), S(180,249), S(  0,  0) },
+      { S(151,120), S(199,207), S(156,231), S(  0,  0) },
+      { S(177,107), S(189,230), S(141,172), S(211,251) },
+      { S( 26, 36), S(164,145), S(102,139), S(-42,133) },
+      { S(147,  2), S(186,  7), S( 49, 79), S( 48, 50) }
     }
   },
 #endif

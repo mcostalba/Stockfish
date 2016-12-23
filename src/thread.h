@@ -65,6 +65,7 @@ public:
   uint64_t tbHits;
 
   Position rootPos;
+  int rootPly;
   Search::RootMoves rootMoves;
   Depth rootDepth;
   Depth completedDepth;
