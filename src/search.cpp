@@ -401,16 +401,11 @@ void MainThread::search() {
               if (th->rootMoves[0].pv.size() <= bestThread->rootMoves[0].pv.size()) {
                   continue;
               }
-              bool possiblePVReplacement = true;
-              for (unsigned int i = 0; i < bestThread->rootMoves[0].pv.size(); ++i) {
-                  if (th->rootMoves[0].pv[i] != bestThread->rootMoves[0].pv[i]) {
-                      possiblePVReplacement = false;
-                      break;
-                  }
-              }
-              if (!possiblePVReplacement) {
+              auto begin = bestThread->rootMoves[0].pv.begin();
+              auto end = bestThread->rootMoves[0].pv.end();
+              auto pair = std::mismatch(begin, end, th->rootMoves[0].pv.begin());
+              if (pair.first != end)
                   continue;
-              }
 
               if (longestPVThread->rootMoves[0].pv.size() < minPlies)
               {
