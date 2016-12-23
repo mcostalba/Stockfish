@@ -1413,12 +1413,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           remove_piece(pc, to);
           put_piece(promotion, to);
+#ifdef CRAZYHOUSE
 #ifdef LOOP
           if (is_house() && !is_loop())
 #else
           if (is_house())
 #endif
               promotedPieces = promotedPieces | to;
+#endif
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
