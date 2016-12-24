@@ -1535,6 +1535,11 @@ moves_loop: // When in check search starts from here
       {
           assert(type_of(move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
+#ifdef ATOMIC
+          if (pos.is_atomic())
+              futilityValue = futilityBase + pos.see<ATOMIC_VARIANT>(move);
+          else
+#endif
 #ifdef CRAZYHOUSE
           if (pos.is_house())
               futilityValue = futilityBase + 2 * PieceValue[pos.variant()][EG][pos.piece_on(to_sq(move))];
