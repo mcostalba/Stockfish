@@ -127,6 +127,9 @@ enum Variant {
 #ifdef KOTH
   KOTH_VARIANT,
 #endif
+#ifdef LOSERS
+  LOSERS_VARIANT,
+#endif
 #ifdef RACE
   RACE_VARIANT,
 #endif
@@ -166,6 +169,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef KOTH
 "kingofthehill",
+#endif
+#ifdef LOSERS
+"losers",
 #endif
 #ifdef RACE
 "racingkings",
@@ -323,6 +329,14 @@ enum Value : int {
   BishopValueMgHill = 859,   BishopValueEgHill = 883,
   RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
   QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
+#endif
+#ifdef LOSERS
+  TempoMgLosers       = 0,     TempoEgLosers       = 0,
+  PawnValueMgLosers   = -137,  PawnValueEgLosers   = -360,
+  KnightValueMgLosers = -130,  KnightValueEgLosers = -41,
+  BishopValueMgLosers = -322,  BishopValueEgLosers = -64,
+  RookValueMgLosers   = -496,  RookValueEgLosers   =  62,
+  QueenValueMgLosers  = -187,  QueenValueEgLosers  = -318,
 #endif
 #ifdef RACE
   TempoMgRace       = 0,     TempoEgRace       = 0,

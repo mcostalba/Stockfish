@@ -1227,6 +1227,16 @@ Value Eval::evaluate(const Position& pos) {
             return -VALUE_MATE;
     }
 #endif
+#ifdef LOSERS
+    // Possibly redundant static evaluator
+    if (pos.is_losers())
+    {
+        if (pos.is_losers_win())
+            return VALUE_MATE;
+        if (pos.is_losers_loss())
+            return -VALUE_MATE;
+    }
+#endif
 #ifdef RACE
     // Possibly redundant static evaluator
     if (pos.is_race())
@@ -1285,6 +1295,9 @@ Value Eval::evaluate(const Position& pos) {
   // configuration, call it and return.
 #ifdef KOTH
   if (pos.is_koth()) {} else
+#endif
+#ifdef LOSERS
+  if (pos.is_losers()) {} else
 #endif
 #ifdef RACE
   if (pos.is_race()) {} else

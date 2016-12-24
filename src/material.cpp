@@ -211,6 +211,9 @@ Entry* probe(const Position& pos) {
 #ifdef KOTH
           if (pos.is_koth()) {} else
 #endif
+#ifdef LOSERS
+          if (pos.is_losers()) {} else
+#endif
 #ifdef RACE
           if (pos.is_race()) {} else
 #endif
@@ -237,6 +240,9 @@ Entry* probe(const Position& pos) {
       {
 #ifdef KOTH
           if (pos.is_koth()) {} else
+#endif
+#ifdef LOSERS
+          if (pos.is_losers()) {} else
 #endif
 #ifdef RACE
           if (pos.is_race()) {} else

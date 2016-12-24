@@ -81,6 +81,9 @@ namespace {
 #ifdef KOTH
   { 483, 570, 603, 554 },
 #endif
+#ifdef LOSERS
+  { 1932, 2280, 2412, 2216 },
+#endif
 #ifdef RACE
   { 1017, 986, 1017, 990 },
 #endif
@@ -107,6 +110,9 @@ namespace {
 #endif
 #ifdef KOTH
   150,
+#endif
+#ifdef LOSERS
+  600,
 #endif
 #ifdef RACE
   365,
@@ -323,6 +329,10 @@ void MainThread::search() {
 #ifdef KOTH
       if (rootPos.is_koth() && rootPos.is_koth_loss())
           score = -VALUE_MATE;
+#endif
+#ifdef LOSERS
+      if (rootPos.is_losers())
+          score = rootPos.is_losers_loss() ? -VALUE_MATE : VALUE_MATE;
 #endif
 #ifdef RACE
       if (rootPos.is_race())
@@ -680,6 +690,16 @@ namespace {
                 return mated_in(ss->ply);
         }
 #endif
+#ifdef LOSERS
+        // Check for an instant win/loss (Losers)
+        if (pos.is_losers())
+        {
+            if (pos.is_losers_win())
+                return mate_in(ss->ply + 1);
+            if (pos.is_losers_loss())
+                return mated_in(ss->ply);
+        }
+#endif
 #ifdef RACE
         // Check for an instant win/loss (Racing Kings)
         if (pos.is_race())
@@ -781,6 +801,9 @@ namespace {
     // Step 4a. Tablebase probe
 #ifdef KOTH
     if (pos.is_koth()) {} else
+#endif
+#ifdef LOSERS
+    if (pos.is_losers()) {} else
 #endif
 #ifdef RACE
     if (pos.is_race()) {} else
@@ -1300,6 +1323,11 @@ moves_loop: // When in check search starts from here
             bestValue = excludedMove ? alpha : mated_in(ss->ply);
         else
 #endif
+#ifdef LOSERS
+        if (pos.is_losers() && pos.is_losers_loss())
+            bestValue = excludedMove ? alpha : mate_in(ss->ply+1);
+        else
+#endif
 #ifdef ANTI
         if (pos.is_anti())
             bestValue = excludedMove ? alpha
@@ -1384,6 +1412,16 @@ moves_loop: // When in check search starts from here
         if (pos.is_koth_win())
             return mate_in(ss->ply+1);
         if (pos.is_koth_loss())
+            return mated_in(ss->ply);
+    }
+#endif
+#ifdef LOSERS
+    // Check for an instant win or loss (Losers)
+    if (pos.is_losers())
+    {
+        if (pos.is_losers_win())
+            return mate_in(ss->ply+1);
+        if (pos.is_losers_loss())
             return mated_in(ss->ply);
     }
 #endif

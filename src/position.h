@@ -197,6 +197,12 @@ public:
   bool is_koth_loss() const;
   int koth_distance(Color c) const;
 #endif
+#ifdef LOSERS
+  bool is_losers() const;
+  bool is_losers_win() const;
+  bool is_losers_loss() const;
+  bool can_capture_losers() const;
+#endif
 #ifdef RACE
   bool is_race() const;
   bool is_race_win() const;
@@ -548,6 +554,45 @@ inline bool Position::can_capture() const {
   {
       Square s = pop_lsb(&b);
       if (attacks_from(piece_on(s), s) & pieces(~sideToMove))
+          return true;
+  }
+  return false;
+}
+#endif
+
+#ifdef LOSERS
+inline bool Position::is_losers() const {
+  return var == LOSERS_VARIANT;
+}
+
+inline bool Position::is_losers_loss() const {
+  return count<ALL_PIECES>(~sideToMove) == 1;
+}
+
+inline bool Position::is_losers_win() const {
+  return count<ALL_PIECES>(sideToMove) == 1;
+}
+
+inline bool Position::can_capture_losers() const {
+  if (ep_square() != SQ_NONE && !checkers())
+      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+          return true;
+  Bitboard b = pieces(sideToMove);
+  if (more_than_one(checkers()))
+      b &= pieces(sideToMove, KING);
+  while (b)
+  {
+      Square s = pop_lsb(&b);
+      Bitboard attacked = attacks_from(piece_on(s), s) & pieces(~sideToMove);
+      if (pinned_pieces(sideToMove) & s)
+          attacked &= LineBB[s][square<KING>(sideToMove)];
+      if (type_of(piece_on(s)) == KING)
+      {
+          while (attacked)
+              if (!(attackers_to(pop_lsb(&attacked)) & pieces(~sideToMove)))
+                  return true;
+      }
+      else if (checkers() ? attacked & checkers() : attacked)
           return true;
   }
   return false;
