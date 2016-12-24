@@ -880,7 +880,11 @@ namespace {
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(pos.variant(), depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
+#ifdef HORDE
+        &&  (pos.non_pawn_material(pos.side_to_move()) || pos.is_horde()))
+#else
         &&  pos.non_pawn_material(pos.side_to_move()))
+#endif
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
