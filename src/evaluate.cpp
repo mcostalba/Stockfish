@@ -208,6 +208,12 @@ namespace {
       { V(7), V(14), V(38), V(73), V(166), V(252) }
     },
 #endif
+#ifdef LOSERS
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
 #ifdef RACE
     {
       { V(5), V( 5), V(31), V(73), V(166), V(252) },
@@ -299,6 +305,9 @@ namespace {
     S( 7,  0),
 #endif
 #ifdef KOTH
+    S( 7,  0),
+#endif
+#ifdef LOSERS
     S( 7,  0),
 #endif
 #ifdef RACE
@@ -548,6 +557,9 @@ namespace {
     2 * int(BishopValueMg),
 #endif
 #ifdef KOTH
+    2 * int(BishopValueMg),
+#endif
+#ifdef LOSERS
     2 * int(BishopValueMg),
 #endif
 #ifdef RACE
