@@ -100,7 +100,6 @@ struct SignalsType {
 
 extern SignalsType Signals;
 extern LimitsType Limits;
-extern Key RootKey;
 
 void init();
 void clear();

@@ -41,7 +41,6 @@ namespace Search {
 
   SignalsType Signals;
   LimitsType Limits;
-  Key RootKey;
 }
 
 namespace Tablebases {
@@ -256,9 +255,6 @@ template uint64_t Search::perft<true>(Position&, Depth);
 /// the UCI 'go' command. It searches from the root position and outputs the "bestmove".
 
 void MainThread::search() {
-
-  Search::RootKey = rootPos.key();
-  std::cerr << Search::RootKey << std::endl;
 
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());

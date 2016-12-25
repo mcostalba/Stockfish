@@ -24,7 +24,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
-#include <iostream>
+
 #include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
@@ -839,9 +839,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Set capture piece
   st->capturedPiece = captured;
 
-  // Draw at first repetition
-  st->draw = true;
-
   // Update the key with the final value
   st->key = k;
 
@@ -964,9 +961,6 @@ void Position::do_null_move(StateInfo& newSt) {
   ++st->rule50;
   st->pliesFromNull = 0;
 
-  // Draw at first repetition
-  st->draw = true;
-
   sideToMove = ~sideToMove;
 
   set_check_info(st);
@@ -1082,33 +1076,10 @@ bool Position::see_ge(Move m, Value v) const {
 }
 
 
-/// Position::calc_draw() calculates the value of st->draw - the boolean meaning
-/// the position occurred before in the game. This function is called for positions
-/// up to the root, so recursion into some of them becomes possible during search.
-
-void Position::calc_draw() {
-
-  StateInfo* stp = st;
-  int e = std::min(st->rule50, st->pliesFromNull);
-
-  for (int i = 2; i <= e; i += 2)
-  {
-      stp = stp->previous->previous;
-
-      if (stp->key == st->key) {
-          st->draw = true;
-          return;
-      }
-  }
-
-  st->draw = false;
-}
-
-
 /// Position::is_draw() tests whether the position is drawn by 50-move rule
 /// or by repetition. It does not detect stalemates.
 
-bool Position::is_draw(int ply) const { // 5656925
+bool Position::is_draw(int ply) const {
 
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
@@ -1120,19 +1091,17 @@ bool Position::is_draw(int ply) const { // 5656925
 
   StateInfo* stp = st->previous->previous;
   int d = e + 4 + 1; // Root ply is 1
+  int cnt = 0;
 
   do {
       stp = stp->previous->previous;
 
-      if (stp->key == Search::RootKey && !(ply - (d-e) == 0))
-      {
-        std::cerr << ply << ", " << (d-e) << ", " << ply - (d-e) << std::endl;
-        std::cerr << key() << ", " << Search::RootKey << std::endl;
-        assert(ply - (d-e) == 0 || key() == Search::RootKey);
-      }
-
-      if (stp->key == st->key)
-          return stp->draw;
+      // For root position ply - (d-e) == 0, so return a draw score if the
+      // position repeats once earlier but after or at the root, or repeats
+      // twice strictly before the root.
+      if (   stp->key == st->key
+          && ++cnt + (ply - (d-e) >= 0) == 2)
+          return true;
 
   } while ((e -= 2) >= 4);
 
