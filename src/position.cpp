@@ -24,7 +24,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
-
+#include <iostream>
 #include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
@@ -1108,7 +1108,7 @@ void Position::calc_draw() {
 /// Position::is_draw() tests whether the position is drawn by 50-move rule
 /// or by repetition. It does not detect stalemates.
 
-bool Position::is_draw() const {
+bool Position::is_draw(int ply) const { // 5656925
 
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
@@ -1119,9 +1119,17 @@ bool Position::is_draw() const {
     return false;
 
   StateInfo* stp = st->previous->previous;
+  int d = e + 4 + 1; // Root ply is 1
 
   do {
       stp = stp->previous->previous;
+
+      if (stp->key == Search::RootKey && !(ply - (d-e) == 0))
+      {
+        std::cerr << ply << ", " << (d-e) << ", " << ply - (d-e) << std::endl;
+        std::cerr << key() << ", " << Search::RootKey << std::endl;
+        assert(ply - (d-e) == 0 || key() == Search::RootKey);
+      }
 
       if (stp->key == st->key)
           return stp->draw;
