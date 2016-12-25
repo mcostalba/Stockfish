@@ -53,6 +53,9 @@ struct Entry {
 #ifdef KOTH
     if (pos.is_koth()) return SCALE_FACTOR_NORMAL;
 #endif
+#ifdef LOSERS
+    if (pos.is_losers()) return SCALE_FACTOR_NORMAL;
+#endif
 #ifdef RACE
     if (pos.is_race()) return SCALE_FACTOR_NORMAL;
 #endif

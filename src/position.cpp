@@ -924,6 +924,11 @@ bool Position::pseudo_legal(const Move m) const {
   if (is_koth() && (is_koth_win() || is_koth_loss()))
       return false;
 #endif
+#ifdef LOSERS
+  // If the game is already won or lost, further moves are illegal
+  if (is_losers() && (is_losers_win() || is_losers_loss()))
+      return false;
+#endif
 #ifdef RACE
   // If the game is already won or lost, further moves are illegal
   if (is_race() && (is_race_draw() || is_race_win() || is_race_loss()))
@@ -975,6 +980,10 @@ bool Position::pseudo_legal(const Move m) const {
 #endif
 #ifdef ANTI
   if (is_anti() && !capture(m) && can_capture())
+      return false;
+#endif
+#ifdef LOSERS
+  if (is_losers() && !capture(m) && can_capture_losers())
       return false;
 #endif
 

@@ -252,7 +252,7 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
-CXXFLAGS += -DANTI -DATOMIC -DCRAZYHOUSE -DHORDE -DKOTH -DLOOP -DRACE -DSUICIDE -DTHREECHECK
+CXXFLAGS += -DANTI -DATOMIC -DCRAZYHOUSE -DHORDE -DKOTH -DLOOP -DLOSERS -DRACE -DSUICIDE -DTHREECHECK
 ifneq (,$(filter -DLOOP,$(CXXFLAGS)))
 ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant loop chess)

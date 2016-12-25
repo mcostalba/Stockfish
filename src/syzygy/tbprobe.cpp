@@ -71,6 +71,9 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef KOTH
     nullptr,
 #endif
+#ifdef LOSERS
+    nullptr,
+#endif
 #ifdef RACE
     nullptr,
 #endif
@@ -97,6 +100,9 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef KOTH
+    nullptr,
+#endif
+#ifdef LOSERS
     nullptr,
 #endif
 #ifdef RACE
@@ -133,6 +139,9 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef KOTH
     nullptr,
 #endif
+#ifdef LOSERS
+    nullptr,
+#endif
 #ifdef RACE
     nullptr,
 #endif
@@ -165,6 +174,9 @@ const char* PawnlessDtzSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef KOTH
+    nullptr,
+#endif
+#ifdef LOSERS
     nullptr,
 #endif
 #ifdef RACE
@@ -1551,6 +1563,12 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef LOSERS
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef RACE
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
@@ -1613,6 +1631,12 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef KOTH
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef LOSERS
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -2214,6 +2238,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef KOTH
     if (pos.is_koth()) return false;
 #endif
+#ifdef LOSERS
+    if (pos.is_losers()) return false;
+#endif
 #ifdef RACE
     if (pos.is_race()) return false;
 #endif
@@ -2360,6 +2387,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 {
 #ifdef KOTH
     if (pos.is_koth()) return false;
+#endif
+#ifdef LOSERS
+    if (pos.is_losers()) return false;
 #endif
 #ifdef RACE
     if (pos.is_race()) return false;

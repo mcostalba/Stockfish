@@ -111,6 +111,11 @@ const vector<string> Defaults[VARIANT_NB] = {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   },
 #endif
+#ifdef LOSERS
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  },
+#endif
 #ifdef RACE
   {
     "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1"

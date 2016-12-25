@@ -208,6 +208,12 @@ namespace {
       { V(7), V(14), V(38), V(73), V(166), V(252) }
     },
 #endif
+#ifdef LOSERS
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
 #ifdef RACE
     {
       { V(5), V( 5), V(31), V(73), V(166), V(252) },
@@ -299,6 +305,9 @@ namespace {
     S( 7,  0),
 #endif
 #ifdef KOTH
+    S( 7,  0),
+#endif
+#ifdef LOSERS
     S( 7,  0),
 #endif
 #ifdef RACE
@@ -548,6 +557,9 @@ namespace {
     2 * int(BishopValueMg),
 #endif
 #ifdef KOTH
+    2 * int(BishopValueMg),
+#endif
+#ifdef LOSERS
     2 * int(BishopValueMg),
 #endif
 #ifdef RACE
@@ -1227,6 +1239,16 @@ Value Eval::evaluate(const Position& pos) {
             return -VALUE_MATE;
     }
 #endif
+#ifdef LOSERS
+    // Possibly redundant static evaluator
+    if (pos.is_losers())
+    {
+        if (pos.is_losers_win())
+            return VALUE_MATE;
+        if (pos.is_losers_loss())
+            return -VALUE_MATE;
+    }
+#endif
 #ifdef RACE
     // Possibly redundant static evaluator
     if (pos.is_race())
@@ -1285,6 +1307,9 @@ Value Eval::evaluate(const Position& pos) {
   // configuration, call it and return.
 #ifdef KOTH
   if (pos.is_koth()) {} else
+#endif
+#ifdef LOSERS
+  if (pos.is_losers()) {} else
 #endif
 #ifdef RACE
   if (pos.is_race()) {} else
