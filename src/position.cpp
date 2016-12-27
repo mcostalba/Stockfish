@@ -1084,26 +1084,25 @@ bool Position::is_draw(int ply) const {
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  int e = std::min(st->rule50, st->pliesFromNull);
+  int end = std::min(st->rule50, st->pliesFromNull);
 
-  if (e < 4)
+  if (end < 4)
     return false;
 
   StateInfo* stp = st->previous->previous;
-  int d = e + 4 + 1; // Root ply is 1
   int cnt = 0;
 
-  do {
+  for (int i = 4; i <= end; i += 2)
+  {
       stp = stp->previous->previous;
 
-      // For root position ply - (d-e) == 0, so return a draw score if the
-      // position repeats once earlier but strictly after the root, or repeats
+      // For Root ply is 1, so return a draw score if the position
+      // repeats once earlier but strictly after the root, or repeats
       // twice before or at the root.
       if (   stp->key == st->key
-          && ++cnt + (ply - (d-e) > 0) == 2)
+          && ++cnt + (ply - i > 1) == 2)
           return true;
-
-  } while ((e -= 2) >= 4);
+  }
 
   return false;
 }
