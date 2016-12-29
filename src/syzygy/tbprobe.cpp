@@ -54,7 +54,7 @@ int Tablebases::MaxCardinality;
 
 namespace {
 
-const char* WdlSuffixes[VARIANT_NB] = {
+const char* WdlSuffixes[SUBVARIANT_NB] = {
     ".rtbw",
 #ifdef ANTI
     ".gtbw",
@@ -71,6 +71,9 @@ const char* WdlSuffixes[VARIANT_NB] = {
 #ifdef KOTH
     nullptr,
 #endif
+#ifdef LOSERS
+    nullptr,
+#endif
 #ifdef RACE
     nullptr,
 #endif
@@ -82,7 +85,7 @@ const char* WdlSuffixes[VARIANT_NB] = {
 #endif
 };
 
-const char* PawnlessWdlSuffixes[VARIANT_NB] = {
+const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
     ".stbw",
@@ -99,6 +102,9 @@ const char* PawnlessWdlSuffixes[VARIANT_NB] = {
 #ifdef KOTH
     nullptr,
 #endif
+#ifdef LOSERS
+    nullptr,
+#endif
 #ifdef RACE
     nullptr,
 #endif
@@ -106,11 +112,17 @@ const char* PawnlessWdlSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
-    nullptr
+    nullptr,
+#endif
+#ifdef SUICIDE
+    ".stbw",
+#endif
+#ifdef LOOP
+    nullptr,
 #endif
 };
 
-const char* DtzSuffixes[VARIANT_NB] = {
+const char* DtzSuffixes[SUBVARIANT_NB] = {
     ".rtbz",
 #ifdef ANTI
     ".gtbz",
@@ -127,6 +139,9 @@ const char* DtzSuffixes[VARIANT_NB] = {
 #ifdef KOTH
     nullptr,
 #endif
+#ifdef LOSERS
+    nullptr,
+#endif
 #ifdef RACE
     nullptr,
 #endif
@@ -134,7 +149,13 @@ const char* DtzSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
-    nullptr
+    nullptr,
+#endif
+#ifdef SUICIDE
+    ".stbz",
+#endif
+#ifdef LOOP
+    nullptr,
 #endif
 };
 
@@ -153,6 +174,9 @@ const char* PawnlessDtzSuffixes[VARIANT_NB] = {
     nullptr,
 #endif
 #ifdef KOTH
+    nullptr,
+#endif
+#ifdef LOSERS
     nullptr,
 #endif
 #ifdef RACE
@@ -1504,7 +1528,7 @@ void* init(Entry& e, const Position& pos) {
         b += std::string(popcount(pos.pieces(BLACK, pt)), PieceToChar[pt]);
     }
 
-    const uint8_t TB_MAGIC[VARIANT_NB][2][4] = {
+    const uint8_t TB_MAGIC[SUBVARIANT_NB][2][4] = {
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -1539,6 +1563,12 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef LOSERS
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef RACE
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
@@ -1552,6 +1582,18 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef THREECHECK
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef SUICIDE
+        {
+            { 0xE4, 0xCF, 0xE7, 0x23 },
+            { 0x7B, 0xF6, 0x93, 0x15 }
+        },
+#endif
+#ifdef LOOP
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -1589,6 +1631,12 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef KOTH
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef LOSERS
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -2190,6 +2238,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef KOTH
     if (pos.is_koth()) return false;
 #endif
+#ifdef LOSERS
+    if (pos.is_losers()) return false;
+#endif
 #ifdef RACE
     if (pos.is_race()) return false;
 #endif
@@ -2336,6 +2387,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 {
 #ifdef KOTH
     if (pos.is_koth()) return false;
+#endif
+#ifdef LOSERS
+    if (pos.is_losers()) return false;
 #endif
 #ifdef RACE
     if (pos.is_race()) return false;

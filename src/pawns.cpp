@@ -49,6 +49,9 @@ namespace {
 #ifdef KOTH
     { S(45, 40), S(30, 27) },
 #endif
+#ifdef LOSERS
+    { S(50, 80), S(54, 69) },
+#endif
 #ifdef RACE
     {},
 #endif
@@ -78,6 +81,9 @@ namespace {
 #ifdef KOTH
     { S(56, 33), S(41, 19) },
 #endif
+#ifdef LOSERS
+    { S(64, 25), S(26, 50) },
+#endif
 #ifdef RACE
     {},
 #endif
@@ -106,6 +112,9 @@ namespace {
 #endif
 #ifdef KOTH
     S( 17,   8),
+#endif
+#ifdef LOSERS
+    S(-45, -48),
 #endif
 #ifdef RACE
     S(  0,   0),
@@ -138,6 +147,9 @@ namespace {
 #endif
 #ifdef KOTH
     S(18, 38),
+#endif
+#ifdef LOSERS
+    S( 4, 51),
 #endif
 #ifdef RACE
     S( 0,  0),
@@ -197,6 +209,14 @@ namespace {
   },
 #endif
 #ifdef KOTH
+  {
+    { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
+    { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
+    { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
+    { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
+  },
+#endif
+#ifdef LOSERS
   {
     { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
     { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },

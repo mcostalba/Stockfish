@@ -180,6 +180,13 @@ namespace {
             b2 = shift<Up>(b1 & (TRank2BB | TRank3BB)) & emptySquares;
 #endif
 
+#ifdef LOSERS
+        if (pos.is_losers())
+        {
+            b1 &= target;
+            b2 &= target;
+        }
+#endif
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
@@ -243,6 +250,10 @@ namespace {
         }
 #ifdef ANTI
         if (pos.is_anti())
+            emptySquares &= target;
+#endif
+#ifdef LOSERS
+        if (pos.is_losers())
             emptySquares &= target;
 #endif
 
@@ -398,7 +409,11 @@ namespace {
             while (b)
                 *moveList++ = make_move(ksq, pop_lsb(&b));
         }
+#ifdef SUICIDE
+        if (pos.is_suicide() || pos.can_capture())
+#else
         if (pos.can_capture())
+#endif
             return moveList;
     }
     else
@@ -423,6 +438,10 @@ namespace {
             *moveList++ = make_move(ksq, pop_lsb(&b));
     }
 
+#ifdef LOSERS
+    if (pos.is_losers() && pos.can_capture_losers())
+        return moveList;
+#endif
     if (Type != CAPTURES && Type != EVASIONS && pos.can_castle(Us))
     {
         if (pos.is_chess960())
@@ -470,6 +489,10 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 #ifdef ATOMIC
   if (pos.is_atomic() && Type == CAPTURES)
       target &= ~pos.attacks_from<KING>(pos.square<KING>(us));
+#endif
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      target &= pos.pieces(~us);
 #endif
 
   return us == WHITE ? generate_all<WHITE, Type>(pos, moveList, target)
@@ -572,6 +595,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   else
 #endif
   b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      b &= pos.pieces(~us);
+#endif
   while (b)
       *moveList++ = make_move(ksq, pop_lsb(&b));
 
@@ -587,6 +614,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   else
 #endif
   target = between_bb(checksq, ksq) | checksq;
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      target &= pos.pieces(~us);
+#endif
 
   return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
                      : generate_all<BLACK, EVASIONS>(pos, moveList, target);
@@ -607,6 +638,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #endif
 #ifdef KOTH
   if (pos.is_koth() && (pos.is_koth_win() || pos.is_koth_loss()))
+      return moveList;
+#endif
+#ifdef LOSERS
+  if (pos.is_losers() && (pos.is_losers_win() || pos.is_losers_loss()))
       return moveList;
 #endif
 #ifdef RACE

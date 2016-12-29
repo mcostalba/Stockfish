@@ -150,6 +150,10 @@ public:
   void undo_null_move();
 
   // Static Exchange Evaluation
+#ifdef ATOMIC
+  template<Variant v>
+  Value see(Move m) const;
+#endif
   bool see_ge(Move m, Value value) const;
 
   // Accessing hash keys
@@ -164,6 +168,7 @@ public:
   int game_ply() const;
   bool is_chess960() const;
   Variant variant() const;
+  Variant subvariant() const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -183,11 +188,20 @@ public:
   void drop_piece(Piece pc, Square s);
   void undrop_piece(Piece pc, Square s);
 #endif
+#ifdef LOOP
+  bool is_loop() const;
+#endif
 #ifdef KOTH
   bool is_koth() const;
   bool is_koth_win() const;
   bool is_koth_loss() const;
   int koth_distance(Color c) const;
+#endif
+#ifdef LOSERS
+  bool is_losers() const;
+  bool is_losers_win() const;
+  bool is_losers_loss() const;
+  bool can_capture_losers() const;
 #endif
 #ifdef RACE
   bool is_race() const;
@@ -210,6 +224,10 @@ public:
   bool is_anti_win() const;
   bool is_anti_loss() const;
   bool can_capture() const;
+#endif
+#ifdef SUICIDE
+  bool is_suicide() const;
+  Value suicide_stalemate(int ply, Value draw) const;
 #endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
@@ -263,6 +281,7 @@ private:
   StateInfo* st;
   bool chess960;
   Variant var;
+  Variant subvar;
 
 };
 
@@ -541,6 +560,69 @@ inline bool Position::can_capture() const {
 }
 #endif
 
+#ifdef LOSERS
+inline bool Position::is_losers() const {
+  return var == LOSERS_VARIANT;
+}
+
+inline bool Position::is_losers_loss() const {
+  return count<ALL_PIECES>(~sideToMove) == 1;
+}
+
+inline bool Position::is_losers_win() const {
+  return count<ALL_PIECES>(sideToMove) == 1;
+}
+
+// Position::can_capture_losers checks whether we have a legal capture
+// in a losers chess position.
+
+inline bool Position::can_capture_losers() const {
+  // En passent captures
+  if (ep_square() != SQ_NONE && !checkers())
+      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+          return true;
+  Bitboard b = pieces(sideToMove);
+  // Double check forces the king to move
+  if (more_than_one(checkers()))
+      b &= pieces(sideToMove, KING);
+  // Loop over our pieces to find possible captures
+  while (b)
+  {
+      Square s = pop_lsb(&b);
+      Bitboard attacked = attacks_from(piece_on(s), s) & pieces(~sideToMove);
+      // A pinned piece may only take the pinner
+      if (pinned_pieces(sideToMove) & s)
+          attacked &= LineBB[s][square<KING>(sideToMove)];
+      // The king can only capture undefended pieces
+      if (type_of(piece_on(s)) == KING)
+      {
+          while (attacked)
+              if (!(attackers_to(pop_lsb(&attacked)) & pieces(~sideToMove)))
+                  return true;
+      }
+      // If we are in check, any legal capture has to remove the checking piece
+      else if (checkers() ? attacked & checkers() : attacked)
+          return true;
+  }
+  return false;
+}
+#endif
+
+#ifdef SUICIDE
+inline bool Position::is_suicide() const {
+    return subvar == SUICIDE_VARIANT;
+}
+
+inline Value Position::suicide_stalemate(int ply, Value draw) const {
+    int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
+    if (balance > 0)
+        return mated_in(ply);
+    if (balance < 0)
+        return mate_in(ply + 1);
+    return draw;
+}
+#endif
+
 #ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
@@ -560,6 +642,12 @@ inline void Position::remove_from_hand(Color c, PieceType pt) {
 
 inline bool Position::is_promoted(Square s) const {
   return promotedPieces & s;
+}
+#endif
+
+#ifdef LOOP
+inline bool Position::is_loop() const {
+  return subvar == LOOP_VARIANT;
 }
 #endif
 
@@ -633,6 +721,10 @@ inline bool Position::is_chess960() const {
 
 inline Variant Position::variant() const {
   return var;
+}
+
+inline Variant Position::subvariant() const {
+    return subvar;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {

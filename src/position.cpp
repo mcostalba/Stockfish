@@ -256,7 +256,25 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   std::memset(si, 0, sizeof(StateInfo));
   std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   st = si;
-  var = v;
+  subvar = v;
+  if (v < VARIANT_NB)
+      var = v;
+  else
+      switch(v)
+      {
+#ifdef SUICIDE
+      case SUICIDE_VARIANT:
+          var = ANTI_VARIANT;
+          break;
+#endif
+#ifdef LOOP
+      case LOOP_VARIANT:
+          var = CRAZYHOUSE_VARIANT;
+          break;
+#endif
+      default:
+          assert(false);
+      }
 
   ss >> std::noskipws;
 
@@ -282,7 +300,11 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       }
 #ifdef CRAZYHOUSE
       // Set flag for promoted pieces
+#ifdef LOOP
+      else if (is_house() && !is_loop() && token == '~')
+#else
       else if (is_house() && token == '~')
+#endif
           promotedPieces |= sq - Square(1);
       // Stop before pieces in hand
       else if (is_house() && token == '[')
@@ -902,6 +924,11 @@ bool Position::pseudo_legal(const Move m) const {
   if (is_koth() && (is_koth_win() || is_koth_loss()))
       return false;
 #endif
+#ifdef LOSERS
+  // If the game is already won or lost, further moves are illegal
+  if (is_losers() && (is_losers_win() || is_losers_loss()))
+      return false;
+#endif
 #ifdef RACE
   // If the game is already won or lost, further moves are illegal
   if (is_race() && (is_race_draw() || is_race_win() || is_race_loss()))
@@ -953,6 +980,10 @@ bool Position::pseudo_legal(const Move m) const {
 #endif
 #ifdef ANTI
   if (is_anti() && !capture(m) && can_capture())
+      return false;
+#endif
+#ifdef LOSERS
+  if (is_losers() && !capture(m) && can_capture_losers())
       return false;
 #endif
 
@@ -1392,7 +1423,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           remove_piece(pc, to);
           put_piece(promotion, to);
 #ifdef CRAZYHOUSE
+#ifdef LOOP
+          if (is_house() && !is_loop())
+#else
           if (is_house())
+#endif
               promotedPieces = promotedPieces | to;
 #endif
 
@@ -1714,6 +1749,27 @@ Key Position::key_after(Move m) const {
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
 }
 
+#ifdef ATOMIC
+template<>
+Value Position::see<ATOMIC_VARIANT>(Move m) const {
+  assert(is_ok(m));
+
+  Square from = from_sq(m), to = to_sq(m);
+  Color stm = color_of(piece_on(from));
+
+  Value blast_eval = VALUE_ZERO;
+  Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
+  if (blast & pieces(~stm,KING))
+      return VALUE_MATE;
+  for (Color c = WHITE; c <= BLACK; ++c)
+      for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
+          if (c == stm)
+              blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
+          else
+              blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
+  return blast_eval + PieceValue[var][MG][piece_on(to_sq(m))] - PieceValue[var][MG][moved_piece(m)];
+}
+#endif
 
 /// Position::see_ge (Static Exchange Evaluation Greater or Equal) tests if the
 /// SEE value of move is greater or equal to the given value. We'll use an
@@ -1750,19 +1806,7 @@ bool Position::see_ge(Move m, Value v) const {
   {
       stm = color_of(piece_on(from));
       if (capture(m))
-      {
-          Value blast_eval = VALUE_ZERO;
-          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
-          if (blast & pieces(~stm,KING))
-              return true;
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-                  if (c == stm)
-                      blast_eval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-                  else
-                      blast_eval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-          return blast_eval + PieceValue[var][MG][piece_on(to_sq(m))] - PieceValue[var][MG][moved_piece(m)] >= v;
-      }
+          return see<ATOMIC_VARIANT>(m) >= v;
       else
       {
           if (v > VALUE_ZERO)

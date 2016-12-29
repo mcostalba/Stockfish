@@ -110,6 +110,7 @@ const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
 
 enum Variant {
+  //main variants
   CHESS_VARIANT,
 #ifdef ANTI
   ANTI_VARIANT,
@@ -126,6 +127,9 @@ enum Variant {
 #ifdef KOTH
   KOTH_VARIANT,
 #endif
+#ifdef LOSERS
+  LOSERS_VARIANT,
+#endif
 #ifdef RACE
   RACE_VARIANT,
 #endif
@@ -135,34 +139,55 @@ enum Variant {
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
-  VARIANT_NB
+  VARIANT_NB,
+  LAST_VARIANT = VARIANT_NB - 1,
+  //subvariants
+#ifdef SUICIDE
+  SUICIDE_VARIANT,
+#endif
+#ifdef LOOP
+  LOOP_VARIANT,
+#endif
+  SUBVARIANT_NB,
 };
 
 //static const constexpr char* variants[] doesn't play nicely with uci.h
-static std::vector<std::string> variants = {"chess"
+static std::vector<std::string> variants = {
+//main variants
+"chess",
 #ifdef ANTI
-,"giveaway"
+"giveaway",
 #endif
 #ifdef ATOMIC
-,"atomic"
+"atomic",
 #endif
 #ifdef CRAZYHOUSE
-,"crazyhouse"
+"crazyhouse",
 #endif
 #ifdef HORDE
-,"horde"
+"horde",
 #endif
 #ifdef KOTH
-,"kingofthehill"
+"kingofthehill",
+#endif
+#ifdef LOSERS
+"losers",
 #endif
 #ifdef RACE
-,"racingkings"
+"racingkings",
 #endif
 #ifdef RELAY
-,"relay"
+"relay",
 #endif
 #ifdef THREECHECK
-,"threecheck"
+"threecheck",
+#endif
+//subvariants
+#ifdef SUICIDE
+"suicide",
+#endif
+#ifdef LOOP
+"loop",
 #endif
 };
 
@@ -264,13 +289,13 @@ enum Value : int {
   RookValueMg   = 1285,  RookValueEg   = 1371,
   QueenValueMg  = 2513,  QueenValueEg  = 2650,
 #ifdef ANTI
-  TempoMgAnti       = 0,     TempoEgAnti       = 0,
-  PawnValueMgAnti   = -137,  PawnValueEgAnti   = -360,
-  KnightValueMgAnti = -130,  KnightValueEgAnti = -41,
-  BishopValueMgAnti = -322,  BishopValueEgAnti = -64,
-  RookValueMgAnti   = -496,  RookValueEgAnti   =  62,
-  QueenValueMgAnti  = -187,  QueenValueEgAnti  = -318,
-  KingValueMgAnti   = -20,   KingValueEgAnti   =  130,
+  TempoMgAnti       =  0,    TempoEgAnti       =  0,
+  PawnValueMgAnti   =  137,  PawnValueEgAnti   =  360,
+  KnightValueMgAnti =  130,  KnightValueEgAnti =  41,
+  BishopValueMgAnti =  322,  BishopValueEgAnti =  64,
+  RookValueMgAnti   =  496,  RookValueEgAnti   = -62,
+  QueenValueMgAnti  =  187,  QueenValueEgAnti  =  318,
+  KingValueMgAnti   =  20,   KingValueEgAnti   = -130,
 #endif
 #ifdef ATOMIC
   TempoMgAtomic       = 0,     TempoEgAtomic       = 0,
@@ -304,6 +329,14 @@ enum Value : int {
   BishopValueMgHill = 859,   BishopValueEgHill = 883,
   RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
   QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
+#endif
+#ifdef LOSERS
+  TempoMgLosers       = 0,     TempoEgLosers       = 0,
+  PawnValueMgLosers   = -137,  PawnValueEgLosers   = -360,
+  KnightValueMgLosers = -130,  KnightValueEgLosers = -41,
+  BishopValueMgLosers = -322,  BishopValueEgLosers = -64,
+  RookValueMgLosers   = -496,  RookValueEgLosers   =  62,
+  QueenValueMgLosers  = -187,  QueenValueEgLosers  = -318,
 #endif
 #ifdef RACE
   TempoMgRace       = 0,     TempoEgRace       = 0,
