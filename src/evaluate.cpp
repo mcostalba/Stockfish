@@ -255,12 +255,12 @@ namespace {
   const Score ThreatsAnti[]     = { S(216, 279), S(441, 341) };
   const Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
     {
-      { S(111, 127), S(102,  95), S(121, 183), S(140,  37), S(120,  99), S( 55, 11), S( 88,  93) },
-      { S( 56,  69), S( 72, 124), S(109, 154), S( 98, 149), S(129, 113), S(147, 72), S(157, 152) }
-    },
-    {
       { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
       { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
+    },
+    {
+      { S(111, 127), S(102,  95), S(121, 183), S(140,  37), S(120,  99), S( 55, 11), S( 88,  93) },
+      { S( 56,  69), S( 72, 124), S(109, 154), S( 98, 149), S(129, 113), S(147, 72), S(157, 152) }
     }
   };
 #endif
@@ -774,41 +774,39 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti())
     {
-        bool we_attack = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
-        bool they_attack = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
+        bool weCapture = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
+        bool theyCapture = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
 
         // Penalties for possible captures
-        if (we_attack)
+        if (weCapture)
         {
-            // Penalty if we attack only unprotected pieces and opponent does not attack any pieces
-            bool only_unprotected = (ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ~ei.attackedBy[Them][ALL_PIECES])
-                && !(ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES]);
+            // Penalty if we only attack unprotected pieces
+            bool theyDefended = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES];
             for (PieceType pt = PAWN; pt <= KING; ++pt)
             {
                 if (ei.attackedBy[Us][pt] & pos.pieces(Them) & ~ei.attackedBy2[Us])
-                    score -= AttacksAnti[they_attack][only_unprotected][pt];
+                    score -= AttacksAnti[theyCapture][theyDefended][pt];
                 else if (ei.attackedBy[Us][pt] & pos.pieces(Them))
-                    score -= AttacksAnti[they_attack][only_unprotected][NO_PIECE_TYPE];
+                    score -= AttacksAnti[theyCapture][theyDefended][NO_PIECE_TYPE];
             }
-            // if both colors attack pieces, penalize more the color with more pieces
-            if (they_attack)
+            // If both colors attack pieces, increase penalty with piece count
+            if (theyCapture)
                 score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
         }
-        // Bonus if we threaten to force captures
-        if (!we_attack || they_attack)
+        // Bonus if we threaten to force captures (ignoring possible discoveries)
+        if (!weCapture || theyCapture)
         {
-            Bitboard push1 = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
-            Bitboard push2 = shift<Up>(shift<Up>(TRank2BB & pos.pieces(Us, PAWN)) & ~pos.pieces()) & ~pos.pieces();
-            Bitboard pawn_pushes = push1 | push2;
-            Bitboard piece_moves =  (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
-                                | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
-            Bitboard movesbb = pawn_pushes | piece_moves;
-            Bitboard unprotected_pawn_pushes = pawn_pushes & ~ei.attackedBy[Us][ALL_PIECES];
-            Bitboard unprotected_piece_moves = piece_moves & ~ei.attackedBy2[Us];
-            Bitboard unprotected_moves = unprotected_pawn_pushes | unprotected_piece_moves;
+            b = pos.pieces(Us, PAWN);
+            Bitboard pawnPushes = shift<Up>(b | (shift<Up>(b & TRank2BB) & ~pos.pieces())) & ~pos.pieces();
+            Bitboard pieceMoves = (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                                 | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
+            Bitboard threats = pawnPushes | pieceMoves;
+            Bitboard unprotectedPawnPushes = pawnPushes & ~ei.attackedBy[Us][ALL_PIECES];
+            Bitboard unprotectedPieceMoves = pieceMoves & ~ei.attackedBy2[Us];
+            safeThreats = unprotectedPawnPushes | unprotectedPieceMoves;
 
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & movesbb) * ThreatsAnti[0];
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & unprotected_moves) * ThreatsAnti[1];
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & threats) * ThreatsAnti[0];
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats) * ThreatsAnti[1];
         }
     }
     else
@@ -1139,9 +1137,7 @@ namespace {
 #endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
-    {
         return make_score(bonus * weight * weight / 200, 0);
-    }
 #endif
 #ifdef KOTH
     if (pos.is_koth())
@@ -1158,15 +1154,12 @@ namespace {
   // status of the players.
   Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
-    int kingDistance;
 #ifdef ANTI
-    // Assume an antichess king distance of approximately 5
     if (pos.is_anti())
-        kingDistance = 5;
-    else
+        return make_score(TempoValue[pos.variant()][MG], TempoValue[pos.variant()][EG]);
 #endif
-    kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
-                  - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+    int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
+                      - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
     int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
@@ -1414,9 +1407,6 @@ Value Eval::evaluate(const Position& pos) {
               - evaluate_space<BLACK>(pos, ei);
 
   // Evaluate position potential for the winning side
-#ifdef ANTI
-  if (pos.is_anti()) {} else
-#endif
   score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
 #ifdef HORDE
   }
