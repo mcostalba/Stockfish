@@ -480,10 +480,6 @@ inline Score Position::psq_score() const {
 }
 
 inline Value Position::non_pawn_material(Color c) const {
-#ifdef HORDE
-  if (is_horde())
-      return st->nonPawnMaterial[is_horde_color(WHITE) ? BLACK : WHITE];
-#endif
   return st->nonPawnMaterial[c];
 }
 
