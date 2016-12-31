@@ -634,10 +634,12 @@ inline int Position::count_in_hand(Color c, PieceType pt) const {
 
 inline void Position::add_to_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]++;
+  pieceCountInHand[c][ALL_PIECES]++;
 }
 
 inline void Position::remove_from_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]--;
+  pieceCountInHand[c][ALL_PIECES]--;
 }
 
 inline bool Position::is_promoted(Square s) const {
@@ -807,13 +809,13 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 inline void Position::drop_piece(Piece pc, Square s) {
   assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
   put_piece(pc, s);
-  pieceCountInHand[color_of(pc)][type_of(pc)]--;
+  remove_from_hand(color_of(pc), type_of(pc));
 }
 
 inline void Position::undrop_piece(Piece pc, Square s) {
   remove_piece(pc, s);
   board[s] = NO_PIECE;
-  pieceCountInHand[color_of(pc)][type_of(pc)]++;
+  add_to_hand(color_of(pc), type_of(pc));
   assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
 }
 #endif
