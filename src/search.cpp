@@ -961,17 +961,10 @@ namespace {
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(pos.variant(), depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
-#ifdef HORDE
-        &&  (pos.non_pawn_material(pos.side_to_move()) || pos.is_horde()))
-#else
         &&  pos.non_pawn_material(pos.side_to_move()))
-#endif
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-#ifdef HORDE
-    if (pos.is_horde()) {} else
-#endif
     if (   !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)

@@ -727,12 +727,13 @@ const string Position::fen() const {
 
 Phase Position::game_phase() const {
 
-  Value npm = st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
+  Value npm;
 #ifdef HORDE
   if (is_horde())
-      npm = 2 * st->nonPawnMaterial[is_horde_color(WHITE) ? BLACK : WHITE];
+      npm = non_pawn_material(WHITE) + non_pawn_material(BLACK);
+  else
 #endif
-
+  npm = st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
   npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
 
   return Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
