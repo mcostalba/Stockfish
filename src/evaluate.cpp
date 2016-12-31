@@ -267,7 +267,7 @@ namespace {
 
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
-    0, 124, 129, 27, 73, 71
+    0, 128, 128, 28, 69, 75
   };
 #endif
 
@@ -299,7 +299,7 @@ namespace {
     S(17,  0),
 #endif
 #ifdef CRAZYHOUSE
-    S(10, 20),
+    S(13, 20),
 #endif
 #ifdef HORDE
     S( 7,  0),
@@ -550,7 +550,7 @@ namespace {
     2 * int(BishopValueMg),
 #endif
 #ifdef CRAZYHOUSE
-    2 * int(BishopValueMg),
+    1693,
 #endif
 #ifdef HORDE
     2 * int(BishopValueMg),
