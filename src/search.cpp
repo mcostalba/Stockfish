@@ -316,7 +316,7 @@ template uint64_t Search::perft<true>(Position&, Depth);
 void MainThread::search() {
 
   Color us = rootPos.side_to_move();
-  Time.init(Limits, us, rootPly = rootPos.game_ply());
+  Time.init(Limits, us, rootPos.game_ply());
 
   int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
   DrawValue[ us] = VALUE_DRAW - Value(contempt);
@@ -389,8 +389,9 @@ void MainThread::search() {
   // Check if there are threads with a better score than main thread
   Thread* bestThread = this;
 #ifdef USELONGESTPV
+  size_t longestPlies = 0;
   Thread* longestPVThread = this;
-  const int minPlies = 6;
+  const size_t minPlies = 6;
   const int maxScoreDiff = 20;
   const int maxDepthDiff = 2;
 #endif
@@ -401,34 +402,38 @@ void MainThread::search() {
       &&  rootMoves[0].pv[0] != MOVE_NONE)
   {
       for (Thread* th : Threads)
-          if (   th->completedDepth > bestThread->completedDepth
-              && th->rootMoves[0].score > bestThread->rootMoves[0].score)
-#ifdef USELONGESTPV
-              longestPVThread = bestThread = th;
-#else
+      {
+          Depth depthDiff = th->completedDepth - bestThread->completedDepth;
+          Value scoreDiff = th->rootMoves[0].score - bestThread->rootMoves[0].score;
+
+          if (   (depthDiff > 0 && scoreDiff >= 0)
+              || (scoreDiff > 0 && depthDiff >= 0))
               bestThread = th;
+#ifdef USELONGESTPV
+          longestPlies = std::max(bestThread->rootMoves[0].pv.size(), longestPlies);
 #endif
+      }
 
 #ifdef USELONGESTPV
-      if (bestThread->rootMoves[0].pv.size() < minPlies) {
-          for (Thread* th : Threads) {
-              // Look for the best thread that meets the minimum move criteria.
-              // Don't take a thread unless it's within the appropriate
-              // range of score eval.
-              if (th->rootMoves[0].pv.size() <= bestThread->rootMoves[0].pv.size()) {
+      longestPVThread = bestThread;
+      if (bestThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies))
+      {
+          // Select the best thread that meets the minimum move criteria
+          // and is within the appropriate range of score eval
+          for (Thread* th : Threads)
+          {
+              if (th->rootMoves[0].pv.size() <= bestThread->rootMoves[0].pv.size())
                   continue;
-              }
-              auto begin = bestThread->rootMoves[0].pv.begin();
-              auto end = bestThread->rootMoves[0].pv.end();
-              auto pair = std::mismatch(begin, end, th->rootMoves[0].pv.begin());
-              if (pair.first != end)
+              auto begin = bestThread->rootMoves[0].pv.begin(),
+                     end = bestThread->rootMoves[0].pv.end();
+              if (std::mismatch(begin, end, th->rootMoves[0].pv.begin()).first != end)
                   continue;
 
-              if (longestPVThread->rootMoves[0].pv.size() < minPlies)
+              if (longestPVThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies))
               {
-                  // If our current longest is not long enough, allow
-                  // a weakening of score and depth to an absolute max of
-                  // maxScoreDiff and maxDepthDiff compared to the bestThread.
+                  // If our current longest is short, allow a weakening of score
+                  // and depth to an absolute max of maxScoreDiff / maxDepthDiff
+                  // compared to the bestThread
                   if (   th->rootMoves[0].pv.size() >= longestPVThread->rootMoves[0].pv.size()
                       && abs(bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
                       && (bestThread->completedDepth - th->completedDepth < maxDepthDiff))
@@ -436,16 +441,14 @@ void MainThread::search() {
               }
               else
               {
-                  // Once our longestPVThread is long enough, we will take
-                  // any thread that is ALSO long enough but has a stronger
-                  // eval/depth
-                  if (
-                          th->rootMoves[0].pv.size() >= minPlies
+                  // Since longestPVThread is already long, only select among
+                  // threads with long PVs with strong eval/depth
+                  if (   th->rootMoves[0].pv.size() >= std::min(minPlies, longestPlies)
                       && abs(bestThread->rootMoves[0].score - th->rootMoves[0].score) < maxScoreDiff
                       && (   th->rootMoves[0].score >= longestPVThread->rootMoves[0].score
                           || th->completedDepth >= longestPVThread->completedDepth)
                      )
-                      longestPVThread = th;
+                     longestPVThread = th;
               }
           }
       }
@@ -802,7 +805,7 @@ namespace {
 #endif
 
         // Step 2. Check for aborted search and immediate draw
-        if (Signals.stop.load(std::memory_order_relaxed) || pos.is_draw() || ss->ply >= MAX_PLY)
+        if (Signals.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
             return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos)
                                                   : DrawValue[pos.side_to_move()];
 
@@ -1333,13 +1336,6 @@ moves_loop: // When in check search starts from here
 
           if (value > alpha)
           {
-              // If there is an easy move for this position, clear it if unstable
-              if (    PvNode
-                  &&  thisThread == Threads.main()
-                  &&  EasyMove.get(pos.key())
-                  && (move != EasyMove.get(pos.key()) || moveCount > 1))
-                  EasyMove.clear();
-
               bestMove = move;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
@@ -1542,7 +1538,7 @@ moves_loop: // When in check search starts from here
 #endif
 
     // Check for an instant draw or if the maximum ply has been reached
-    if (pos.is_draw() || ss->ply >= MAX_PLY)
+    if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
         return ss->ply >= MAX_PLY && !InCheck ? evaluate(pos)
                                               : DrawValue[pos.side_to_move()];
 
