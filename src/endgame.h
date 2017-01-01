@@ -68,7 +68,7 @@ enum EndgameType {
 
 /// Endgame functions can be of two types depending on whether they return a
 /// Value or a ScaleFactor.
-template<EndgameType E> using
+template<Variant V, EndgameType E> using
 eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>::type;
 
 
@@ -83,7 +83,7 @@ struct EndgameBase {
 };
 
 
-template<EndgameType E, typename T = eg_type<E>>
+template<Variant V, EndgameType E, typename T = eg_type<V, E>>
 struct Endgame : public EndgameBase<T> {
 
   explicit Endgame(Color c) : strongSide(c), weakSide(~c) {}
@@ -103,7 +103,7 @@ class Endgames {
 
   template<typename T> using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
-  template<EndgameType E, typename T = eg_type<E>>
+  template<Variant V, EndgameType E, typename T = eg_type<V, E>>
   void add(const std::string& code);
 
   template<typename T>

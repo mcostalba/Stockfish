@@ -151,7 +151,7 @@ public:
 
   // Static Exchange Evaluation
 #ifdef ATOMIC
-  template<Variant v>
+  template<Variant V>
   Value see(Move m) const;
 #endif
   bool see_ge(Move m, Value value) const;

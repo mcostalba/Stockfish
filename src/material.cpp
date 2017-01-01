@@ -80,12 +80,12 @@ namespace {
 
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
-  Endgame<KXK>    EvaluateKXK[] = { Endgame<KXK>(WHITE),    Endgame<KXK>(BLACK) };
+  Endgame<CHESS_VARIANT, KXK>    EvaluateKXK[] = { Endgame<CHESS_VARIANT, KXK>(WHITE),    Endgame<CHESS_VARIANT, KXK>(BLACK) };
 
-  Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
-  Endgame<KQKRPs> ScaleKQKRPs[] = { Endgame<KQKRPs>(WHITE), Endgame<KQKRPs>(BLACK) };
-  Endgame<KPsK>   ScaleKPsK[]   = { Endgame<KPsK>(WHITE),   Endgame<KPsK>(BLACK) };
-  Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
+  Endgame<CHESS_VARIANT, KBPsK>  ScaleKBPsK[]  = { Endgame<CHESS_VARIANT, KBPsK>(WHITE),  Endgame<CHESS_VARIANT, KBPsK>(BLACK) };
+  Endgame<CHESS_VARIANT, KQKRPs> ScaleKQKRPs[] = { Endgame<CHESS_VARIANT, KQKRPs>(WHITE), Endgame<CHESS_VARIANT, KQKRPs>(BLACK) };
+  Endgame<CHESS_VARIANT, KPsK>   ScaleKPsK[]   = { Endgame<CHESS_VARIANT, KPsK>(WHITE),   Endgame<CHESS_VARIANT, KPsK>(BLACK) };
+  Endgame<CHESS_VARIANT, KPKP>   ScaleKPKP[]   = { Endgame<CHESS_VARIANT, KPKP>(WHITE),   Endgame<CHESS_VARIANT, KPKP>(BLACK) };
 
   // Helper used to detect a given material distribution
   bool is_KXK(const Position& pos, Color us) {
@@ -155,7 +155,7 @@ namespace Material {
 
 Entry* probe(const Position& pos) {
 
-  Key key = pos.material_key();
+  Key key = pos.material_key() ^ pos.variant();
   Entry* e = pos.this_thread()->materialTable[key];
 
   if (e->key == key)
@@ -208,61 +208,13 @@ Entry* probe(const Position& pos) {
   {
       if (!pos.count<PAWN>(BLACK))
       {
-#ifdef KOTH
-          if (pos.is_koth()) {} else
-#endif
-#ifdef LOSERS
-          if (pos.is_losers()) {} else
-#endif
-#ifdef RACE
-          if (pos.is_race()) {} else
-#endif
-#ifdef THREECHECK
-          if (pos.is_three_check()) {} else
-#endif
-#ifdef HORDE
-          if (pos.is_horde()) {} else
-#endif
-#ifdef ATOMIC
-          if (pos.is_atomic()) {} else
-#endif
-#ifdef ANTI
-          if (pos.is_anti()) {} else
-#endif
-#ifdef CRAZYHOUSE
-          if (pos.is_house()) {} else
-#endif
-          assert(pos.count<PAWN>(WHITE) >= 2);
+          assert(pos.variant() != CHESS_VARIANT || pos.count<PAWN>(WHITE) >= 2);
 
           e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
       }
       else if (!pos.count<PAWN>(WHITE))
       {
-#ifdef KOTH
-          if (pos.is_koth()) {} else
-#endif
-#ifdef LOSERS
-          if (pos.is_losers()) {} else
-#endif
-#ifdef RACE
-          if (pos.is_race()) {} else
-#endif
-#ifdef THREECHECK
-          if (pos.is_three_check()) {} else
-#endif
-#ifdef HORDE
-          if (pos.is_horde()) {} else
-#endif
-#ifdef ATOMIC
-          if (pos.is_atomic()) {} else
-#endif
-#ifdef ANTI
-          if (pos.is_anti()) {} else
-#endif
-#ifdef CRAZYHOUSE
-          if (pos.is_house()) {} else
-#endif
-          assert(pos.count<PAWN>(BLACK) >= 2);
+          assert(pos.variant() != CHESS_VARIANT || pos.count<PAWN>(BLACK) >= 2);
 
           e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
       }

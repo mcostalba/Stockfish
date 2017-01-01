@@ -90,31 +90,31 @@ namespace {
 
 Endgames::Endgames() {
 
-  add<KPK>("KPvK");
-  add<KNNK>("KNNvK");
-  add<KBNK>("KBNvK");
-  add<KRKP>("KRvKP");
-  add<KRKB>("KRvKB");
-  add<KRKN>("KRvKN");
-  add<KQKP>("KQvKP");
-  add<KQKR>("KQvKR");
+  add<CHESS_VARIANT, KPK>("KPvK");
+  add<CHESS_VARIANT, KNNK>("KNNvK");
+  add<CHESS_VARIANT, KBNK>("KBNvK");
+  add<CHESS_VARIANT, KRKP>("KRvKP");
+  add<CHESS_VARIANT, KRKB>("KRvKB");
+  add<CHESS_VARIANT, KRKN>("KRvKN");
+  add<CHESS_VARIANT, KQKP>("KQvKP");
+  add<CHESS_VARIANT, KQKR>("KQvKR");
 
-  add<KNPK>("KNPvK");
-  add<KNPKB>("KNPvKB");
-  add<KRPKR>("KRPvKR");
-  add<KRPKB>("KRPvKB");
-  add<KBPKB>("KBPvKB");
-  add<KBPKN>("KBPvKN");
-  add<KBPPKB>("KBPPvKB");
-  add<KRPPKRP>("KRPPvKRP");
+  add<CHESS_VARIANT, KNPK>("KNPvK");
+  add<CHESS_VARIANT, KNPKB>("KNPvKB");
+  add<CHESS_VARIANT, KRPKR>("KRPvKR");
+  add<CHESS_VARIANT, KRPKB>("KRPvKB");
+  add<CHESS_VARIANT, KBPKB>("KBPvKB");
+  add<CHESS_VARIANT, KBPKN>("KBPvKN");
+  add<CHESS_VARIANT, KBPPKB>("KBPPvKB");
+  add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
 }
 
 
-template<EndgameType E, typename T>
+template<Variant V, EndgameType E, typename T>
 void Endgames::add(const string& code) {
   StateInfo st;
-  map<T>()[Position().set(code, WHITE, CHESS_VARIANT, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(WHITE));
-  map<T>()[Position().set(code, BLACK, CHESS_VARIANT, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<E>(BLACK));
+  map<T>()[Position().set(code, WHITE, V, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<V, E>(WHITE));
+  map<T>()[Position().set(code, BLACK, V, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<V, E>(BLACK));
 }
 
 
@@ -123,8 +123,9 @@ void Endgames::add(const string& code) {
 /// attacking side a bonus for driving the defending king towards the edge
 /// of the board, and for keeping the distance between the two kings small.
 template<>
-Value Endgame<KXK>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KXK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
   assert(!pos.checkers()); // Eval is never called when in check
 
@@ -154,8 +155,9 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 /// Mate with KBN vs K. This is similar to KX vs K, but we have to drive the
 /// defending king towards a corner square of the right color.
 template<>
-Value Endgame<KBNK>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KBNK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, KnightValueMg + BishopValueMg, 0));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
@@ -182,8 +184,9 @@ Value Endgame<KBNK>::operator()(const Position& pos) const {
 
 /// KP vs K. This endgame is evaluated with the help of a bitbase.
 template<>
-Value Endgame<KPK>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KPK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
@@ -208,8 +211,9 @@ Value Endgame<KPK>::operator()(const Position& pos) const {
 /// far advanced with support of the king, while the attacking king is far
 /// away.
 template<>
-Value Endgame<KRKP>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KRKP>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 0));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 1));
 
@@ -251,8 +255,9 @@ Value Endgame<KRKP>::operator()(const Position& pos) const {
 /// KR vs KB. This is very simple, and always returns drawish scores.  The
 /// score is slightly bigger when the defending king is close to the edge.
 template<>
-Value Endgame<KRKB>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KRKB>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 0));
   assert(verify_material(pos, weakSide, BishopValueMg, 0));
 
@@ -264,8 +269,9 @@ Value Endgame<KRKB>::operator()(const Position& pos) const {
 /// KR vs KN. The attacking side has slightly better winning chances than
 /// in KR vs KB, particularly if the king and the knight are far apart.
 template<>
-Value Endgame<KRKN>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KRKN>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 0));
   assert(verify_material(pos, weakSide, KnightValueMg, 0));
 
@@ -281,8 +287,9 @@ Value Endgame<KRKN>::operator()(const Position& pos) const {
 /// with a king positioned next to it can be a draw, so in that case, we only
 /// use the distance between the kings.
 template<>
-Value Endgame<KQKP>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KQKP>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, QueenValueMg, 0));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 1));
 
@@ -306,8 +313,9 @@ Value Endgame<KQKP>::operator()(const Position& pos) const {
 /// defending king towards the edge. If we also take care to avoid null move for
 /// the defending side in the search, this is usually sufficient to win KQ vs KR.
 template<>
-Value Endgame<KQKR>::operator()(const Position& pos) const {
+Value Endgame<CHESS_VARIANT, KQKR>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, QueenValueMg, 0));
   assert(verify_material(pos, weakSide, RookValueMg, 0));
 
@@ -324,7 +332,7 @@ Value Endgame<KQKR>::operator()(const Position& pos) const {
 
 
 /// Some cases of trivial draws
-template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
+template<> Value Endgame<CHESS_VARIANT, KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
 
 
 /// KB and one or more pawns vs K. It checks for draws with rook pawns and
@@ -332,8 +340,9 @@ template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE
 /// is returned. If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling
 /// will be used.
 template<>
-ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KBPsK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(pos.non_pawn_material(strongSide) == BishopValueMg);
   assert(pos.count<PAWN>(strongSide) >= 1);
 
@@ -398,8 +407,9 @@ ScaleFactor Endgame<KBPsK>::operator()(const Position& pos) const {
 /// KQ vs KR and one or more pawns. It tests for fortress draws with a rook on
 /// the third rank defended by a pawn.
 template<>
-ScaleFactor Endgame<KQKRPs>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KQKRPs>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, QueenValueMg, 0));
   assert(pos.count<ROOK>(weakSide) == 1);
   assert(pos.count<PAWN>(weakSide) >= 1);
@@ -426,8 +436,9 @@ ScaleFactor Endgame<KQKRPs>::operator()(const Position& pos) const {
 /// It would also be nice to rewrite the actual code for this function,
 /// which is mostly copied from Glaurung 1.x, and isn't very pretty.
 template<>
-ScaleFactor Endgame<KRPKR>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KRPKR>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 1));
   assert(verify_material(pos, weakSide,   RookValueMg, 0));
 
@@ -520,8 +531,9 @@ ScaleFactor Endgame<KRPKR>::operator()(const Position& pos) const {
 }
 
 template<>
-ScaleFactor Endgame<KRPKB>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KRPKB>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 1));
   assert(verify_material(pos, weakSide, BishopValueMg, 0));
 
@@ -566,8 +578,9 @@ ScaleFactor Endgame<KRPKB>::operator()(const Position& pos) const {
 /// KRPP vs KRP. There is just a single rule: if the stronger side has no passed
 /// pawns and the defending king is actively placed, the position is drawish.
 template<>
-ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KRPPKRP>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, RookValueMg, 2));
   assert(verify_material(pos, weakSide,   RookValueMg, 1));
 
@@ -595,8 +608,9 @@ ScaleFactor Endgame<KRPPKRP>::operator()(const Position& pos) const {
 /// K and two or more pawns vs K. There is just a single rule here: If all pawns
 /// are on the same rook file and are blocked by the defending king, it's a draw.
 template<>
-ScaleFactor Endgame<KPsK>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KPsK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(pos.non_pawn_material(strongSide) == VALUE_ZERO);
   assert(pos.count<PAWN>(strongSide) >= 2);
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
@@ -620,8 +634,9 @@ ScaleFactor Endgame<KPsK>::operator()(const Position& pos) const {
 /// stronger side's bishop, it's a draw. If the two bishops have opposite color,
 /// it's almost always a draw.
 template<>
-ScaleFactor Endgame<KBPKB>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KBPKB>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, BishopValueMg, 1));
   assert(verify_material(pos, weakSide,   BishopValueMg, 0));
 
@@ -668,8 +683,9 @@ ScaleFactor Endgame<KBPKB>::operator()(const Position& pos) const {
 
 /// KBPP vs KB. It detects a few basic draws with opposite-colored bishops
 template<>
-ScaleFactor Endgame<KBPPKB>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KBPPKB>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, BishopValueMg, 2));
   assert(verify_material(pos, weakSide,   BishopValueMg, 0));
 
@@ -739,8 +755,9 @@ ScaleFactor Endgame<KBPPKB>::operator()(const Position& pos) const {
 /// the path of the pawn, and the square of the king is not of the same color as
 /// the stronger side's bishop, it's a draw.
 template<>
-ScaleFactor Endgame<KBPKN>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KBPKN>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, BishopValueMg, 1));
   assert(verify_material(pos, weakSide, KnightValueMg, 0));
 
@@ -761,8 +778,9 @@ ScaleFactor Endgame<KBPKN>::operator()(const Position& pos) const {
 /// KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
 /// and the defending king prevents the pawn from advancing, the position is drawn.
 template<>
-ScaleFactor Endgame<KNPK>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KNPK>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, KnightValueMg, 1));
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
@@ -780,8 +798,9 @@ ScaleFactor Endgame<KNPK>::operator()(const Position& pos) const {
 /// KNP vs KB. If knight can block bishop from taking pawn, it's a win.
 /// Otherwise the position is drawn.
 template<>
-ScaleFactor Endgame<KNPKB>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KNPKB>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   Square pawnSq = pos.square<PAWN>(strongSide);
   Square bishopSq = pos.square<BISHOP>(weakSide);
   Square weakKingSq = pos.square<KING>(weakSide);
@@ -801,8 +820,9 @@ ScaleFactor Endgame<KNPKB>::operator()(const Position& pos) const {
 /// side's pawn is far advanced and not on a rook file; in this case it is often
 /// possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
 template<>
-ScaleFactor Endgame<KPKP>::operator()(const Position& pos) const {
+ScaleFactor Endgame<CHESS_VARIANT, KPKP>::operator()(const Position& pos) const {
 
+  assert(pos.variant() == CHESS_VARIANT);
   assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
   assert(verify_material(pos, weakSide,   VALUE_ZERO, 1));
 
