@@ -521,8 +521,7 @@ void Position::set_check_info(StateInfo* si) const {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->materialKey = 0;
-  si->key ^= Zobrist::variant[var];
+  si->key = si->materialKey = Zobrist::variant[var];
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
