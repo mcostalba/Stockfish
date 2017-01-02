@@ -940,6 +940,10 @@ namespace {
     if (pos.is_anti() && pos.can_capture())
         goto moves_loop;
 #endif
+#ifdef LOSERS
+    if (pos.is_losers() && pos.can_capture_losers())
+        goto moves_loop;
+#endif
 
     if (skipEarlyPruning)
         goto moves_loop;
