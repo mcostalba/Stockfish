@@ -1335,8 +1335,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef CRAZYHOUSE
   if (type_of(m) == DROP)
   {
-      k ^= Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]]
-          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] + 1];
+      k ^= Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
+          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
       if (type_of(pc) != PAWN)
           st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][type_of(pc)];
   }
