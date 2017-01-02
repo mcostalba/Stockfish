@@ -268,6 +268,21 @@ namespace {
   };
 #endif
 
+#ifdef LOSERS
+  const Score PieceCountLosers    = S(122, 119);
+  const Score ThreatsLosers[]     = { S(216, 279), S(441, 341) };
+  const Score AttacksLosers[2][2][PIECE_TYPE_NB] = {
+    {
+      { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
+      { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
+    },
+    {
+      { S(111, 127), S(102,  95), S(121, 183), S(140,  37), S(120,  99), S( 55, 11), S( 88,  93) },
+      { S( 56,  69), S( 72, 124), S(109, 154), S( 98, 149), S(129, 113), S(147, 72), S(157, 152) }
+    }
+  };
+#endif
+
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
     0, 128, 128, 28, 69, 75
@@ -804,8 +819,48 @@ namespace {
         }
     }
     else
-    {
 #endif
+#ifdef LOSERS
+    if (pos.is_losers())
+    {
+        bool weCapture = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
+        bool theyCapture = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
+
+        // Penalties for possible captures
+        if (weCapture)
+        {
+            // Penalty if we only attack unprotected pieces
+            bool theyDefended = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES];
+            for (PieceType pt = PAWN; pt <= KING; ++pt)
+            {
+                if (ei.attackedBy[Us][pt] & pos.pieces(Them) & ~ei.attackedBy2[Us])
+                    score -= AttacksLosers[theyCapture][theyDefended][pt];
+                else if (ei.attackedBy[Us][pt] & pos.pieces(Them))
+                    score -= AttacksLosers[theyCapture][theyDefended][NO_PIECE_TYPE];
+            }
+            // If both colors attack pieces, increase penalty with piece count
+            if (theyCapture)
+                score -= pos.count<ALL_PIECES>(Us) * PieceCountLosers;
+        }
+        // Bonus if we threaten to force captures (ignoring possible discoveries)
+        if (!weCapture || theyCapture)
+        {
+            b = pos.pieces(Us, PAWN);
+            Bitboard pawnPushes = shift<Up>(b | (shift<Up>(b & TRank2BB) & ~pos.pieces())) & ~pos.pieces();
+            Bitboard pieceMoves = (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                                 | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
+            Bitboard threats = pawnPushes | pieceMoves;
+            Bitboard unprotectedPawnPushes = pawnPushes & ~ei.attackedBy[Us][ALL_PIECES];
+            Bitboard unprotectedPieceMoves = pieceMoves & ~ei.attackedBy2[Us];
+            safeThreats = unprotectedPawnPushes | unprotectedPieceMoves;
+
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & threats) * ThreatsLosers[0];
+            score += popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats) * ThreatsLosers[1];
+        }
+    }
+    else
+#endif
+    {
 
 #ifdef ATOMIC
     if (pos.is_atomic()) {} else
@@ -932,9 +987,7 @@ namespace {
         }
     }
 #endif
-#ifdef ANTI
     }
-#endif
     if (DoTrace)
         Trace::add(THREAT, Us, score);
 
