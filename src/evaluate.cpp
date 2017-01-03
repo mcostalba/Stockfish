@@ -1450,30 +1450,6 @@ Value Eval::evaluate(const Position& pos) {
 
   // If we have a specialized evaluation function for the current material
   // configuration, call it and return.
-#ifdef KOTH
-  if (pos.is_koth()) {} else
-#endif
-#ifdef LOSERS
-  if (pos.is_losers()) {} else
-#endif
-#ifdef RACE
-  if (pos.is_race()) {} else
-#endif
-#ifdef THREECHECK
-  if (pos.is_three_check()) {} else
-#endif
-#ifdef HORDE
-  if (pos.is_horde()) {} else
-#endif
-#ifdef ATOMIC
-  if (pos.is_atomic()) {} else
-#endif
-#ifdef ANTI
-  if (pos.is_anti()) {} else
-#endif
-#ifdef CRAZYHOUSE
-  if (pos.is_house()) {} else
-#endif
   if (ei.me->specialized_eval_exists())
       return ei.me->evaluate(pos);
 

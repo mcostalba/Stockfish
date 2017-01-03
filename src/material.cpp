@@ -172,6 +172,7 @@ Entry* probe(const Position& pos) {
   if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
       return e;
 
+  if (pos.variant() == CHESS_VARIANT)
   for (Color c = WHITE; c <= BLACK; ++c)
       if (is_KXK(pos, c))
       {
@@ -189,6 +190,8 @@ Entry* probe(const Position& pos) {
       return e;
   }
 
+  if (pos.variant() == CHESS_VARIANT)
+  {
   // We didn't find any specialized scaling function, so fall back on generic
   // ones that refer to more than one material distribution. Note that in this
   // case we don't return after setting the function.
@@ -243,6 +246,7 @@ Entry* probe(const Position& pos) {
 
   if (pos.count<PAWN>(BLACK) == 1 && npm_b - npm_w <= BishopValueMg)
       e->factor[BLACK] = (uint8_t) SCALE_FACTOR_ONEPAWN;
+  }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", which allows us to be more flexible
