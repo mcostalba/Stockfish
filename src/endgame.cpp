@@ -107,6 +107,10 @@ Endgames::Endgames() {
   add<CHESS_VARIANT, KBPKN>("KBPvKN");
   add<CHESS_VARIANT, KBPPKB>("KBPPvKB");
   add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
+
+#ifdef ATOMIC
+  add<ATOMIC_VARIANT, KNNK>("KNNvK");
+#endif
 }
 
 
@@ -842,3 +846,7 @@ ScaleFactor Endgame<CHESS_VARIANT, KPKP>::operator()(const Position& pos) const 
   // it's probably at least a draw even with the pawn.
   return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
+
+#ifdef ATOMIC
+template<> Value Endgame<ATOMIC_VARIANT, KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
+#endif
