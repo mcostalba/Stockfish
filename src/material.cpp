@@ -81,6 +81,9 @@ namespace {
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
   Endgame<CHESS_VARIANT, KXK>    EvaluateKXK[] = { Endgame<CHESS_VARIANT, KXK>(WHITE),    Endgame<CHESS_VARIANT, KXK>(BLACK) };
+#ifdef ATOMIC
+  Endgame<ATOMIC_VARIANT, KXK> EvaluateAtomicKXK[] = { Endgame<ATOMIC_VARIANT, KXK>(WHITE), Endgame<ATOMIC_VARIANT, KXK>(BLACK) };
+#endif
 
   Endgame<CHESS_VARIANT, KBPsK>  ScaleKBPsK[]  = { Endgame<CHESS_VARIANT, KBPsK>(WHITE),  Endgame<CHESS_VARIANT, KBPsK>(BLACK) };
   Endgame<CHESS_VARIANT, KQKRPs> ScaleKQKRPs[] = { Endgame<CHESS_VARIANT, KQKRPs>(WHITE), Endgame<CHESS_VARIANT, KQKRPs>(BLACK) };
@@ -92,6 +95,13 @@ namespace {
     return  !more_than_one(pos.pieces(~us))
           && pos.non_pawn_material(us) >= RookValueMg;
   }
+
+#ifdef ATOMIC
+  bool is_KXK_atomic(const Position& pos, Color us) {
+    return  !more_than_one(pos.pieces(~us))
+          && pos.non_pawn_material(us) >= RookValueMg + KnightValueMg;
+  }
+#endif
 
   bool is_KBPsKs(const Position& pos, Color us) {
     return   pos.non_pawn_material(us) == BishopValueMg
@@ -173,12 +183,25 @@ Entry* probe(const Position& pos) {
       return e;
 
   if (pos.variant() == CHESS_VARIANT)
+  {
   for (Color c = WHITE; c <= BLACK; ++c)
       if (is_KXK(pos, c))
       {
           e->evaluationFunction = &EvaluateKXK[c];
           return e;
       }
+  }
+#ifdef ATOMIC
+  else if (pos.is_atomic())
+  {
+      for (Color c = WHITE; c <= BLACK; ++c)
+          if (is_KXK_atomic(pos, c))
+          {
+              e->evaluationFunction = &EvaluateAtomicKXK[c];
+              return e;
+          }
+  }
+#endif
 
   // OK, we didn't find any special evaluation function for the current material
   // configuration. Is there a suitable specialized scaling function?

@@ -850,6 +850,35 @@ ScaleFactor Endgame<CHESS_VARIANT, KPKP>::operator()(const Position& pos) const 
 
 #ifdef ATOMIC
 template<>
+Value Endgame<ATOMIC_VARIANT, KXK>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ATOMIC_VARIANT);
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  // Stalemate detection with lone king
+  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + pos.count<PAWN>(strongSide) * PawnValueEg
+                + PushToCorners[loserKSq]
+                + PushAway[distance(winnerKSq, loserKSq)];
+
+  // We need at least a major and a minor, or three minors to force checkmate
+  if (  ((pos.count<QUEEN>(strongSide) || pos.count<ROOK>(strongSide)) && pos.count<ALL_PIECES>(strongSide) >= 3)
+      || (pos.count<BISHOP>(strongSide) + pos.count<KNIGHT>(strongSide) >= 3
+         && (pos.count<KNIGHT>(strongSide) >= 2 || ((pos.pieces(strongSide, BISHOP) & DarkSquares)
+                                                    && (pos.pieces(strongSide, BISHOP) & ~DarkSquares)))))
+      result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+template<>
 Value Endgame<ATOMIC_VARIANT, KQK>::operator()(const Position& pos) const {
 
   assert(pos.variant() == ATOMIC_VARIANT);
