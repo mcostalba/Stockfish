@@ -109,6 +109,7 @@ Endgames::Endgames() {
   add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
 
 #ifdef ATOMIC
+  add<ATOMIC_VARIANT, KQK>("KQvK");
   add<ATOMIC_VARIANT, KNNK>("KNNvK");
 #endif
 }
@@ -848,5 +849,36 @@ ScaleFactor Endgame<CHESS_VARIANT, KPKP>::operator()(const Position& pos) const 
 }
 
 #ifdef ATOMIC
+template<>
+Value Endgame<ATOMIC_VARIANT, KQK>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ATOMIC_VARIANT);
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  // Stalemate detection with lone king
+  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  int dist = distance(winnerKSq, loserKSq);
+  // Draw in case of adjacent kings
+  // In the case of dist == 2, the square adjacent to both kings is ensured
+  // not be occupied by the queen, since eval is not called when in check.
+  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
+      return VALUE_DRAW;
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+                + PushAway[dist];
+
+  if (dist >= (strongSide == pos.side_to_move() ? 3 : 4))
+      result += VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
 template<> Value Endgame<ATOMIC_VARIANT, KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
 #endif

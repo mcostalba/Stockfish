@@ -247,6 +247,15 @@ Entry* probe(const Position& pos) {
   if (pos.count<PAWN>(BLACK) == 1 && npm_b - npm_w <= BishopValueMg)
       e->factor[BLACK] = (uint8_t) SCALE_FACTOR_ONEPAWN;
   }
+#ifdef ATOMIC
+  else if (pos.is_atomic())
+  {
+      Value npm_w = pos.non_pawn_material(WHITE);
+      Value npm_b = pos.non_pawn_material(BLACK);
+      if (!pos.pieces(PAWN) && npm_w + npm_b <= RookValueMg)
+          e->factor[WHITE] = (uint8_t) SCALE_FACTOR_DRAW;
+  }
+#endif
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", which allows us to be more flexible

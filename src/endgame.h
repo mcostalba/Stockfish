@@ -37,6 +37,9 @@ enum EndgameType {
 
   // Evaluation functions
 
+#ifdef ATOMIC
+  KQK,
+#endif
   KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
