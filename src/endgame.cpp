@@ -109,6 +109,7 @@ Endgames::Endgames() {
   add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
 
 #ifdef ATOMIC
+  add<ATOMIC_VARIANT, KPK>("KPvK");
   add<ATOMIC_VARIANT, KQK>("KQvK");
   add<ATOMIC_VARIANT, KNNK>("KNNvK");
 #endif
@@ -874,6 +875,28 @@ Value Endgame<ATOMIC_VARIANT, KXK>::operator()(const Position& pos) const {
          && (pos.count<KNIGHT>(strongSide) >= 2 || ((pos.pieces(strongSide, BISHOP) & DarkSquares)
                                                     && (pos.pieces(strongSide, BISHOP) & ~DarkSquares)))))
       result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+template<>
+Value Endgame<ATOMIC_VARIANT, KPK>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ATOMIC_VARIANT);
+  assert(verify_material(pos, strongSide, VALUE_ZERO, 1));
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  int dist = distance(winnerKSq, loserKSq);
+  // Draw in case of adjacent kings
+  if (dist <= (strongSide == pos.side_to_move() ? 1 : 2))
+      return VALUE_DRAW;
+
+  Value result = PawnValueEgAtomic
+                + PushAway[relative_rank(strongSide, pos.square<PAWN>(strongSide))]
+                + PushAway[dist];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
