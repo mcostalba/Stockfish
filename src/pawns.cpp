@@ -315,6 +315,11 @@ namespace {
         doubled    = ourPawns   & (s + Up);
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
+#ifdef HORDE
+        if (pos.is_horde() && rank_of(s) == RANK_1)
+            supported = false;
+        else
+#endif
         supported  = neighbours & rank_bb(s - Up);
         connected  = supported | phalanx;
 
@@ -350,6 +355,9 @@ namespace {
         else if (!supported)
             score -= Unsupported[pos.variant()];
 
+#ifdef HORDE
+        if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
+#endif
         if (connected)
             score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
