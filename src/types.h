@@ -628,4 +628,23 @@ inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
 }
 
+inline Variant main_variant(Variant v) {
+  if (v < VARIANT_NB)
+      return v;
+  switch(v)
+  {
+#ifdef SUICIDE
+  case SUICIDE_VARIANT:
+      return ANTI_VARIANT;
+#endif
+#ifdef LOOP
+  case LOOP_VARIANT:
+      return CRAZYHOUSE_VARIANT;
+#endif
+  default:
+      assert(false);
+      return CHESS_VARIANT; // Silence a warning
+  }
+}
+
 #endif // #ifndef TYPES_H_INCLUDED
