@@ -765,14 +765,14 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
 #ifdef ANTI
   case ANTI_VARIANT:
       if (is_anti_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_anti_loss())
           return mated_in(ply);
 #endif
 #ifdef ATOMIC
   case ATOMIC_VARIANT:
       if (is_atomic_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_atomic_loss())
           return mated_in(ply);
 #endif
@@ -784,14 +784,14 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
 #ifdef KOTH
   case KOTH_VARIANT:
       if (is_koth_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_koth_loss())
           return mated_in(ply);
 #endif
 #ifdef LOSERS
   case LOSERS_VARIANT:
       if (is_losers_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_losers_loss())
           return mated_in(ply);
 #endif
@@ -800,14 +800,14 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
       if (is_race_draw())
           return draw_value;
       if (is_race_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_race_loss())
           return mated_in(ply);
 #endif
 #ifdef THREECHECK
   case THREECHECK_VARIANT:
       if (is_three_check_win())
-          return mate_in(ply + 1);
+          return mate_in(ply);
       if (is_three_check_loss())
           return mated_in(ply);
 #endif
@@ -827,7 +827,7 @@ inline Value Position::checkmate_value(int ply) const {
 #endif
 #ifdef LOSERS
   if (is_losers())
-      return mate_in(ply + 1);
+      return mate_in(ply);
 #endif
   return mated_in(ply);
 }
@@ -843,16 +843,16 @@ inline Value Position::stalemate_value(int ply, Value draw_value) const {
           if (balance > 0)
               return mated_in(ply);
           if (balance < 0)
-              return mate_in(ply + 1);
+              return mate_in(ply);
           return draw_value;
       }
 #endif
-      return mate_in(ply + 1);
+      return mate_in(ply);
   }
 #endif
 #ifdef LOSERS
   if (is_losers())
-      return mate_in(ply + 1);
+      return mate_in(ply);
 #endif
   return draw_value;
 }
