@@ -1389,7 +1389,7 @@ moves_loop: // When in check search starts from here
         else
 #endif
 #ifdef LOSERS
-        if (pos.is_losers() && pos.is_losers_loss())
+        if (pos.is_losers())
             bestValue = excludedMove ? alpha : mate_in(ss->ply+1);
         else
 #endif
