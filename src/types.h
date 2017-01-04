@@ -340,10 +340,10 @@ enum Value : int {
 #endif
 #ifdef RACE
   TempoMgRace       = 0,     TempoEgRace       = 0,
-  KnightValueMgRace = 720,   KnightValueEgRace = 801,
-  BishopValueMgRace = 904,   BishopValueEgRace = 929,
-  RookValueMgRace   = 1265,  RookValueEgRace  = 1731,
-  QueenValueMgRace  = 2198,  QueenValueEgRace = 2226,
+  KnightValueMgRace = 730,   KnightValueEgRace = 839,
+  BishopValueMgRace = 1006,  BishopValueEgRace = 1019,
+  RookValueMgRace   = 1274,  RookValueEgRace   = 1842,
+  QueenValueMgRace  = 2019,  QueenValueEgRace  = 2090,
 #endif
 #ifdef THREECHECK
   TempoMgThreeCheck       = 0,     TempoEgThreeCheck       = 0,
