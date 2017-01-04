@@ -33,7 +33,7 @@ using namespace std;
 
 namespace {
 
-const vector<string> Defaults[VARIANT_NB] = {
+const vector<string> Defaults[SUBVARIANT_NB] = {
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -181,6 +181,16 @@ const vector<string> Defaults[VARIANT_NB] = {
 #ifdef THREECHECK
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1"
+  },
+#endif
+#ifdef SUICIDE
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+  },
+#endif
+#ifdef LOOP
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1"
   },
 #endif
 };
