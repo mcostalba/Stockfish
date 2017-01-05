@@ -325,32 +325,10 @@ void MainThread::search() {
   if (rootMoves.empty())
   {
       rootMoves.push_back(RootMove(MOVE_NONE));
-      Value score = rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW;
-#ifdef KOTH
-      if (rootPos.is_koth() && rootPos.is_koth_loss())
-          score = -VALUE_MATE;
-#endif
-#ifdef LOSERS
-      if (rootPos.is_losers())
-          score = rootPos.is_losers_loss() ? -VALUE_MATE : VALUE_MATE;
-#endif
-#ifdef RACE
-      if (rootPos.is_race())
-          score =  rootPos.is_race_draw() ? VALUE_DRAW
-                 : rootPos.is_race_loss() ? -VALUE_MATE : VALUE_MATE;
-#endif
-#ifdef HORDE
-      if (rootPos.is_horde() && rootPos.is_horde_loss())
-          score = -VALUE_MATE;
-#endif
-#ifdef ATOMIC
-      if (rootPos.is_atomic() && rootPos.is_atomic_loss())
-          score = -VALUE_MATE;
-#endif
-#ifdef ANTI
-      if (rootPos.is_anti())
-          score = rootPos.is_anti_loss() ? -VALUE_MATE : VALUE_MATE;
-#endif
+      Value score = rootPos.is_variant_end() ? rootPos.variant_result()
+                   : rootPos.checkers() ? rootPos.checkmate_value()
+                   : rootPos.stalemate_value();
+
       sync_cout << "info depth 0 score " << UCI::value(score) << sync_endl;
   }
   else
@@ -741,68 +719,8 @@ namespace {
 
     if (!rootNode)
     {
-#ifdef KOTH
-        // Check for an instant win/loss (King of the Hill)
-        if (pos.is_koth())
-        {
-            if (pos.is_koth_win())
-                return mate_in(ss->ply + 1);
-            if (pos.is_koth_loss())
-                return mated_in(ss->ply);
-        }
-#endif
-#ifdef LOSERS
-        // Check for an instant win/loss (Losers)
-        if (pos.is_losers())
-        {
-            if (pos.is_losers_win())
-                return mate_in(ss->ply + 1);
-            if (pos.is_losers_loss())
-                return mated_in(ss->ply);
-        }
-#endif
-#ifdef RACE
-        // Check for an instant win/loss (Racing Kings)
-        if (pos.is_race())
-        {
-            if (pos.is_race_draw())
-                return DrawValue[pos.side_to_move()];
-            if (pos.is_race_win())
-                return mate_in(ss->ply + 1);
-            if (pos.is_race_loss())
-                return mated_in(ss->ply);
-        }
-#endif
-#ifdef THREECHECK
-        // Check for an instant win/loss (Three-Check)
-        if (pos.is_three_check())
-        {
-            if (pos.is_three_check_win())
-                return mate_in(ss->ply + 1);
-            if (pos.is_three_check_loss())
-                return mated_in(ss->ply);
-        }
-#endif
-#ifdef HORDE
-        // Check for an instant loss (Horde)
-        if (pos.is_horde() && pos.is_horde_loss())
-            return mated_in(ss->ply);
-#endif
-#ifdef ANTI
-        // Check for an instant loss (Anti)
-        if (pos.is_anti())
-        {
-            if (pos.is_anti_win())
-                return mate_in(ss->ply + 1);
-            if (pos.is_anti_loss())
-                return mated_in(ss->ply);
-        }
-#endif
-#ifdef ATOMIC
-        // Check for an instant loss (Atomic)
-        if (pos.is_atomic() && pos.is_atomic_loss())
-            return mated_in(ss->ply);
-#endif
+        if (pos.is_variant_end())
+            return pos.variant_result(ss->ply, DrawValue[pos.side_to_move()]);
 
         // Step 2. Check for aborted search and immediate draw
         if (Signals.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
@@ -1376,34 +1294,10 @@ moves_loop: // When in check search starts from here
 
     if (!moveCount)
     {
-#ifdef RACE
-        if (pos.is_race() && (pos.is_race_draw() || pos.is_race_loss() || pos.is_race_win()))
-            bestValue = excludedMove ? alpha
-                : pos.is_race_draw() ? DrawValue[pos.side_to_move()]
-                : pos.is_race_loss() ? mated_in(ss->ply) : mate_in(ss->ply+1);
-        else
-#endif
-#ifdef HORDE
-        if (pos.is_horde() && pos.is_horde_loss())
-            bestValue = excludedMove ? alpha : mated_in(ss->ply);
-        else
-#endif
-#ifdef LOSERS
-        if (pos.is_losers())
-            bestValue = excludedMove ? alpha : mate_in(ss->ply+1);
-        else
-#endif
-#ifdef ANTI
-        if (pos.is_anti())
-            bestValue = excludedMove ? alpha
-#ifdef SUICIDE
-            : pos.is_suicide() ? pos.suicide_stalemate(ss->ply, DrawValue[pos.side_to_move()])
-#endif
-            : mate_in(ss->ply+1);
-        else
-#endif
         bestValue = excludedMove ? alpha
-                   :     inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
+                    : pos.is_variant_end() ? pos.variant_result(ss->ply, DrawValue[pos.side_to_move()])
+                    : inCheck ? pos.checkmate_value(ss->ply)
+                    : pos.stalemate_value(ss->ply, DrawValue[pos.side_to_move()]);
     }
     else if (bestMove)
     {
@@ -1470,76 +1364,8 @@ moves_loop: // When in check search starts from here
     ss->currentMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
 
-#ifdef KOTH
-    // Check for an instant win or loss (King of the Hill)
-    if (pos.is_koth())
-    {
-        if (pos.is_koth_win())
-            return mate_in(ss->ply+1);
-        if (pos.is_koth_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef LOSERS
-    // Check for an instant win or loss (Losers)
-    if (pos.is_losers())
-    {
-        if (pos.is_losers_win())
-            return mate_in(ss->ply+1);
-        if (pos.is_losers_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef RACE
-    // Check for an instant win/loss (Racing Kings)
-    if (pos.is_race())
-    {
-        if (pos.is_race_draw())
-            return DrawValue[pos.side_to_move()];
-        if (pos.is_race_win())
-            return mate_in(ss->ply+1);
-        if (pos.is_race_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef THREECHECK
-    // Check for an instant win (Three-Check)
-    if (pos.is_three_check())
-    {
-        if (pos.is_three_check_win())
-            return mate_in(ss->ply + 1);
-        if (pos.is_three_check_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef HORDE
-    // Check for an instant win (Horde)
-    if (pos.is_horde())
-    {
-        if (pos.is_horde_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef ATOMIC
-    // Check for an instant win (Atomic)
-    if (pos.is_atomic())
-    {
-        if (pos.is_atomic_win())
-            return mate_in(ss->ply + 1);
-        if (pos.is_atomic_loss())
-            return mated_in(ss->ply);
-    }
-#endif
-#ifdef ANTI
-    // Check for an instant win (Anti)
-    if (pos.is_anti())
-    {
-        if (pos.is_anti_win())
-            return mate_in(ss->ply + 1);
-        if (pos.is_anti_loss())
-            return mated_in(ss->ply);
-    }
-#endif
+    if (pos.is_variant_end())
+        return pos.variant_result(ss->ply, DrawValue[pos.side_to_move()]);
 
     // Check for an instant draw or if the maximum ply has been reached
     if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)

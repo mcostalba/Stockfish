@@ -919,37 +919,14 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
-#ifdef KOTH
   // If the game is already won or lost, further moves are illegal
-  if (is_koth() && (is_koth_win() || is_koth_loss()))
+  if (is_variant_end())
       return false;
-#endif
-#ifdef LOSERS
-  // If the game is already won or lost, further moves are illegal
-  if (is_losers() && (is_losers_win() || is_losers_loss()))
-      return false;
-#endif
-#ifdef RACE
-  // If the game is already won or lost, further moves are illegal
-  if (is_race() && (is_race_draw() || is_race_win() || is_race_loss()))
-      return false;
-#endif
-#ifdef HORDE
-  // If the game is already won or lost, further moves are illegal
-  if (is_horde() && is_horde_loss())
-      return false;
-#endif
-#ifdef ANTI
-  // If the game is already won or lost, further moves are illegal
-  if (is_anti() && (is_anti_win() || is_anti_loss()))
-      return false;
-#endif
+
 #ifdef ATOMIC
   if (is_atomic())
   {
       // If the game is already won or lost, further moves are illegal
-      if (is_atomic_win() || is_atomic_loss())
-          return false;
       if (pc == NO_PIECE || color_of(pc) != us)
           return false;
       if (capture(m))

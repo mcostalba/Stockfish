@@ -1273,76 +1273,8 @@ Value Eval::evaluate(const Position& pos) {
   Score mobility[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
   EvalInfo ei;
 
-#ifdef KOTH
-    // Possibly redundant static evaluator
-    if (pos.is_koth())
-    {
-        if (pos.is_koth_win())
-            return VALUE_MATE;
-        if (pos.is_koth_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef LOSERS
-    // Possibly redundant static evaluator
-    if (pos.is_losers())
-    {
-        if (pos.is_losers_win())
-            return VALUE_MATE;
-        if (pos.is_losers_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef RACE
-    // Possibly redundant static evaluator
-    if (pos.is_race())
-    {
-        if (pos.is_race_draw())
-            return VALUE_DRAW;
-        if (pos.is_race_win())
-            return VALUE_MATE;
-        if (pos.is_race_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef THREECHECK
-    if (pos.is_three_check())
-    {
-        // Possibly redundant static evaluator
-        if (pos.is_three_check_win())
-            return VALUE_MATE;
-        if (pos.is_three_check_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef HORDE
-    // Possibly redundant static evaluator
-    if (pos.is_horde())
-    {
-        if (pos.is_horde_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef ATOMIC
-    // Possibly redundant static evaluator
-    if (pos.is_atomic())
-    {
-        if (pos.is_atomic_win())
-            return VALUE_MATE;
-        if (pos.is_atomic_loss())
-            return -VALUE_MATE;
-    }
-#endif
-#ifdef ANTI
-    // Possibly redundant static evaluator
-    if (pos.is_anti())
-    {
-        if (pos.is_anti_win())
-            return VALUE_MATE;
-        if (pos.is_anti_loss())
-            return -VALUE_MATE;
-    }
-#endif
+  if (pos.is_variant_end())
+      return pos.variant_result();
 
   // Probe the material hash table
   ei.me = Material::probe(pos);
