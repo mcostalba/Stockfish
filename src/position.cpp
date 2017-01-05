@@ -151,7 +151,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
   {
       StateInfo st;
       Position p;
-      p.set(pos.fen(), pos.is_chess960(), pos.variant(), &st, pos.this_thread());
+      p.set(pos.fen(), pos.is_chess960(), pos.subvariant(), &st, pos.this_thread());
       Tablebases::ProbeState s1, s2;
       Tablebases::WDLScore wdl = Tablebases::probe_wdl(p, &s1);
       int dtz = Tablebases::probe_dtz(p, &s2);
@@ -257,24 +257,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   st = si;
   subvar = v;
-  if (v < VARIANT_NB)
-      var = v;
-  else
-      switch(v)
-      {
-#ifdef SUICIDE
-      case SUICIDE_VARIANT:
-          var = ANTI_VARIANT;
-          break;
-#endif
-#ifdef LOOP
-      case LOOP_VARIANT:
-          var = CRAZYHOUSE_VARIANT;
-          break;
-#endif
-      default:
-          assert(false);
-      }
+  var = main_variant(v);
 
   ss >> std::noskipws;
 
