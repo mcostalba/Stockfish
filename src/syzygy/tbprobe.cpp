@@ -1749,8 +1749,8 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
     if (pos.is_variant_end())
         return result_to_score<T>(pos.variant_result());
 
-    // Check for checkmate and stalemate
-    if (MoveList<LEGAL>(pos).size() == 0)
+    // Check for checkmate and stalemate in variants
+    if (pos.variant() != CHESS_VARIANT && MoveList<LEGAL>(pos).size() == 0)
         return result_to_score<T>(pos.checkers() ? pos.checkmate_value() : pos.stalemate_value());
 
     if (!(pos.pieces() ^ pos.pieces(KING)))
