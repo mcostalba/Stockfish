@@ -1732,26 +1732,27 @@ void* init(Entry& e, const Position& pos) {
     return e.baseAddress;
 }
 
+template<typename T>
+T result_to_score(Value value) {
+    if (value > 0)
+        return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
+    else if (value < 0)
+        return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
+    else
+        return T(WDLDraw);
+}
+
 template<typename E, typename T = typename Ret<E>::type>
 T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
 
-#ifdef ATOMIC
-    if (pos.is_atomic()) {
-        if (pos.is_atomic_loss())
-            return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
-        if (pos.is_atomic_win())
-            return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
-    }
-#endif
+    // Check for variant end
+    if (pos.is_variant_end())
+        return result_to_score<T>(pos.variant_result());
 
-#ifdef ANTI
-    if (pos.is_anti()) {
-        if (pos.is_anti_loss())
-            return std::is_same<T, WDLScore>::value ? T(WDLLoss) : T(-1);
-        if (pos.is_anti_win())
-            return std::is_same<T, WDLScore>::value ? T(WDLWin) : T(1);
-    } else
-#endif
+    // Check for checkmate and stalemate
+    if (MoveList<LEGAL>(pos).size() == 0)
+        return result_to_score<T>(pos.checkers() ? pos.checkmate_value() : pos.stalemate_value());
+
     if (!(pos.pieces() ^ pos.pieces(KING)))
         return T(WDLDraw); // KvK
 
