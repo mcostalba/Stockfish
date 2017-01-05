@@ -1753,6 +1753,9 @@ T probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) {
     if (pos.variant() != CHESS_VARIANT && MoveList<LEGAL>(pos).size() == 0)
         return result_to_score<T>(pos.checkers() ? pos.checkmate_value() : pos.stalemate_value());
 
+#ifdef ANTI
+    if (!pos.is_anti())
+#endif
     if (!(pos.pieces() ^ pos.pieces(KING)))
         return T(WDLDraw); // KvK
 
