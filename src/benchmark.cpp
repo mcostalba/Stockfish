@@ -88,7 +88,34 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   },
 #ifdef ANTI
   {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "rn1qkbnr/p1pBpppp/8/8/8/4P3/PPPP1PbP/RNBQK1NR w - - 0 4",
+    "rnbqkbnr/p2p1ppp/8/2p1p3/2pP4/2N3P1/PP2PP1P/R1BQKBNR b - d3 0 5",
+    "rnb1kbn1/p4ppr/8/3q4/1p6/6PB/P3PP1P/R1B1K1NR b - - 1 11",
+    "r7/4rp1p/4p3/p1p5/P1P1P2P/8/2K1NPP1/7R w - - 11 26",
+    "8/8/1r6/p7/P2k4/8/2pp2K1/3k2K1 w - - 4 42",
+
+    // 2-man positions
+    "2K5/8/4r3/8/8/8/8/8 b - - 0 1", // win
+
+    // 3-man positions
+    "8/3nP3/8/8/8/8/7R/8 w - - 0 1", // e8B - win
+    "8/8/8/8/3K4/5K2/8/1r6 w - - 0 1", // draw
+
+    // 5-man positions
+    "8/pb4Pp/8/2p5/8/8/8/8 b - - 0 1", // Bc6 - draw
+    "k7/8/3PN3/p4K2/8/8/8/8 b - - 0 1", // loss
+
+    // 6-man positions
+    "8/3K4/2K5/3K1K2/8/8/3kk3/8 b - - 0 1", // draw
+
+    // Win by having no pieces left
+    "3q4/3k1pp1/7n/5p2/8/4r3/8/8 w - - 0 1",
+
+    // Stalemate
+    "1r6/5k2/8/p4b2/P1p5/8/8/8 w - - 0 1",
+    "7b/7P/8/2p5/2P5/8/8/8 w - - 0 1",
+    "6bB/5pP1/5P2/8/8/8/8/8 w - - 0 1"
   },
 #endif
 #ifdef ATOMIC
@@ -185,7 +212,34 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #endif
 #ifdef SUICIDE
   {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
+    "rn1qkbnr/p1pBpppp/8/8/8/4P3/PPPP1PbP/RNBQK1NR w - - 0 4",
+    "rnbqkbnr/p2p1ppp/8/2p1p3/2pP4/2N3P1/PP2PP1P/R1BQKBNR b - d3 0 5",
+    "rnb1kbn1/p4ppr/8/3q4/1p6/6PB/P3PP1P/R1B1K1NR b - - 1 11",
+    "r7/4rp1p/4p3/p1p5/P1P1P2P/8/2K1NPP1/7R w - - 11 26",
+    "8/8/1r6/p7/P2k4/8/2pp2K1/3k2K1 w - - 4 42",
+
+    // 2-man positions
+    "2K5/8/4r3/8/8/8/8/8 b - - 0 1", // win
+
+    // 3-man positions
+    "8/3nP3/8/8/8/8/7R/8 w - - 0 1", // e8B - win
+    "8/8/8/8/3K4/5K2/8/1r6 w - - 0 1", // draw
+
+    // 5-man positions
+    "8/pb4Pp/8/2p5/8/8/8/8 b - - 0 1", // Bc6 - draw
+    "k7/8/3PN3/p4K2/8/8/8/8 b - - 0 1", // loss
+
+    // 6-man positions
+    "8/3K4/2K5/3K1K2/8/8/3kk3/8 b - - 0 1", // draw
+
+    // Win by having no pieces left
+    "3q4/3k1pp1/7n/5p2/8/4r3/8/8 w - - 0 1",
+
+    // Stalemate
+    "1r6/5k2/8/p4b2/P1p5/8/8/8 w - - 0 1", // less pieces
+    "7b/7P/8/2p5/2P5/8/8/8 w - - 0 1", // equal number of pieces
+    "6bB/5pP1/5P2/8/8/8/8/8 w - - 0 1" // more pieces
   },
 #endif
 #ifdef LOOP
