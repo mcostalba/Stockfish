@@ -121,7 +121,7 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef SUICIDE
-    ".stbw",
+    ".gtbw",
 #endif
 #ifdef LOOP
     nullptr,
@@ -195,7 +195,7 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef SUICIDE
-    ".stbz",
+    ".gtbz",
 #endif
 #ifdef LOOP
     nullptr,
@@ -1674,8 +1674,8 @@ void* init(Entry& e, const Position& pos) {
 #endif
 #ifdef SUICIDE
         {
-            { 0xE4, 0xCF, 0xE7, 0x23 },
-            { 0x7B, 0xF6, 0x93, 0x15 }
+            { 0xD6, 0xF5, 0x1B, 0x50 },
+            { 0xBC, 0x55, 0xBC, 0x21 }
         },
 #endif
 #ifdef LOOP
