@@ -192,6 +192,9 @@ public:
   void drop_piece(Piece pc, Square s);
   void undrop_piece(Piece pc, Square s);
 #endif
+#ifdef BUGHOUSE
+  bool is_bughouse() const;
+#endif
 #ifdef LOOP
   bool is_loop() const;
 #endif
@@ -638,6 +641,12 @@ inline void Position::remove_from_hand(Color c, PieceType pt) {
 
 inline bool Position::is_promoted(Square s) const {
   return promotedPieces & s;
+}
+#endif
+
+#ifdef BUGHOUSE
+inline bool Position::is_bughouse() const {
+  return subvar == BUGHOUSE_VARIANT;
 }
 #endif
 

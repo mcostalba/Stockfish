@@ -1229,12 +1229,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (is_house())
       {
           st->capturedpromoted = is_promoted(to);
-          Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
-          add_to_hand(color_of(add), type_of(add));
-          st->psq += PSQT::psq[var][add][SQ_NONE];
-          k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
-              ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
-          promotedPieces -= to;
+#ifdef BUGHOUSE
+          if (! is_bughouse())
+#endif
+          {
+              Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+              add_to_hand(color_of(add), type_of(add));
+              st->psq += PSQT::psq[var][add][SQ_NONE];
+              k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
+                  ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
+              promotedPieces -= to;
+          }
       }
 #endif
 
@@ -1584,6 +1589,9 @@ void Position::undo_move(Move m) {
 #ifdef CRAZYHOUSE
           if (is_house())
           {
+#ifdef BUGHOUSE
+              if (! is_bughouse())
+#endif
               remove_from_hand(~color_of(st->capturedPiece), st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
               if (st->capturedpromoted)
                   promotedPieces |= to;

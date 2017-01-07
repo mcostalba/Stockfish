@@ -145,6 +145,9 @@ enum Variant {
 #ifdef SUICIDE
   SUICIDE_VARIANT,
 #endif
+#ifdef BUGHOUSE
+  BUGHOUSE_VARIANT,
+#endif
 #ifdef LOOP
   LOOP_VARIANT,
 #endif
@@ -185,6 +188,9 @@ static std::vector<std::string> variants = {
 //subvariants
 #ifdef SUICIDE
 "suicide",
+#endif
+#ifdef BUGHOUSE
+"bughouse",
 #endif
 #ifdef LOOP
 "loop",
@@ -636,6 +642,10 @@ inline Variant main_variant(Variant v) {
 #ifdef SUICIDE
   case SUICIDE_VARIANT:
       return ANTI_VARIANT;
+#endif
+#ifdef BUGHOUSE
+  case BUGHOUSE_VARIANT:
+      return CRAZYHOUSE_VARIANT;
 #endif
 #ifdef LOOP
   case LOOP_VARIANT:
