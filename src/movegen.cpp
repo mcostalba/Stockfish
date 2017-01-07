@@ -216,7 +216,7 @@ namespace {
         }
 #ifdef CRAZYHOUSE
         // Do not require drops to be check (unless already required by target)
-        if (pos.is_house())
+        if (pos.is_house() && pos.count_in_hand(Us, PAWN))
         {
             Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
             moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
@@ -383,7 +383,7 @@ namespace {
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
 #ifdef CRAZYHOUSE
-    if (pos.is_house() && Type != CAPTURES)
+    if (pos.is_house() && Type != CAPTURES && (pos.count_in_hand(Us, ALL_PIECES) - pos.count_in_hand(Us, PAWN)))
     {
         Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
                      Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
