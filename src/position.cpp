@@ -1238,8 +1238,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               st->psq += PSQT::psq[var][add][SQ_NONE];
               k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
                   ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
-              promotedPieces -= to;
           }
+          promotedPieces -= to;
       }
 #endif
 
