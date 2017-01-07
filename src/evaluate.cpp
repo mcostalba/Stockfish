@@ -1068,6 +1068,11 @@ namespace {
 #ifdef ANTI
             if (pos.is_anti()) {} else
 #endif
+#ifdef ATOMIC
+            if (pos.is_atomic())
+                ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr;
+            else
+#endif
             {
             // Adjust bonus based on the king's proximity
             ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr
