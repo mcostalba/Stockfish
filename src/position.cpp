@@ -1746,6 +1746,10 @@ Value Position::see<ATOMIC_VARIANT>(Move m) const {
 bool Position::see_ge(Move m, Value v) const {
 
   assert(is_ok(m));
+#ifdef CRAZYHOUSE
+  if (is_house())
+      v /= 2;
+#endif
 
 #ifdef THREECHECK
   if (is_three_check() && gives_check(m))
