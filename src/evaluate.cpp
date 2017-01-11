@@ -1324,8 +1324,23 @@ Value Eval::evaluate(const Position& pos) {
 
   // Initialize attack and king safety bitboards
   ei.attackedBy[WHITE][ALL_PIECES] = ei.attackedBy[BLACK][ALL_PIECES] = 0;
+#ifdef ANTI
+  if (pos.is_anti())
+  {
+      for (Color c = WHITE; c <= BLACK; ++c)
+      {
+          ei.attackedBy[c][KING] = 0;
+          Bitboard kings = pos.pieces(c, KING);
+          while (kings)
+              ei.attackedBy[c][KING] |= pos.attacks_from<KING>(pop_lsb(&kings));
+      }
+  }
+  else
+#endif
+  {
   ei.attackedBy[WHITE][KING] = pos.attacks_from<KING>(pos.square<KING>(WHITE));
   ei.attackedBy[BLACK][KING] = pos.attacks_from<KING>(pos.square<KING>(BLACK));
+  }
   eval_init<WHITE>(pos, ei);
   eval_init<BLACK>(pos, ei);
 
