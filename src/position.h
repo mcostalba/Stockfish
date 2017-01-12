@@ -841,19 +841,19 @@ inline Value Position::checkmate_value(int ply) const {
   return mated_in(ply);
 }
 
-inline Value Position::stalemate_value(int ply, Value draw_value) const {
+inline Value Position::stalemate_value(int ply, Value drawValue) const {
 #ifdef ANTI
   if (is_anti())
   {
 #ifdef SUICIDE
       if (is_suicide())
       {
-          int balance = popcount(pieces(sideToMove)) - popcount(pieces(~sideToMove));
+          int balance = pieceCount[make_piece(sideToMove, ALL_PIECES)] - pieceCount[make_piece(~sideToMove, ALL_PIECES)];
           if (balance > 0)
               return mated_in(ply);
           if (balance < 0)
               return mate_in(ply);
-          return draw_value;
+          return drawValue;
       }
 #endif
       return mate_in(ply);
@@ -863,7 +863,7 @@ inline Value Position::stalemate_value(int ply, Value draw_value) const {
   if (is_losers())
       return mate_in(ply);
 #endif
-  return draw_value;
+  return drawValue;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
