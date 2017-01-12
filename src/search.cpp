@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -271,7 +271,7 @@ void Search::clear() {
   for (Thread* th : Threads)
   {
       th->counterMoves.clear();
-      th->fromTo.clear();
+      th->history.clear();
       th->counterMoveHistory.clear();
       th->resetCalls = true;
   }
@@ -1167,7 +1167,7 @@ moves_loop: // When in check search starts from here
               ss->history =  (cmh  ? (*cmh )[moved_piece][to_sq(move)] : VALUE_ZERO)
                            + (fmh  ? (*fmh )[moved_piece][to_sq(move)] : VALUE_ZERO)
                            + (fmh2 ? (*fmh2)[moved_piece][to_sq(move)] : VALUE_ZERO)
-                           + thisThread->fromTo.get(~pos.side_to_move(), move)
+                           + thisThread->history.get(~pos.side_to_move(), move)
                            - 8000; // Correction factor
 
               // Decrease/increase reduction by comparing opponent's stat score
@@ -1630,7 +1630,7 @@ moves_loop: // When in check search starts from here
 
     Color c = pos.side_to_move();
     Thread* thisThread = pos.this_thread();
-    thisThread->fromTo.update(c, move, bonus);
+    thisThread->history.update(c, move, bonus);
     update_cm_stats(ss, pos.moved_piece(move), to_sq(move), bonus);
 
     if ((ss-1)->counterMoves)
@@ -1642,7 +1642,7 @@ moves_loop: // When in check search starts from here
     // Decrease all the other played quiet moves
     for (int i = 0; i < quietsCnt; ++i)
     {
-        thisThread->fromTo.update(c, quiets[i], -bonus);
+        thisThread->history.update(c, quiets[i], -bonus);
         update_cm_stats(ss, pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
     }
   }

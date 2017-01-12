@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -877,7 +877,7 @@ namespace {
 
 #ifdef ATOMIC
     if (pos.is_atomic())
-        score -= popcount(ei.attackedBy[Us][KING] & pos.pieces()) * make_score(100, 100);
+        score -= make_score(100, 100) * popcount(ei.attackedBy[Us][KING] & pos.pieces());
 #endif
         // Compute the king danger score and subtract it from the evaluation
         if (kingDanger > 0)
@@ -964,7 +964,7 @@ namespace {
             }
             // If both colors attack pieces, increase penalty with piece count
             if (theyCapture)
-                score -= pos.count<ALL_PIECES>(Us) * PieceCountAnti;
+                score -= PieceCountAnti * pos.count<ALL_PIECES>(Us);
         }
         // Bonus if we threaten to force captures (ignoring possible discoveries)
         if (!weCapture || theyCapture)
@@ -978,8 +978,8 @@ namespace {
             Bitboard unprotectedPieceMoves = pieceMoves & ~ei.attackedBy2[Us];
             safeThreats = unprotectedPawnPushes | unprotectedPieceMoves;
 
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & threats) * ThreatsAnti[0];
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats) * ThreatsAnti[1];
+            score += ThreatsAnti[0] * popcount(ei.attackedBy[Them][ALL_PIECES] & threats);
+            score += ThreatsAnti[1] * popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats);
         }
     }
     else
@@ -1004,7 +1004,7 @@ namespace {
             }
             // If both colors attack pieces, increase penalty with piece count
             if (theyCapture)
-                score -= pos.count<ALL_PIECES>(Us) * PieceCountLosers;
+                score -= PieceCountLosers * pos.count<ALL_PIECES>(Us);
         }
         // Bonus if we threaten to force captures (ignoring possible discoveries)
         if (!weCapture || theyCapture)
@@ -1018,8 +1018,8 @@ namespace {
             Bitboard unprotectedPieceMoves = pieceMoves & ~ei.attackedBy2[Us];
             safeThreats = unprotectedPawnPushes | unprotectedPieceMoves;
 
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & threats) * ThreatsLosers[0];
-            score += popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats) * ThreatsLosers[1];
+            score += ThreatsLosers[0] * popcount(ei.attackedBy[Them][ALL_PIECES] & threats);
+            score += ThreatsLosers[1] * popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats);
         }
     }
     else
