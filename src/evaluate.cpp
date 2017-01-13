@@ -1479,6 +1479,7 @@ Value Eval::evaluate(const Position& pos) {
   // We have taken into account all cheap evaluation terms.
   // If score exceeds a threshold return a lazy evaluation.
   Value lazy = lazy_eval(mg_value(score), eg_value(score));
+  if (pos.variant() == CHESS_VARIANT)
   if (lazy)
       return pos.side_to_move() == WHITE ? lazy : -lazy;
 
