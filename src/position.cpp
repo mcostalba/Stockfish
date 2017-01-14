@@ -715,9 +715,9 @@ Phase Position::game_phase() const {
       npm = 2 * st->nonPawnMaterial[is_horde_color(WHITE) ? BLACK : WHITE];
 #endif
 
-  npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
+  npm = std::max(PhaseLimit[variant()][EG], std::min(npm, PhaseLimit[variant()][MG]));
 
-  return Phase(((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
+  return Phase(((npm - PhaseLimit[variant()][EG]) * PHASE_MIDGAME) / (PhaseLimit[variant()][MG] - PhaseLimit[variant()][EG]));
 }
 
 

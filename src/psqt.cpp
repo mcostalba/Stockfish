@@ -22,6 +22,36 @@
 
 #include "types.h"
 
+Value PhaseLimit[VARIANT_NB][PHASE_NB] = {
+  { MidgameLimit, EndgameLimit },
+#ifdef ANTI
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef ATOMIC
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef CRAZYHOUSE
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef HORDE
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef KOTH
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef LOSERS
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef RACE
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef RELAY
+  { MidgameLimit, EndgameLimit },
+#endif
+#ifdef THREECHECK
+  { MidgameLimit, EndgameLimit },
+#endif
+};
 Value TempoValue[VARIANT_NB][PHASE_NB] = {
   { TempoMg, TempoEg },
 #ifdef ANTI
