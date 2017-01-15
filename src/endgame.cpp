@@ -108,6 +108,11 @@ Endgames::Endgames() {
   add<CHESS_VARIANT, KBPPKB>("KBPPvKB");
   add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
 
+#ifdef ANTI
+  add<ANTI_VARIANT, RK>("RvK");
+  add<ANTI_VARIANT, KN>("KvN");
+  add<ANTI_VARIANT, NN>("NvN");
+#endif
 #ifdef ATOMIC
   add<ATOMIC_VARIANT, KPK>("KPvK");
   add<ATOMIC_VARIANT, KQK>("KQvK");
@@ -848,6 +853,67 @@ ScaleFactor Endgame<CHESS_VARIANT, KPKP>::operator()(const Position& pos) const 
   // it's probably at least a draw even with the pawn.
   return Bitbases::probe(wksq, psq, bksq, us) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
 }
+
+#ifdef ANTI
+/// R vs K. The rook side always wins if there is no immediate forced capture.
+template<>
+Value Endgame<ANTI_VARIANT, RK>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ANTI_VARIANT);
+
+  Square RSq = pos.square<ROOK>(strongSide);
+  Square KSq = pos.square<KING>(weakSide);
+
+  Value result = Value(PushToEdges[KSq]) + PushClose[distance(RSq, KSq)];
+
+  int dist_min = std::min(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
+  int dist_max = std::max(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
+
+  if (dist_min == 0)
+      result += strongSide == pos.side_to_move() || dist_max > 1 ? -VALUE_KNOWN_WIN : VALUE_KNOWN_WIN;
+  else if (dist_min == 1)
+      result += weakSide == pos.side_to_move() && dist_max > 1 ? -VALUE_KNOWN_WIN : VALUE_KNOWN_WIN;
+  else
+      result += VALUE_KNOWN_WIN;
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// K vs N. The king usally wins, but there are a few exceptions.
+template<>
+Value Endgame<ANTI_VARIANT, KN>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ANTI_VARIANT);
+
+  Square KSq = pos.square<KING>(strongSide);
+  Square NSq = pos.square<KNIGHT>(weakSide);
+
+  // wins for knight
+  if (pos.side_to_move() == strongSide && (pos.attacks_from<KNIGHT>(NSq) & KSq))
+      return -VALUE_KNOWN_WIN;
+  if (pos.side_to_move() == weakSide && (pos.attacks_from<KNIGHT>(NSq) & pos.attacks_from<KING>(KSq)))
+      return VALUE_KNOWN_WIN;
+
+  Value result = VALUE_KNOWN_WIN + PushToEdges[NSq] - PushToEdges[KSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// N vs N. The side to move always wins/loses if the knights are on
+/// same/opposite colored squares.
+template<>
+Value Endgame<ANTI_VARIANT, NN>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == ANTI_VARIANT);
+
+  Square N1Sq = pos.square<KNIGHT>(pos.side_to_move());
+  Square N2Sq = pos.square<KNIGHT>(~pos.side_to_move());
+
+  Value result = VALUE_KNOWN_WIN + PushClose[distance(N1Sq, N2Sq)];
+
+  return !opposite_colors(N1Sq, N2Sq) ? result : -result;
+}
+#endif
 
 #ifdef ATOMIC
 template<>

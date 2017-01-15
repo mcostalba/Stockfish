@@ -37,6 +37,11 @@ enum EndgameType {
 
   // Evaluation functions
 
+#ifdef ANTI
+  RK,
+  KN,
+  NN,
+#endif
 #ifdef ATOMIC
   KQK,
 #endif
