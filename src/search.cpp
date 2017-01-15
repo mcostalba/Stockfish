@@ -1050,6 +1050,13 @@ moves_loop: // When in check search starts from here
           && !moveCountPruning
           &&  pos.see_ge(move, VALUE_ZERO))
           extension = ONE_PLY;
+#ifdef ANTI
+      if (    pos.is_anti()
+          && !moveCountPruning
+          && (pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move()))
+          && !pos.capture(move))
+          extension = ONE_PLY;
+#endif
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
