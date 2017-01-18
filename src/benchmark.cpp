@@ -305,7 +305,7 @@ const int default_depth[SUBVARIANT_NB] = {
   13,
 #endif
 #ifdef CRAZYHOUSE
-  13,
+  12,
 #endif
 #ifdef HORDE
   13,
@@ -329,10 +329,10 @@ const int default_depth[SUBVARIANT_NB] = {
   13,
 #endif
 #ifdef BUGHOUSE
-  13,
+  12,
 #endif
 #ifdef LOOP
-  13,
+  12,
 #endif
 };
 
