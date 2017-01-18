@@ -1404,6 +1404,9 @@ namespace {
 
     // If we don't already have an unusual scale factor, check for certain
     // types of endgames, and use a lower scale for those.
+#ifdef ATOMIC
+    if (pos.is_atomic()) {} else
+#endif
     if (    ei.me->game_phase() < PHASE_MIDGAME
         && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
     {
