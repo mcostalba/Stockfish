@@ -296,6 +296,46 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #endif
 };
 
+const int default_depth[SUBVARIANT_NB] = {
+  13,
+#ifdef ANTI
+  13,
+#endif
+#ifdef ATOMIC
+  13,
+#endif
+#ifdef CRAZYHOUSE
+  13,
+#endif
+#ifdef HORDE
+  13,
+#endif
+#ifdef KOTH
+  13,
+#endif
+#ifdef LOSERS
+  13,
+#endif
+#ifdef RACE
+  13,
+#endif
+#ifdef RELAY
+  13,
+#endif
+#ifdef THREECHECK
+  13,
+#endif
+#ifdef SUICIDE
+  13,
+#endif
+#ifdef BUGHOUSE
+  13,
+#endif
+#ifdef LOOP
+  13,
+#endif
+};
+
 } // namespace
 
 /// benchmark() runs a simple benchmark by letting Stockfish analyze a set
@@ -311,12 +351,14 @@ void benchmark(const Position& current, istream& is) {
   string token;
   vector<string> fens;
   Search::LimitsType limits;
-  Variant variant = UCI::variant_from_name(Options["UCI_Variant"]);
+
+  string varname   = (!isdigit(is.peek()) && is >> token) ? token : Options["UCI_Variant"];
+  Variant variant  = UCI::variant_from_name(varname);
 
   // Assign default values to missing arguments
   string ttSize    = (is >> token) ? token : "16";
   string threads   = (is >> token) ? token : "1";
-  string limit     = (is >> token) ? token : "13";
+  string limit     = (is >> token) ? token : to_string(default_depth[variant]);
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
 
