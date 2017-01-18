@@ -352,8 +352,15 @@ void benchmark(const Position& current, istream& is) {
   vector<string> fens;
   Search::LimitsType limits;
 
+  uint64_t nodes = 0;
+  TimePoint elapsed = now();
+  Position pos;
+
   string varname   = (!isdigit(is.peek()) && is >> token) ? token : Options["UCI_Variant"];
-  Variant variant  = UCI::variant_from_name(varname);
+  Variant variant  = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
+  streampos args = is.tellg();
+
+  do {
 
   // Assign default values to missing arguments
   string ttSize    = (is >> token) ? token : "16";
@@ -402,10 +409,6 @@ void benchmark(const Position& current, istream& is) {
       file.close();
   }
 
-  uint64_t nodes = 0;
-  TimePoint elapsed = now();
-  Position pos;
-
   for (size_t i = 0; i < fens.size(); ++i)
   {
       StateListPtr states(new std::deque<StateInfo>(1));
@@ -424,6 +427,8 @@ void benchmark(const Position& current, istream& is) {
           nodes += Threads.nodes_searched();
       }
   }
+
+  } while (varname == "all" && ++variant < SUBVARIANT_NB && (is.clear(), is.seekg(args)));
 
   elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
