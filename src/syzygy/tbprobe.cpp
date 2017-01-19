@@ -535,7 +535,7 @@ class HashTable {
 #endif
 
 #if defined(ANTI)
-    static const int HSHMAX     = 12;
+    static const int HSHMAX     = 14;
 #elif defined(ATOMIC)
     static const int HSHMAX     = 8;
 #else
