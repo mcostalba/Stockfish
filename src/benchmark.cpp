@@ -356,7 +356,7 @@ void benchmark(const Position& current, istream& is) {
   TimePoint elapsed = now();
   Position pos;
 
-  string varname   = (!isdigit(is.peek()) && is >> token) ? token : Options["UCI_Variant"];
+  string varname   = (!isdigit((is >> ws).peek()) && is >> token) ? token : Options["UCI_Variant"];
   Variant variant  = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
   streampos args = is.tellg();
 
