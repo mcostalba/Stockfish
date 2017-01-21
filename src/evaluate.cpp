@@ -1447,6 +1447,12 @@ namespace {
                  && !pos.pawn_passed(~strongSide, pos.square<KING>(~strongSide)))
             sf = ScaleFactor(37 + 7 * pos.count<PAWN>(strongSide));
     }
+#ifdef HORDE
+    if (   pos.is_horde()
+        && pos.non_pawn_material(pos.is_horde_color(WHITE) ? WHITE : BLACK) >= QueenValueMg
+        && !pos.is_horde_color(strongSide))
+        sf = ScaleFactor(10);
+#endif
 
     return sf;
   }
