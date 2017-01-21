@@ -82,13 +82,14 @@ namespace {
 #ifdef HORDE
     {
       //            OUR PIECES
-      // pair pawn knight bishop rook queen
-      {1667                               }, // Bishop pair
-      {  40,    2                         }, // Pawn
-      {  32,  255,  -3                    }, // Knight      OUR PIECES
-      {   0,  104,   4,    0              }, // Bishop
-      { -26,   -2,  47,   105,  -149      }, // Rook
-      {-185,   24, 122,   137,  -134,   0 }  // Queen
+      // pair pawn knight bishop rook queen king
+      { 0                                      }, // Bishop pair
+      { 0,    0                                }, // Pawn
+      { 0,    0,   0                           }, // Knight      OUR PIECES
+      { 0,    0,   0,     0                    }, // Bishop
+      { 0,    0,   0,     0,     0             }, // Rook
+      { 0,    0,   0,     0,     0,   0        }, // Queen
+      { 0,    0,   0,     0,     0,   0,    0  }  // King
     },
 #endif
 #ifdef KOTH
@@ -204,13 +205,14 @@ namespace {
 #ifdef HORDE
     {
       //           THEIR PIECES
-      // pair pawn knight bishop rook queen
-      {   0                               }, // Bishop pair
-      {  36,    0                         }, // Pawn
-      {   9,   63,   0                    }, // Knight      OUR PIECES
-      {  59,   65,  42,     0             }, // Bishop
-      {  46,   39,  24,   -24,    0       }, // Rook
-      { 101,  100, -37,   141,  268,    0 }  // Queen
+      // pair pawn knight bishop rook queen king
+      { 0                                      }, // Bishop pair
+      { 0,    0                                }, // Pawn
+      { 0,    0,   0                           }, // Knight      OUR PIECES
+      { 0,    0,   0,     0                    }, // Bishop
+      { 0,    0,   0,     0,     0             }, // Rook
+      { 0,    0,   0,     0,     0,   0        }, // Queen
+      { 0,    0,   0,     0,     0,   0,    0  }  // King
     },
 #endif
 #ifdef KOTH
@@ -324,11 +326,19 @@ namespace {
     int bonus = 0;
 
     // Second-degree polynomial material imbalance by Tord Romstad
+    PieceType pt_max;
 #ifdef ANTI
-    for (int pt1 = NO_PIECE_TYPE; pt1 <= (pos.is_anti() ? KING : QUEEN); ++pt1)
-#else
-    for (int pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
+    if (pos.is_anti())
+        pt_max = KING;
+    else
 #endif
+#ifdef HORDE
+    if (pos.is_horde())
+        pt_max = KING;
+    else
+#endif
+    pt_max = QUEEN;
+    for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
     {
         if (!pieceCount[Us][pt1])
             continue;

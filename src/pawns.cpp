@@ -143,7 +143,7 @@ namespace {
     S(18, 38),
 #endif
 #ifdef HORDE
-    S(-26, 78),
+    S(10, 78),
 #endif
 #ifdef KOTH
     S(18, 38),
