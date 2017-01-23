@@ -1108,7 +1108,12 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
               && (!pos.is_anti() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
 #endif
-              && !pos.advanced_pawn_push(move))
+#ifdef HORDE
+              && (pos.is_horde() || !pos.advanced_pawn_push(move))
+#else
+              && !pos.advanced_pawn_push(move)
+#endif
+          )
           {
               // Move count based pruning
               if (moveCountPruning)
