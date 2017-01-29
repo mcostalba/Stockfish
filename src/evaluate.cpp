@@ -916,6 +916,9 @@ namespace {
 #ifdef CRAZYHOUSE
                      pos.is_house() ? make_score(v, v) :
 #endif
+#ifdef THREECHECK
+                     pos.is_three_check() ? make_score(v, v) :
+#endif
                      make_score(v, 0);
         }
     }
