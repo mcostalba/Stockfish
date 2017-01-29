@@ -863,7 +863,7 @@ namespace {
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand(Them, ROOK) ? ~pos.pieces() : 0;
 #endif
-        if (b1 & ((ei.attackedBy[Them][ROOK] & safe) | (dropSafe & h)))
+        if (b1 & ((ei.attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
             kingDanger += RookCheck;
 
         else if (b1 & (h | ei.attackedBy[Them][ROOK]) & other)
@@ -873,7 +873,7 @@ namespace {
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand(Them, BISHOP) ? ~pos.pieces() : 0;
 #endif
-        if (b2 & ((ei.attackedBy[Them][BISHOP] & safe) | (dropSafe & h)))
+        if (b2 & ((ei.attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
             kingDanger += BishopCheck;
 
         else if (b2 & (h | ei.attackedBy[Them][BISHOP]) & other)
