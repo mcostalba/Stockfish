@@ -913,12 +913,10 @@ namespace {
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
 #ifdef CRAZYHOUSE
         // Do not bother with null-move search if opponent can drop pieces
-        && (pos.is_house() ? (eval < 2 * VALUE_KNOWN_WIN
-            && !(depth > 4 * ONE_PLY && pos.count_in_hand(~pos.side_to_move(), ALL_PIECES))) :
-            pos.non_pawn_material(pos.side_to_move())))
-#else
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        && (!pos.is_house() || (eval < 2 * VALUE_KNOWN_WIN
+            && !(depth > 4 * ONE_PLY && pos.count_in_hand(~pos.side_to_move(), ALL_PIECES))))
 #endif
+        &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
         ss->counterMoves = nullptr;
