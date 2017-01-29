@@ -822,9 +822,9 @@ namespace {
 #endif
 
         // ...and keep squares supported by another enemy piece
-        kingDanger += QueenContactCheck * popcount(b & ei.attackedBy2[Them] |
+        kingDanger += QueenContactCheck * popcount((b & ei.attackedBy2[Them]) |
                               // or those where queen can be safely dropped
-                                                   h & ei.attackedBy[Them][ALL_PIECES]);
+                                                   (h & ei.attackedBy[Them][ALL_PIECES]));
 
         // Analyse the safe enemy's checks which are possible on next move
         safe  = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
@@ -846,7 +846,7 @@ namespace {
                & ei.attackedBy[Us][QUEEN];
         // For minors and rooks, also consider the square safe if attacked twice,
         // and only defended by our queen.
-        Bitboard dropSafe = (safe | ei.attackedBy[Them][ALL_PIECES] & dqo) & ~pos.pieces(Us);
+        Bitboard dropSafe = (safe | (ei.attackedBy[Them][ALL_PIECES] & dqo)) & ~pos.pieces(Us);
         safe |=  dqo;
 
         // Some other potential checks are also analysed, even from squares
@@ -863,7 +863,7 @@ namespace {
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand(Them, ROOK) ? ~pos.pieces() : 0;
 #endif
-        if (b1 & (ei.attackedBy[Them][ROOK] & safe | dropSafe & h))
+        if (b1 & ((ei.attackedBy[Them][ROOK] & safe) | (dropSafe & h)))
             kingDanger += RookCheck;
 
         else if (b1 & (h | ei.attackedBy[Them][ROOK]) & other)
@@ -873,7 +873,7 @@ namespace {
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand(Them, BISHOP) ? ~pos.pieces() : 0;
 #endif
-        if (b2 & (ei.attackedBy[Them][BISHOP] & safe | dropSafe & h))
+        if (b2 & ((ei.attackedBy[Them][BISHOP] & safe) | (dropSafe & h)))
             kingDanger += BishopCheck;
 
         else if (b2 & (h | ei.attackedBy[Them][BISHOP]) & other)
@@ -885,10 +885,10 @@ namespace {
 #endif
         Bitboard k = pos.attacks_from<KNIGHT>(ksq);
         b = k & ei.attackedBy[Them][KNIGHT];
-        if (b & safe | k & h & dropSafe)
+        if ((b & safe) | (k & h & dropSafe))
             kingDanger += KnightCheck;
 
-        else if ((b | k & h) & other)
+        else if ((b | (k & h)) & other)
             score -= OtherCheck;
 
 #ifdef ATOMIC
