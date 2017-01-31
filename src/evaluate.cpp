@@ -779,6 +779,12 @@ namespace {
     if (ei.kingAttackersCount[Them])
     {
         // Find the attacked squares which are defended only by our king...
+#ifdef ATOMIC
+        if (pos.is_atomic())
+            undefended =   ei.attackedBy[Them][ALL_PIECES]
+                        &  ei.attackedBy[Us][KING];
+        else
+#endif
         undefended =   ei.attackedBy[Them][ALL_PIECES]
                     &  ei.attackedBy[Us][KING]
                     & ~ei.attackedBy2[Us];
@@ -805,7 +811,8 @@ namespace {
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
-        if (pos.is_house()) {
+        if (pos.is_house())
+        {
             for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
                 kingDanger += KingDangerInHand[pt] * pos.count_in_hand(Them, pt);
             h = pos.count_in_hand(Them, QUEEN) ? undefended & ~pos.pieces() : 0;
