@@ -389,7 +389,7 @@ void MainThread::search() {
           if (scoreDiff > 0 && depthDiff >= 0)
               bestThread = th;
 #ifdef USELONGESTPV
-          longestPlies = std::max(bestThread->rootMoves[0].pv.size(), longestPlies);
+          longestPlies = std::max(th->rootMoves[0].pv.size(), longestPlies);
 #endif
       }
 
@@ -436,13 +436,12 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
-  // Send new PV when needed
+// Send new PV when needed
+#ifndef USELONGESTPV
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
-
-#ifdef USELONGESTPV
-  // Send longer PV when needed
-  if (longestPVThread != bestThread)
+#else
+  if (longestPVThread != this)
       sync_cout << UCI::pv(longestPVThread->rootPos, longestPVThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
 #endif
 
