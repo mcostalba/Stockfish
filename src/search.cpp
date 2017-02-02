@@ -436,13 +436,13 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
-// Send new PV when needed
-#ifndef USELONGESTPV
-  if (bestThread != this)
-      sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
-#else
+#ifdef USELONGESTPV
   if (longestPVThread != this)
       sync_cout << UCI::pv(longestPVThread->rootPos, longestPVThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+#else
+  // Send new PV when needed
+  if (bestThread != this)
+      sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
 #endif
 
   // Best move could be MOVE_NONE when searching on a terminal position
