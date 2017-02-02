@@ -52,7 +52,7 @@ namespace {
       {    0, -130, -187,    0                  }, // Bishop
       { -155, -317,   60, -218, -288            }, // Rook
       {   89, -259,  -60, -179,  -32, -76       }, // Queen
-      { -217,  -79,   40,  -23,    9, -63, -197 }  // King
+      {    0,    0,    0,    0,    0,   0,    0 }  // King
     },
 #endif
 #ifdef ATOMIC
@@ -175,7 +175,7 @@ namespace {
       {  -53, -143,   33,    0                 }, // Bishop
       {   73, -298,    3,   41,   0            }, // Rook
       { -141, -370,   56,   45, -79,   0       }, // Queen
-      {  246,  -40, -194,  178, -39,  74,  0   }  // King
+      {    0,    0,    0,    0,   0,   0,    0 }  // King
     },
 #endif
 #ifdef ATOMIC
@@ -326,18 +326,15 @@ namespace {
     int bonus = 0;
 
     // Second-degree polynomial material imbalance by Tord Romstad
-    PieceType pt_max;
+    PieceType pt_max =
 #ifdef ANTI
-    if (pos.is_anti())
-        pt_max = KING;
-    else
+                      pos.is_anti() ? KING :
 #endif
 #ifdef HORDE
-    if (pos.is_horde())
-        pt_max = KING;
-    else
+                      pos.is_horde() ? KING :
 #endif
-    pt_max = QUEEN;
+                      QUEEN;
+
     for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
     {
         if (!pieceCount[Us][pt1])
@@ -486,9 +483,9 @@ Entry* probe(const Position& pos) {
   // in defining bishop pair bonuses.
   const int PieceCount[COLOR_NB][PIECE_TYPE_NB] = {
   { pos.count<BISHOP>(WHITE) > 1, pos.count<PAWN>(WHITE), pos.count<KNIGHT>(WHITE),
-    pos.count<BISHOP>(WHITE)    , pos.count<ROOK>(WHITE), pos.count<QUEEN >(WHITE) },
+    pos.count<BISHOP>(WHITE)    , pos.count<ROOK>(WHITE), pos.count<QUEEN >(WHITE), pos.count<KING>(WHITE) },
   { pos.count<BISHOP>(BLACK) > 1, pos.count<PAWN>(BLACK), pos.count<KNIGHT>(BLACK),
-    pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK) } };
+    pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK), pos.count<KING>(BLACK) } };
 
   e->value = int16_t((imbalance<WHITE>(pos, PieceCount) - imbalance<BLACK>(pos, PieceCount)) / 16);
   return e;
