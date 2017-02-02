@@ -1366,21 +1366,21 @@ namespace {
 
 #ifdef ANTI
     if (pos.is_anti())
-        return make_score(TempoValue[pos.variant()][MG], TempoValue[pos.variant()][EG]);
+        return make_score(0, 0);
 #endif
     int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
     int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
-    int initiative = TempoValue[pos.variant()][EG] + 8 * (asymmetry + kingDistance - 15) + 12 * pawns;
+    int initiative = 8 * (asymmetry + kingDistance - 15) + 12 * pawns;
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
     // that the endgame score will never be divided by more than two.
     int value = ((eg > 0) - (eg < 0)) * std::max(initiative, -abs(eg / 2));
 
-    return make_score(TempoValue[pos.variant()][MG], value);
+    return make_score(0, value);
   }
 
 

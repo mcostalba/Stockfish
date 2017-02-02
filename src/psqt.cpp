@@ -52,36 +52,6 @@ Value PhaseLimit[VARIANT_NB][PHASE_NB] = {
   { MidgameLimit, EndgameLimit },
 #endif
 };
-Value TempoValue[VARIANT_NB][PHASE_NB] = {
-  { TempoMg, TempoEg },
-#ifdef ANTI
-  { TempoMgAnti, TempoEgAnti },
-#endif
-#ifdef ATOMIC
-  { TempoMgAtomic, TempoEgAtomic },
-#endif
-#ifdef CRAZYHOUSE
-  { TempoMgHouse, TempoEgHouse },
-#endif
-#ifdef HORDE
-  { TempoMgHorde, TempoEgHorde },
-#endif
-#ifdef KOTH
-  { TempoMg, TempoEg },
-#endif
-#ifdef LOSERS
-  { TempoMgLosers, TempoEgLosers },
-#endif
-#ifdef RACE
-  { TempoMgRace, TempoEgRace },
-#endif
-#ifdef RELAY
-  { TempoMgRelay, TempoEgRelay },
-#endif
-#ifdef THREECHECK
-  { TempoMgThreeCheck, TempoEgThreeCheck },
-#endif
-};
 Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 {
   { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
