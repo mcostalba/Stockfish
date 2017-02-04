@@ -603,7 +603,7 @@ inline bool Position::can_capture_losers() const {
       if (type_of(piece_on(s)) == KING)
       {
           while (attacked)
-              if (!(attackers_to(pop_lsb(&attacked)) & pieces(~sideToMove)))
+              if (!(attackers_to(pop_lsb(&attacked), pieces() ^ square<KING>(sideToMove)) & pieces(~sideToMove)))
                   return true;
       }
       // If we are in check, any legal capture has to remove the checking piece
