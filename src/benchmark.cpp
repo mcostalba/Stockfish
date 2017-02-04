@@ -206,7 +206,10 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #endif
 #ifdef LOSERS
   {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    "8/4P2p/2pk2p1/1p6/1B2P3/7N/3NKPPP/5B1R b - - 0 22",
+    "8/4P2p/2pk2p1/pp6/1B2P3/7N/3NKPPP/5B1R b - - 0 22",
+    "1k6/1b2p3/8/3P4/8/8/8/1R5K b - - 0 1",
+    "4k3/4p3/8/1r1P3K/B7/8/8/8 b - - 0 1"
   },
 #endif
 #ifdef RACE
@@ -386,7 +389,14 @@ void benchmark(const Position& current, istream& is) {
       limits.depth = stoi(limit);
 
   if (fenFile == "default")
+  {
       fens = Defaults[variant];
+      if (variant == LOSERS_VARIANT)
+      {
+          vector<string> chessFens = Defaults[CHESS_VARIANT];
+          fens.insert(fens.begin(), chessFens.begin(), chessFens.end());
+      }
+  }
 
   else if (fenFile == "current")
       fens.push_back(current.fen());
