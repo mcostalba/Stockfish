@@ -495,7 +495,7 @@ namespace {
     S( 7,  0),
 #endif
 #ifdef THREECHECK
-    S(15,  0),
+    S(15,  10),
 #endif
   };
   const Score PawnlessFlank       = S(20, 80);
