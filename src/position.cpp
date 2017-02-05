@@ -1777,7 +1777,7 @@ bool Position::see_ge(Move m, Value v) const {
   {
       stm = color_of(piece_on(from));
       if (capture(m))
-          return see<ATOMIC_VARIANT>(m) >= v;
+          return see<ATOMIC_VARIANT>(m) >= v + 1;
       else
       {
           if (v > VALUE_ZERO)
