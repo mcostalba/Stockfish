@@ -206,13 +206,13 @@ namespace {
     {
       //           THEIR PIECES
       // pair pawn knight bishop rook queen king
-      { 0                                      }, // Bishop pair
-      { 0,    0                                }, // Pawn
-      { 0,    0,   0                           }, // Knight      OUR PIECES
-      { 0,    0,   0,     0                    }, // Bishop
-      { 0,    0,   0,     0,     0             }, // Rook
-      { 0,    0,   0,     0,     0,   0        }, // Queen
-      { 0,    0,   0,     0,     0,   0,    0  }  // King
+      { 0                                       }, // Bishop pair
+      { 0,     0                                }, // Pawn
+      { 0,     0,     0                         }, // Knight      OUR PIECES
+      { 0,     0,     0,     0                  }, // Bishop
+      { 0,     0,     0,     0,     0           }, // Rook
+      { 0,     0,     0,     0,     0,    0     }, // Queen
+      { 0,  -789,  -872,   -19,  -416, -594,  0 }  // King
     },
 #endif
 #ifdef KOTH
