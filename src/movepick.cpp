@@ -139,6 +139,12 @@ void MovePicker::score<CAPTURES>() {
                    - Value(50 * relative_rank(pos.side_to_move(), to_sq(m)));
       else
 #endif
+#ifdef ATOMIC
+      if (pos.is_atomic())
+          m.value = pos.see<ATOMIC_VARIANT>(m)
+                   - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
+      else
+#endif
 #ifdef CRAZYHOUSE
       if (pos.is_house())
           m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
