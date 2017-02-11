@@ -955,6 +955,11 @@ bool Position::pseudo_legal(const Move m) const {
       return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      assert(promotion_type(m) - KNIGHT == 1);
+  else
+#endif
   if (promotion_type(m) - KNIGHT != NO_PIECE_TYPE)
       return false;
 
