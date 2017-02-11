@@ -584,8 +584,9 @@ inline bool Position::is_losers_win() const {
 
 inline bool Position::can_capture_losers() const {
   // En passent captures
-  if (ep_square() != SQ_NONE && !checkers())
-      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+  if (ep_square() != SQ_NONE
+      && (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+      && !(checkers() - (ep_square() + (sideToMove == WHITE ? SOUTH : NORTH))))
           return true;
   Bitboard b = pieces(sideToMove);
   // Double check forces the king to move
