@@ -219,11 +219,15 @@ enum MoveType {
   PROMOTION = 1 << 14,
   ENPASSANT = 2 << 14,
   CASTLING  = 3 << 14,
-#ifdef ANTI
-  KING_PROMOTION = 2 << 12,
+  // special moves use promotion piece type bits as flags
+#if defined(ANTI) || defined(CRAZYHOUSE)
+  SPECIAL = ENPASSANT,
 #endif
 #ifdef CRAZYHOUSE
   DROP = 1 << 12,
+#endif
+#ifdef ANTI
+  KING_PROMOTION = 2 << 12, // not used as an actual move type
 #endif
 };
 
@@ -599,20 +603,25 @@ inline Square to_sq(Move m) {
 }
 
 inline MoveType type_of(Move m) {
-#ifdef ANTI
-  if ((m & (3 << 12)) == KING_PROMOTION && (m & (3 << 14)) == NORMAL)
-      return PROMOTION;
-#endif
+#if defined(ANTI) || defined(CRAZYHOUSE)
+  if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)))
+  {
 #ifdef CRAZYHOUSE
-  if ((m & (3 << 12)) == DROP && (m & (3 << 14)) == NORMAL)
-      return DROP;
+      if ((m & (3 << 12)) == DROP)
+          return DROP;
+#endif
+#ifdef ANTI
+      if ((m & (3 << 12)) == KING_PROMOTION)
+          return PROMOTION;
+#endif
+  }
 #endif
   return MoveType(m & (3 << 14));
 }
 
 inline PieceType promotion_type(Move m) {
 #ifdef ANTI
-  if ((m & (3 << 12)) == KING_PROMOTION && (m & (3 << 14)) == NORMAL)
+  if ((m & (3 << 12)) == KING_PROMOTION && (m & (3 << 14)) == SPECIAL)
       return KING;
 #endif
   return PieceType(((m >> 12) & 3) + KNIGHT);
@@ -626,14 +635,14 @@ template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 #ifdef ANTI
   if (pt == KING)
-      return Move(KING_PROMOTION + (from << 6) + to);
+      return Move(SPECIAL + KING_PROMOTION + (from << 6) + to);
 #endif
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
 
 #ifdef CRAZYHOUSE
 inline Move make_drop(Square to, Piece pc) {
-  return Move(DROP + (pc << 6) + to);
+  return Move(SPECIAL + DROP + (pc << 6) + to);
 }
 
 inline Piece dropped_piece(Move m) {
