@@ -140,6 +140,7 @@ namespace {
     return Value(d * d + 2 * d - 2);
   }
 
+#ifdef SKILL
   // Skill structure is used to implement strength limit
   struct Skill {
     Skill(int l) : level(l) {}
@@ -151,6 +152,7 @@ namespace {
     int level;
     Move best = MOVE_NONE;
   };
+#endif
 
   // EasyMoveManager structure is used to detect an 'easy move'. When the PV is
   // stable across multiple search iterations, we can quickly return the best move.
@@ -378,7 +380,9 @@ void MainThread::search() {
   if (   !this->easyMovePlayed
       &&  Options["MultiPV"] == 1
       && !Limits.depth
+#ifdef SKILL
       && !Skill(Options["Skill Level"]).enabled()
+#endif
       &&  rootMoves[0].pv[0] != MOVE_NONE)
   {
       for (Thread* th : Threads)
@@ -482,12 +486,14 @@ void Thread::search() {
   }
 
   size_t multiPV = Options["MultiPV"];
+#ifdef SKILL
   Skill skill(Options["Skill Level"]);
 
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
   if (skill.enabled())
       multiPV = std::max(multiPV, (size_t)4);
+#endif
 
   multiPV = std::min(multiPV, rootMoves.size());
 
@@ -596,9 +602,11 @@ void Thread::search() {
       if (!mainThread)
           continue;
 
+#ifdef SKILL
       // If skill level is enabled and time is up, pick a sub-optimal best move
       if (skill.enabled() && skill.time_to_pick(rootDepth))
           skill.pick_best(multiPV);
+#endif
 
       // Have we found a "mate in x"?
       if (   Limits.mate
@@ -652,10 +660,12 @@ void Thread::search() {
   if (EasyMove.stableCnt < 6 || mainThread->easyMovePlayed)
       EasyMove.clear();
 
+#ifdef SKILL
   // If skill level is enabled, swap best PV line with the sub-optimal one
   if (skill.enabled())
       std::swap(rootMoves[0], *std::find(rootMoves.begin(),
                 rootMoves.end(), skill.best_move(multiPV)));
+#endif
 }
 
 
@@ -1672,7 +1682,7 @@ moves_loop: // When in check search starts from here
     }
   }
 
-
+#ifdef SKILL
   // When playing with strength handicap, choose best move among a set of RootMoves
   // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 
@@ -1705,6 +1715,7 @@ moves_loop: // When in check search starts from here
 
     return best;
   }
+#endif
 
 
   // check_time() is used to print debug info and, more importantly, to detect
