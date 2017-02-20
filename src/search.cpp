@@ -1075,8 +1075,8 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
       if (    pos.is_anti()
           && !moveCountPruning
-          && (pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move()))
-          && !pos.capture(move))
+          && pos.capture(move)
+          && MoveList<LEGAL>(pos).size() == 1)
           extension = ONE_PLY;
 #endif
 
