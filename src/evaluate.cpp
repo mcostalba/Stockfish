@@ -772,7 +772,8 @@ namespace {
         // Find the attacked squares which are defended only by our king...
 #ifdef ATOMIC
         if (pos.is_atomic())
-            undefended =   ei.attackedBy[Them][ALL_PIECES]
+            undefended =   (ei.attackedBy[Them][ALL_PIECES]
+                            | (pos.pieces(Them) ^ pos.pieces(Them, KING)))
                         &  ei.attackedBy[Us][KING];
         else
 #endif
