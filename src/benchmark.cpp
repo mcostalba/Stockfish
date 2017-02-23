@@ -391,11 +391,13 @@ void benchmark(const Position& current, istream& is) {
   if (fenFile == "default")
   {
       fens = Defaults[variant];
+#ifdef LOSERS
       if (variant == LOSERS_VARIANT)
       {
           vector<string> chessFens = Defaults[CHESS_VARIANT];
           fens.insert(fens.begin(), chessFens.begin(), chessFens.end());
       }
+#endif
   }
 
   else if (fenFile == "current")
