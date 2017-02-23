@@ -131,7 +131,7 @@ namespace {
   { 256, 200 },
 #endif
 #ifdef ATOMIC
-  { 256, 200 },
+  { 512, 400 },
 #endif
 #ifdef CRAZYHOUSE
   { 256, 200 },
