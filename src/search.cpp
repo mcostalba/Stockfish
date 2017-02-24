@@ -155,6 +155,36 @@ namespace {
   { 256, 200 },
 #endif
   };
+  const int probcut_margin[VARIANT_NB] = {
+  200,
+#ifdef ANTI
+  200,
+#endif
+#ifdef ATOMIC
+  200,
+#endif
+#ifdef CRAZYHOUSE
+  200,
+#endif
+#ifdef HORDE
+  200,
+#endif
+#ifdef KOTH
+  200,
+#endif
+#ifdef LOSERS
+  200,
+#endif
+#ifdef RACE
+  200,
+#endif
+#ifdef RELAY
+  200,
+#endif
+#ifdef THREECHECK
+  200,
+#endif
+  };
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16]; // [improving][depth]
@@ -976,7 +1006,7 @@ namespace {
         &&  depth >= 5 * ONE_PLY
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
-        Value rbeta = std::min(beta + 200, VALUE_INFINITE);
+        Value rbeta = std::min(beta + probcut_margin[pos.variant()], VALUE_INFINITE);
         Depth rdepth = depth - 4 * ONE_PLY;
 
         assert(rdepth >= ONE_PLY);
