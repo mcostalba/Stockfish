@@ -637,13 +637,13 @@ namespace {
 
         mobility[Us] += MobilityBonus[pos.variant()][Pt][mob];
 
-        // Bonus for this piece as a king protector
-        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
-
 #ifdef ANTI
         if (pos.is_anti())
             continue;
 #endif
+        // Bonus for this piece as a king protector
+        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
+
         if (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus for outpost squares
