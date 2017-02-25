@@ -778,10 +778,6 @@ void init() {
           PieceValue[var][EG][~pc] = PieceValue[var][EG][pc];
 
           Score v = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
-#ifdef ANTI
-          if (var == ANTI_VARIANT)
-              v = -v;
-#endif
 
           for (Square s = SQ_A1; s <= SQ_H8; ++s)
           {
