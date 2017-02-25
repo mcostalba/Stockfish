@@ -588,6 +588,12 @@ inline Square pawn_push(Color c) {
   return c == WHITE ? NORTH : SOUTH;
 }
 
+#ifdef RACE
+inline Square horizontal_flip(Square s) {
+  return Square(s ^ SQ_H1); // Horizontal flip SQ_A1 -> SQ_H1
+}
+#endif
+
 inline MoveType type_of(Move m);
 
 inline Square from_sq(Move m) {

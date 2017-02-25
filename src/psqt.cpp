@@ -782,7 +782,17 @@ void init() {
           for (Square s = SQ_A1; s <= SQ_H8; ++s)
           {
               File f = std::min(file_of(s), FILE_H - file_of(s));
+#ifdef RACE
+              if (var == RACE_VARIANT)
+                  psq[var][ pc][ s] = v + Bonus[var][pc][rank_of(~s)][f] + make_score(10 * rank_of(s), 10 * rank_of(s));
+              else
+#endif
               psq[var][ pc][ s] = v + Bonus[var][pc][rank_of(s)][f];
+#ifdef RACE
+              if (var == RACE_VARIANT)
+                  psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
+              else
+#endif
               psq[var][~pc][~s] = -psq[var][pc][s];
           }
 #ifdef CRAZYHOUSE
