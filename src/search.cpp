@@ -82,7 +82,7 @@ namespace {
   { 483, 570, 603, 554 },
 #endif
 #ifdef LOSERS
-  { 1932, 2280, 2412, 2216 },
+  { 1981, 2335, 2351, 2142 },
 #endif
 #ifdef RACE
   { 1017, 986, 1017, 990 },
@@ -112,7 +112,7 @@ namespace {
   150,
 #endif
 #ifdef LOSERS
-  600,
+  593,
 #endif
 #ifdef RACE
   365,
@@ -143,7 +143,7 @@ namespace {
   { 256, 200 },
 #endif
 #ifdef LOSERS
-  { 256, 200 },
+  { 299, 281 },
 #endif
 #ifdef RACE
   { 256, 200 },
