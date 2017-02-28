@@ -758,7 +758,7 @@ const Score Bonus[VARIANT_NB][PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
 #ifdef CRAZYHOUSE
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
 const Score inHandBonus[PIECE_TYPE_NB] = {
-    S(0, 0), S(47, 16), S(44, 30), S(12, 5), S(11, 0), S(26, 7)
+    S(0, 0), S(52, 12), S(56, 32), S(4, 4), S(13, 3), S(25, 10)
 };
 #else
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
