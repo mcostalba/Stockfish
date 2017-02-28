@@ -422,6 +422,15 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = pos.attacks_from<KING>(ksq) & target;
+#ifdef RACE
+        if (pos.is_race())
+        {
+            if (Type == CAPTURES)
+                b |= pos.attacks_from<KING>(ksq) & passed_pawn_mask(WHITE, ksq) & ~pos.pieces();
+            if (Type == QUIETS)
+                b &= ~passed_pawn_mask(WHITE, ksq);
+        }
+#endif
 #ifdef RELAY
         if (pos.is_relay())
         {
