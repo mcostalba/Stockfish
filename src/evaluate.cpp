@@ -641,6 +641,9 @@ namespace {
         if (pos.is_anti())
             continue;
 #endif
+#ifdef HORDE
+        if (pos.is_horde() && pos.is_horde_color(Us)) {} else
+#endif
         // Bonus for this piece as a king protector
         score += Protector[Pt][distance(s, pos.square<KING>(Us))];
 
