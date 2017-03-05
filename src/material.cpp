@@ -153,6 +153,18 @@ namespace {
     },
 #endif
   };
+#ifdef CRAZYHOUSE
+  const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+      //            OUR PIECES
+      // pair pawn knight bishop rook queen
+      {  11                               }, // Bishop pair
+      { -49,  -27                         }, // Pawn
+      {  13,  -20,  10                    }, // Knight      OUR PIECES
+      { -15,   -4,  42,   -15             }, // Bishop
+      {  50,  -15,  10,     0,    25      }, // Rook
+      {  30,   50,  15,    19,    16,  -9 }  // Queen
+  };
+#endif
 
   const int QuadraticTheirs[VARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
     {
@@ -276,6 +288,18 @@ namespace {
     },
 #endif
   };
+#ifdef CRAZYHOUSE
+  const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+      //           THEIR PIECES
+      // pair pawn knight bishop rook queen
+      { -12                               }, // Bishop pair
+      {  13,   -3                         }, // Pawn
+      {  20,   33,   0                    }, // Knight      OUR PIECES
+      {  15,   12, -25,   -30             }, // Bishop
+      {  27,    2, -37,    -1,   -10      }, // Rook
+      {  23,  -14, -25,   -11,   -15, -10 }  // Queen
+  };
+#endif
 
   // PawnsSet[count] contains a bonus/malus indexed by number of pawns
   const int PawnsSet[FILE_NB + 1] = {
@@ -324,7 +348,12 @@ namespace {
   /// imbalance() calculates the imbalance by comparing the piece count of each
   /// piece type for both colors.
   template<Color Us>
+#ifdef CRAZYHOUSE
+  int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB],
+                const int pieceCountInHand[][PIECE_TYPE_NB]) {
+#else
   int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB]) {
+#endif
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -348,8 +377,14 @@ namespace {
         int v = 0;
 
         for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+        {
             v +=  QuadraticOurs[pos.variant()][pt1][pt2] * pieceCount[Us][pt2]
                 + QuadraticTheirs[pos.variant()][pt1][pt2] * pieceCount[Them][pt2];
+#ifdef CRAZYHOUSE
+            v +=  QuadraticOursInHand[pt1][pt2] * pieceCountInHand[Us][pt2]
+                + QuadraticTheirsInHand[pt1][pt2] * pieceCountInHand[Them][pt2];
+#endif
+        }
 
         bonus += pieceCount[Us][pt1] * v;
     }
@@ -491,8 +526,17 @@ Entry* probe(const Position& pos) {
     pos.count<BISHOP>(WHITE)    , pos.count<ROOK>(WHITE), pos.count<QUEEN >(WHITE), pos.count<KING>(WHITE) },
   { pos.count<BISHOP>(BLACK) > 1, pos.count<PAWN>(BLACK), pos.count<KNIGHT>(BLACK),
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK), pos.count<KING>(BLACK) } };
+#ifdef CRAZYHOUSE
+  const int PieceCountInHand[COLOR_NB][PIECE_TYPE_NB] = {
+  { pos.count_in_hand<BISHOP>(WHITE) > 1, pos.count_in_hand<PAWN>(WHITE), pos.count_in_hand<KNIGHT>(WHITE),
+    pos.count_in_hand<BISHOP>(WHITE)    , pos.count_in_hand<ROOK>(WHITE), pos.count_in_hand<QUEEN >(WHITE), pos.count_in_hand<KING>(WHITE) },
+  { pos.count_in_hand<BISHOP>(BLACK) > 1, pos.count_in_hand<PAWN>(BLACK), pos.count_in_hand<KNIGHT>(BLACK),
+    pos.count_in_hand<BISHOP>(BLACK)    , pos.count_in_hand<ROOK>(BLACK), pos.count_in_hand<QUEEN >(BLACK), pos.count_in_hand<KING>(BLACK) } };
 
+  e->value = int16_t((imbalance<WHITE>(pos, PieceCount, PieceCountInHand) - imbalance<BLACK>(pos, PieceCount, PieceCountInHand)) / 16);
+#else
   e->value = int16_t((imbalance<WHITE>(pos, PieceCount) - imbalance<BLACK>(pos, PieceCount)) / 16);
+#endif
   return e;
 }
 
