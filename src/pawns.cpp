@@ -128,7 +128,7 @@ namespace {
   };
 
   // Connected pawn bonus by opposed, phalanx, twice supported and rank
-  Score Connected[2][2][2][RANK_NB];
+  Score Connected[VARIANT_NB][2][2][2][RANK_NB];
 
   // Doubled pawn penalty
   const Score Doubled[VARIANT_NB] = {
@@ -368,7 +368,7 @@ namespace {
         if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
 #endif
         if (connected)
-            score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
+            score += Connected[pos.variant()][opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
         if (doubled)
             score -= Doubled[pos.variant()];
@@ -390,16 +390,46 @@ namespace Pawns {
 
 void init() {
 
-  static const int Seed[RANK_NB] = { 0, 8, 19, 13, 71, 94, 169, 324 };
+  static const int Seed[VARIANT_NB][RANK_NB] = {
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#ifdef ANTI
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef ATOMIC
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef CRAZYHOUSE
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef HORDE
+    { 36, 28, 3, 1, 115, 107, 321, 332 },
+#endif
+#ifdef KOTH
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef LOSERS
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef RACE
+    {},
+#endif
+#ifdef RELAY
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef THREECHECK
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+  };
 
+  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
   for (int opposed = 0; opposed <= 1; ++opposed)
       for (int phalanx = 0; phalanx <= 1; ++phalanx)
           for (int apex = 0; apex <= 1; ++apex)
               for (Rank r = RANK_2; r < RANK_8; ++r)
   {
-      int v = (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;
+      int v = (Seed[var][r] + (phalanx ? (Seed[var][r + 1] - Seed[var][r]) / 2 : 0)) >> opposed;
       v += (apex ? v / 2 : 0);
-      Connected[opposed][phalanx][apex][r] = make_score(v, v * (r-2) / 4);
+      Connected[var][opposed][phalanx][apex][r] = make_score(v, v * (r-2) / 4);
   }
 }
 
