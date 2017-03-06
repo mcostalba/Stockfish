@@ -624,6 +624,11 @@ namespace {
             mob = popcount(b);
 #endif
 
+#ifdef RACE
+        if (pos.is_race())
+            mobility[Us] += MobilityBonus[pos.variant()][Pt-2][mob] * 2;
+        else
+#endif
         mobility[Us] += MobilityBonus[pos.variant()][Pt-2][mob];
 
 #ifdef ANTI
