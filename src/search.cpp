@@ -85,7 +85,7 @@ namespace {
   { 1981, 2335, 2351, 2142 },
 #endif
 #ifdef RACE
-  { 1017, 986, 1017, 990 },
+  { 1043, 1016, 1004, 1012 },
 #endif
 #ifdef RELAY
   { 483, 570, 603, 554 },
@@ -115,7 +115,7 @@ namespace {
   593,
 #endif
 #ifdef RACE
-  365,
+  336,
 #endif
 #ifdef RELAY
   150,
@@ -146,13 +146,43 @@ namespace {
   { 299, 281 },
 #endif
 #ifdef RACE
-  { 256, 200 },
+  { 305, 311 },
 #endif
 #ifdef RELAY
   { 256, 200 },
 #endif
 #ifdef THREECHECK
   { 256, 200 },
+#endif
+  };
+  const int probcut_margin[VARIANT_NB] = {
+  200,
+#ifdef ANTI
+  200,
+#endif
+#ifdef ATOMIC
+  200,
+#endif
+#ifdef CRAZYHOUSE
+  200,
+#endif
+#ifdef HORDE
+  200,
+#endif
+#ifdef KOTH
+  200,
+#endif
+#ifdef LOSERS
+  200,
+#endif
+#ifdef RACE
+  235,
+#endif
+#ifdef RELAY
+  200,
+#endif
+#ifdef THREECHECK
+  200,
 #endif
   };
 
@@ -976,7 +1006,7 @@ namespace {
         &&  depth >= 5 * ONE_PLY
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
-        Value rbeta = std::min(beta + 200, VALUE_INFINITE);
+        Value rbeta = std::min(beta + probcut_margin[pos.variant()], VALUE_INFINITE);
         Depth rdepth = depth - 4 * ONE_PLY;
 
         assert(rdepth >= ONE_PLY);
