@@ -1155,8 +1155,9 @@ moves_loop: // When in check search starts from here
 #endif
 #ifdef HORDE
               && (pos.is_horde() || !pos.advanced_pawn_push(move))
+              && (pos.is_horde() || !pos.advanced_pawn_push(move) || pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) >= 5000)
 #else
-              && !pos.advanced_pawn_push(move)
+              && (!pos.advanced_pawn_push(move) || pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) >= 5000)
 #endif
           )
           {

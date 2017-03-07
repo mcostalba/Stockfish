@@ -115,11 +115,10 @@ namespace {
   #define V(v) Value(v)
   #define S(mg, eg) make_score(mg, eg)
 
-  // MobilityBonus[PieceType][attacked] contains bonuses for middle and end game,
+  // MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
   // indexed by piece type and number of attacked squares in the mobility area.
-  const Score MobilityBonus[VARIANT_NB][PIECE_TYPE_NB][32] = {
+  const Score MobilityBonus[VARIANT_NB][4][32] = {
     {
-    {}, {},
     { S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12), // Knights
       S( 22, 26), S( 29, 29), S( 36, 29) },
     { S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42), // Bishops
@@ -136,7 +135,6 @@ namespace {
     },
 #ifdef ANTI
     {
-      {}, {},
       { S(-150,-152), S(-112,-108), S(-18,-52), S( -4,-20), S( 12, 10), S( 30, 22), // Knights
         S(  44,  52), S(  60,  56), S( 72, 58) },
       { S(-96,-116), S(-42,-38), S( 32, -4), S( 52, 24), S( 74, 44), S(102, 84), // Bishops
@@ -154,7 +152,6 @@ namespace {
 #endif
 #ifdef ATOMIC
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -172,7 +169,6 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
     {
-      {}, {},
       { S(-115,-112), S(-94,-51), S(-90,-24), S(-38, -5), S(  6,  5), S( 15, 11), // Knights
         S(  22,  26), S( 30, 28), S( 36, 29) },
       { S(-150, -63), S(-91,-41), S( 16, -8), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -190,7 +186,6 @@ namespace {
 #endif
 #ifdef HORDE
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -208,7 +203,6 @@ namespace {
 #endif
 #ifdef KOTH
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -226,7 +220,6 @@ namespace {
 #endif
 #ifdef LOSERS
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -244,7 +237,6 @@ namespace {
 #endif
 #ifdef RACE
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -262,7 +254,6 @@ namespace {
 #endif
 #ifdef RELAY
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -280,7 +271,6 @@ namespace {
 #endif
 #ifdef THREECHECK
     {
-      {}, {},
       { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
         S( 22, 26), S( 30, 28), S( 36, 29) },
       { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
@@ -461,10 +451,9 @@ namespace {
     S(-20,-12), S( 1, -8), S( 2, 10), S(  9, 10)
   };
   
-  // Protector[PieceType][distance] contains a protecting bonus for our king,
+  // Protector[PieceType-2][distance] contains a protecting bonus for our king,
   // indexed by piece type and distance between the piece and the king.
-  const Score Protector[PIECE_TYPE_NB][8] = {
-    {}, {},
+  const Score Protector[4][8] = {
     { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
     { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
     { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
@@ -635,7 +624,7 @@ namespace {
             mob = popcount(b);
 #endif
 
-        mobility[Us] += MobilityBonus[pos.variant()][Pt][mob];
+        mobility[Us] += MobilityBonus[pos.variant()][Pt-2][mob];
 
 #ifdef ANTI
         if (pos.is_anti())
@@ -645,7 +634,7 @@ namespace {
         if (pos.is_horde() && pos.is_horde_color(Us)) {} else
 #endif
         // Bonus for this piece as a king protector
-        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
+        score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
