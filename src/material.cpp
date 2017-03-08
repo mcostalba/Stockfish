@@ -375,19 +375,28 @@ namespace {
             continue;
 
         int v = 0;
-
         for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
         {
             v +=  QuadraticOurs[pos.variant()][pt1][pt2] * pieceCount[Us][pt2]
                 + QuadraticTheirs[pos.variant()][pt1][pt2] * pieceCount[Them][pt2];
-#ifdef CRAZYHOUSE
-            v +=  QuadraticOursInHand[pt1][pt2] * pieceCountInHand[Us][pt2]
-                + QuadraticTheirsInHand[pt1][pt2] * pieceCountInHand[Them][pt2];
-#endif
         }
-
         bonus += pieceCount[Us][pt1] * v;
     }
+#ifdef CRAZYHOUSE
+    for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
+    {
+        if (!pieceCountInHand[Us][pt1])
+            continue;
+
+        int v = 0;
+        for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+        {
+            v +=  QuadraticOursInHand[pt1][pt2] * pieceCountInHand[Us][pt2]
+                + QuadraticTheirsInHand[pt1][pt2] * pieceCountInHand[Them][pt2];
+        }
+        bonus += pieceCountInHand[Us][pt1] * v;
+    }
+#endif
 
     return bonus;
   }
