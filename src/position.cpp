@@ -610,7 +610,7 @@ void Position::set_state(StateInfo* si) const {
 
 
 /// Position::set() is an overload to initialize the position object with
-/// the given endgame code string like "KBPvKN". It is mainly an helper to
+/// the given endgame code string like "KBPvKN". It is mainly a helper to
 /// get the material key out of an endgame code. Position is not playable,
 /// indeed is even not guaranteed to be legal.
 
