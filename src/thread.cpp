@@ -55,7 +55,7 @@ Thread::Thread() {
   // default. Explicitly set a sufficient stack size.
   pthread_attr_t attr;
   pthread_attr_init(&attr);
-  pthread_attr_setstacksize(&attr, 2048 * MAX_MOVES);
+  pthread_attr_setstacksize(&attr, 4048 * MAX_MOVES);
   pthread_create(&nativeThread, &attr, run_idle_loop, this);
 #endif
   sleepCondition.wait(lk, [&]{ return !searching; });
