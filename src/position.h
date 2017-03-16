@@ -156,8 +156,6 @@ public:
   Value see(Move m) const;
 #endif
   bool see_ge(Move m, Value value) const;
-  template<Variant V>
-  bool see_ge_variant(Move m, Value value) const;
 
   // Accessing hash keys
   Key key() const;

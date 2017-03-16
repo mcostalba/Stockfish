@@ -1753,16 +1753,6 @@ Value Position::see<ATOMIC_VARIANT>(Move m) const {
 
 bool Position::see_ge(Move m, Value v) const {
 
-#ifdef ANTI
-  if (is_anti())
-      return see_ge_variant<ANTI_VARIANT>(m, v);
-#endif
-  return see_ge_variant<CHESS_VARIANT>(m, v);
-}
-
-template<Variant V>
-bool Position::see_ge_variant(Move m, Value v) const {
-
   assert(is_ok(m));
 #ifdef CRAZYHOUSE
   if (is_house())
@@ -1845,7 +1835,7 @@ bool Position::see_ge_variant(Move m, Value v) const {
       return false;
 
 #ifdef ANTI
-  if (V == ANTI_VARIANT) {} else
+  if (is_anti()) {} else
 #endif
   if (nextVictim == KING)
       return true;
@@ -1881,7 +1871,7 @@ bool Position::see_ge_variant(Move m, Value v) const {
 
       // Locate and remove the next least valuable attacker
 #ifdef ANTI
-      if (V == ANTI_VARIANT) // Antichess: QUEEN-ROOK-BISHOP-KNIGHT-PAWN-KING
+      if (is_anti()) // Antichess: QUEEN-ROOK-BISHOP-KNIGHT-PAWN-KING
           nextVictim = min_attacker_anti<QUEEN>(byTypeBB, to, stmAttackers, occupied, attackers);
       else
 #endif
@@ -1889,7 +1879,7 @@ bool Position::see_ge_variant(Move m, Value v) const {
 
       // Don't allow pinned pieces to attack pieces except the king
 #ifdef ANTI
-      if (V == ANTI_VARIANT) {} else
+      if (is_anti()) {} else
 #endif
       if (nextVictim == KING)
           return relativeStm == bool(attackers & pieces(~stm));
