@@ -540,6 +540,11 @@ namespace {
 
     // Squares occupied by those pawns, by our king, or controlled by enemy pawns
     // are excluded from the mobility area.
+#ifdef ANTI
+    if (pos.is_anti())
+        ei.mobilityArea[Us] = ~0;
+    else
+#endif
     ei.mobilityArea[Us] = ~(b | pos.square<KING>(Us) | ei.pe->pawn_attacks(Them));
 
     // Initialise the attack bitboards with the king and pawn information
@@ -619,10 +624,6 @@ namespace {
         }
 
         int mob = popcount(b & ei.mobilityArea[Us]);
-#ifdef ANTI
-        if (pos.is_anti())
-            mob = popcount(b);
-#endif
 
         mobility[Us] += MobilityBonus[pos.variant()][Pt-2][mob];
 
