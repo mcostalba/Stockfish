@@ -76,7 +76,7 @@ namespace {
   { 475, 590, 651, 622 },
 #endif
 #ifdef HORDE
-  { 483, 570, 603, 554 },
+  { 464, 706, 625, 555 },
 #endif
 #ifdef KOTH
   { 483, 570, 603, 554 },
@@ -106,7 +106,7 @@ namespace {
   125,
 #endif
 #ifdef HORDE
-  150,
+  151,
 #endif
 #ifdef KOTH
   150,
@@ -137,7 +137,7 @@ namespace {
   { 256, 200 },
 #endif
 #ifdef HORDE
-  { 256, 200 },
+  { 261, 162 },
 #endif
 #ifdef KOTH
   { 256, 200 },
@@ -167,7 +167,7 @@ namespace {
   200,
 #endif
 #ifdef HORDE
-  200,
+  153,
 #endif
 #ifdef KOTH
   200,
