@@ -36,7 +36,7 @@ namespace {
     //            OUR PIECES
     // pair pawn knight bishop rook queen
     {1667                               }, // Bishop pair
-    {  40,    2                         }, // Pawn
+    {  40,    0                         }, // Pawn
     {  32,  255,  -3                    }, // Knight      OUR PIECES
     {   0,  104,   4,    0              }, // Bishop
     { -26,   -2,  47,   105,  -149      }, // Rook
@@ -277,6 +277,11 @@ namespace {
 #endif
   };
 
+  // PawnsSet[count] contains a bonus/malus indexed by number of pawns
+  const int PawnsSet[9] = { 
+     24, -32, 107, -51, 117, -9, -126, -21, 31
+  };
+
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
   Endgame<CHESS_VARIANT, KXK>    EvaluateKXK[] = { Endgame<CHESS_VARIANT, KXK>(WHITE),    Endgame<CHESS_VARIANT, KXK>(BLACK) };
@@ -323,7 +328,7 @@ namespace {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    int bonus = 0;
+    int bonus = PawnsSet[pieceCount[Us][PAWN]];
 
     // Second-degree polynomial material imbalance by Tord Romstad
     PieceType pt_max =
