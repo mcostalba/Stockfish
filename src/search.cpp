@@ -79,7 +79,7 @@ namespace {
   { 464, 706, 625, 555 },
 #endif
 #ifdef KOTH
-  { 483, 570, 603, 554 },
+  { 524, 587, 676, 582 },
 #endif
 #ifdef LOSERS
   { 1981, 2335, 2351, 2142 },
@@ -109,7 +109,7 @@ namespace {
   151,
 #endif
 #ifdef KOTH
-  150,
+  192,
 #endif
 #ifdef LOSERS
   593,
@@ -140,7 +140,7 @@ namespace {
   { 261, 162 },
 #endif
 #ifdef KOTH
-  { 256, 200 },
+  { 418, 305 },
 #endif
 #ifdef LOSERS
   { 299, 281 },
@@ -170,7 +170,7 @@ namespace {
   153,
 #endif
 #ifdef KOTH
-  200,
+  324,
 #endif
 #ifdef LOSERS
   200,
