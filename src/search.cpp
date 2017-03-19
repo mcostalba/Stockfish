@@ -95,7 +95,7 @@ namespace {
   { 483, 570, 603, 554 },
 #endif
 #ifdef THREECHECK
-  { 2000, 2000, 2000, 2000 },
+  { 1989, 1919, 2092, 2102 },
 #endif
   };
   const int futility_margin_factor[VARIANT_NB] = {
@@ -125,7 +125,7 @@ namespace {
   150,
 #endif
 #ifdef THREECHECK
-  300,
+  265,
 #endif
   };
   Value futility_margin(Variant var, Depth d) { return Value(futility_margin_factor[var] * d / ONE_PLY); }
@@ -156,7 +156,7 @@ namespace {
   { 256, 200 },
 #endif
 #ifdef THREECHECK
-  { 256, 200 },
+  { 356, 291 },
 #endif
   };
   const int probcut_margin[VARIANT_NB] = {
@@ -186,7 +186,7 @@ namespace {
   200,
 #endif
 #ifdef THREECHECK
-  200,
+  379,
 #endif
   };
 
