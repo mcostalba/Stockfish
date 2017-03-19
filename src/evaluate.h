@@ -64,8 +64,6 @@ std::string trace(const Position& pos);
 
 template<bool DoTrace = false>
 Value evaluate(const Position& pos);
-template<Variant V, bool DoTrace = false>
-Value evaluate_variant(const Position& pos);
 }
 
 #endif // #ifndef EVALUATE_H_INCLUDED
