@@ -527,7 +527,7 @@ namespace {
   // eval_init() initializes king and attack bitboards for a given color
   // adding pawn attacks. To be done at the beginning of the evaluation.
 
-  template<Color Us>
+  template<Variant V, Color Us>
   void eval_init(const Position& pos, EvalInfo& ei) {
 
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
@@ -541,7 +541,7 @@ namespace {
     // Squares occupied by those pawns, by our king, or controlled by enemy pawns
     // are excluded from the mobility area.
 #ifdef ANTI
-    if (pos.is_anti())
+    if (V == ANTI_VARIANT)
         ei.mobilityArea[Us] = ~0;
     else
 #endif
@@ -549,7 +549,7 @@ namespace {
 
     // Initialise the attack bitboards with the king and pawn information
 #ifdef ANTI
-    if (pos.is_anti())
+    if (V == ANTI_VARIANT)
     {
         ei.attackedBy[Us][KING] = 0;
         Bitboard kings = pos.pieces(Us, KING);
@@ -568,11 +568,11 @@ namespace {
     // Init our king safety tables only if we are going to use them
     if ((
 #ifdef ANTI
-        !pos.is_anti() &&
+        V != ANTI_VARIANT &&
 #endif
         (pos.non_pawn_material(Them) >= QueenValueMg))
 #ifdef CRAZYHOUSE
-        || pos.is_house()
+        || V == CRAZYHOUSE_VARIANT
 #endif
     )
     {
@@ -588,7 +588,7 @@ namespace {
   // evaluate_pieces() assigns bonuses and penalties to the pieces of a given
   // color and type.
 
-  template<bool DoTrace, Color Us = WHITE, PieceType Pt = KNIGHT>
+  template<Variant V, bool DoTrace, Color Us = WHITE, PieceType Pt = KNIGHT>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility) {
 
     const PieceType NextPt = (Us == WHITE ? Pt : PieceType(Pt + 1));
@@ -628,11 +628,11 @@ namespace {
         mobility[Us] += MobilityBonus[pos.variant()][Pt-2][mob];
 
 #ifdef ANTI
-        if (pos.is_anti())
+        if (V == ANTI_VARIANT)
             continue;
 #endif
 #ifdef HORDE
-        if (pos.is_horde() && pos.is_horde_color(Us)) {} else
+        if (V == HORDE_VARIANT && pos.is_horde_color(Us)) {} else
 #endif
         // Bonus for this piece as a king protector
         score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
@@ -708,13 +708,67 @@ namespace {
         Trace::add(Pt, Us, score);
 
     // Recursively call evaluate_pieces() of next piece type until KING is excluded
-    return score - evaluate_pieces<DoTrace, Them, NextPt>(pos, ei, mobility);
+    return score - evaluate_pieces<V, DoTrace, Them, NextPt>(pos, ei, mobility);
   }
 
   template<>
-  Score evaluate_pieces<false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  Score evaluate_pieces<CHESS_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
   template<>
-  Score evaluate_pieces< true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  Score evaluate_pieces<CHESS_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#ifdef ANTI
+  template<>
+  Score evaluate_pieces<ANTI_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<ANTI_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef ATOMIC
+  template<>
+  Score evaluate_pieces<ATOMIC_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<ATOMIC_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef CRAZYHOUSE
+  template<>
+  Score evaluate_pieces<CRAZYHOUSE_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<CRAZYHOUSE_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef HORDE
+  template<>
+  Score evaluate_pieces<HORDE_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<HORDE_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef KOTH
+  template<>
+  Score evaluate_pieces<KOTH_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<KOTH_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef LOSERS
+  template<>
+  Score evaluate_pieces<LOSERS_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<LOSERS_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef RACE
+  template<>
+  Score evaluate_pieces<RACE_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<RACE_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef RELAY
+  template<>
+  Score evaluate_pieces<RELAY_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<RELAY_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
+#ifdef THREECHECK
+  template<>
+  Score evaluate_pieces<THREECHECK_VARIANT, false, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+  template<>
+  Score evaluate_pieces<THREECHECK_VARIANT, true, WHITE, KING>(const Position&, EvalInfo&, Score*) { return SCORE_ZERO; }
+#endif
 
 
   // evaluate_king() assigns bonuses and penalties to a king of a given color
@@ -758,7 +812,7 @@ namespace {
 #endif
   };
 
-  template<Color Us, bool DoTrace>
+  template<Variant V, Color Us, bool DoTrace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
     const Color Them    = (Us == WHITE ? BLACK : WHITE);
@@ -778,7 +832,7 @@ namespace {
     {
         // Find the attacked squares which are defended only by our king...
 #ifdef ATOMIC
-        if (pos.is_atomic())
+        if (V == ATOMIC_VARIANT)
             undefended =   (ei.attackedBy[Them][ALL_PIECES]
                             | (pos.pieces(Them) ^ pos.pieces(Them, KING)))
                         &  ei.attackedBy[Us][KING];
@@ -803,14 +857,14 @@ namespace {
                     + 134 * (popcount(b) + !!pos.pinned_pieces(Us))
                     - 717 * (!(pos.count<QUEEN>(Them)
 #ifdef CRAZYHOUSE
-                               || pos.is_house()
+                               || V == CRAZYHOUSE_VARIANT
 #endif
                             ))
                     -   7 * mg_value(score) / 5 - 5;
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
-        if (pos.is_house())
+        if (V == CRAZYHOUSE_VARIANT)
         {
             for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
                 kingDanger += KingDangerInHand[pt] * pos.count_in_hand(Them, pt);
@@ -822,7 +876,7 @@ namespace {
         safe  = ~pos.pieces(Them);
         safe &= ~ei.attackedBy[Us][ALL_PIECES] | (undefended & ei.attackedBy2[Them]);
 #ifdef ATOMIC
-        if (pos.is_atomic())
+        if (V == ATOMIC_VARIANT)
             safe |= ei.attackedBy[Us][KING];
 #endif
 
@@ -848,13 +902,13 @@ namespace {
         other = ~(   ei.attackedBy[Us][PAWN]
                   | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
 #ifdef THREECHECK
-        if (pos.is_three_check() && pos.checks_given(Them))
+        if (V == THREECHECK_VARIANT && pos.checks_given(Them))
             other = safe = ~pos.pieces(Them);
 #endif
 
         // Enemy rooks safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, ROOK) ? ~pos.pieces() : 0;
+        h = (V == CRAZYHOUSE_VARIANT) && pos.count_in_hand(Them, ROOK) ? ~pos.pieces() : 0;
 #endif
         if (b1 & ((ei.attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
             kingDanger += RookCheck;
@@ -864,7 +918,7 @@ namespace {
 
         // Enemy bishops safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, BISHOP) ? ~pos.pieces() : 0;
+        h = (V == CRAZYHOUSE_VARIANT) && pos.count_in_hand(Them, BISHOP) ? ~pos.pieces() : 0;
 #endif
         if (b2 & ((ei.attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
             kingDanger += BishopCheck;
@@ -874,7 +928,7 @@ namespace {
 
         // Enemy knights safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, KNIGHT) ? ~pos.pieces() : 0;
+        h = (V == CRAZYHOUSE_VARIANT) && pos.count_in_hand(Them, KNIGHT) ? ~pos.pieces() : 0;
 #endif
         Bitboard k = pos.attacks_from<KNIGHT>(ksq);
         b = k & ei.attackedBy[Them][KNIGHT];
@@ -885,14 +939,14 @@ namespace {
             score -= OtherCheck;
 
 #ifdef ATOMIC
-    if (pos.is_atomic())
+    if (V == ATOMIC_VARIANT)
         score -= make_score(100, 100) * popcount(ei.attackedBy[Us][KING] & pos.pieces());
 #endif
         // Transform the kingDanger units into a Score, and substract it from the evaluation
         if (kingDanger > 0)
         {
 #ifdef THREECHECK
-            if (pos.is_three_check())
+            if (V == THREECHECK_VARIANT)
             {
                 switch(pos.checks_given(Them))
                 {
@@ -907,10 +961,10 @@ namespace {
             int v = std::min(kingDanger * kingDanger / 4096, maxDanger[pos.variant()]);
             score -=
 #ifdef CRAZYHOUSE
-                     pos.is_house() ? make_score(v, v) :
+                     (V == CRAZYHOUSE_VARIANT) ? make_score(v, v) :
 #endif
 #ifdef THREECHECK
-                     pos.is_three_check() ? make_score(v, v) :
+                     (V == THREECHECK_VARIANT) ? make_score(v, v) :
 #endif
                      make_score(v, 0);
         }
@@ -944,7 +998,7 @@ namespace {
   // evaluate_threats() assigns bonuses according to the types of the attacking
   // and the attacked pieces.
 
-  template<Color Us, bool DoTrace>
+  template<Variant V, Color Us, bool DoTrace>
   Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
 
     const Color Them        = (Us == WHITE ? BLACK      : WHITE);
@@ -957,7 +1011,7 @@ namespace {
     Bitboard b, weak, defended, stronglyProtected, safeThreats;
     Score score = SCORE_ZERO;
 #ifdef ANTI
-    if (pos.is_anti())
+    if (V == ANTI_VARIANT)
     {
         bool weCapture = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
         bool theyCapture = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
@@ -997,13 +1051,13 @@ namespace {
     else
 #endif
 #ifdef ATOMIC
-    if (pos.is_atomic())
+    if (V == ATOMIC_VARIANT)
     {
     }
     else
 #endif
 #ifdef LOSERS
-    if (pos.is_losers())
+    if (V == LOSERS_VARIANT)
     {
         bool weCapture = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
         bool theyCapture = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
@@ -1118,11 +1172,11 @@ namespace {
     score += ThreatByPawnPush * popcount(b);
 
 #ifdef THREECHECK
-    if (pos.is_three_check())
+    if (V == THREECHECK_VARIANT)
         score += ChecksGivenBonus[pos.checks_given(Us)];
 #endif
 #ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Them))
+    if (V == HORDE_VARIANT && pos.is_horde_color(Them))
     {
         // Add a bonus according to how close we are to breaking through the pawn wall
         if (pos.pieces(Us, ROOK) | pos.pieces(Us, QUEEN))
@@ -1155,7 +1209,7 @@ namespace {
   // evaluate_passer_pawns() evaluates the passed pawns and candidate passed
   // pawns of the given color.
 
-  template<Color Us, bool DoTrace>
+  template<Variant V, Color Us, bool DoTrace>
   Score evaluate_passer_pawns(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
@@ -1164,7 +1218,7 @@ namespace {
     Score score = SCORE_ZERO;
 
 #ifdef RACE
-    if (pos.is_race())
+    if (V == RACE_VARIANT)
     {
         Square ksq = pos.square<KING>(Us);
         int s = relative_rank(BLACK, ksq);
@@ -1179,7 +1233,7 @@ namespace {
     b = ei.pe->passed_pawns(Us);
 
 #ifdef KOTH
-    if (pos.is_koth())
+    if (V == KOTH_VARIANT)
     {
         Square ksq = pos.square<KING>(Us);
         Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
@@ -1212,7 +1266,7 @@ namespace {
             Square pawnPush = pawn_push(Us);
             Square blockSq = s + pawnPush;
 #ifdef HORDE
-            if (pos.is_horde())
+            if (V == HORDE_VARIANT)
             {
                 // Assume a horde king distance of approximately 5
                 if (pos.is_horde_color(Us))
@@ -1223,10 +1277,10 @@ namespace {
             else
 #endif
 #ifdef ANTI
-            if (pos.is_anti()) {} else
+            if (V == ANTI_VARIANT) {} else
 #endif
 #ifdef ATOMIC
-            if (pos.is_atomic())
+            if (V == ATOMIC_VARIANT)
                 ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr;
             else
 #endif
@@ -1298,7 +1352,7 @@ namespace {
   // squares one, two or three squares behind a friendly pawn are counted
   // twice. Finally, the space bonus is multiplied by a weight. The aim is to
   // improve play on game opening.
-  template<Color Us>
+  template<Variant V, Color Us>
   Score evaluate_space(const Position& pos, const EvalInfo& ei) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
@@ -1314,7 +1368,7 @@ namespace {
                    & ~ei.attackedBy[Them][PAWN]
                    & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
 #ifdef HORDE
-    if (pos.is_horde())
+    if (V == HORDE_VARIANT)
         safe =   ~ei.attackedBy[Them][PAWN]
                & (ei.attackedBy[Us][ALL_PIECES] | ~ei.attackedBy[Them][ALL_PIECES]);
 #endif
@@ -1324,13 +1378,13 @@ namespace {
     behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
     behind |= (Us == WHITE ? behind >> 16 : behind << 16);
 #ifdef HORDE
-    if (pos.is_horde())
+    if (V == HORDE_VARIANT)
         behind |= (Us == WHITE ? behind >> 24 : behind << 24);
 #endif
 
     // Since SpaceMask[Us] is fully on our half of the board...
 #ifdef HORDE
-    assert(pos.is_horde() || unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
+    assert(V == HORDE_VARIANT || unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
 #else
     assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
 #endif
@@ -1338,22 +1392,22 @@ namespace {
     // ...count safe + (behind & safe) with a single popcount.
     int bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
 #ifdef HORDE
-    if (pos.is_horde())
+    if (V == HORDE_VARIANT)
         bonus = popcount(safe) + popcount(behind & safe);
     else
 #endif
     bonus = std::min(16, bonus);
     int weight = pos.count<ALL_PIECES>(Us) - 2 * ei.pe->open_files();
 #ifdef THREECHECK
-    if (pos.is_three_check())
+    if (V == THREECHECK_VARIANT)
         weight -= pos.checks_count();
 #endif
 #ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Us))
+    if (V == HORDE_VARIANT && pos.is_horde_color(Us))
         return make_score(bonus * weight * weight / 200, 0);
 #endif
 #ifdef KOTH
-    if (pos.is_koth())
+    if (V == KOTH_VARIANT)
         return make_score(bonus * weight * weight / 22, 0)
               + KothSafeCenter * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
 #endif
@@ -1365,10 +1419,11 @@ namespace {
   // evaluate_initiative() computes the initiative correction value for the
   // position, i.e., second order bonus/malus based on the known attacking/defending
   // status of the players.
+  template<Variant V>
   Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
 #ifdef ANTI
-    if (pos.is_anti())
+    if (V == ANTI_VARIANT)
         return make_score(0, 0);
 #endif
     int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
@@ -1388,6 +1443,7 @@ namespace {
 
 
   // evaluate_scale_factor() computes the scale factor for the winning side
+  template<Variant V>
   ScaleFactor evaluate_scale_factor(const Position& pos, const EvalInfo& ei, Value eg) {
 
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
@@ -1396,7 +1452,7 @@ namespace {
     // If we don't already have an unusual scale factor, check for certain
     // types of endgames, and use a lower scale for those.
 #ifdef ATOMIC
-    if (pos.is_atomic()) {} else
+    if (V == ATOMIC_VARIANT) {} else
 #endif
     if (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
     {
@@ -1420,7 +1476,7 @@ namespace {
             return ScaleFactor(37 + 7 * pos.count<PAWN>(strongSide));
     }
 #ifdef HORDE
-    if (   pos.is_horde()
+    if (   V == HORDE_VARIANT
         && pos.non_pawn_material(pos.is_horde_color(WHITE) ? WHITE : BLACK) >= QueenValueMg
         && !pos.is_horde_color(strongSide))
         sf = ScaleFactor(10);
@@ -1436,6 +1492,52 @@ namespace {
 
 template<bool DoTrace>
 Value Eval::evaluate(const Position& pos) {
+
+  switch (pos.variant())
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      return evaluate_variant<ANTI_VARIANT, DoTrace>(pos);
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      return evaluate_variant<ATOMIC_VARIANT, DoTrace>(pos);
+#endif
+#ifdef CRAZYHOUSE
+  case CRAZYHOUSE_VARIANT:
+      return evaluate_variant<CRAZYHOUSE_VARIANT, DoTrace>(pos);
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      return evaluate_variant<HORDE_VARIANT, DoTrace>(pos);
+#endif
+#ifdef KOTH
+  case KOTH_VARIANT:
+      return evaluate_variant<KOTH_VARIANT, DoTrace>(pos);
+#endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      return evaluate_variant<LOSERS_VARIANT, DoTrace>(pos);
+#endif
+#ifdef RACE
+  case RACE_VARIANT:
+      return evaluate_variant<RACE_VARIANT, DoTrace>(pos);
+#endif
+#ifdef RELAY
+  case RELAY_VARIANT:
+      return evaluate_variant<RELAY_VARIANT, DoTrace>(pos);
+#endif
+#ifdef THREECHECK
+  case THREECHECK_VARIANT:
+      return evaluate_variant<THREECHECK_VARIANT, DoTrace>(pos);
+#endif
+  default:
+      return evaluate_variant<CHESS_VARIANT, DoTrace>(pos);
+  }
+}
+
+template<Variant V, bool DoTrace>
+Value Eval::evaluate_variant(const Position& pos) {
 
   assert(!pos.checkers());
 
@@ -1463,7 +1565,7 @@ Value Eval::evaluate(const Position& pos) {
   ei.pe = Pawns::probe(pos);
   score += ei.pe->pawns_score();
 
-  if (pos.variant() == CHESS_VARIANT)
+  if (V == CHESS_VARIANT)
   {
   // Early exit if score is high
   v = (mg_value(score) + eg_value(score)) / 2;
@@ -1472,54 +1574,54 @@ Value Eval::evaluate(const Position& pos) {
   }
 
   // Initialize attack and king safety bitboards
-  eval_init<WHITE>(pos, ei);
-  eval_init<BLACK>(pos, ei);
+  eval_init<V, WHITE>(pos, ei);
+  eval_init<V, BLACK>(pos, ei);
 
   // Evaluate all pieces but king and pawns
-  score += evaluate_pieces<DoTrace>(pos, ei, mobility);
+  score += evaluate_pieces<V, DoTrace>(pos, ei, mobility);
   score += mobility[WHITE] - mobility[BLACK];
 
 #ifdef ANTI
-  if (pos.is_anti()) {} else
+  if (V == ANTI_VARIANT) {} else
 #endif
 #ifdef RACE
-  if (pos.is_race()) {} else
+  if (V == RACE_VARIANT) {} else
 #endif
   // Evaluate kings after all other pieces because we need full attack
   // information when computing the king safety evaluation.
-  score +=  evaluate_king<WHITE, DoTrace>(pos, ei)
-          - evaluate_king<BLACK, DoTrace>(pos, ei);
+  score +=  evaluate_king<V, WHITE, DoTrace>(pos, ei)
+          - evaluate_king<V, BLACK, DoTrace>(pos, ei);
 
   // Evaluate tactical threats, we need full attack information including king
-  score +=  evaluate_threats<WHITE, DoTrace>(pos, ei)
-          - evaluate_threats<BLACK, DoTrace>(pos, ei);
+  score +=  evaluate_threats<V, WHITE, DoTrace>(pos, ei)
+          - evaluate_threats<V, BLACK, DoTrace>(pos, ei);
 
   // Evaluate passed pawns, we need full attack information including king
-  score +=  evaluate_passer_pawns<WHITE, DoTrace>(pos, ei)
-          - evaluate_passer_pawns<BLACK, DoTrace>(pos, ei);
+  score +=  evaluate_passer_pawns<V, WHITE, DoTrace>(pos, ei)
+          - evaluate_passer_pawns<V, BLACK, DoTrace>(pos, ei);
 
   // Evaluate space for both sides, only during opening
 #ifdef HORDE
-  if (pos.is_horde())
+  if (V == HORDE_VARIANT)
   {
-      score +=  evaluate_space<WHITE>(pos, ei)
-              - evaluate_space<BLACK>(pos, ei);
+      score +=  evaluate_space<V, WHITE>(pos, ei)
+              - evaluate_space<V, BLACK>(pos, ei);
   }
   else
   {
 #endif
   if (pos.non_pawn_material() >= 12222)
-      score +=  evaluate_space<WHITE>(pos, ei)
-              - evaluate_space<BLACK>(pos, ei);
+      score +=  evaluate_space<V, WHITE>(pos, ei)
+              - evaluate_space<V, BLACK>(pos, ei);
 
   // Evaluate position potential for the winning side
-  score += evaluate_initiative(pos, ei.pe->pawn_asymmetry(), eg_value(score));
+  score += evaluate_initiative<V>(pos, ei.pe->pawn_asymmetry(), eg_value(score));
 #ifdef HORDE
   }
 #endif
 
   // Evaluate scale factor for the winning side
-  ScaleFactor sf = evaluate_scale_factor(pos, ei, eg_value(score));
+  ScaleFactor sf = evaluate_scale_factor<V>(pos, ei, eg_value(score));
 
   // Interpolate between a middlegame and a (scaled by 'sf') endgame score
   v =  mg_value(score) * int(ei.me->game_phase())
@@ -1535,8 +1637,8 @@ Value Eval::evaluate(const Position& pos) {
       Trace::add(PAWN, ei.pe->pawns_score());
       Trace::add(MOBILITY, mobility[WHITE], mobility[BLACK]);
       if (pos.non_pawn_material() >= 12222)
-          Trace::add(SPACE, evaluate_space<WHITE>(pos, ei)
-                          , evaluate_space<BLACK>(pos, ei));
+          Trace::add(SPACE, evaluate_space<V, WHITE>(pos, ei)
+                          , evaluate_space<V, BLACK>(pos, ei));
       Trace::add(TOTAL, score);
   }
 
@@ -1546,6 +1648,44 @@ Value Eval::evaluate(const Position& pos) {
 // Explicit template instantiations
 template Value Eval::evaluate<true >(const Position&);
 template Value Eval::evaluate<false>(const Position&);
+template Value Eval::evaluate_variant<CHESS_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<CHESS_VARIANT, false>(const Position&);
+#ifdef ANTI
+template Value Eval::evaluate_variant<ANTI_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<ANTI_VARIANT, false>(const Position&);
+#endif
+#ifdef ATOMIC
+template Value Eval::evaluate_variant<ATOMIC_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<ATOMIC_VARIANT, false>(const Position&);
+#endif
+#ifdef CRAZYHOUSE
+template Value Eval::evaluate_variant<CRAZYHOUSE_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<CRAZYHOUSE_VARIANT, false>(const Position&);
+#endif
+#ifdef HORDE
+template Value Eval::evaluate_variant<HORDE_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<HORDE_VARIANT, false>(const Position&);
+#endif
+#ifdef KOTH
+template Value Eval::evaluate_variant<KOTH_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<KOTH_VARIANT, false>(const Position&);
+#endif
+#ifdef LOSERS
+template Value Eval::evaluate_variant<LOSERS_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<LOSERS_VARIANT, false>(const Position&);
+#endif
+#ifdef RACE
+template Value Eval::evaluate_variant<RACE_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<RACE_VARIANT, false>(const Position&);
+#endif
+#ifdef RELAY
+template Value Eval::evaluate_variant<RELAY_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<RELAY_VARIANT, false>(const Position&);
+#endif
+#ifdef THREECHECK
+template Value Eval::evaluate_variant<THREECHECK_VARIANT, true >(const Position&);
+template Value Eval::evaluate_variant<THREECHECK_VARIANT, false>(const Position&);
+#endif
 
 
 /// trace() is like evaluate(), but instead of returning a value, it returns
