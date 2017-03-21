@@ -1144,9 +1144,6 @@ moves_loop: // When in check search starts from here
       newDepth = depth - ONE_PLY + extension;
 
       // Step 13. Pruning at shallow depth
-#ifdef RACE
-      if (pos.is_race() && type_of(moved_piece) == KING && rank_of(to_sq(move)) > rank_of(from_sq(move))) {} else
-#endif
       if (  !rootNode
           && bestValue > VALUE_MATED_IN_MAX_PLY)
       {
