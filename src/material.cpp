@@ -537,10 +537,10 @@ Entry* probe(const Position& pos) {
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK), pos.count<KING>(BLACK) } };
 #ifdef CRAZYHOUSE
   const int PieceCountInHand[COLOR_NB][PIECE_TYPE_NB] = {
-  { pos.count_in_hand<ALL_PIECES>(WHITE) > 1, pos.count_in_hand<PAWN>(WHITE), pos.count_in_hand<KNIGHT>(WHITE),
-    pos.count_in_hand<BISHOP>(WHITE)        , pos.count_in_hand<ROOK>(WHITE), pos.count_in_hand<QUEEN >(WHITE), pos.count_in_hand<KING>(WHITE) },
-  { pos.count_in_hand<ALL_PIECES>(BLACK) > 1, pos.count_in_hand<PAWN>(BLACK), pos.count_in_hand<KNIGHT>(BLACK),
-    pos.count_in_hand<BISHOP>(BLACK)        , pos.count_in_hand<ROOK>(BLACK), pos.count_in_hand<QUEEN >(BLACK), pos.count_in_hand<KING>(BLACK) } };
+  { pos.count_in_hand<ALL_PIECES>(WHITE) == 0, pos.count_in_hand<PAWN>(WHITE), pos.count_in_hand<KNIGHT>(WHITE),
+    pos.count_in_hand<BISHOP>(WHITE)         , pos.count_in_hand<ROOK>(WHITE), pos.count_in_hand<QUEEN >(WHITE), pos.count_in_hand<KING>(WHITE) },
+  { pos.count_in_hand<ALL_PIECES>(BLACK) == 0, pos.count_in_hand<PAWN>(BLACK), pos.count_in_hand<KNIGHT>(BLACK),
+    pos.count_in_hand<BISHOP>(BLACK)         , pos.count_in_hand<ROOK>(BLACK), pos.count_in_hand<QUEEN >(BLACK), pos.count_in_hand<KING>(BLACK) } };
 
   e->value = int16_t((imbalance<WHITE>(pos, PieceCount, PieceCountInHand) - imbalance<BLACK>(pos, PieceCount, PieceCountInHand)) / 16);
 #else
