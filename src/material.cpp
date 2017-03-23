@@ -157,12 +157,12 @@ namespace {
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //            OUR PIECES
       // pair pawn knight bishop rook queen
-      { -20                               }, // Bishop pair
-      {   3,  -40                         }, // Pawn
-      { -30,   -1,  19                    }, // Knight      OUR PIECES
-      {  11,  -41,  -8,    -6             }, // Bishop
-      { -29,   -5,   0,   -13,   -21      }, // Rook
-      {  -8,  -28,  17,    -9,     7,   3 }  // Queen
+      {  -4                               }, // Empty hand
+      { -20,  -65                         }, // Pawn
+      { -43,  -15,   0                    }, // Knight      OUR PIECES
+      {  -1,  -51,  41,   -51             }, // Bishop
+      { -38,  -16,  21,   -25,   -12      }, // Rook
+      {  -8,    7,  -8,   -12,   -40, -23 }  // Queen
   };
 #endif
 
@@ -292,12 +292,12 @@ namespace {
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //           THEIR PIECES
       // pair pawn knight bishop rook queen
-      {  -4                               }, // Bishop pair
-      {  -1,  -11                         }, // Pawn
-      {  16,   23,  20                    }, // Knight      OUR PIECES
-      {  -2,   12,   8,    27             }, // Bishop
-      { -33,   24, -11,    13,   -20      }, // Rook
-      { -25,   14, -22,    -6,     5,  40 }  // Queen
+      {  37                               }, // Empty hand
+      {  -7,  -38                         }, // Pawn
+      { -29,   28, -11                    }, // Knight      OUR PIECES
+      {  25,   27,  -3,    27             }, // Bishop
+      { -45,   24,   1,    -6,     4      }, // Rook
+      { -31,   15,  17,   -10,    -8,  31 }  // Queen
   };
 #endif
 
@@ -537,10 +537,10 @@ Entry* probe(const Position& pos) {
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK), pos.count<KING>(BLACK) } };
 #ifdef CRAZYHOUSE
   const int PieceCountInHand[COLOR_NB][PIECE_TYPE_NB] = {
-  { pos.count_in_hand<BISHOP>(WHITE) > 1, pos.count_in_hand<PAWN>(WHITE), pos.count_in_hand<KNIGHT>(WHITE),
-    pos.count_in_hand<BISHOP>(WHITE)    , pos.count_in_hand<ROOK>(WHITE), pos.count_in_hand<QUEEN >(WHITE), pos.count_in_hand<KING>(WHITE) },
-  { pos.count_in_hand<BISHOP>(BLACK) > 1, pos.count_in_hand<PAWN>(BLACK), pos.count_in_hand<KNIGHT>(BLACK),
-    pos.count_in_hand<BISHOP>(BLACK)    , pos.count_in_hand<ROOK>(BLACK), pos.count_in_hand<QUEEN >(BLACK), pos.count_in_hand<KING>(BLACK) } };
+  { pos.count_in_hand<ALL_PIECES>(WHITE) > 1, pos.count_in_hand<PAWN>(WHITE), pos.count_in_hand<KNIGHT>(WHITE),
+    pos.count_in_hand<BISHOP>(WHITE)        , pos.count_in_hand<ROOK>(WHITE), pos.count_in_hand<QUEEN >(WHITE), pos.count_in_hand<KING>(WHITE) },
+  { pos.count_in_hand<ALL_PIECES>(BLACK) > 1, pos.count_in_hand<PAWN>(BLACK), pos.count_in_hand<KNIGHT>(BLACK),
+    pos.count_in_hand<BISHOP>(BLACK)        , pos.count_in_hand<ROOK>(BLACK), pos.count_in_hand<QUEEN >(BLACK), pos.count_in_hand<KING>(BLACK) } };
 
   e->value = int16_t((imbalance<WHITE>(pos, PieceCount, PieceCountInHand) - imbalance<BLACK>(pos, PieceCount, PieceCountInHand)) / 16);
 #else
