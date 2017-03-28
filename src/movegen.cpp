@@ -605,10 +605,6 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_anti())
       return moveList;
 #endif
-#ifdef RACE
-  if (pos.is_race())
-      return moveList;
-#endif
 
   assert(pos.checkers());
 
