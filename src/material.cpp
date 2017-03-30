@@ -157,12 +157,12 @@ namespace {
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //            OUR PIECES
       // pair pawn knight bishop rook queen
-      {  -4                               }, // Empty hand
-      { -20,  -65                         }, // Pawn
-      { -43,  -15,   0                    }, // Knight      OUR PIECES
-      {  -1,  -51,  41,   -51             }, // Bishop
-      { -38,  -16,  21,   -25,   -12      }, // Rook
-      {  -8,    7,  -8,   -12,   -40, -23 }  // Queen
+      { -88                               }, // Empty hand
+      { -29,  -44                         }, // Pawn
+      { -33,   33,  21                    }, // Knight      OUR PIECES
+      {   8,  -52, -16,    -6             }, // Bishop
+      { -95,   14,  44,   -54,    19      }, // Rook
+      { -43,   -5,   5,   -19,     2, -29 }  // Queen
   };
 #endif
 
@@ -292,12 +292,12 @@ namespace {
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //           THEIR PIECES
       // pair pawn knight bishop rook queen
-      {  37                               }, // Empty hand
-      {  -7,  -38                         }, // Pawn
-      { -29,   28, -11                    }, // Knight      OUR PIECES
-      {  25,   27,  -3,    27             }, // Bishop
-      { -45,   24,   1,    -6,     4      }, // Rook
-      { -31,   15,  17,   -10,    -8,  31 }  // Queen
+      {   6                               }, // Empty hand
+      {  -6,   -4                         }, // Pawn
+      {   7,   13,  12                    }, // Knight      OUR PIECES
+      { -19,   34, -17,    29             }, // Bishop
+      { -37,   -8,  -7,     7,   -38      }, // Rook
+      {   1,   16, -25,    32,    -3,  29 }  // Queen
   };
 #endif
 
