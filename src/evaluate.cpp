@@ -390,9 +390,9 @@ namespace {
 
 #ifdef KOTH
   const Score KothDistanceBonus[6] = {
-    S(1634, 1553), S(400, 384), S(165, 174), S(83, 87), S(49, 50), S(0, 0)
+    S(1991, 1658), S(448, 364), S(163, 176), S(80, 89), S(50, 50), S(0, 0)
   };
-  const Score KothSafeCenter = S(159, 211);
+  const Score KothSafeCenter = S(157, 202);
 #endif
 
 #ifdef ANTI
