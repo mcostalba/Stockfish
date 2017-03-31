@@ -382,8 +382,8 @@ namespace {
 #ifdef THREECHECK
   const Score ChecksGivenBonus[CHECKS_NB] = {
       S(0, 0),
-      S(472, 369),
-      S(1980, 1159),
+      S(508, 377),
+      S(2224, 1000),
       S(0, 0)
   };
 #endif
@@ -488,7 +488,7 @@ namespace {
     S( 7,  0),
 #endif
 #ifdef THREECHECK
-    S(15,  10),
+    S(17,  10),
 #endif
   };
   const Score PawnlessFlank       = S( 20, 80);
@@ -749,7 +749,7 @@ namespace {
     2 * int(BishopValueMg),
 #endif
 #ifdef THREECHECK
-    4 * int(BishopValueMg),
+    3264,
 #endif
   };
 
