@@ -341,10 +341,19 @@ inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
 }
 
 template<PieceType Pt> inline int Position::count(Color c) const {
+#ifdef CRAZYHOUSE
+  if (is_house())
+      return pieceCount[make_piece(c, Pt)] + count_in_hand<Pt>(c);
+#endif
   return pieceCount[make_piece(c, Pt)];
 }
 
 template<PieceType Pt> inline int Position::count() const {
+#ifdef CRAZYHOUSE
+  if (is_house())
+      return pieceCount[make_piece(WHITE, Pt)] + count_in_hand<Pt>(BLACK) +
+             pieceCount[make_piece(BLACK, Pt)] + count_in_hand<Pt>(BLACK);
+#endif
   return pieceCount[make_piece(WHITE, Pt)] + pieceCount[make_piece(BLACK, Pt)];
 }
 

@@ -464,6 +464,10 @@ namespace {
     e->pawnAttacks[Us]   = shift<Right>(ourPawns) | shift<Left>(ourPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        e->pawnsOnSquares[Us][WHITE] = popcount(ourPawns & ~DarkSquares);
+#endif
 
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
