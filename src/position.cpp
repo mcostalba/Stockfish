@@ -1754,7 +1754,9 @@ bool Position::see_ge(Move m, Value v) const {
 #endif
 
 #ifdef THREECHECK
-  if (is_three_check() && gives_check(m))
+  if (   is_three_check()
+      && (   (color_of(moved_piece(m)) == sideToMove && gives_check(m))
+          || (st->checkSquares[type_of(moved_piece(m))] & to_sq(m))))
       return true;
 #endif
 
