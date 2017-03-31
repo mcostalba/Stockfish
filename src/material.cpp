@@ -156,13 +156,13 @@ namespace {
 #ifdef CRAZYHOUSE
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //            OUR PIECES
-      // pair pawn knight bishop rook queen
+      //empty pawn knight bishop rook queen
       { -88                               }, // Empty hand
-      { -29,  -44                         }, // Pawn
-      { -33,   33,  21                    }, // Knight      OUR PIECES
-      {   8,  -52, -16,    -6             }, // Bishop
-      { -95,   14,  44,   -54,    19      }, // Rook
-      { -43,   -5,   5,   -19,     2, -29 }  // Queen
+      {   0,  -44                         }, // Pawn
+      {   0,   33,  21                    }, // Knight      OUR PIECES
+      {   0,  -52, -16,    -6             }, // Bishop
+      {   0,   14,  44,   -54,    19      }, // Rook
+      {   0,   -5,   5,   -19,     2, -29 }  // Queen
   };
 #endif
 
@@ -291,13 +291,13 @@ namespace {
 #ifdef CRAZYHOUSE
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //           THEIR PIECES
-      // pair pawn knight bishop rook queen
-      {   6                               }, // Empty hand
-      {  -6,   -4                         }, // Pawn
-      {   7,   13,  12                    }, // Knight      OUR PIECES
-      { -19,   34, -17,    29             }, // Bishop
-      { -37,   -8,  -7,     7,   -38      }, // Rook
-      {   1,   16, -25,    32,    -3,  29 }  // Queen
+      //empty pawn knight bishop rook queen
+      {   0                               }, // Empty hand
+      {  -6,    0                         }, // Pawn
+      {   7,   13,   0                    }, // Knight      OUR PIECES
+      { -19,   34, -17,     0             }, // Bishop
+      { -37,   -8,  -7,     7,     0      }, // Rook
+      {   1,   16, -25,    32,    -3,   0 }  // Queen
   };
 #endif
 
