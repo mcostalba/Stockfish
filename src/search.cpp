@@ -1517,11 +1517,6 @@ moves_loop: // When in check search starts from here
     {
       assert(is_ok(move));
 
-#ifdef RACE
-      if (pos.is_race())
-          givesCheck = type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8;
-      else
-#endif
       givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
 #ifdef ATOMIC
                   && !pos.is_atomic()
@@ -1535,6 +1530,9 @@ moves_loop: // When in check search starts from here
       // Futility pruning
       if (   !InCheck
           && !givesCheck
+#ifdef RACE
+          && !(pos.is_race() && type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8)
+#endif
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
