@@ -849,9 +849,6 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
-#ifdef CRAZYHOUSE
-    if (pos.is_house()) {} else
-#endif
     if (!rootNode && TB::Cardinality)
     {
         int piecesCount = pos.count<ALL_PIECES>();

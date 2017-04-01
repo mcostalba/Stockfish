@@ -765,18 +765,14 @@ namespace {
                     + 101 * ei.kingAdjacentZoneAttacksCount[Them]
                     + 235 * popcount(undefended)
                     + 134 * (popcount(b) + !!pos.pinned_pieces(Us))
-                    - 717 * (!(pos.count<QUEEN>(Them)
-#ifdef CRAZYHOUSE
-                               || pos.is_house()
-#endif
-                            ))
+                    - 717 * !pos.count<QUEEN>(Them)
                     -   7 * mg_value(score) / 5 - 5;
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
-            for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
+            for (PieceType pt = NO_PIECE_TYPE; pt <= QUEEN; ++pt)
                 kingDanger += KingDangerInHand[pt] * pos.count_in_hand(Them, pt);
             h = pos.count_in_hand(Them, QUEEN) ? undefended & ~pos.pieces() : 0;
         }
