@@ -1355,7 +1355,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Move the piece. The tricky Chess960 castling is handled earlier
 #ifdef CRAZYHOUSE
   if (type_of(m) == DROP)
+  {
       drop_piece(pc, to);
+      st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
+  }
   else
 #endif
   if (type_of(m) != CASTLING)
