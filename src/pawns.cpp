@@ -267,6 +267,10 @@ namespace {
   // in front of the king and no enemy pawn on the horizon.
   const Value MaxSafetyBonus = V(258);
 
+#ifdef HORDE
+  const Score ImbalancedHorde = S(30, 30);
+#endif
+
   #undef S
   #undef V
 
@@ -295,6 +299,18 @@ namespace {
     e->pawnAttacks[Us]   = shift<Right>(ourPawns) | shift<Left>(ourPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
+
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Us))
+    {
+        int l = 0, m = 0, r = popcount(ourPawns & FileBB[FILE_A]);
+        for (File f1 = FILE_A; f1 <= FILE_H; ++f1)
+        {
+            l = m; m = r; r = f1 < FILE_H ? popcount(ourPawns & FileBB[f1 + 1]) : 0;
+            score -= ImbalancedHorde * m / ((l + 1) * (r + 1));
+        }
+    }
+#endif
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
