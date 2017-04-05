@@ -1150,6 +1150,9 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
               && (!pos.is_anti() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
 #endif
+#ifdef LOSERS
+              && (!pos.is_losers() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
+#endif
 #ifdef HORDE
               && (pos.is_horde() || !pos.advanced_pawn_push(move) || pos.non_pawn_material() >= 5000)
 #else
