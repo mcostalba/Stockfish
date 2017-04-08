@@ -1143,7 +1143,11 @@ moves_loop: // When in check search starts from here
 
       // Step 13. Pruning at shallow depth
       if (  !rootNode
+#ifdef HORDE
+          && (pos.non_pawn_material(pos.side_to_move()) || pos.is_horde())
+#else
           && pos.non_pawn_material(pos.side_to_move())
+#endif
           && bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           if (   !captureOrPromotion
