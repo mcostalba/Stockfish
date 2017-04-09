@@ -1027,7 +1027,11 @@ namespace {
     }
 
     // Step 10. Internal iterative deepening (skipped when in check)
+#ifdef CRAZYHOUSE
+    if (    depth >= (pos.is_house() ? 4 : 6) * ONE_PLY
+#else
     if (    depth >= 6 * ONE_PLY
+#endif
         && !ttMove
         && (PvNode || ss->staticEval + 256 >= beta))
     {
