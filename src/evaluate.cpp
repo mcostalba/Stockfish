@@ -722,8 +722,8 @@ namespace {
     QueenSide, QueenSide, QueenSide, CenterFiles, CenterFiles, KingSide, KingSide, KingSide
   };
 
-  const int minDanger[VARIANT_NB] = {
-    0,
+  const int maxDanger[VARIANT_NB] = {
+    INT_MAX,
 #ifdef ANTI
     2 * int(BishopValueMg),
 #endif
@@ -899,7 +899,7 @@ namespace {
                 }
             }
 #endif
-            int v = std::min(kingDanger * kingDanger / 4096, minDanger[pos.variant()]);
+            int v = std::min(kingDanger * kingDanger / 4096, maxDanger[pos.variant()]);
             score -=
 #ifdef CRAZYHOUSE
                      pos.is_house() ? make_score(v, v) :
