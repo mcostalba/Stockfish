@@ -71,12 +71,12 @@ namespace {
     {
       //            OUR PIECES
       // pair pawn knight bishop rook queen
-      { 989                               }, // Bishop pair
-      {  59,  -16                         }, // Pawn
-      {  -1,  127, -25                    }, // Knight      OUR PIECES
-      { -60,   82, -17,    13             }, // Bishop
-      { -77,  -11,  22,   104,  -160      }, // Rook
-      {-168,  -55,  51,   153,  -105,   6 }  // Queen
+      { 983                               }, // Bishop pair
+      { 129,  -16                         }, // Pawn
+      {   6,  151,   0                    }, // Knight      OUR PIECES
+      { -66,   66, -59,     6             }, // Bishop
+      {-107,    6,  11,   107,  -137      }, // Rook
+      {-198, -112,  83,   166,  -160, -18 }  // Queen
     },
 #endif
 #ifdef HORDE
@@ -157,12 +157,12 @@ namespace {
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //            OUR PIECES
       //empty pawn knight bishop rook queen
-      {-145                               }, // Empty hand
-      {   8,  -57                         }, // Pawn
-      {  13,   54,  21                    }, // Knight      OUR PIECES
-      { -47,  -65, -29,    -8             }, // Bishop
-      {  25,   -2,  55,   -44,    48      }, // Rook
-      { -20,  -15,  40,   -34,    10, -60 }  // Queen
+      {-148                               }, // Empty hand
+      {   1,  -33                         }, // Pawn
+      {  64,   34,   5                    }, // Knight      OUR PIECES
+      { -17, -128, -35,     6             }, // Bishop
+      {  14,  -18,  55,   -60,    76      }, // Rook
+      { -22,   17,  39,   -20,    26,  -8 }  // Queen
   };
 #endif
 
@@ -206,12 +206,12 @@ namespace {
     {
       //           THEIR PIECES
       // pair pawn knight bishop rook queen
-      { -82                               }, // Bishop pair
-      {  57,  -76                         }, // Pawn
-      {  18,   11,  -1                    }, // Knight      OUR PIECES
-      {  89,    6,  45,   -25             }, // Bishop
-      {  55,   89,   1,   -13,   29       }, // Rook
-      {   3,   50, -27,    84,  262,   49 }  // Queen
+      { -54                               }, // Bishop pair
+      {  44, -109                         }, // Pawn
+      {  32,    1,   2                    }, // Knight      OUR PIECES
+      {  97,   49,  12,   -15             }, // Bishop
+      {  23,   46,   0,    -2,   23       }, // Rook
+      {  75,   43,  20,    65,  221,   83 }  // Queen
     },
 #endif
 #ifdef HORDE
@@ -292,12 +292,12 @@ namespace {
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
       //           THEIR PIECES
       //empty pawn knight bishop rook queen
-      { -13                               }, // Empty hand
-      {  19,   15                         }, // Pawn
-      { -47,  -38,  35                    }, // Knight      OUR PIECES
-      {  41,    4, -15,    12             }, // Bishop
-      { -45,  -29,  55,    28,   -54      }, // Rook
-      {  63,  -33,  19,    37,   -40,  12 }  // Queen
+      { -40                               }, // Empty hand
+      {  41,   11                         }, // Pawn
+      { -62,   -9,  26                    }, // Knight      OUR PIECES
+      {  34,   33,  42,    88             }, // Bishop
+      { -24,    0,  58,    90,   -38      }, // Rook
+      {  78,    3,  46,    37,   -26,  -1 }  // Queen
   };
 #endif
 

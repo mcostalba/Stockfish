@@ -427,7 +427,7 @@ namespace {
 
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
-    0, 134, 199, 37, 100, 110
+    87, 16, 210, 66, 168, 143
   };
 #endif
 
