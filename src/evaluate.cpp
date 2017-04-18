@@ -510,6 +510,37 @@ namespace {
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
 
+  const int KingSafetyParams[VARIANT_NB][8] = {
+    {   807,  235,  101,  134, -717, -358,   -5,    0 }, //unused
+#ifdef ANTI
+    {   807,  235,  101,  134, -717, -358,   -5,    0 }, //unused
+#endif
+#ifdef ATOMIC
+    {   805,  305,  170,  141, -718, -367,   -7,   29 },
+#endif
+#ifdef CRAZYHOUSE
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef HORDE
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef KOTH
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef LOSERS
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef RACE
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef RELAY
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+#ifdef THREECHECK
+    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+#endif
+  };
+
   // Penalties for enemy's safe checks
   const int QueenCheck        = 745;
   const int RookCheck         = 688;
@@ -722,37 +753,6 @@ namespace {
     QueenSide, QueenSide, QueenSide, CenterFiles, CenterFiles, KingSide, KingSide, KingSide
   };
 
-  const int KingSafetyParams[VARIANT_NB][8] = {
-        {807, 235, 101, 134, 717, 358, -5, 0}, //unused
-#ifdef ANTI
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef ATOMIC
-        {805, 305, 170, 141, 716, 367, -7, 29},
-#endif
-#ifdef CRAZYHOUSE
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef HORDE
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef KOTH
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef LOSERS
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef RACE
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef RELAY
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-#ifdef THREECHECK
-        {807, 235, 101, 134, 717, 358, -5, 0},
-#endif
-  };
-
   template<Color Us, bool DoTrace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
@@ -793,23 +793,24 @@ namespace {
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
 
-        if (pos.variant() == CHESS_VARIANT) {
+        if (pos.variant() == CHESS_VARIANT)
+        {
             kingDanger =  std::min(807, ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
                     + 101 * ei.kingAdjacentZoneAttacksCount[Them]
                     + 235 * popcount(undefended)
                     + 134 * (popcount(b) + !!pos.pinned_pieces(Us))
                     - 717 * !pos.count<QUEEN>(Them)
                     -   7 * mg_value(score) / 5 - 5;
-
-        } else {
-          const auto K = KingSafetyParams[pos.variant()];
-          kingDanger = std::min(K[0], ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
-            + K[1] * ei.kingAdjacentZoneAttacksCount[Them]
-            + K[2] * popcount(undefended)
-            + K[3] * (popcount(b) + !!pos.pinned_pieces(Us))
-            - K[4] * !pos.count<QUEEN>(Them)
-            - K[5] * mg_value(score) / 256 + K[6];
-#undef K
+        }
+        else
+        {
+            const auto K = KingSafetyParams[pos.variant()];
+            kingDanger =  std::min(K[0], ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
+                        + K[1] * ei.kingAdjacentZoneAttacksCount[Them]
+                        + K[2] * popcount(undefended)
+                        + K[3] * (popcount(b) + !!pos.pinned_pieces(Us))
+                        + K[4] * !pos.count<QUEEN>(Them)
+                        + K[5] * mg_value(score) / 256 + K[6];
         }
         Bitboard h = 0;
 
