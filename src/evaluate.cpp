@@ -1321,13 +1321,13 @@ namespace {
 #endif
 
     // ...count safe + (behind & safe) with a single popcount.
-    int bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
+    int bonus;
 #ifdef HORDE
     if (pos.is_horde())
         bonus = popcount(safe) + popcount(behind & safe);
     else
 #endif
-    bonus = std::min(16, bonus);
+    bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
     int weight = pos.count<ALL_PIECES>(Us) - 2 * ei.pe->open_files();
 #ifdef THREECHECK
     if (pos.is_three_check())
@@ -1343,7 +1343,7 @@ namespace {
               + KothSafeCenter * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
 #endif
 
-    return make_score(bonus * weight * weight / 18, 0);
+    return make_score(bonus * weight * weight / 16, 0);
   }
 
 

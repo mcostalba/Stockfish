@@ -496,7 +496,7 @@ namespace {
         stoppers   = theirPawns & passed_pawn_mask(Us, s);
         lever      = theirPawns & pawnAttacksBB[s];
         leverPush  = theirPawns & pawnAttacksBB[s + Up];
-        doubled    = ourPawns   & (s + Up);
+        doubled    = ourPawns   & (s - Up);
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
 #ifdef HORDE
@@ -550,7 +550,7 @@ namespace {
         if (connected)
             score += Connected[pos.variant()][opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
-        if (doubled)
+        if (doubled && !supported)
             score -= Doubled[pos.variant()];
 
         if (lever)
