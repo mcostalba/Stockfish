@@ -511,33 +511,33 @@ namespace {
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
 
   const int KingSafetyParams[VARIANT_NB][8] = {
-    {   807,  235,  101,  134, -717, -358,   -5,    0 }, //unused
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #ifdef ANTI
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef ATOMIC
     {   805,  305,  170,  141, -718, -367,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   807,  235,  101,  134, -717, -358,   -5,  256 },
+    {   807,  101,  235,  134, -717, -357,   -5,  256 },
 #endif
 #ifdef HORDE
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RELAY
-    {   807,  235,  101,  134, -717, -358,   -5,    0 },
+    {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef THREECHECK
-    {   807,  235,  101,  134, -717, -358,   -5,  256 },
+    {   807,  101,  235,  134, -717, -357,   -5,  256 },
 #endif
   };
 
@@ -793,25 +793,13 @@ namespace {
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
 
-        if (pos.variant() == CHESS_VARIANT)
-        {
-            kingDanger =  std::min(807, ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
-                    + 101 * ei.kingAdjacentZoneAttacksCount[Them]
-                    + 235 * popcount(undefended)
-                    + 134 * (popcount(b) + !!pos.pinned_pieces(Us))
-                    - 717 * !pos.count<QUEEN>(Them)
-                    -   7 * mg_value(score) / 5 - 5;
-        }
-        else
-        {
-            const auto K = KingSafetyParams[pos.variant()];
-            kingDanger =  std::min(K[0], ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
-                        + K[1] * ei.kingAdjacentZoneAttacksCount[Them]
-                        + K[2] * popcount(undefended)
-                        + K[3] * (popcount(b) + !!pos.pinned_pieces(Us))
-                        + K[4] * !pos.count<QUEEN>(Them)
-                        + K[5] * mg_value(score) / 256 + K[6];
-        }
+        const auto KSP = KingSafetyParams[pos.variant()];
+        kingDanger =  std::min(KSP[0], ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
+                    + KSP[1] * ei.kingAdjacentZoneAttacksCount[Them]
+                    + KSP[2] * popcount(undefended)
+                    + KSP[3] * (popcount(b) + !!pos.pinned_pieces(Us))
+                    + KSP[4] * !pos.count<QUEEN>(Them)
+                    + KSP[5] * mg_value(score) / 255 + KSP[6];
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
@@ -910,18 +898,7 @@ namespace {
             }
 #endif
             int v = kingDanger * kingDanger / 4096;
-            score -=
-#ifdef CRAZYHOUSE
-                     pos.is_house() ||
-#endif
-#ifdef THREECHECK
-                     pos.is_three_check() ||
-#endif
-#ifdef ATOMIC
-                     pos.is_atomic() ||
-#endif
-              false ?  make_score(v, KingSafetyParams[pos.variant()][7] * v / 256) :
-                       make_score(v, 0);
+            score -= make_score(v, KSP[7] * v / 256);
         }
     }
 
