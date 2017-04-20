@@ -547,8 +547,10 @@ namespace {
   const int BishopCheck       = 588;
   const int KnightCheck       = 924;
 
+#ifdef THREECHECK
   // In Q8 fixed point
   const int ThreeCheckKSFactors[3] = {820, 772, 599};
+#endif
   // Threshold for lazy evaluation
   const Value LazyThreshold = Value(1500);
 
