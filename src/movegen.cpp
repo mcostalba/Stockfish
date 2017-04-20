@@ -729,7 +729,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   while (cur != moveList)
       if (   (validate || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
 #ifdef CRAZYHOUSE
-          && type_of(*cur) != DROP
+          && !(pos.is_house() && type_of(*cur) == DROP)
 #endif
           && !pos.legal(*cur))
           *cur = (--moveList)->move;
