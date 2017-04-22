@@ -196,7 +196,7 @@ void Position::init() {
 
 #ifdef THREECHECK
   for (Color c = WHITE; c <= BLACK; ++c)
-      for (CheckCount n : CheckCounts)
+      for (int n = 0; n < CHECKS_NB; ++n)
           Zobrist::checks[c][n] = rng.rand<Key>();
 #endif
 #ifdef CRAZYHOUSE

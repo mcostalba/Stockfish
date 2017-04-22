@@ -382,8 +382,8 @@ namespace {
 #ifdef THREECHECK
   const Score ChecksGivenBonus[CHECKS_NB] = {
       S(0, 0),
-      S(334, 137),
-      S(2383, 614),
+      S(444, 181),
+      S(2425, 603),
       S(0, 0)
   };
 #endif
@@ -537,7 +537,7 @@ namespace {
     {   807,  101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef THREECHECK
-    {   850,   46,  165,  136, -745, -325,  -11,  234 },
+    {   880,   77,  138,  107, -726, -292,  -73,  168 },
 #endif
   };
 
@@ -549,7 +549,7 @@ namespace {
 
 #ifdef THREECHECK
   // In Q8 fixed point
-  const int ThreeCheckKSFactors[3] = {820, 772, 599};
+  const int ThreeCheckKSFactors[CHECKS_NB] = { 585, 717, 812, 0 };
 #endif
   // Threshold for lazy evaluation
   const Value LazyThreshold = Value(1500);
@@ -890,11 +890,7 @@ namespace {
         {
 #ifdef THREECHECK
             if (pos.is_three_check())
-            {
-              int i = std::max(0, 2 - pos.checks_given(Them));
-              if (i < 3)
-                kingDanger = ThreeCheckKSFactors[i] * kingDanger / 256;
-            }
+                kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
 #endif
             int v = kingDanger * kingDanger / 4096;
             score -= make_score(v, KSP[7] * v / 256);

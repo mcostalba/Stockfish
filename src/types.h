@@ -256,11 +256,9 @@ template<Color C, CastlingSide S> struct MakeCastling {
 };
 
 #ifdef THREECHECK
-enum CheckCount {
+enum CheckCount : int {
   CHECKS_0 = 0, CHECKS_1 = 1, CHECKS_2 = 2, CHECKS_3 = 3, CHECKS_NB = 4
 };
-
-const CheckCount CheckCounts[] = { CHECKS_0, CHECKS_1, CHECKS_2, CHECKS_3 };
 #endif
 
 enum Phase {
