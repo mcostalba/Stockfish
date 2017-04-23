@@ -546,6 +546,9 @@ namespace {
   const int RookCheck         = 688;
   const int BishopCheck       = 588;
   const int KnightCheck       = 924;
+#ifdef ATOMIC
+  const int IndirectKingAttack = 1000;
+#endif
 
 #ifdef THREECHECK
   // In Q8 fixed point
@@ -883,7 +886,10 @@ namespace {
 
 #ifdef ATOMIC
         if (pos.is_atomic())
+        {
+            kingDanger += IndirectKingAttack * popcount(pos.attacks_from<KING>(pos.square<KING>(Us)) & pos.pieces(Us) & ei.attackedBy[Them][ALL_PIECES]);
             score -= make_score(100, 100) * popcount(ei.attackedBy[Us][KING] & pos.pieces());
+        }
 #endif
         // Transform the kingDanger units into a Score, and substract it from the evaluation
         if (kingDanger > 0)
