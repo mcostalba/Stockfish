@@ -508,7 +508,36 @@ namespace {
   #undef V
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
+  const int KingAttackWeights[VARIANT_NB][PIECE_TYPE_NB] = {
+    { 0, 0, 78, 56, 45, 11 },
+#ifdef ANTI
+    {},
+#endif
+#ifdef ATOMIC
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+#ifdef CRAZYHOUSE
+    { 0, 0, 112, 84, 61, 2 },
+#endif
+#ifdef HORDE
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+#ifdef KOTH
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+#ifdef LOSERS
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+#ifdef RACE
+    {},
+#endif
+#ifdef RELAY
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+#ifdef THREECHECK
+    { 0, 0, 78, 56, 45, 11 },
+#endif
+  };
 
   const int KingSafetyParams[VARIANT_NB][8] = {
     {   807,  101,  235,  134, -717, -357,   -5,    0 },
@@ -652,7 +681,7 @@ namespace {
         if (b & ei.kingRing[Them])
         {
             ei.kingAttackersCount[Us]++;
-            ei.kingAttackersWeight[Us] += KingAttackWeights[Pt];
+            ei.kingAttackersWeight[Us] += KingAttackWeights[pos.variant()][Pt];
             ei.kingAdjacentZoneAttacksCount[Us] += popcount(b & ei.attackedBy[Them][KING]);
         }
 
