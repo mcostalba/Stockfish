@@ -183,7 +183,7 @@ static std::vector<std::string> variants = {
 "relay",
 #endif
 #ifdef THREECHECK
-"threecheck",
+"3check",
 #endif
 //subvariants
 #ifdef SUICIDE
