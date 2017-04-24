@@ -2057,7 +2057,6 @@ bool Position::pos_is_ok(int* failedStep) const {
       }
 
       if (step == Lists)
-      {
           for (Piece pc : Pieces)
           {
               if (pieceCount[pc] != popcount(pieces(color_of(pc), type_of(pc))))
@@ -2067,15 +2066,6 @@ bool Position::pos_is_ok(int* failedStep) const {
                   if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
                       return false;
           }
-#ifdef CRAZYHOUSE
-          if (is_house()) {} else
-#endif
-#ifdef HORDE
-          if (is_horde()) {} else
-#endif
-          if (pieceCount[PAWN] > FILE_NB)
-              return false;
-      }
 
       if (step == Castling)
           for (Color c = WHITE; c <= BLACK; ++c)

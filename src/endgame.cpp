@@ -678,7 +678,7 @@ ScaleFactor Endgame<CHESS_VARIANT, KBPKB>::operator()(const Position& pos) const
 
       if (relative_rank(strongSide, pawnSq) <= RANK_5)
           return SCALE_FACTOR_DRAW;
-      
+
       Bitboard path = forward_bb(strongSide, pawnSq);
 
       if (path & pos.pieces(weakSide, KING))
