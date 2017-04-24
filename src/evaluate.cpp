@@ -411,7 +411,6 @@ namespace {
 #endif
 
 #ifdef LOSERS
-  const Score PieceCountLosers    = S(122, 119);
   const Score ThreatsLosers[]     = { S(216, 279), S(441, 341) };
   const Score AttacksLosers[2][2][PIECE_TYPE_NB] = {
     {
@@ -1036,9 +1035,6 @@ namespace {
                 else if (ei.attackedBy[Us][pt] & pos.pieces(Them))
                     score -= AttacksLosers[theyCapture][theyDefended][NO_PIECE_TYPE];
             }
-            // If both colors attack pieces, increase penalty with piece count
-            if (theyCapture)
-                score -= PieceCountLosers * pos.count<ALL_PIECES>(Us);
         }
         // Bonus if we threaten to force captures (ignoring possible discoveries)
         if (!weCapture || theyCapture)
