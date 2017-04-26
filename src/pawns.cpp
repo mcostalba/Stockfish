@@ -433,7 +433,7 @@ namespace {
   const Value MaxSafetyBonus = V(258);
 
 #ifdef HORDE
-  const Score ImbalancedHorde = S(30, 30);
+  const Score ImbalancedHorde = S(34, 39);
 #endif
 
   #undef S
