@@ -550,7 +550,11 @@ namespace {
         if (connected)
             score += Connected[pos.variant()][opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
+#ifdef HORDE
+        if (doubled && (!supported || pos.is_horde()))
+#else
         if (doubled && !supported)
+#endif
             score -= Doubled[pos.variant()];
 
         if (lever)
