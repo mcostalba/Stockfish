@@ -625,7 +625,7 @@ inline MoveType type_of(Move m) {
 
 inline PieceType promotion_type(Move m) {
 #ifdef ANTI
-  if ((m & (3 << 12)) == KING_PROMOTION && (m & (3 << 14)) == SPECIAL)
+  if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)) == KING_PROMOTION)
       return KING;
 #endif
   return PieceType(((m >> 12) & 3) + KNIGHT);
