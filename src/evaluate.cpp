@@ -538,34 +538,34 @@ namespace {
 #endif
   };
 
-  const int KingSafetyParams[VARIANT_NB][8] = {
-    {   820,  103,  190,  142, -810, -306,   -5,    0 },
+  const int KingSafetyParams[VARIANT_NB][7] = {
+    {   103,  190,  142, -810, -306,   -5,    0 },
 #ifdef ANTI
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef ATOMIC
-    {   805,  305,  170,  141, -718, -367,   -7,   29 },
+    {   305,  170,  141, -718, -367,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   823,  148,  299,  183, -697, -309,   -1,  263 },
+    {   148,  299,  183, -697, -309,   -1,  263 },
 #endif
 #ifdef HORDE
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RELAY
-    {   807,  101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef THREECHECK
-    {   880,   77,  138,  107, -726, -292,  -73,  168 },
+    {   77,  138,  107, -726, -292,  -73,  168 },
 #endif
   };
 
@@ -829,12 +829,12 @@ namespace {
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
         const auto KSP = KingSafetyParams[pos.variant()];
-        kingDanger =  std::min(KSP[0], ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
-                    + KSP[1] * ei.kingAdjacentZoneAttacksCount[Them]
-                    + KSP[2] * popcount(undefended)
-                    + KSP[3] * (popcount(b) + !!pos.pinned_pieces(Us))
-                    + KSP[4] * !pos.count<QUEEN>(Them)
-                    + KSP[5] * mg_value(score) / 255 + KSP[6];
+        kingDanger =           ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]
+                    + KSP[0] * ei.kingAdjacentZoneAttacksCount[Them]
+                    + KSP[1] * popcount(undefended)
+                    + KSP[2] * (popcount(b) + !!pos.pinned_pieces(Us))
+                    + KSP[3] * !pos.count<QUEEN>(Them)
+                    + KSP[4] * mg_value(score) / 255 + KSP[5];
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
@@ -927,7 +927,7 @@ namespace {
                 kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
 #endif
             int v = kingDanger * kingDanger / 4096;
-            score -= make_score(v, KSP[7] * v / 256);
+            score -= make_score(v, KSP[6] * v / 256);
         }
     }
 

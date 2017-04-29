@@ -68,8 +68,9 @@ namespace {
   const int skipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
   // Razoring and futility margin based on depth
+  // razor_margin[0] is unused as long as depth >= ONE_PLY in search
   const int razor_margin[VARIANT_NB][4] = {
-  { 483, 570, 603, 554 },
+  { 0, 570, 603, 554 },
 #ifdef ANTI
   { 1917, 2201, 2334, 2407 },
 #endif
@@ -1117,7 +1118,7 @@ moves_loop: // When in check search starts from here
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
       // is singular and should be extended. To verify this we do a reduced search
       // on all the other moves but the ttMove and if the result is lower than
-      // ttValue minus a margin then we extend the ttMove.
+      // ttValue minus a margin then we will extend the ttMove.
       if (    singularExtensionNode
           &&  move == ttMove
           &&  pos.legal(move))
@@ -1586,6 +1587,7 @@ moves_loop: // When in check search starts from here
 
       // Detect non-capture evasions that are candidates to be pruned
       evasionPrunable =    InCheck
+                       &&  depth != DEPTH_ZERO
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.capture(move);
 
