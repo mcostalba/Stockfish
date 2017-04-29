@@ -927,6 +927,10 @@ namespace {
                 kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
 #endif
             int v = kingDanger * kingDanger / 4096;
+#ifdef CRAZYHOUSE
+            if (pos.is_house() && v > QueenValueMg)
+                v = QueenValueMg;
+#endif
             score -= make_score(v, KSP[6] * v / 256);
         }
     }
