@@ -840,9 +840,13 @@ namespace {
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
-            for (PieceType pt = NO_PIECE_TYPE; pt <= QUEEN; ++pt)
-                kingDanger += KingDangerInHand[pt] * pos.count_in_hand(Them, pt);
-            h = pos.count_in_hand(Them, QUEEN) ? undefended & ~pos.pieces() : 0;
+            kingDanger += KingDangerInHand[ALL_PIECES] * pos.count_in_hand<ALL_PIECES>(Them);
+            kingDanger += KingDangerInHand[PAWN] * pos.count_in_hand<PAWN>(Them);
+            kingDanger += KingDangerInHand[KNIGHT] * pos.count_in_hand<KNIGHT>(Them);
+            kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
+            kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
+            kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
+            h = pos.count_in_hand<QUEEN>(Them) ? undefended & ~pos.pieces() : 0;
         }
 #endif
 
@@ -882,7 +886,7 @@ namespace {
 
         // Enemy rooks safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, ROOK) ? ~pos.pieces() : 0;
+        h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
 #endif
         if (b1 & ((ei.attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
             kingDanger += RookCheck;
@@ -892,7 +896,7 @@ namespace {
 
         // Enemy bishops safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, BISHOP) ? ~pos.pieces() : 0;
+        h = pos.is_house() && pos.count_in_hand<BISHOP>(Them) ? ~pos.pieces() : 0;
 #endif
         if (b2 & ((ei.attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
             kingDanger += BishopCheck;
@@ -902,7 +906,7 @@ namespace {
 
         // Enemy knights safe and other checks
 #ifdef CRAZYHOUSE
-        h = pos.is_house() && pos.count_in_hand(Them, KNIGHT) ? ~pos.pieces() : 0;
+        h = pos.is_house() && pos.count_in_hand<KNIGHT>(Them) ? ~pos.pieces() : 0;
 #endif
         Bitboard k = pos.attacks_from<KNIGHT>(ksq);
         b = k & ei.attackedBy[Them][KNIGHT];

@@ -122,7 +122,7 @@ namespace {
 #ifdef CRAZYHOUSE
   template<Color Us, PieceType Pt, bool Checks>
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard b) {
-    if (pos.count_in_hand(Us, Pt))
+    if (pos.count_in_hand<Pt>(Us))
     {
         if (Checks)
             b &= pos.check_squares(Pt);
@@ -210,7 +210,7 @@ namespace {
         }
 #ifdef CRAZYHOUSE
         // Do not require drops to be check (unless already required by target)
-        if (V == CRAZYHOUSE_VARIANT && pos.count_in_hand(Us, PAWN))
+        if (V == CRAZYHOUSE_VARIANT && pos.count_in_hand<PAWN>(Us))
         {
             Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
             moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
@@ -366,7 +366,7 @@ namespace {
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
 #ifdef CRAZYHOUSE
     if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES &&
-        (pos.count_in_hand(Us, ALL_PIECES) - pos.count_in_hand(Us, PAWN)))
+        (pos.count_in_hand<ALL_PIECES>(Us) - pos.count_in_hand<PAWN>(Us)))
     {
         Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
                      Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
