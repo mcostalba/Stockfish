@@ -3,6 +3,28 @@
 [![Build Status](https://travis-ci.org/official-stockfish/Stockfish.svg?branch=master)](https://travis-ci.org/official-stockfish/Stockfish)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish)
 
+Multi Variant Stockfish is a [Stockfish](https://github.com/official-stockfish/Stockfish) fork specialized to play chess and some chess [variants](https://en.lichess.org/variant):
+- [Crazyhouse](https://en.lichess.org/variant/crazyhouse)
+- [Atomic](https://en.lichess.org/variant/atomic)
+- [Horde](https://en.lichess.org/variant/horde)
+- [King of the Hill](https://en.lichess.org/variant/kingOfTheHill)
+- [Racing Kings](https://en.lichess.org/variant/racingKings)
+- [Losers](https://en.lichess.org/variant/antichess)
+- [Three-Check](https://en.lichess.org/variant/threeCheck)
+- [Chess960](https://en.lichess.org/variant/chess960) (played natively by Official Stockfish)
+
+The project has the goal to develop and to improve the playing strength of some chess variants not already played natively by Stockfish, once at month the maintainers will merge the Stockfish new patches to keep up to date also the playing strength for Chess and Chess960. If you are interested to play only Chess and/or Chess960, or to play Chess and/or Chess960 at maximum strength level possible, simply use Stockfish. Multi Variant Stockfish, though using the same code base for Chess and Chess960, is a bit slower.
+
+Multi Variant Stockfish is currently used in these [lichess.org](https://en.lichess.org/) projects: 
+- [lichess.org custom Stockfish](https://github.com/niklasf/Stockfish): as engine used to play against the users on lichess.org
+- [fishnet: distributed Stockfish analysis for lichess.org](https://github.com/niklasf/fishnet): as engine running on contributed remote servers for games analysis on lichess.org
+- [PNaCl Stockfish](https://github.com/niklasf/stockfish.pexe): as engine running in Chrome browser for your personal games analysis
+
+To get more information please visit the [Multi Variant Stockfish Wiki](https://github.com/ddugovic/Stockfish/wiki)
+
+
+### Stockfish
+
 Stockfish is a free UCI chess engine derived from Glaurung 2.1. It is
 not a complete chess program and requires some UCI-compatible GUI
 (e.g. XBoard with PolyGlot, eboard, Arena, Sigma Chess, Shredder, Chess
