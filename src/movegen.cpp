@@ -392,11 +392,7 @@ namespace {
             while (b)
                 *moveList++ = make_move(ksq, pop_lsb(&b));
         }
-#ifdef SUICIDE
-        if (pos.is_suicide() || pos.can_capture())
-#else
         if (pos.can_capture())
-#endif
             return moveList;
     }
     else

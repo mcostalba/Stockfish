@@ -328,6 +328,10 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 #ifdef ANTI
       if (is_anti())
       {
+#ifdef SUICIDE
+          if (is_suicide())
+              continue;
+#endif
           // X-FEN is ambiguous if there are multiple kings
           // Assume the first king on the rank has castling rights
           const Square* kl = squares<KING>(c);
