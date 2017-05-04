@@ -374,11 +374,10 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
   // There may be zero, one, or multiple kings
   if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
       return SQ_NONE;
-  if (is_anti())
-      assert(pieceCount[make_piece(c, Pt)] >= 1);
-  else
-#endif
+  assert(is_anti() ? pieceCount[make_piece(c, Pt)] >= 1 : pieceCount[make_piece(c, Pt)] == 1);
+#else
   assert(pieceCount[make_piece(c, Pt)] == 1);
+#endif
   return pieceList[make_piece(c, Pt)][0];
 }
 
@@ -574,17 +573,20 @@ inline bool Position::is_anti_win() const {
 }
 
 inline bool Position::can_capture() const {
-  if (ep_square() != SQ_NONE)
-      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN))
+  Square ep = ep_square();
+  assert(ep == SQ_NONE() ||
+         (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+  if (ep != SQ_NONE)
+      return true;
+  Bitboard target = pieces(~sideToMove);
+  Bitboard b1 = pieces(sideToMove, PAWN), b2 = pieces(sideToMove) - b1;
+  while (b1)
+      if (attacks_from<PAWN>(pop_lsb(&b1), sideToMove) & target)
           return true;
-  Bitboard b = pieces(sideToMove);
-  while (b)
+  while (b2)
   {
-      Square s = pop_lsb(&b);
-      Piece pc = piece_on(s);
-      if (type_of(pc) == PAWN ?
-          attacks_from<PAWN>(s, sideToMove) & pieces(~sideToMove) :
-          attacks_from(type_of(piece_on(s)), s) & pieces(~sideToMove))
+      Square s = pop_lsb(&b2);
+      if (attacks_from(type_of(piece_on(s)), s) & target)
           return true;
   }
   return false;
@@ -608,35 +610,41 @@ inline bool Position::is_losers_win() const {
 // in a losers chess position.
 
 inline bool Position::can_capture_losers() const {
-  // En passent captures
-  if (ep_square() != SQ_NONE
-      && (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
-      && !(checkers() - (ep_square() + (sideToMove == WHITE ? SOUTH : NORTH))))
+  Bitboard c = checkers();
+  Square ep = ep_square();
+  assert(ep == SQ_NONE() ||
+         (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+
+  // En passant capture(s)
+  if (ep != SQ_NONE
+      && (attackers_to(ep) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+      && !(c - (ep + (sideToMove == WHITE ? SOUTH : NORTH))))
           return true;
-  Bitboard b = pieces(sideToMove);
-  // Double check forces the king to move
-  if (more_than_one(checkers()))
-      b &= pieces(sideToMove, KING);
-  // Loop over our pieces to find possible captures
+
+  // A king may capture undefended pieces
+  Square ksq = square<KING>(sideToMove);
+  Bitboard attacks = attacks_from<KING>(ksq) & pieces(~sideToMove);
+  while (attacks)
+      if (!(attackers_to(pop_lsb(&attacks), pieces() ^ ksq) & pieces(~sideToMove)))
+          return true;
+
+  // Any non-king capture must remove the checking piece(s)
+  Bitboard target = c ? c : pieces(~sideToMove);
+  if (more_than_one(c))
+      return false;
+
+  // Loop over our pieces to find legal captures
+  Bitboard b = pieces(sideToMove) ^ ksq;
   while (b)
   {
       Square s = pop_lsb(&b);
-      Piece pc = piece_on(s);
-      Bitboard attacked = type_of(pc) == PAWN ?
-          attacks_from<PAWN>(s, sideToMove) & pieces(~sideToMove) :
-          attacks_from(type_of(piece_on(s)), s) & pieces(~sideToMove);
-      // A pinned piece may only take the pinner
+      PieceType pt = type_of(piece_on(s));
+      attacks = pt == PAWN ? attacks_from<PAWN>(s, sideToMove) : attacks_from(pt, s);
+
+      // A pinned piece may only capture its pinner
       if (pinned_pieces(sideToMove) & s)
-          attacked &= LineBB[s][square<KING>(sideToMove)];
-      // The king can only capture undefended pieces
-      if (type_of(piece_on(s)) == KING)
-      {
-          while (attacked)
-              if (!(attackers_to(pop_lsb(&attacked), pieces() ^ square<KING>(sideToMove)) & pieces(~sideToMove)))
-                  return true;
-      }
-      // If we are in check, any legal capture has to remove the checking piece
-      else if (checkers() ? attacked & checkers() : attacked)
+          attacks &= LineBB[s][square<KING>(sideToMove)];
+      if (attacks & target)
           return true;
   }
   return false;
