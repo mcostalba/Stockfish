@@ -232,6 +232,8 @@ public:
   bool is_anti() const;
   bool is_anti_win() const;
   bool is_anti_loss() const;
+#endif
+#if defined(ANTI) || defined(LOSERS)
   bool can_capture() const;
 #endif
 #ifdef SUICIDE
@@ -571,7 +573,9 @@ inline bool Position::is_anti_loss() const {
 inline bool Position::is_anti_win() const {
   return count<ALL_PIECES>(sideToMove) == 0;
 }
+#endif
 
+#if defined(ANTI) || defined(LOSERS)
 inline bool Position::can_capture() const {
   Square ep = ep_square();
   assert(ep == SQ_NONE
@@ -606,13 +610,18 @@ inline bool Position::is_losers_win() const {
   return count<ALL_PIECES>(sideToMove) == 1;
 }
 
-// Position::can_capture_losers checks whether we have a legal capture
+// Position::can_capture_losers tests whether we have a legal capture
 // in a losers chess position.
 
 inline bool Position::can_capture_losers() const {
+
   // A king may capture undefended pieces
   Square ksq = square<KING>(sideToMove);
   Bitboard attacks = attacks_from<KING>(ksq) & pieces(~sideToMove);
+
+  // If not in check, unpinned non-king pieces and pawns may freely capture
+  if (!attacks && !checkers() && !pinned_pieces(sideToMove) && ep_square() == SQ_NONE)
+      return can_capture();
   while (attacks)
       if (!(attackers_to(pop_lsb(&attacks), pieces() ^ ksq) & pieces(~sideToMove)))
           return true;
