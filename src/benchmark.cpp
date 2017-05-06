@@ -216,7 +216,9 @@ const vector<string> Defaults[VARIANT_NB] = {
     "8/4P2p/2pk2p1/1p6/1B2P3/7N/3NKPPP/5B1R b - - 0 22",
     "8/4P2p/2pk2p1/pp6/1B2P3/7N/3NKPPP/5B1R b - - 0 22",
     "1k6/1b2p3/8/3P4/8/8/8/1R5K b - - 0 1",
-    "4k3/4p3/8/1r1P3K/B7/8/8/8 b - - 0 1"
+    "4k3/4p3/8/1r1P3K/B7/8/8/8 b - - 0 1",
+    "rnbq1bnr/pppp1kpp/5p2/2P1p3/2B5/K3P3/PP1P1PPP/RNBQ2NR b - - 0 1",
+    "1nbq1bnr/1ppkpppp/3p4/1r3P1K/p7/2P5/PP1PP1PP/RNBQ1BNR w - - 0 1"
   },
 #endif
 #ifdef RACE

@@ -574,8 +574,8 @@ inline bool Position::is_anti_win() const {
 
 inline bool Position::can_capture() const {
   Square ep = ep_square();
-  assert(ep == SQ_NONE() ||
-         (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+  assert(ep == SQ_NONE
+         || (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
   if (ep != SQ_NONE)
       return true;
   Bitboard target = pieces(~sideToMove);
@@ -610,17 +610,6 @@ inline bool Position::is_losers_win() const {
 // in a losers chess position.
 
 inline bool Position::can_capture_losers() const {
-  Bitboard c = checkers();
-  Square ep = ep_square();
-  assert(ep == SQ_NONE() ||
-         (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
-
-  // En passant capture(s)
-  if (ep != SQ_NONE
-      && (attackers_to(ep) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
-      && !(c - (ep + (sideToMove == WHITE ? SOUTH : NORTH))))
-          return true;
-
   // A king may capture undefended pieces
   Square ksq = square<KING>(sideToMove);
   Bitboard attacks = attacks_from<KING>(ksq) & pieces(~sideToMove);
@@ -628,10 +617,32 @@ inline bool Position::can_capture_losers() const {
       if (!(attackers_to(pop_lsb(&attacks), pieces() ^ ksq) & pieces(~sideToMove)))
           return true;
 
-  // Any non-king capture must remove the checking piece(s)
-  Bitboard target = c ? c : pieces(~sideToMove);
-  if (more_than_one(c))
+  // Any non-king capture must capture the checking piece(s)
+  Bitboard target = checkers() ? checkers() : pieces(~sideToMove);
+  if (more_than_one(checkers()))
       return false;
+
+  Square ep = ep_square();
+  assert(ep == SQ_NONE
+         || (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+  if (ep != SQ_NONE)
+  {
+      Bitboard b = attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN);
+      while (b)
+      {
+          // Test en passant legality by simulating the move
+          Square from = pop_lsb(&b);
+          Square capsq = ep - pawn_push(sideToMove);
+          Bitboard occupied = (pieces() ^ from ^ capsq) | ep;
+
+          assert(piece_on(capsq) == make_piece(~sideToMove, PAWN));
+          assert(piece_on(ep) == NO_PIECE);
+
+          if (   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~sideToMove, QUEEN, ROOK))
+              && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~sideToMove, QUEEN, BISHOP)))
+              return true;
+      }
+  }
 
   // Loop over our pieces to find legal captures
   Bitboard b = pieces(sideToMove) ^ ksq;
@@ -641,9 +652,9 @@ inline bool Position::can_capture_losers() const {
       PieceType pt = type_of(piece_on(s));
       attacks = pt == PAWN ? attacks_from<PAWN>(s, sideToMove) : attacks_from(pt, s);
 
-      // A pinned piece may only capture its pinner
+      // A pinned piece may only capture along the pin
       if (pinned_pieces(sideToMove) & s)
-          attacks &= LineBB[s][square<KING>(sideToMove)];
+          attacks &= LineBB[s][ksq];
       if (attacks & target)
           return true;
   }
