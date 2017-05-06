@@ -56,9 +56,6 @@ namespace {
 #ifdef KOTH
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
-#ifdef LOSERS
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-#endif
 #ifdef RACE
   "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1",
 #endif
@@ -67,6 +64,9 @@ namespace {
 #endif
 #ifdef THREECHECK
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1",
+#endif
+#ifdef LOSERS
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef SUICIDE
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",

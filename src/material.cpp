@@ -104,18 +104,6 @@ namespace {
       {-185,   24, 122,   137,  -134,   0 }  // Queen
     },
 #endif
-#ifdef LOSERS
-    {
-      //            OUR PIECES
-      // pair pawn knight bishop rook queen
-      {1634                               }, // Bishop pair
-      {  24,  156                         }, // Pawn
-      {  90,  243, 133                    }, // Knight      OUR PIECES
-      {   0,  120,  66,     0             }, // Bishop
-      {  11,   -2,  41,    15,  -166      }, // Rook
-      {-251,  258,  86,   141,  -205,  43 }  // Queen
-    },
-#endif
 #ifdef RACE
     {
       //            OUR PIECES
@@ -237,18 +225,6 @@ namespace {
       {  59,   65,  42,     0             }, // Bishop
       {  46,   39,  24,   -24,    0       }, // Rook
       { 101,  100, -37,   141,  268,    0 }  // Queen
-    },
-#endif
-#ifdef LOSERS
-    {
-      //           THEIR PIECES
-      // pair pawn knight bishop rook queen
-      {   0                                }, // Bishop pair
-      {-132,    0                          }, // Pawn
-      {  -5,  185,    0                    }, // Knight      OUR PIECES
-      {  59,  440, -106,     0             }, // Bishop
-      { 277,   30,    5,    27,    0       }, // Rook
-      { 217,  357,    5,    51,  254,    0 }  // Queen
     },
 #endif
 #ifdef RACE

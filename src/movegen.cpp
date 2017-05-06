@@ -166,6 +166,10 @@ namespace {
         if (V == ANTI_VARIANT)
             emptySquares &= target;
 #endif
+#ifdef LOSERS
+        if (V == LOSERS_VARIANT && Type != EVASIONS)
+            emptySquares &= target;
+#endif
 
         Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRank3BB) & emptySquares;
@@ -174,13 +178,6 @@ namespace {
             b2 = shift<Up>(b1 & (TRank2BB | TRank3BB)) & emptySquares;
 #endif
 
-#ifdef LOSERS
-        if (V == LOSERS_VARIANT)
-        {
-            b1 &= target;
-            b2 &= target;
-        }
-#endif
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
@@ -427,8 +424,7 @@ namespace {
     }
 
 #ifdef LOSERS
-    if (V == LOSERS_VARIANT && pos.can_capture_losers())
-        return moveList;
+    if (V == LOSERS_VARIANT && pos.can_capture_losers()) {} else
 #endif
     if (Type != CAPTURES && Type != EVASIONS && pos.can_castle(Us))
     {

@@ -127,9 +127,6 @@ enum Variant {
 #ifdef KOTH
   KOTH_VARIANT,
 #endif
-#ifdef LOSERS
-  LOSERS_VARIANT,
-#endif
 #ifdef RACE
   RACE_VARIANT,
 #endif
@@ -142,6 +139,9 @@ enum Variant {
   VARIANT_NB,
   LAST_VARIANT = VARIANT_NB - 1,
   //subvariants
+#ifdef LOSERS
+  LOSERS_VARIANT,
+#endif
 #ifdef SUICIDE
   SUICIDE_VARIANT,
 #endif
@@ -173,9 +173,6 @@ static std::vector<std::string> variants = {
 #ifdef KOTH
 "kingofthehill",
 #endif
-#ifdef LOSERS
-"losers",
-#endif
 #ifdef RACE
 "racingkings",
 #endif
@@ -186,6 +183,9 @@ static std::vector<std::string> variants = {
 "3check",
 #endif
 //subvariants
+#ifdef LOSERS
+"losers",
+#endif
 #ifdef SUICIDE
 "suicide",
 #endif
@@ -334,13 +334,6 @@ enum Value : int {
   BishopValueMgHill = 859,   BishopValueEgHill = 883,
   RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
   QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
-#endif
-#ifdef LOSERS
-  PawnValueMgLosers   = -41,   PawnValueEgLosers   = -23,
-  KnightValueMgLosers = -22,   KnightValueEgLosers = 329,
-  BishopValueMgLosers = -219,  BishopValueEgLosers = 231,
-  RookValueMgLosers   = -457,  RookValueEgLosers   = 77,
-  QueenValueMgLosers  = -122,  QueenValueEgLosers  = -213,
 #endif
 #ifdef RACE
   KnightValueMgRace = 789,   KnightValueEgRace = 887,
@@ -663,6 +656,10 @@ inline Variant main_variant(Variant v) {
       return v;
   switch(v)
   {
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      return CHESS_VARIANT;
+#endif
 #ifdef SUICIDE
   case SUICIDE_VARIANT:
       return ANTI_VARIANT;
