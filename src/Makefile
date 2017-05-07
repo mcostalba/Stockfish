@@ -265,6 +265,11 @@ ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant loop chess)
 endif
 endif
+ifneq (,$(filter -DLOSERS,$(CXXFLAGS)))
+ifeq (,$(filter -DANTI,$(CXXFLAGS)))
+$(error Giveaway (-DANTI) is required for subvariant losers chess)
+endif
+endif
 ifneq (,$(filter -DSUICIDE,$(CXXFLAGS)))
 ifeq (,$(filter -DANTI,$(CXXFLAGS)))
 $(error Giveaway (-DANTI) is required for subvariant suicide chess)

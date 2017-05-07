@@ -470,6 +470,15 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI
   if (pos.is_anti())
   {
+#ifdef LOSERS
+      if (pos.is_losers())
+      {
+          if (pos.can_capture_losers())
+              target &= pos.pieces(~us);
+          return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, Type>(pos, moveList, target)
+                             : generate_all<LOSERS_VARIANT, BLACK, Type>(pos, moveList, target);
+      }
+#endif
       if (pos.can_capture())
           target &= pos.pieces(~us);
       return us == WHITE ? generate_all<ANTI_VARIANT, WHITE, Type>(pos, moveList, target)
@@ -494,15 +503,6 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   if (pos.is_horde())
       return us == WHITE ? generate_all<HORDE_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<HORDE_VARIANT, BLACK, Type>(pos, moveList, target);
-#endif
-#ifdef LOSERS
-  if (pos.is_losers())
-  {
-      if (pos.can_capture_losers())
-          target &= pos.pieces(~us);
-      return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, Type>(pos, moveList, target)
-                         : generate_all<LOSERS_VARIANT, BLACK, Type>(pos, moveList, target);
-  }
 #endif
 #ifdef RACE
   if (pos.is_race())
@@ -529,7 +529,11 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI
+#ifdef LOSERS
+  if (pos.is_anti() && !pos.is_losers())
+#else
   if (pos.is_anti())
+#endif
       return moveList;
 #endif
 #ifdef RACE
@@ -594,7 +598,11 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 template<>
 ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI
+#ifdef LOSERS
+  if (pos.is_anti() && !pos.is_losers())
+#else
   if (pos.is_anti())
+#endif
       return moveList;
 #endif
 #ifdef RACE

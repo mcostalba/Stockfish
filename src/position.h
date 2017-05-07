@@ -232,8 +232,6 @@ public:
   bool is_anti() const;
   bool is_anti_win() const;
   bool is_anti_loss() const;
-#endif
-#if defined(ANTI) || defined(LOSERS)
   bool can_capture() const;
 #endif
 #ifdef SUICIDE
@@ -373,10 +371,21 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
       return SQ_NONE;
 #endif
 #ifdef ANTI
-  // There may be zero, one, or multiple kings
+#ifdef LOSERS
+  if (is_anti() && !is_losers() && pieceCount[make_piece(c, Pt)] == 0)
+#else
   if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
-      return SQ_NONE;
+#endif
+  {
+      // There may be zero, one, or multiple kings
+      if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
+          return SQ_NONE;
+  }
+#ifdef LOSERS
+  assert(is_anti() && !is_losers() ? pieceCount[make_piece(c, Pt)] >= 1 : pieceCount[make_piece(c, Pt)] == 1);
+#else
   assert(is_anti() ? pieceCount[make_piece(c, Pt)] >= 1 : pieceCount[make_piece(c, Pt)] == 1);
+#endif
 #else
   assert(pieceCount[make_piece(c, Pt)] == 1);
 #endif
@@ -454,7 +463,11 @@ inline Bitboard Position::attackers_to(Square s) const {
 
 inline Bitboard Position::checkers() const {
 #ifdef ANTI
+#ifdef LOSERS
+  assert(!is_anti() || is_losers() || !st->checkersBB);
+#else
   assert(!is_anti() || !st->checkersBB);
+#endif
 #endif
   return st->checkersBB;
 }
@@ -573,9 +586,7 @@ inline bool Position::is_anti_loss() const {
 inline bool Position::is_anti_win() const {
   return count<ALL_PIECES>(sideToMove) == 0;
 }
-#endif
 
-#if defined(ANTI) || defined(LOSERS)
 inline bool Position::can_capture() const {
   Square ep = ep_square();
   assert(ep == SQ_NONE
@@ -801,7 +812,15 @@ inline bool Position::is_variant_end() const {
   {
 #ifdef ANTI
   case ANTI_VARIANT:
-      return is_anti_win() || is_anti_loss();
+      switch (subvar)
+      {
+#ifdef LOSERS
+      case LOSERS_VARIANT:
+          return is_losers_win() || is_losers_loss();
+#endif
+      default:
+          return is_anti_win() || is_anti_loss();
+      }
 #endif
 #ifdef ATOMIC
   case ATOMIC_VARIANT:
@@ -824,15 +843,7 @@ inline bool Position::is_variant_end() const {
       return is_three_check_win() || is_three_check_loss();
 #endif
   default:
-      switch (subvar)
-      {
-#ifdef LOSERS
-      case LOSERS_VARIANT:
-          return is_losers_win() || is_losers_loss();
-#endif
-      default:
-          return false;
-      }
+      return false;
   }
 }
 
@@ -841,10 +852,21 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
   {
 #ifdef ANTI
   case ANTI_VARIANT:
-      if (is_anti_win())
-          return mate_in(ply);
-      if (is_anti_loss())
-          return mated_in(ply);
+      switch (subvar)
+      {
+#ifdef LOSERS
+      case LOSERS_VARIANT:
+          if (is_losers_win())
+              return mate_in(ply);
+          if (is_losers_loss())
+              return mated_in(ply);
+#endif
+      default:
+          if (is_anti_win())
+              return mate_in(ply);
+          if (is_anti_loss())
+              return mated_in(ply);
+      }
 #endif
 #ifdef ATOMIC
   case ATOMIC_VARIANT:
@@ -881,18 +903,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
       if (is_three_check_loss())
           return mated_in(ply);
 #endif
-  default:
-      switch (subvar)
-      {
-#ifdef LOSERS
-      case LOSERS_VARIANT:
-          if (is_losers_win())
-              return mate_in(ply);
-          if (is_losers_loss())
-              return mated_in(ply);
-#endif
-      default:;
-      }
+  default:;
   }
   // variant_result should not be called if is_variant_end is false.
   assert(false);
@@ -924,10 +935,6 @@ inline Value Position::stalemate_value(int ply, Value drawValue) const {
 #endif
       return mate_in(ply);
   }
-#endif
-#ifdef LOSERS
-  if (is_losers())
-      return mate_in(ply);
 #endif
   return drawValue;
 }
