@@ -95,6 +95,7 @@ PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitbo
   return KING; // No need to update bitboards: it is the last cycle
 }
 
+#ifdef ANTI
 template<int Pt>
 PieceType min_attacker_anti(const Bitboard* bb, Square to, Bitboard stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
@@ -124,6 +125,7 @@ PieceType min_attacker_anti<NO_PIECE_TYPE>(const Bitboard* bb, Square to, Bitboa
       return min_attacker_anti<KING>(bb, to, stmAttackers, occupied, attackers);
   return NO_PIECE_TYPE; // No need to update bitboards: it is the last cycle
 }
+#endif
 
 } // namespace
 
