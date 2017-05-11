@@ -95,38 +95,6 @@ PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitbo
   return KING; // No need to update bitboards: it is the last cycle
 }
 
-#ifdef ANTI
-template<int Pt>
-PieceType min_attacker_anti(const Bitboard* bb, Square to, Bitboard stmAttackers,
-                       Bitboard& occupied, Bitboard& attackers) {
-
-  Bitboard b = stmAttackers & bb[Pt];
-  if (!b)
-      return min_attacker_anti<Pt-1>(bb, to, stmAttackers, occupied, attackers);
-
-  occupied ^= b & ~(b - 1);
-
-  if (Pt == PAWN || Pt == BISHOP || Pt == QUEEN || Pt == KING)
-      attackers |= attacks_bb<BISHOP>(to, occupied) & (bb[BISHOP] | bb[QUEEN]);
-
-  if (Pt == ROOK || Pt == QUEEN || Pt == KING)
-      attackers |= attacks_bb<ROOK>(to, occupied) & (bb[ROOK] | bb[QUEEN]);
-
-  attackers &= occupied; // After X-ray that may add already processed pieces
-  return (PieceType)Pt;
-}
-
-template<>
-PieceType min_attacker_anti<NO_PIECE_TYPE>(const Bitboard* bb, Square to, Bitboard stmAttackers,
-                       Bitboard& occupied, Bitboard& attackers) {
-
-  Bitboard b = stmAttackers & bb[KING];
-  if (b)
-      return min_attacker_anti<KING>(bb, to, stmAttackers, occupied, attackers);
-  return NO_PIECE_TYPE; // No need to update bitboards: it is the last cycle
-}
-#endif
-
 } // namespace
 
 
@@ -1919,11 +1887,6 @@ bool Position::see_ge(Move m, Value v) const {
           return relativeStm;
 
       // Locate and remove the next least valuable attacker
-#ifdef ANTI
-      if (is_anti()) // Antichess: QUEEN-ROOK-BISHOP-KNIGHT-PAWN-KING
-          nextVictim = min_attacker_anti<QUEEN>(byTypeBB, to, stmAttackers, occupied, attackers);
-      else
-#endif
       nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
 
       // Don't allow pinned pieces to attack pieces except the king
