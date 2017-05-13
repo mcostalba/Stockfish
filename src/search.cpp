@@ -307,6 +307,29 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
+  int slowdown = Options["slowdown"];
+  if (slowdown)
+  {
+      int elapsed = Time.elapsed();
+
+//      std::cerr << "elapsed1 " << elapsed << std::endl;
+
+      int64_t microsec = elapsed * 1000 * slowdown / 100; // slowdown is in percent
+
+      // Use a loop because std::this_thread::sleep_for is not precise
+      bool waiting = true;
+      auto start = std::chrono::system_clock::now();
+      while (waiting)
+      {
+          auto now = std::chrono::system_clock::now();
+          auto e = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
+          if (e.count() > microsec)
+              waiting = false;
+      }
+
+//      std::cerr << "elapsed2 " << Time.elapsed() << std::endl;
+  }
+
   // Send new PV when needed
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
