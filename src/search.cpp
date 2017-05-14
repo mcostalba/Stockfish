@@ -310,7 +310,7 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
-  if (Slowdown)
+  if (Slowdown || true)
   {
       int elapsed = Time.elapsed();
 
