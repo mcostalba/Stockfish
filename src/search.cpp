@@ -60,6 +60,8 @@ using namespace Search;
 
 namespace {
 
+  int Slowdown;
+
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV };
 
@@ -242,6 +244,7 @@ void MainThread::search() {
 
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
+  Slowdown = Options["slowdown"];
 
   int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
   DrawValue[ us] = VALUE_DRAW - Value(contempt);
@@ -307,14 +310,13 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
-  int slowdown = Options["slowdown"];
-  if (slowdown)
+  if (Slowdown)
   {
       int elapsed = Time.elapsed();
 
 //      std::cerr << "elapsed1 " << elapsed << std::endl;
 
-      int64_t microsec = elapsed * 1000 * slowdown / 100; // slowdown is in percent
+      int64_t microsec = elapsed * 1000 * Slowdown / 100; // slowdown is in percent
 
       // Use a loop because std::this_thread::sleep_for is not precise
       bool waiting = true;
@@ -509,12 +511,16 @@ void Thread::search() {
               int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
               double unstablePvFactor = 1 + mainThread->bestMoveChanges;
 
+              int elapsed = Time.elapsed();
+              if (Slowdown)
+                  elapsed = elapsed * (100 + Slowdown) / 100;
+
               bool doEasyMove =   rootMoves[0].pv[0] == easyMove
                                && mainThread->bestMoveChanges < 0.03
-                               && Time.elapsed() > Time.optimum() * 5 / 44;
+                               && elapsed > Time.optimum() * 5 / 44;
 
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 628
+                  || elapsed > Time.optimum() * unstablePvFactor * improvingFactor / 628
                   || (mainThread->easyMovePlayed = doEasyMove, doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
@@ -1502,6 +1508,9 @@ moves_loop: // When in check search starts from here
     // An engine may not stop pondering until told so by the GUI
     if (Limits.ponder)
         return;
+
+    if (Slowdown)
+        elapsed = elapsed * (100 + Slowdown) / 100;
 
     if (   (Limits.use_time_management() && elapsed > Time.maximum() - 10)
         || (Limits.movetime && elapsed >= Limits.movetime)
