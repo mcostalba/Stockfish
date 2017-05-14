@@ -320,10 +320,10 @@ void MainThread::search() {
 
       // Use a loop because std::this_thread::sleep_for is not precise
       bool waiting = true;
-      auto start = std::chrono::system_clock::now();
+      auto start = std::chrono::high_resolution_clock::now();
       while (waiting)
       {
-          auto now = std::chrono::system_clock::now();
+          auto now = std::chrono::high_resolution_clock::now();
           auto e = std::chrono::duration_cast<std::chrono::microseconds>(now - start);
           if (e.count() > microsec)
               waiting = false;
