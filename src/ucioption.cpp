@@ -32,6 +32,7 @@
 using std::string;
 
 UCI::OptionsMap Options; // Global object
+int Slowdown = 2; // In percent
 
 namespace UCI {
 
@@ -69,6 +70,7 @@ void init(OptionsMap& o) {
   o["Minimum Thinking Time"] << Option(20, 0, 5000);
   o["Slow Mover"]            << Option(89, 10, 1000);
   o["nodestime"]             << Option(0, 0, 10000);
+  o["slowdown"]              << Option(Slowdown, 0, 100);
   o["UCI_Chess960"]          << Option(false);
   o["SyzygyPath"]            << Option("<empty>", on_tb_path);
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);

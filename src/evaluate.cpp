@@ -28,6 +28,9 @@
 #include "evaluate.h"
 #include "material.h"
 #include "pawns.h"
+#include "uci.h"
+
+extern int Slowdown;
 
 namespace {
 
@@ -862,6 +865,13 @@ Value Eval::evaluate(const Position& pos) {
                           , evaluate_space<BLACK>(pos, ei));
       Trace::add(TOTAL, score);
   }
+
+  // Calibration factor K, between slowdown in % and actual slowdown
+  static const unsigned K = 66;
+  static PRNG rng(now());
+
+  if (Slowdown && int(rng.rand<unsigned>() % K) <= Slowdown)
+      evaluate(pos); // It is called recursively but (almost) only once
 
   return (pos.side_to_move() == WHITE ? v : -v) + Eval::Tempo; // Side to move point of view
 }
