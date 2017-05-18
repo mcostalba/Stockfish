@@ -88,7 +88,7 @@ namespace {
 
     // kingRing[color] is the zone around the king which is considered
     // by the king safety evaluation. This consists of the squares directly
-    // adjacent to the king, and the three (or two, for a king on an edge file)
+    // adjacent to the king, and (only for a king on its first rank) the
     // squares two ranks in front of the king. For instance, if black's king
     // is on g8, kingRing[BLACK] is a bitboard containing the squares f8, h8,
     // f7, g7, h7, f6, g6 and h6.
@@ -489,31 +489,32 @@ namespace {
 #endif
   };
 
-  const int KingSafetyParams[VARIANT_NB][7] = {
-    {   102,  201,  143, -848, -280,   -5,    0 },
+  // Per-variant king danger malus factors
+  const int KingDangerParams[VARIANT_NB][7] = {
+    {   102,  201,  143, -848,   -9,   40,    0 },
 #ifdef ANTI
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef ATOMIC
-    {   305,  170,  141, -718, -367,   -7,   29 },
+    {   305,  170,  141, -718,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   148,  299,  183, -697, -309,   -1,  263 },
+    {   148,  299,  183, -697,  -10,   -1,  263 },
 #endif
 #ifdef HORDE
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef RACE
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef RELAY
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef THREECHECK
-    {   77,  138,  107, -726, -292,  -73,  168 },
+    {    77,  138,  107, -726,   -7,  -73,  168 },
 #endif
   };
 
@@ -580,13 +581,16 @@ namespace {
 #ifdef ANTI
         !pos.is_anti() &&
 #endif
-        (pos.non_pawn_material(Them) >= QueenValueMg))
+        (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
 #ifdef CRAZYHOUSE
         || pos.is_house()
 #endif
     )
     {
-        ei.kingRing[Us] = b | shift<Up>(b);
+        ei.kingRing[Us] = b;
+        if (relative_rank(Us, pos.square<KING>(Us)) == RANK_1)
+            ei.kingRing[Us] |= shift<Up>(b);
+
         ei.kingAttackersCount[Them] = popcount(b & ei.pe->pawn_attacks(Them));
         ei.kingAdjacentZoneAttacksCount[Them] = ei.kingAttackersWeight[Them] = 0;
     }
@@ -753,7 +757,12 @@ namespace {
     Score score = ei.pe->king_safety<Us>(pos, ksq);
 
     // Main king safety evaluation
-    if (ei.kingAttackersCount[Them])
+    if (ei.kingAttackersCount[Them] > (1 - pos.count<QUEEN>(Them))
+#ifdef HORDE
+        // Hack to prevent segmentation fault for multi-queen positions
+        && !(pos.is_horde() && ksq == SQ_NONE)
+#endif
+    )
     {
         // Find the attacked squares which are defended only by our king...
 #ifdef ATOMIC
@@ -776,13 +785,14 @@ namespace {
         // number and types of the enemy's attacking pieces, the number of
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
-        const auto KSP = KingSafetyParams[pos.variant()];
+        const auto KDP = KingDangerParams[pos.variant()];
         kingDanger =           ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]
-                    + KSP[0] * ei.kingAdjacentZoneAttacksCount[Them]
-                    + KSP[1] * popcount(undefended)
-                    + KSP[2] * (popcount(b) + !!pos.pinned_pieces(Us))
-                    + KSP[3] * !pos.count<QUEEN>(Them)
-                    + KSP[4] * mg_value(score) / 250 + KSP[5];
+                    + KDP[0] * ei.kingAdjacentZoneAttacksCount[Them]
+                    + KDP[1] * popcount(undefended)
+                    + KDP[2] * (popcount(b) + !!pos.pinned_pieces(Us))
+                    + KDP[3] * !pos.count<QUEEN>(Them)
+                    + KDP[4] * mg_value(score) / 8
+                    + KDP[5];
         Bitboard h = 0;
 
 #ifdef CRAZYHOUSE
@@ -883,7 +893,7 @@ namespace {
             if (pos.is_house() && v > QueenValueMg)
                 v = QueenValueMg;
 #endif
-            score -= make_score(v, KSP[6] * v / 256);
+            score -= make_score(v, kingDanger / 16 + KDP[6] * v / 256);
         }
     }
 

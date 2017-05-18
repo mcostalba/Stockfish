@@ -294,7 +294,7 @@ void Search::init() {
 }
 
 
-/// Search::clear() resets search state to zero, to obtain reproducible results
+/// Search::clear() resets search state to its initial value, to obtain reproducible results
 
 void Search::clear() {
 
@@ -306,9 +306,10 @@ void Search::clear() {
       th->history.clear();
       th->counterMoveHistory.clear();
       th->resetCalls = true;
+
       CounterMoveStats& cm = th->counterMoveHistory[NO_PIECE][0];
-      int* t = &cm[NO_PIECE][0];
-      std::fill(t, t + sizeof(cm), CounterMovePruneThreshold - 1);
+      auto* t = &cm[NO_PIECE][0];
+      std::fill(t, t + sizeof(cm)/sizeof(*t), CounterMovePruneThreshold - 1);
   }
 
   Threads.main()->previousScore = VALUE_INFINITE;
