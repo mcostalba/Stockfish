@@ -358,7 +358,6 @@ enum Value : int {
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
-extern Value PhaseLimit[VARIANT_NB][PHASE_NB];
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
