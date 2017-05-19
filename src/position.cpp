@@ -2008,9 +2008,6 @@ bool Position::pos_is_ok(int* failedStep) const {
           if (is_anti())
 #endif
           {
-#ifdef LOSERS
-              if (is_losers()) {} else
-#endif
               if ((sideToMove != WHITE && sideToMove != BLACK)
                   || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
                   return false;
