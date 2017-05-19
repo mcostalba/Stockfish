@@ -276,7 +276,28 @@ namespace {
       {  78,    3,  46,    37,   -26,  -1 }  // Queen
   };
 #endif
-
+#ifdef LOSERS
+  const int LosersQuadraticOurs[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+      //            OUR PIECES
+      // pair pawn knight bishop rook queen
+      {1634                               }, // Bishop pair
+      {  24,  156                         }, // Pawn
+      {  90,  243, 133                    }, // Knight      OUR PIECES
+      {   0,  120,  66,     0             }, // Bishop
+      {  11,   -2,  41,    15,  -166      }, // Rook
+      {-251,  258,  86,   141,  -205,  43 }  // Queen
+  };
+  const int LosersQuadraticTheirs[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+      //           THEIR PIECES
+      // pair pawn knight bishop rook queen
+      {   0                                }, // Bishop pair
+      {-132,    0                          }, // Pawn
+      {  -5,  185,    0                    }, // Knight      OUR PIECES
+      {  59,  440, -106,     0             }, // Bishop
+      { 277,   30,    5,    27,    0       }, // Rook
+      { 217,  357,    5,    51,  254,    0 }  // Queen
+  };
+#endif
   // PawnSet[pawn count] contains a bonus/malus indexed by number of pawns
   const int PawnSet[] = {
     24, -32, 107, -51, 117, -9, -126, -21, 31
@@ -351,10 +372,16 @@ namespace {
             continue;
 
         int v = 0;
-
-        for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
-            v +=  QuadraticOurs[pos.variant()][pt1][pt2] * pieceCount[Us][pt2]
-                + QuadraticTheirs[pos.variant()][pt1][pt2] * pieceCount[Them][pt2];
+#ifdef LOSERS
+        if (pos.is_losers())
+            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+                v +=  LosersQuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
+                    + LosersQuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
+        else
+#endif
+            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+                v +=  QuadraticOurs[pos.variant()][pt1][pt2] * pieceCount[Us][pt2]
+                    + QuadraticTheirs[pos.variant()][pt1][pt2] * pieceCount[Them][pt2];
 
         bonus += pieceCount[Us][pt1] * v;
     }
