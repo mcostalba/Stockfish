@@ -143,11 +143,11 @@ void MovePicker::score<CAPTURES>() {
 template<>
 void MovePicker::score<QUIETS>() {
 
-  const HistoryStats& history = pos.this_thread()->history;
+  const auto& history = pos.this_thread()->history;
 
-  const CounterMoveStats& cmh = *(ss-1)->counterMoves;
-  const CounterMoveStats& fmh = *(ss-2)->counterMoves;
-  const CounterMoveStats& fm2 = *(ss-4)->counterMoves;
+  const auto& cmh = *(ss-1)->history;
+  const auto& fmh = *(ss-2)->history;
+  const auto& fm2 = *(ss-4)->history;
 
   Color c = pos.side_to_move();
 
@@ -155,13 +155,13 @@ void MovePicker::score<QUIETS>() {
       m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
                + fmh[pos.moved_piece(m)][to_sq(m)]
                + fm2[pos.moved_piece(m)][to_sq(m)]
-               + history.get(c, m);
+               + history[c][from_to(m)];
 }
 
 template<>
 void MovePicker::score<EVASIONS>() {
   // Try captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
-  const HistoryStats& history = pos.this_thread()->history;
+  const auto& history = pos.this_thread()->history;
   Color c = pos.side_to_move();
 
   for (auto& m : *this)
@@ -169,7 +169,7 @@ void MovePicker::score<EVASIONS>() {
           m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
                    - Value(type_of(pos.moved_piece(m))) + (1 << 28);
       else
-          m.value = history.get(c, m);
+          m.value = history[c][from_to(m)];
 }
 
 
