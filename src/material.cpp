@@ -31,7 +31,7 @@ namespace {
 
   // Polynomial material imbalance parameters
 
-  const int QuadraticOurs[VARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+  const int QuadraticOurs[SUBVARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
     {
     //            OUR PIECES
     // pair pawn knight bishop rook queen
@@ -140,6 +140,30 @@ namespace {
       {-185,   24, 122,   137,  -134,   0 }  // Queen
     },
 #endif
+#ifdef LOSERS
+    {
+      //            OUR PIECES
+      // pair pawn knight bishop rook queen
+      {1634                               }, // Bishop pair
+      {  24,  156                         }, // Pawn
+      {  90,  243, 133                    }, // Knight      OUR PIECES
+      {   0,  120,  66,     0             }, // Bishop
+      {  11,   -2,  41,    15,  -166      }, // Rook
+      {-251,  258,  86,   141,  -205,  43 }  // Queen
+    },
+#endif
+#ifdef SUICIDE
+    {
+    },
+#endif
+#ifdef BUGHOUSE
+    {
+    },
+#endif
+#ifdef LOOP
+    {
+    },
+#endif
   };
 #ifdef CRAZYHOUSE
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
@@ -154,7 +178,7 @@ namespace {
   };
 #endif
 
-  const int QuadraticTheirs[VARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
+  const int QuadraticTheirs[SUBVARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
     {
     //           THEIR PIECES
     // pair pawn knight bishop rook queen
@@ -263,6 +287,30 @@ namespace {
       { 101,  100, -37,   141,  268,    0 }  // Queen
     },
 #endif
+#ifdef LOSERS
+    {
+      //           THEIR PIECES
+      // pair pawn knight bishop rook queen
+      {   0                                }, // Bishop pair
+      {-132,    0                          }, // Pawn
+      {  -5,  185,    0                    }, // Knight      OUR PIECES
+      {  59,  440, -106,     0             }, // Bishop
+      { 277,   30,    5,    27,    0       }, // Rook
+      { 217,  357,    5,    51,  254,    0 }  // Queen
+    },
+#endif
+#ifdef SUICIDE
+    {
+    },
+#endif
+#ifdef BUGHOUSE
+    {
+    },
+#endif
+#ifdef LOOP
+    {
+    },
+#endif
   };
 #ifdef CRAZYHOUSE
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
@@ -274,28 +322,6 @@ namespace {
       {  34,   33,  42,    88             }, // Bishop
       { -24,    0,  58,    90,   -38      }, // Rook
       {  78,    3,  46,    37,   -26,  -1 }  // Queen
-  };
-#endif
-#ifdef LOSERS
-  const int LosersQuadraticOurs[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
-      //            OUR PIECES
-      // pair pawn knight bishop rook queen
-      {1634                               }, // Bishop pair
-      {  24,  156                         }, // Pawn
-      {  90,  243, 133                    }, // Knight      OUR PIECES
-      {   0,  120,  66,     0             }, // Bishop
-      {  11,   -2,  41,    15,  -166      }, // Rook
-      {-251,  258,  86,   141,  -205,  43 }  // Queen
-  };
-  const int LosersQuadraticTheirs[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
-      //           THEIR PIECES
-      // pair pawn knight bishop rook queen
-      {   0                                }, // Bishop pair
-      {-132,    0                          }, // Pawn
-      {  -5,  185,    0                    }, // Knight      OUR PIECES
-      {  59,  440, -106,     0             }, // Bishop
-      { 277,   30,    5,    27,    0       }, // Rook
-      { 217,  357,    5,    51,  254,    0 }  // Queen
   };
 #endif
   // PawnSet[pawn count] contains a bonus/malus indexed by number of pawns
@@ -352,42 +378,41 @@ namespace {
   int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB]) {
 #endif
 
+    // Variant V may eventually become a template parameter
+    const Variant V = (pos.subvariant() == LOSERS_VARIANT ? LOSERS_VARIANT : pos.variant());
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
     int bonus = PawnSet[std::min(pieceCount[Us][PAWN], (int)FILE_NB)];
 
     // Second-degree polynomial material imbalance by Tord Romstad
-    PieceType pt_max =
+    PieceType ptMax =
 #ifdef ANTI
+#ifdef LOSERS
+                      pos.is_anti() && !pos.is_losers() ? KING :
+#else
                       pos.is_anti() ? KING :
+#endif
 #endif
 #ifdef HORDE
                       pos.is_horde() ? KING :
 #endif
                       QUEEN;
 
-    for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
+    for (int pt1 = NO_PIECE_TYPE; pt1 <= ptMax; ++pt1)
     {
         if (!pieceCount[Us][pt1])
             continue;
 
         int v = 0;
-#ifdef LOSERS
-        if (pos.is_losers())
-            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
-                v +=  LosersQuadraticOurs[pt1][pt2] * pieceCount[Us][pt2]
-                    + LosersQuadraticTheirs[pt1][pt2] * pieceCount[Them][pt2];
-        else
-#endif
-            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
-                v +=  QuadraticOurs[pos.variant()][pt1][pt2] * pieceCount[Us][pt2]
-                    + QuadraticTheirs[pos.variant()][pt1][pt2] * pieceCount[Them][pt2];
+        for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+            v +=  QuadraticOurs[V][pt1][pt2] * pieceCount[Us][pt2]
+                + QuadraticTheirs[V][pt1][pt2] * pieceCount[Them][pt2];
 
         bonus += pieceCount[Us][pt1] * v;
     }
 #ifdef CRAZYHOUSE
     if (pos.is_house())
-        for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
+        for (int pt1 = NO_PIECE_TYPE; pt1 <= ptMax; ++pt1)
         {
             if (!pieceCountInHand[Us][pt1])
                 continue;
