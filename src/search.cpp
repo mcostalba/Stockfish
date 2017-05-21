@@ -86,6 +86,9 @@ namespace {
 #ifdef KOTH
   { 524, 587, 676, 582 },
 #endif
+#ifdef LOSERS
+  { 1981, 2335, 2351, 2142 },
+#endif
 #ifdef RACE
   { 1043, 1016, 1004, 1012 },
 #endif
@@ -112,6 +115,9 @@ namespace {
 #endif
 #ifdef KOTH
   192,
+#endif
+#ifdef LOSERS
+  593,
 #endif
 #ifdef RACE
   336,
@@ -141,6 +147,9 @@ namespace {
 #ifdef KOTH
   { 418, 305 },
 #endif
+#ifdef LOSERS
+  { 299, 281 },
+#endif
 #ifdef RACE
   { 305, 311 },
 #endif
@@ -167,6 +176,9 @@ namespace {
 #endif
 #ifdef KOTH
   324,
+#endif
+#ifdef LOSERS
+  200,
 #endif
 #ifdef RACE
   235,

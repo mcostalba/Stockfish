@@ -599,7 +599,7 @@ inline bool Position::can_capture() const {
 
 #ifdef LOSERS
 inline bool Position::is_losers() const {
-  return subvar == LOSERS_VARIANT;
+  return var == LOSERS_VARIANT;
 }
 
 inline bool Position::is_losers_loss() const {
@@ -815,6 +815,10 @@ inline bool Position::is_variant_end() const {
   case KOTH_VARIANT:
       return is_koth_win() || is_koth_loss();
 #endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      return is_losers_win() || is_losers_loss();
+#endif
 #ifdef RACE
   case RACE_VARIANT:
       return is_race_draw() || is_race_win() || is_race_loss();
@@ -824,15 +828,7 @@ inline bool Position::is_variant_end() const {
       return is_three_check_win() || is_three_check_loss();
 #endif
   default:
-      switch (subvar)
-      {
-#ifdef LOSERS
-      case LOSERS_VARIANT:
-          return is_losers_win() || is_losers_loss();
-#endif
-      default:
-          return false;
-      }
+      return false;
   }
 }
 
@@ -865,6 +861,13 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
       if (is_koth_loss())
           return mated_in(ply);
 #endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      if (is_losers_win())
+          return mate_in(ply);
+      if (is_losers_loss())
+          return mated_in(ply);
+#endif
 #ifdef RACE
   case RACE_VARIANT:
       if (is_race_draw())
@@ -881,18 +884,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
       if (is_three_check_loss())
           return mated_in(ply);
 #endif
-  default:
-      switch (subvar)
-      {
-#ifdef LOSERS
-      case LOSERS_VARIANT:
-          if (is_losers_win())
-              return mate_in(ply);
-          if (is_losers_loss())
-              return mated_in(ply);
-#endif
-      default:;
-      }
+  default:;
   }
   // variant_result should not be called if is_variant_end is false.
   assert(false);

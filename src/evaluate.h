@@ -46,6 +46,9 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #ifdef KOTH
   Value(20),
 #endif
+#ifdef LOSERS
+  Value(20),
+#endif
 #ifdef RACE
   Value(100),
 #endif
