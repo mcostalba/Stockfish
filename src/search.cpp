@@ -834,6 +834,9 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth()) {} else
 #endif
+#ifdef LOSERS
+    if (pos.is_losers()) {} else
+#endif
 #ifdef RACE
     if (pos.is_race()) {} else
 #endif
@@ -842,9 +845,6 @@ namespace {
 #endif
 #ifdef HORDE
     if (pos.is_horde()) {} else
-#endif
-#ifdef LOSERS
-    if (pos.is_losers()) {} else
 #endif
     if (!rootNode && TB::Cardinality)
     {
@@ -906,6 +906,10 @@ namespace {
     }
 #ifdef ANTI
     if (pos.is_anti() && pos.can_capture())
+        goto moves_loop;
+#endif
+#ifdef LOSERS
+    if (pos.is_losers() && pos.can_capture_losers())
         goto moves_loop;
 #endif
 
@@ -1089,11 +1093,7 @@ moves_loop: // When in check search starts from here
                   && !pos.is_atomic()
 #endif
 #ifdef ANTI
-#ifdef LOSERS
-                  && !(pos.is_anti() && !pos.is_losers())
-#else
                   && !pos.is_anti()
-#endif
 #endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
@@ -1156,6 +1156,9 @@ moves_loop: // When in check search starts from here
               && !givesCheck
 #ifdef ANTI
               && (!pos.is_anti() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
+#endif
+#ifdef LOSERS
+              && (!pos.is_losers() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
 #endif
 #ifdef HORDE
               && (pos.is_horde() || !pos.advanced_pawn_push(move) || pos.non_pawn_material() >= Value(5000))
@@ -1531,11 +1534,7 @@ moves_loop: // When in check search starts from here
                   && !pos.is_atomic()
 #endif
 #ifdef ANTI
-#ifdef LOSERS
-                  && !(pos.is_anti() && !pos.is_losers())
-#else
                   && !pos.is_anti()
-#endif
 #endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);

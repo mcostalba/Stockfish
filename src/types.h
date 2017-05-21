@@ -657,7 +657,7 @@ inline Variant main_variant(Variant v) {
   {
 #ifdef LOSERS
   case LOSERS_VARIANT:
-      return ANTI_VARIANT;
+      return CHESS_VARIANT;
 #endif
 #ifdef SUICIDE
   case SUICIDE_VARIANT:

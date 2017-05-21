@@ -299,11 +299,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       Rank rank = relative_rank(c, RANK_1);
       Square ksq = square<KING>(c);
 #ifdef ANTI
-#ifdef LOSERS
-      if (is_anti() && !is_losers())
-#else
       if (is_anti())
-#endif
       {
 #ifdef SUICIDE
           if (is_suicide())
@@ -444,11 +440,7 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 void Position::set_check_info(StateInfo* si) const {
 
 #ifdef ANTI
-#ifdef LOSERS
-  if (is_anti() && !is_losers())
-#else
   if (is_anti())
-#endif
   {
       si->blockersForKing[WHITE] = si->pinnersForKing[WHITE] = 0;
       si->blockersForKing[BLACK] = si->pinnersForKing[BLACK] = 0;
@@ -462,11 +454,7 @@ void Position::set_check_info(StateInfo* si) const {
 
   Square ksq = square<KING>(~sideToMove);
 #ifdef ANTI
-#ifdef LOSERS
-  if (is_anti() && !is_losers()) { // There are no checks in antichess
-#else
   if (is_anti()) { // There are no checks in antichess
-#endif
   si->checkSquares[PAWN]   = 0;
   si->checkSquares[KNIGHT] = 0;
   si->checkSquares[BISHOP] = 0;
@@ -525,11 +513,7 @@ void Position::set_state(StateInfo* si) const {
   else
 #endif
 #ifdef ANTI
-#ifdef LOSERS
-  if (is_anti() && !is_losers())
-#else
   if (is_anti())
-#endif
       si->checkersBB = 0;
   else
 #endif
@@ -774,14 +758,9 @@ bool Position::legal(Move m) const {
   assert(color_of(moved_piece(m)) == us);
 #ifdef ANTI
   // If a player can capture, that player must capture
-#ifdef LOSERS
-  assert(!is_anti() || is_losers() || capture(m) == can_capture());
-  if (is_anti() && !is_losers())
-#else
+  // Is handled by move generator
   assert(!is_anti() || capture(m) == can_capture());
   if (is_anti())
-#endif
-      // Is handled by move generator
       return true;
 #endif
 #ifdef HORDE
@@ -932,19 +911,12 @@ bool Position::pseudo_legal(const Move m) const {
   }
 #endif
 #ifdef ANTI
-  if (is_anti() && !capture(m))
-  {
-#ifdef LOSERS
-      if (is_losers())
-      {
-          if (can_capture_losers())
-              return false;
-      }
-      else
+  if (is_anti() && !capture(m) && can_capture())
+      return false;
 #endif
-      if (can_capture())
-          return false;
-  }
+#ifdef LOSERS
+  if (is_losers() && !capture(m) && can_capture_losers())
+      return false;
 #endif
 
   // Use a slower but simpler function for uncommon cases
@@ -1048,11 +1020,7 @@ bool Position::gives_check(Move m) const {
       return false;
 #endif
 #ifdef ANTI
-#ifdef LOSERS
-  if (is_anti() && !is_losers())
-#else
   if (is_anti())
-#endif
       return false;
 #endif
 #ifdef ATOMIC
@@ -1166,11 +1134,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(is_ok(m));
   assert(&newSt != st);
 #ifdef ANTI
-#ifdef LOSERS
-  assert(!is_anti() || is_losers() || !givesCheck);
-#else
   assert(!is_anti() || !givesCheck);
-#endif
 #endif
 
   ++nodes;
@@ -1203,11 +1167,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
 #ifdef ANTI
-#ifdef LOSERS
-  assert((is_anti() && !is_losers()) || type_of(captured) != KING);
-#else
   assert(is_anti() || type_of(captured) != KING);
-#endif
 #else
   assert(type_of(captured) != KING);
 #endif
@@ -1411,11 +1371,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
           assert(relative_rank(us, to) == RANK_8);
 #ifdef ANTI
-#ifdef LOSERS
-          assert(type_of(promotion) >= KNIGHT && type_of(promotion) <= (is_anti() && !is_losers() ? KING : QUEEN));
-#else
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) <= (is_anti() ? KING : QUEEN));
-#endif
 #else
           assert(type_of(promotion) >= KNIGHT && type_of(promotion) <= QUEEN);
 #endif
@@ -1522,11 +1478,7 @@ void Position::undo_move(Move m) {
   assert(empty(from) || type_of(m) == CASTLING);
 #endif
 #ifdef ANTI
-#ifdef LOSERS
-  assert((is_anti() && !is_losers()) || type_of(st->capturedPiece) != KING);
-#else
   assert(is_anti() || type_of(st->capturedPiece) != KING);
-#endif
 #else
   assert(type_of(st->capturedPiece) != KING);
 #endif
@@ -1540,11 +1492,7 @@ void Position::undo_move(Move m) {
 #endif
       assert(type_of(pc) == promotion_type(m));
 #ifdef ANTI
-#ifdef LOSERS
-      assert(type_of(pc) >= KNIGHT && type_of(pc) <= (is_anti() && !is_losers() ? KING : QUEEN));
-#else
       assert(type_of(pc) >= KNIGHT && type_of(pc) <= (is_anti() ? KING : QUEEN));
-#endif
 #else
       assert(type_of(pc) >= KNIGHT && type_of(pc) <= QUEEN);
 #endif
@@ -1856,11 +1804,7 @@ bool Position::see_ge(Move m, Value v) const {
       return false;
 
 #ifdef ANTI
-#ifdef LOSERS
-  if (is_anti() && !is_losers()) {} else
-#else
   if (is_anti()) {} else
-#endif
 #endif
   if (nextVictim == KING)
       return true;
@@ -1899,11 +1843,7 @@ bool Position::see_ge(Move m, Value v) const {
 
       // Don't allow pinned pieces to attack pieces except the king
 #ifdef ANTI
-#ifdef LOSERS
-      if (is_anti() && !is_losers()) {} else
-#else
       if (is_anti()) {} else
-#endif
 #endif
       if (nextVictim == KING)
           return relativeStm == bool(attackers & pieces(~stm));
@@ -2010,11 +1950,7 @@ bool Position::pos_is_ok(int* failedStep) const {
       {
           Square wksq = square<KING>(WHITE), bksq = square<KING>(BLACK);
 #ifdef ANTI
-#ifdef LOSERS
-          if (is_anti() && !is_losers())
-#else
           if (is_anti())
-#endif
           {
               if ((sideToMove != WHITE && sideToMove != BLACK)
                   || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
@@ -2052,11 +1988,7 @@ bool Position::pos_is_ok(int* failedStep) const {
       if (step == King)
       {
 #ifdef ANTI
-#ifdef LOSERS
-          if (is_anti() && !is_losers()) {} else
-#else
           if (is_anti()) {} else
-#endif
 #endif
 #ifdef HORDE
           if (is_horde())
