@@ -54,20 +54,28 @@ namespace {
     {
 #endif
     for (Square s = kto; s != kfrom; s += K)
-        if (pos.attackers_to(s) & enemies)
-        {
 #ifdef ATOMIC
-            if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(~us)) & s))
-                continue;
-#endif
-            return moveList;
+        if (V == ATOMIC_VARIANT)
+        {
+            if (   !(pos.attacks_from<KING>(pos.square<KING>(~us)) & s)
+                &&  (pos.attackers_to(s, pos.pieces() ^ kfrom) & enemies))
+                return moveList;
         }
+        else
+#endif
+        if (pos.attackers_to(s) & enemies)
+            return moveList;
 
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
     if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
+    {
+#ifdef ATOMIC
+        if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(~us)) & kto)) {} else
+#endif
         return moveList;
+    }
 #ifdef ANTI
     }
 #endif
