@@ -379,7 +379,11 @@ namespace {
 #endif
 
     // Variant V may eventually become a template parameter
+#ifdef LOSERS
     const Variant V = (pos.subvariant() == LOSERS_VARIANT ? LOSERS_VARIANT : pos.variant());
+#else
+    const Variant V = pos.variant();
+#endif
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
     int bonus = PawnSet[std::min(pieceCount[Us][PAWN], (int)FILE_NB)];
