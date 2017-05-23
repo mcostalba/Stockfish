@@ -1060,15 +1060,23 @@ bool Position::gives_check(Move m) const {
   if (is_atomic())
   {
       Square ksq = square<KING>(~sideToMove);
-      if (ksq == SQ_NONE)
-          return false;
+      Bitboard attacks = attacks_from<KING>(ksq);
+
       // If kings are adjacent, there is no check
-      // If kings were adjacent, there may be direct checks
-      if (type_of(piece_on(from)) == KING)
+      // If kings were adjacent, there may be direct checks (minus castle rook)
+      if (type_of(m) == CASTLING)
       {
-          if (attacks_from<KING>(ksq) & to)
+          Square kto = relative_square(sideToMove, to > from ? SQ_G1 : SQ_C1);
+          if (attacks & kto)
               return false;
-          else if (attacks_from<KING>(ksq) & from)
+          if ((attacks & from) && (attackers_to(ksq) & (pieces(sideToMove) ^ to)))
+              return true;
+      }
+      else if (type_of(piece_on(from)) == KING)
+      {
+          if (attacks & to)
+              return false;
+          if (attacks & from)
           {
               if (attackers_to(ksq) & pieces(sideToMove, KNIGHT, PAWN))
                   return true;
@@ -1077,7 +1085,7 @@ bool Position::gives_check(Move m) const {
                     || (attacks_bb<BISHOP>(ksq, occupied) & pieces(sideToMove, QUEEN, BISHOP));
           }
       }
-      else if (attacks_from<KING>(ksq) & square<KING>(sideToMove))
+      else if (attacks & square<KING>(sideToMove))
           return false;
       if (capture(m))
       {
