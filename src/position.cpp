@@ -1927,6 +1927,9 @@ bool Position::see_ge(Move m, Value v) const {
 
 bool Position::is_draw(int ply) const {
 
+#ifdef CRAZYHOUSE
+  if (is_house()) {} else
+#endif
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
