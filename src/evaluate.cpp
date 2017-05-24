@@ -218,6 +218,23 @@ namespace {
         S(118,174), S(119,177), S(123,191), S(128,199) }
     },
 #endif
+#ifdef LOSERS
+    {
+      { S(-75,-76), S(-56,-54), S( -9,-26), S( -2,-10), S(  6,  5), S( 15, 11), // Knights
+        S( 22, 26), S( 30, 28), S( 36, 29) },
+      { S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42), // Bishops
+        S( 54, 54), S( 63, 58), S( 65, 63), S( 71, 70), S( 79, 74), S( 81, 86),
+        S( 92, 90), S( 97, 94) },
+      { S(-56,-78), S(-25,-18), S(-11, 26), S( -5, 55), S( -4, 70), S( -1, 81), // Rooks
+        S(  8,109), S( 14,120), S( 21,128), S( 23,143), S( 31,154), S( 32,160),
+        S( 43,165), S( 49,168), S( 59,169) },
+      { S(-40,-35), S(-25,-12), S(  2,  7), S(  4, 19), S( 14, 37), S( 24, 55), // Queens
+        S( 25, 62), S( 40, 76), S( 43, 79), S( 47, 87), S( 54, 94), S( 56,102),
+        S( 60,111), S( 70,116), S( 72,118), S( 73,122), S( 75,128), S( 77,130),
+        S( 85,133), S( 94,136), S( 99,140), S(108,157), S(112,158), S(113,161),
+        S(118,174), S(119,177), S(123,191), S(128,199) }
+    },
+#endif
 #ifdef RACE
     {
       { S(-150,-152), S(-112,-108), S(-18,-52), S( -4,-20), S( 12, 10), S( 30, 22), // Knights
@@ -336,6 +353,12 @@ namespace {
       { V(7), V(14), V(38), V(73), V(166), V(252) }
     },
 #endif
+#ifdef LOSERS
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
 #ifdef RACE
     {
       { V(5), V( 5), V(31), V(73), V(166), V(252) },
@@ -376,6 +399,20 @@ namespace {
   const Score PieceCountAnti    = S(122, 119);
   const Score ThreatsAnti[]     = { S(216, 279), S(441, 341) };
   const Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
+    {
+      { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
+      { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
+    },
+    {
+      { S(111, 127), S(102,  95), S(121, 183), S(140,  37), S(120,  99), S( 55, 11), S( 88,  93) },
+      { S( 56,  69), S( 72, 124), S(109, 154), S( 98, 149), S(129, 113), S(147, 72), S(157, 152) }
+    }
+  };
+#endif
+
+#ifdef LOSERS
+  const Score ThreatsLosers[]     = { S(216, 279), S(441, 341) };
+  const Score AttacksLosers[2][2][PIECE_TYPE_NB] = {
     {
       { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
       { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
@@ -434,6 +471,9 @@ namespace {
 #ifdef KOTH
     S( 7,  0),
 #endif
+#ifdef LOSERS
+    S( 7,  0),
+#endif
 #ifdef RACE
     S( 0,  0),
 #endif
@@ -478,6 +518,9 @@ namespace {
 #ifdef KOTH
     { 0, 0, 78, 56, 45, 11 },
 #endif
+#ifdef LOSERS
+    { 0, 0, 78, 56, 45, 11 },
+#endif
 #ifdef RACE
     {},
 #endif
@@ -506,6 +549,9 @@ namespace {
 #endif
 #ifdef KOTH
     {   101,  235,  134, -717,  -11,   -5,    0 },
+#endif
+#ifdef LOSERS
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {   101,  235,  134, -717,  -11,   -5,    0 },
@@ -980,6 +1026,43 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic())
     {
+    }
+    else
+#endif
+#ifdef LOSERS
+    if (pos.is_losers())
+    {
+        bool weCapture = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
+        bool theyCapture = ei.attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
+
+        // Penalties for possible captures
+        if (weCapture)
+        {
+            // Penalty if we only attack unprotected pieces
+            bool theyDefended = ei.attackedBy[Us][ALL_PIECES] & pos.pieces(Them) & ei.attackedBy[Them][ALL_PIECES];
+            for (PieceType pt = PAWN; pt <= KING; ++pt)
+            {
+                if (ei.attackedBy[Us][pt] & pos.pieces(Them) & ~ei.attackedBy2[Us])
+                    score -= AttacksLosers[theyCapture][theyDefended][pt];
+                else if (ei.attackedBy[Us][pt] & pos.pieces(Them))
+                    score -= AttacksLosers[theyCapture][theyDefended][NO_PIECE_TYPE];
+            }
+        }
+        // Bonus if we threaten to force captures (ignoring possible discoveries)
+        if (!weCapture || theyCapture)
+        {
+            b = pos.pieces(Us, PAWN);
+            Bitboard pawnPushes = shift<Up>(b | (shift<Up>(b & TRank2BB) & ~pos.pieces())) & ~pos.pieces();
+            Bitboard pieceMoves = (ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                                 | ei.attackedBy[Us][QUEEN] | ei.attackedBy[Us][KING]) & ~pos.pieces();
+            Bitboard threats = pawnPushes | pieceMoves;
+            Bitboard unprotectedPawnPushes = pawnPushes & ~ei.attackedBy[Us][ALL_PIECES];
+            Bitboard unprotectedPieceMoves = pieceMoves & ~ei.attackedBy2[Us];
+            safeThreats = unprotectedPawnPushes | unprotectedPieceMoves;
+
+            score += ThreatsLosers[0] * popcount(ei.attackedBy[Them][ALL_PIECES] & threats);
+            score += ThreatsLosers[1] * popcount(ei.attackedBy[Them][ALL_PIECES] & safeThreats);
+        }
     }
     else
 #endif
