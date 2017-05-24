@@ -319,7 +319,6 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
                   break;
           }
       }
-      else
 #endif
       if (rank_of(ksq) != rank)
           continue;
@@ -1395,7 +1394,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
 #ifdef HORDE
-      if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)) {} else
+      if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)); else
 #endif
 #ifdef ATOMIC
       if (is_atomic() && captured); else
