@@ -579,7 +579,36 @@ namespace {
 #endif
   // Threshold for lazy and space evaluation
   const Value LazyThreshold  = Value(1500);
-  const Value SpaceThreshold = Value(12222);
+  const Value SpaceThreshold[VARIANT_NB] = {
+    Value(12222),
+#ifdef ANTI
+    Value(12222),
+#endif
+#ifdef ATOMIC
+    Value(12222),
+#endif
+#ifdef CRAZYHOUSE
+    Value(12222),
+#endif
+#ifdef HORDE
+    VALUE_ZERO,
+#endif
+#ifdef KOTH
+    Value(12222),
+#endif
+#ifdef LOSERS
+    Value(12222),
+#endif
+#ifdef RACE
+    Value(12222),
+#endif
+#ifdef RELAY
+    Value(12222),
+#endif
+#ifdef THREECHECK
+    Value(12222),
+#endif
+  };
 
   // eval_init() initializes king and attack bitboards for a given color
   // adding pawn attacks. To be done at the beginning of the evaluation.
@@ -1390,10 +1419,6 @@ namespace {
   // status of the players.
   Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
-#ifdef ANTI
-    if (pos.is_anti())
-        return make_score(0, 0);
-#endif
     int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
     bool bothFlanks = (pos.pieces(PAWN) & QueenSide) && (pos.pieces(PAWN) & KingSide);
@@ -1522,24 +1547,18 @@ Value Eval::evaluate(const Position& pos) {
           - evaluate_passer_pawns<BLACK, DoTrace>(pos, ei);
 
   // Evaluate space for both sides, only during opening
-#ifdef HORDE
-  if (pos.is_horde())
-  {
-      score +=  evaluate_space<WHITE>(pos, ei)
-              - evaluate_space<BLACK>(pos, ei);
-  }
-  else
-  {
-#endif
-  if (pos.non_pawn_material() >= SpaceThreshold)
+  if (pos.non_pawn_material() >= SpaceThreshold[pos.variant()])
       score +=  evaluate_space<WHITE>(pos, ei)
               - evaluate_space<BLACK>(pos, ei);
 
   // Evaluate position potential for the winning side
-  score += evaluate_initiative(pos, ei.pe->pawn_asymmetry(), eg_value(score));
-#ifdef HORDE
-  }
+#ifdef ANTI
+  if (pos.is_anti()) {} else
 #endif
+#ifdef HORDE
+  if (pos.is_horde()) {} else
+#endif
+  score += evaluate_initiative(pos, ei.pe->pawn_asymmetry(), eg_value(score));
 
   // Evaluate scale factor for the winning side
   ScaleFactor sf = evaluate_scale_factor(pos, ei, eg_value(score));
@@ -1557,7 +1576,7 @@ Value Eval::evaluate(const Position& pos) {
       Trace::add(IMBALANCE, ei.me->imbalance());
       Trace::add(PAWN, ei.pe->pawns_score());
       Trace::add(MOBILITY, mobility[WHITE], mobility[BLACK]);
-      if (pos.non_pawn_material() >= SpaceThreshold)
+      if (pos.non_pawn_material() >= SpaceThreshold[pos.variant()])
           Trace::add(SPACE, evaluate_space<WHITE>(pos, ei)
                           , evaluate_space<BLACK>(pos, ei));
       Trace::add(TOTAL, score);
