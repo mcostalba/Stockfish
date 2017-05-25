@@ -1367,10 +1367,6 @@ namespace {
 #endif
     bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
     int weight = pos.count<ALL_PIECES>(Us) - 2 * ei.pe->open_files();
-#ifdef THREECHECK
-    if (pos.is_three_check())
-        weight -= pos.checks_count();
-#endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
         return make_score(bonus * weight * weight / 200, 0);
