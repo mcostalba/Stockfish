@@ -594,7 +594,7 @@ namespace {
     VALUE_ZERO,
 #endif
 #ifdef KOTH
-    Value(12222),
+    VALUE_ZERO,
 #endif
 #ifdef LOSERS
     Value(12222),
