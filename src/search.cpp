@@ -1104,9 +1104,6 @@ moves_loop: // When in check search starts from here
 #ifdef ATOMIC
                   && !pos.is_atomic()
 #endif
-#ifdef ANTI
-                  && !pos.is_anti()
-#endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
 
@@ -1429,11 +1426,7 @@ moves_loop: // When in check search starts from here
 
     const bool PvNode = NT == PV;
 
-#ifdef ATOMIC
-    assert((pos.is_atomic() && pos.is_atomic_loss()) || InCheck == !!pos.checkers());
-#else
     assert(InCheck == !!pos.checkers());
-#endif
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= DEPTH_ZERO);
@@ -1544,9 +1537,6 @@ moves_loop: // When in check search starts from here
       givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
 #ifdef ATOMIC
                   && !pos.is_atomic()
-#endif
-#ifdef ANTI
-                  && !pos.is_anti()
 #endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
