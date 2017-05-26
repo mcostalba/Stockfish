@@ -694,9 +694,6 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.can_castle(Us);
   int minKingPawnDistance = 0;
-#ifdef THREECHECK
-  CheckCount checks = pos.is_three_check() ? pos.checks_given(~Us) : CHECKS_0;
-#endif
 
   Bitboard pawns = pos.pieces(Us, PAWN);
   if (pawns)
@@ -711,12 +708,7 @@ Score Entry::do_king_safety(const Position& pos, Square ksq) {
   if (pos.can_castle(MakeCastling<Us, QUEEN_SIDE>::right))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
 
-#ifdef THREECHECK
-  // Decrease score when checks have been taken
-  return make_score(bonus, (-16 * minKingPawnDistance) + (-2 * checks));
-#else
   return make_score(bonus, -16 * minKingPawnDistance);
-#endif
 }
 
 // Explicit template instantiation
