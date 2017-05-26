@@ -492,8 +492,12 @@ void Thread::search() {
           // Use a loop because std::this_thread::sleep_for is not precise
           bool waiting = true;
           while (waiting)
+          {
               if (Time.elapsed() - elapsed >= millisec)
                   waiting = false;
+
+              break; // Force single cycle only
+          }
 
           lastDelay = Time.elapsed();
           TotalDelay += lastDelay - elapsed;
