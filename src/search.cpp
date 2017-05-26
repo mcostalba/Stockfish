@@ -37,6 +37,9 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
+static const int Slowdown = 5;
+static int64_t TotalDelay = 0;
+
 namespace Search {
 
   SignalsType Signals;
@@ -309,6 +312,11 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
+  int elapsed = Time.elapsed();
+  std::cerr << "Search time (ms): " << elapsed << std::endl;
+  int pc = elapsed ? TotalDelay * 100 / elapsed: 0;
+  std::cerr << "TotalDelay (ms): " << TotalDelay << " (" << pc <<"%)" << std::endl;
+
   // Send new PV when needed
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
@@ -327,6 +335,8 @@ void MainThread::search() {
 /// consumed, the user stops the search, or the maximum search depth is reached.
 
 void Thread::search() {
+
+  TimePoint lastDelay = Time.elapsed(); // Reset at the beginning of search
 
   Stack stack[MAX_PLY+7], *ss = stack+4; // To allow referencing (ss-4) and (ss+2)
   Value bestValue, alpha, beta, delta;
@@ -473,6 +483,21 @@ void Thread::search() {
           && bestValue >= VALUE_MATE_IN_MAX_PLY
           && VALUE_MATE - bestValue <= 2 * Limits.mate)
           Signals.stop = true;
+
+      int elapsed = Time.elapsed();
+      int64_t millisec = (elapsed - lastDelay) * Slowdown / 100; // slowdown is in percent
+
+      if (millisec > 0)
+      {
+          // Use a loop because std::this_thread::sleep_for is not precise
+          bool waiting = true;
+          while (waiting)
+              if (Time.elapsed() - elapsed >= millisec)
+                  waiting = false;
+
+          lastDelay = Time.elapsed();
+          TotalDelay += lastDelay - elapsed;
+      }
 
       // Do we have time for the next iteration? Can we stop searching now?
       if (Limits.use_time_management())
