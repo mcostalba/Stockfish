@@ -37,8 +37,9 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-static const int Slowdown = 5;
-static int64_t TotalDelay = 0;
+static const int Slowdown = 1;
+int64_t TotalElapsed = 0;
+int64_t TotalDelay = 0;
 
 namespace Search {
 
@@ -336,8 +337,6 @@ void MainThread::search() {
 
 void Thread::search() {
 
-  TimePoint lastDelay = Time.elapsed(); // Reset at the beginning of search
-
   Stack stack[MAX_PLY+7], *ss = stack+4; // To allow referencing (ss-4) and (ss+2)
   Value bestValue, alpha, beta, delta;
   Move easyMove = MOVE_NONE;
@@ -484,23 +483,22 @@ void Thread::search() {
           && VALUE_MATE - bestValue <= 2 * Limits.mate)
           Signals.stop = true;
 
-      int elapsed = Time.elapsed();
-      int64_t millisec = (elapsed - lastDelay) * Slowdown / 100; // slowdown is in percent
+      int delay = 0, elapsed = Time.elapsed();
+      TotalElapsed += elapsed;
+      int64_t millisecToWait = TotalElapsed * Slowdown / 100 - TotalDelay;
 
-      if (millisec > 0)
+      if (millisecToWait > 0)
       {
           // Use a loop because std::this_thread::sleep_for is not precise
           bool waiting = true;
           while (waiting)
           {
-              if (Time.elapsed() - elapsed >= millisec)
+              delay = Time.elapsed() - elapsed;
+              if (delay >= millisecToWait)
                   waiting = false;
-
-              break; // Force single cycle only
           }
 
-          lastDelay = Time.elapsed();
-          TotalDelay += lastDelay - elapsed;
+          TotalDelay += delay;
       }
 
       // Do we have time for the next iteration? Can we stop searching now?

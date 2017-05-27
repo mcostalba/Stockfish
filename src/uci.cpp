@@ -33,6 +33,8 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
+extern int64_t TotalElapsed, TotalDelay;
+
 using namespace std;
 
 extern void benchmark(const Position& pos, istream& is);
@@ -145,6 +147,8 @@ namespace {
     Search::clear();
     Tablebases::init(Options["SyzygyPath"]);
     Time.availableNodes = 0;
+
+    TotalElapsed = TotalDelay = 0;
   }
 
 } // namespace
