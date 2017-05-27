@@ -313,9 +313,8 @@ void MainThread::search() {
 
   previousScore = bestThread->rootMoves[0].score;
 
-  int elapsed = Time.elapsed();
-  std::cerr << "Search time (ms): " << elapsed << std::endl;
-  int pc = elapsed ? TotalDelay * 100 / elapsed: 0;
+  std::cerr << "Search time (ms): " << TotalElapsed << std::endl;
+  int pc = TotalElapsed ? TotalDelay * 100 / TotalElapsed: 0;
   std::cerr << "TotalDelay (ms): " << TotalDelay << " (" << pc <<"%)" << std::endl;
 
   // Send new PV when needed
