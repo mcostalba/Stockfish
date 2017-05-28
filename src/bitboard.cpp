@@ -53,7 +53,7 @@ Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 namespace {
 
   // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
-  const uint64_t DeBruijn64 = 0x3F79D71B4CB0A89ULL;
+  //De Bruijn 64 wont be used anymore hardware BSF is better
   const uint32_t DeBruijn32 = 0x783A9B23;
 
   int MSBTable[256];            // To implement software msb()
@@ -70,9 +70,13 @@ namespace {
   // Matt Taylor's folding for 32 bit case, extended to 64 bit by Kim Walisch.
 
   unsigned bsf_index(Bitboard b) {
-    b ^= b - 1;
-    return Is64Bit ? (b * DeBruijn64) >> 58
-                   : ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn32) >> 26;
+    if (Is64Bit){
+    	return __builtin_ffsll(b) - 1;//BSF GCC Builtin BSF for other compilers see compilers instructions to access hardware bsf thrugh it
+    }
+    else
+    {	    b ^= b - 1;
+    		 return ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn32) >> 26;
+    }
   }
 
 
