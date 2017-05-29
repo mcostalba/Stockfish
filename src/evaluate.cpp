@@ -426,7 +426,7 @@ namespace {
 
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
-    87, 16, 210, 66, 168, 143
+    83, 17, 203, 64, 156, 146
   };
 #endif
 
@@ -510,7 +510,7 @@ namespace {
     { 0, 0, 78, 56, 45, 11 },
 #endif
 #ifdef CRAZYHOUSE
-    { 0, 0, 112, 84, 61, 2 },
+    { 0, 0, 112, 97, 61, 2 },
 #endif
 #ifdef HORDE
     { 0, 0, 78, 56, 45, 11 },
@@ -542,7 +542,7 @@ namespace {
     {   305,  170,  141, -718,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   148,  299,  183, -697,  -10,   -1,  263 },
+    {   138,  362,  170, -595,   -9,   -1,  306 },
 #endif
 #ifdef HORDE
     {   101,  235,  134, -717,  -11,   -5,    0 },
