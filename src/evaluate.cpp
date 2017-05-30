@@ -507,7 +507,7 @@ namespace {
     {},
 #endif
 #ifdef ATOMIC
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 76, 64, 46, 11 },
 #endif
 #ifdef CRAZYHOUSE
     { 0, 0, 112, 84, 61, 2 },
@@ -539,7 +539,7 @@ namespace {
     {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef ATOMIC
-    {   305,  170,  141, -718,  -12,   -7,   29 },
+    {   274,  166,  146, -654,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
     {   148,  299,  183, -697,  -10,   -1,  263 },
@@ -570,7 +570,7 @@ namespace {
   const int BishopCheck = 435;
   const int KnightCheck = 790;
 #ifdef ATOMIC
-  const int IndirectKingAttack = 1000;
+  const int IndirectKingAttack = 883;
 #endif
 
 #ifdef THREECHECK
