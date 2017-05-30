@@ -604,6 +604,14 @@ inline Square to_sq(Move m) {
   return Square(m & 0x3F);
 }
 
+inline int from_to(Move m) {
+#ifdef CRAZYHOUSE
+  if (type_of(m) == DROP)
+      return (m & 0xFFF) + 0x1000;
+#endif
+ return m & 0xFFF;
+}
+
 inline MoveType type_of(Move m) {
 #if defined(ANTI) || defined(CRAZYHOUSE)
   if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)))
