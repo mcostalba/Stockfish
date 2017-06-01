@@ -528,7 +528,7 @@ namespace {
     { 0, 0, 78, 56, 45, 11 },
 #endif
 #ifdef THREECHECK
-    { 0, 0, 105, 66, 62, 33 },
+    { 0, 0, 115, 64, 62, 35 },
 #endif
   };
 
@@ -560,7 +560,7 @@ namespace {
     {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef THREECHECK
-    {    77,  138,  107, -726,   -7,  -73,  168 },
+    {    85,  136,  106, -613,   -7,  -73,  181 },
 #endif
   };
 
@@ -575,7 +575,7 @@ namespace {
 
 #ifdef THREECHECK
   // In Q8 fixed point
-  const int ThreeCheckKSFactors[CHECKS_NB] = { 585, 717, 812, 0 };
+  const int ThreeCheckKSFactors[CHECKS_NB] = { 571, 619, 858, 0 };
 #endif
   // Threshold for lazy and space evaluation
   const Value LazyThreshold  = Value(1500);
