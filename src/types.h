@@ -329,11 +329,11 @@ enum Value : int {
   KingValueMgHorde   = 2296,  KingValueEgHorde   = 995,
 #endif
 #ifdef KOTH
-  PawnValueMgHill   = 178,   PawnValueEgHill   = 252,
-  KnightValueMgHill = 734,   KnightValueEgHill = 818,
-  BishopValueMgHill = 859,   BishopValueEgHill = 883,
-  RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
-  QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
+  PawnValueMgHill   = 136,   PawnValueEgHill   = 225,
+  KnightValueMgHill = 657,   KnightValueEgHill = 781,
+  BishopValueMgHill = 763,   BishopValueEgHill = 849,
+  RookValueMgHill   = 1010,  RookValueEgHill   = 1175,
+  QueenValueMgHill  = 2104,  QueenValueEgHill  = 2402,
 #endif
 #ifdef LOSERS
   PawnValueMgLosers   = -41,   PawnValueEgLosers   = -23,

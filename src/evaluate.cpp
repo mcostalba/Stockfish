@@ -390,9 +390,9 @@ namespace {
 
 #ifdef KOTH
   const Score KothDistanceBonus[6] = {
-    S(1991, 1658), S(448, 364), S(163, 176), S(80, 89), S(50, 50), S(0, 0)
+    S(1949, 1934), S(454, 364), S(151, 158), S(75, 85), S(42, 49), S(0, 0)
   };
-  const Score KothSafeCenter = S(157, 202);
+  const Score KothSafeCenter = S(163, 207);
 #endif
 
 #ifdef ANTI
@@ -516,7 +516,7 @@ namespace {
     { 0, 0, 78, 56, 45, 11 },
 #endif
 #ifdef KOTH
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 76, 48, 44, 10 },
 #endif
 #ifdef LOSERS
     { 0, 0, 78, 56, 45, 11 },
@@ -548,7 +548,7 @@ namespace {
     {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   101,  235,  134, -717,  -11,   -5,    0 },
+    {    85,  229,  131, -658,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
     {   101,  235,  134, -717, -357,   -5,    0 },
