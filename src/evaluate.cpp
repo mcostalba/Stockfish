@@ -433,8 +433,8 @@ namespace {
 #ifdef RACE
   // Bonus for distance of king from 8th rank
   const Score KingRaceBonus[RANK_NB] = {
-    S(14216, 14428), S(5931, 5364), S(4372, 3800), S(2678, 2467),
-    S( 1577,  1515), S( 960,  914), S( 518,  480), S(   0,    0)
+    S(14282, 14493), S(6369, 5378), S(4224, 3557), S(2633, 2219),
+    S( 1614,  1456), S( 975,  885), S( 528,  502), S(   0,    0)
   };
 #endif
 
