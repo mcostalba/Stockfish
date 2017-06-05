@@ -143,7 +143,7 @@ namespace {
     S(18, 38),
 #endif
 #ifdef HORDE
-    S(10, 78),
+    S(11, 80),
 #endif
 #ifdef KOTH
     S(18, 38),
@@ -433,7 +433,7 @@ namespace {
   const Value MaxSafetyBonus = V(258);
 
 #ifdef HORDE
-  const Score ImbalancedHorde = S(34, 39);
+  const Score ImbalancedHorde = S(40, 36);
 #endif
 
   #undef S
@@ -595,7 +595,7 @@ void init() {
     { 0, 8, 19, 13, 71, 94, 169, 324 },
 #endif
 #ifdef HORDE
-    { 36, 28, 3, 1, 115, 107, 321, 332 },
+    { 38, 31, 3, 1, 117, 101, 335, 329 },
 #endif
 #ifdef KOTH
     { 0, 8, 19, 13, 71, 94, 169, 324 },
