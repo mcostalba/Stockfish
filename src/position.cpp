@@ -683,6 +683,10 @@ const string Position::fen() const {
 Phase Position::game_phase() const {
 
   Value npm = st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
+#ifdef ANTI
+  if (is_anti())
+      npm = 2 * std::min(st->nonPawnMaterial[WHITE], st->nonPawnMaterial[BLACK]);
+#endif
 #ifdef HORDE
   if (is_horde())
       return Phase(count<PAWN>(is_horde_color(WHITE) ? WHITE : BLACK) * PHASE_MIDGAME / 36);
