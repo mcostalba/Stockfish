@@ -192,7 +192,7 @@ namespace {
   };
 
   // Futility and reductions lookup tables, initialized at startup
-  int FutilityMoveCounts[2][16]; // [improving][depth]
+  int FutilityMoveCounts[VARIANT_NB][2][16]; // [improving][depth]
   int Reductions[2][2][64][64];  // [pv][improving][depth][moveNumber]
   // Threshold used for countermoves based pruning
   const int CounterMovePruneThreshold = 0;
@@ -202,7 +202,6 @@ namespace {
   }
 
 #ifdef CRAZYHOUSE
-  int ZHFutilityMoveCounts[2][16]; // [improving][depth]
   int ZHReductions[2][2][64][64];  // [pv][improving][depth][moveNumber]
 
   template <bool PvNode> Depth zhReduction(bool i, Depth d, int mn) {
@@ -306,10 +305,22 @@ void Search::init() {
                 Reductions[NonPV][imp][d][mc]++;
           }
 
+  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
+  {
+#ifdef CRAZYHOUSE
+  if (var == CRAZYHOUSE_VARIANT)
+      for (int d = 0; d < 16; ++d)
+      {
+          FutilityMoveCounts[var][0][d] = int(10.0 + 0.5 * exp(0.8 * d));
+          FutilityMoveCounts[var][1][d] = int(20.0 + 0.5 * exp(0.9 * d));
+      }
+  else
+#endif
   for (int d = 0; d < 16; ++d)
   {
-      FutilityMoveCounts[0][d] = int(2.4 + 0.74 * pow(d, 1.78));
-      FutilityMoveCounts[1][d] = int(5.0 + 1.00 * pow(d, 2.00));
+      FutilityMoveCounts[var][0][d] = int(2.4 + 0.74 * pow(d, 1.78));
+      FutilityMoveCounts[var][1][d] = int(5.0 + 1.00 * pow(d, 2.00));
+  }
   }
 
 #ifdef CRAZYHOUSE
@@ -327,11 +338,7 @@ void Search::init() {
                 ZHReductions[NonPV][imp][d][mc]++;
           }
 
-  for (int d = 0; d < 16; ++d)
-  {
-      ZHFutilityMoveCounts[0][d] = int(10.0 + 0.5 * exp(0.8 * d));
-      ZHFutilityMoveCounts[1][d] = int(20.0 + 0.5 * exp(0.9 * d));
-  }
+
 #endif
 
 }
@@ -1145,14 +1152,8 @@ moves_loop: // When in check search starts from here
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
 
-#ifdef CRAZYHOUSE
-      if (pos.is_house())
-          moveCountPruning =   depth < 16 * ONE_PLY
-                            && moveCount >= ZHFutilityMoveCounts[improving][depth / ONE_PLY];
-      else
-#endif
       moveCountPruning =   depth < 16 * ONE_PLY
-                        && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
+                        && moveCount >= FutilityMoveCounts[pos.variant()][improving][depth / ONE_PLY];
 
       // Step 12. Singular and Gives Check Extensions
 
