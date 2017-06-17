@@ -121,14 +121,6 @@ Endgames::Endgames() {
 }
 
 
-template<Variant V, EndgameType E, typename T>
-void Endgames::add(const string& code) {
-  StateInfo st;
-  map<T>()[Position().set(code, WHITE, V, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<V, E>(WHITE));
-  map<T>()[Position().set(code, BLACK, V, &st).material_key()] = std::unique_ptr<EndgameBase<T>>(new Endgame<V, E>(BLACK));
-}
-
-
 /// Mate with KX vs K. This function is used to evaluate positions with
 /// king and plenty of material vs a lone king. It simply gives the
 /// attacking side a bonus for driving the defending king towards the edge
