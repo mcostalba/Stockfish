@@ -299,12 +299,12 @@ enum Value : int {
   RookValueMg   = 1282,  RookValueEg   = 1373,
   QueenValueMg  = 2526,  QueenValueEg  = 2646,
 #ifdef ANTI
-  PawnValueMgAnti   = -120,  PawnValueEgAnti   = -169,
-  KnightValueMgAnti = -159,  KnightValueEgAnti = 199,
-  BishopValueMgAnti = -289,  BishopValueEgAnti = 123,
-  RookValueMgAnti   = -510,  RookValueEgAnti   = 57,
-  QueenValueMgAnti  = -125,  QueenValueEgAnti  = -219,
-  KingValueMgAnti   = -23,   KingValueEgAnti   = 194,
+  PawnValueMgAnti   = -108,  PawnValueEgAnti   = -165,
+  KnightValueMgAnti = -155,  KnightValueEgAnti = 194,
+  BishopValueMgAnti = -270,  BishopValueEgAnti = 133,
+  RookValueMgAnti   = -472,  RookValueEgAnti   = 56,
+  QueenValueMgAnti  = -114,  QueenValueEgAnti  = -218,
+  KingValueMgAnti   = -23,   KingValueEgAnti   = 173,
 #endif
 #ifdef ATOMIC
   PawnValueMgAtomic   = 296,   PawnValueEgAtomic   = 402,
