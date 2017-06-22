@@ -62,7 +62,6 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 
 std::string trace(const Position& pos);
 
-template<bool DoTrace = false>
 Value evaluate(const Position& pos);
 }
 

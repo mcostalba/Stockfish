@@ -575,7 +575,7 @@ void Thread::search() {
   multiPV = std::min(multiPV, rootMoves.size());
 
   // Iterative deepening loop until requested to stop or the target depth is reached
-  while (   (rootDepth += ONE_PLY) < DEPTH_MAX
+  while (   (rootDepth = rootDepth + ONE_PLY) < DEPTH_MAX
          && !Signals.stop
          && (!Limits.depth || Threads.main()->rootDepth / ONE_PLY <= Limits.depth))
   {
@@ -613,6 +613,9 @@ void Thread::search() {
           while (true)
           {
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
+
+              this->tbHits = rootPos.tb_hits();
+              this->nodes = rootPos.nodes_searched();
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -769,7 +772,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, ttCapture;
     Piece moved_piece;
     int moveCount, quietCount;
 
@@ -785,6 +788,9 @@ namespace {
     if (thisThread->resetCalls.load(std::memory_order_relaxed))
     {
         thisThread->resetCalls = false;
+
+        thisThread->tbHits = pos.tb_hits();
+        thisThread->nodes = pos.nodes_searched();
 
         // At low node count increase the checking rate to about 0.1% of nodes
         // otherwise use a default value.
@@ -904,7 +910,7 @@ namespace {
 
             if (err != TB::ProbeState::FAIL)
             {
-                thisThread->tbHits++;
+                pos.increment_tbHits();
 
                 int drawScore = TB::UseRule50 ? 1 : 0;
 
@@ -1099,6 +1105,7 @@ moves_loop: // When in check search starts from here
                            && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
     skipQuiets = false;
+    ttCapture = false;
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1267,6 +1274,9 @@ moves_loop: // When in check search starts from here
           ss->moveCount = --moveCount;
           continue;
       }
+      
+      if (move == ttMove && captureOrPromotion)
+          ttCapture = true;
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
@@ -1292,6 +1302,11 @@ moves_loop: // When in check search starts from here
               r -= r ? ONE_PLY : DEPTH_ZERO;
           else
           {
+          
+              // Increase reduction if ttMove is a capture
+              if (ttCapture)
+                  r += ONE_PLY;
+          
               // Increase reduction for cut nodes
               if (cutNode)
                   r += 2 * ONE_PLY;
@@ -1582,9 +1597,6 @@ moves_loop: // When in check search starts from here
     {
       assert(is_ok(move));
 
-      // Speculative prefetch as early as possible
-      prefetch(TT.first_entry(pos.key_after(move)));
-
       givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
 #ifdef ATOMIC
                   && !pos.is_atomic()
@@ -1641,6 +1653,9 @@ moves_loop: // When in check search starts from here
           &&  type_of(move) != PROMOTION
           &&  !pos.see_ge(move))
           continue;
+
+      // Speculative prefetch as early as possible
+      prefetch(TT.first_entry(pos.key_after(move)));
 
       // Check for legality just before making the move
       if (!pos.legal(move))
@@ -1818,7 +1833,7 @@ moves_loop: // When in check search starts from here
 
   void check_time() {
 
-    static TimePoint lastInfoTime = now();
+    static std::atomic<TimePoint> lastInfoTime = { now() };
 
     int elapsed = Time.elapsed();
     TimePoint tick = Limits.startTime + elapsed;
