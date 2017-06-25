@@ -177,6 +177,15 @@ void MovePicker::score<QUIETS>() {
   Color c = pos.side_to_move();
 
   for (auto& m : *this)
+#ifdef ANTI
+      if (pos.is_anti() && (pos.attackers_to(to_sq(m)) & pos.pieces(~c)))
+          m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
+                  + fmh[pos.moved_piece(m)][to_sq(m)]
+                  + fm2[pos.moved_piece(m)][to_sq(m)]
+                  + history[c][from_to(m)]
+                  + (1 << 28);
+          else
+#endif
       m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
                + fmh[pos.moved_piece(m)][to_sq(m)]
                + fm2[pos.moved_piece(m)][to_sq(m)]
