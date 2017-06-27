@@ -857,6 +857,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_anti_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef ATOMIC
   case ATOMIC_VARIANT:
@@ -864,11 +865,13 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_atomic_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef HORDE
   case HORDE_VARIANT:
       if (is_horde_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef KOTH
   case KOTH_VARIANT:
@@ -876,6 +879,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_koth_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef LOSERS
   case LOSERS_VARIANT:
@@ -883,6 +887,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_losers_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef RACE
   case RACE_VARIANT:
@@ -892,6 +897,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_race_loss())
           return mated_in(ply);
+      break;
 #endif
 #ifdef THREECHECK
   case THREECHECK_VARIANT:
@@ -899,6 +905,7 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
           return mate_in(ply);
       if (is_three_check_loss())
           return mated_in(ply);
+      break;
 #endif
   default:;
   }
