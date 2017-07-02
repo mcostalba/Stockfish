@@ -1728,8 +1728,17 @@ bool Position::see_ge(Move m, Value v) const {
 
   assert(is_ok(m));
 #ifdef CRAZYHOUSE
-  if (is_house())
+  if (is_house() && color_of(moved_piece(m)) == sideToMove)
+  {
+      // Reduce threshold based on remaining material in hand
+      if (gives_check(m))
+          v -= material_in_hand(sideToMove) / 5;
+      // Increase threshold based on remaining material in hand
+      if (checkers())
+          v += material_in_hand(~sideToMove) / 5;
+      // Crazyhouse captures double in value (threshold is halved)
       v /= 2;
+  }
 #endif
 
 #ifdef THREECHECK

@@ -1634,7 +1634,7 @@ moves_loop: // When in check search starts from here
 #endif
 #ifdef CRAZYHOUSE
           if (pos.is_house())
-              futilityValue = futilityBase + 2 * PieceValue[pos.variant()][EG][pos.piece_on(to_sq(move))];
+              futilityValue = futilityBase + 2 * PieceValue[CRAZYHOUSE_VARIANT][EG][pos.piece_on(to_sq(move))];
           else
 #endif
           futilityValue = futilityBase + PieceValue[pos.variant()][EG][pos.piece_on(to_sq(move))];
