@@ -282,7 +282,6 @@ namespace {
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_cm_stats(Stack* ss, Piece pc, Square s, int bonus);
   void update_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, int bonus);
-  void check_time();
 
 } // namespace
 
@@ -361,7 +360,6 @@ void Search::clear() {
 
   for (Thread* th : Threads)
   {
-      th->resetCalls = true;
       th->counterMoves.fill(MOVE_NONE);
       th->history.fill(0);
 
@@ -372,6 +370,7 @@ void Search::clear() {
       th->counterMoveHistory[NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
   }
 
+  Threads.main()->callsCnt = 0;
   Threads.main()->previousScore = VALUE_INFINITE;
 }
 
@@ -630,9 +629,6 @@ void Thread::search() {
           {
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
 
-              this->tbHits = rootPos.tb_hits();
-              this->nodes = rootPos.nodes_searched();
-
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
               // first and eventually the new best one are set to -VALUE_INFINITE
@@ -801,26 +797,8 @@ namespace {
     ss->ply = (ss-1)->ply + 1;
 
     // Check for the available remaining time
-    if (thisThread->resetCalls.load(std::memory_order_relaxed))
-    {
-        thisThread->resetCalls = false;
-
-        thisThread->tbHits = pos.tb_hits();
-        thisThread->nodes = pos.nodes_searched();
-
-        // At low node count increase the checking rate to about 0.1% of nodes
-        // otherwise use a default value.
-        thisThread->callsCnt = Limits.nodes ? std::min(4096, int(Limits.nodes / 1024))
-                                            : 4096;
-    }
-
-    if (--thisThread->callsCnt <= 0)
-    {
-        for (Thread* th : Threads)
-            th->resetCalls = true;
-
-        check_time();
-    }
+    if (thisThread == Threads.main())
+        static_cast<MainThread*>(thisThread)->check_time();
 
     // Used to send selDepth info to GUI
     if (PvNode && thisThread->maxPly < ss->ply)
@@ -926,7 +904,7 @@ namespace {
 
             if (err != TB::ProbeState::FAIL)
             {
-                pos.increment_tbHits();
+                thisThread->tbHits.fetch_add(1, std::memory_order_relaxed);
 
                 int drawScore = TB::UseRule50 ? 1 : 0;
 
@@ -1284,7 +1262,7 @@ moves_loop: // When in check search starts from here
           ss->moveCount = --moveCount;
           continue;
       }
-      
+
       if (move == ttMove && captureOrPromotion)
           ttCapture = true;
 
@@ -1312,11 +1290,10 @@ moves_loop: // When in check search starts from here
               r -= r ? ONE_PLY : DEPTH_ZERO;
           else
           {
-          
               // Increase reduction if ttMove is a capture
               if (ttCapture)
                   r += ONE_PLY;
-          
+
               // Increase reduction for cut nodes
               if (cutNode)
                   r += 2 * ONE_PLY;
@@ -1837,13 +1814,21 @@ moves_loop: // When in check search starts from here
   }
 #endif
 
+} // namespace
 
   // check_time() is used to print debug info and, more importantly, to detect
   // when we are out of available time and thus stop the search.
 
-  void check_time() {
+  void MainThread::check_time() {
 
-    static std::atomic<TimePoint> lastInfoTime = { now() };
+    if (--callsCnt > 0)
+        return;
+
+    // At low node count increase the checking rate to about 0.1% of nodes
+    // otherwise use a default value.
+    callsCnt = Limits.nodes ? std::min(4096, int(Limits.nodes / 1024)) : 4096;
+
+    static TimePoint lastInfoTime = now();
 
     int elapsed = Time.elapsed();
     TimePoint tick = Limits.startTime + elapsed;
@@ -1863,8 +1848,6 @@ moves_loop: // When in check search starts from here
         || (Limits.nodes && Threads.nodes_searched() >= (uint64_t)Limits.nodes))
             Signals.stop = true;
   }
-
-} // namespace
 
 
 /// UCI::pv() formats PV information according to the UCI protocol. UCI requires
