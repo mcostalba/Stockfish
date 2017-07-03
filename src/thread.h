@@ -73,7 +73,7 @@ public:
 
   Position rootPos;
   Search::RootMoves rootMoves;
-  std::atomic<Depth> rootDepth;
+  Depth rootDepth;
   Depth completedDepth;
   CounterMoveStat counterMoves;
   ButterflyHistory history;
