@@ -153,7 +153,7 @@ template<Color C, CastlingSide S> struct MakeCastling {
 
 enum Phase {
   PHASE_ENDGAME,
-  PHASE_MIDGAME = 128,
+  PHASE_MIDGAME = 256,
   MG = 0, EG = 1, PHASE_NB = 2
 };
 
