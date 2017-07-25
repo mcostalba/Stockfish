@@ -1548,10 +1548,10 @@ namespace {
     score += mobility[WHITE] - mobility[BLACK];
 
 #ifdef ANTI
-  if (pos.is_anti()) {} else
+    if (pos.is_anti()) {} else
 #endif
 #ifdef RACE
-  if (pos.is_race()) {} else
+    if (pos.is_race()) {} else
 #endif
     score +=  evaluate_king<WHITE>()
             - evaluate_king<BLACK>();
@@ -1567,10 +1567,10 @@ namespace {
                 - evaluate_space<BLACK>();
 
 #ifdef ANTI
-  if (pos.is_anti()) {} else
+    if (pos.is_anti()) {} else
 #endif
 #ifdef HORDE
-  if (pos.is_horde()) {} else
+    if (pos.is_horde()) {} else
 #endif
     score += evaluate_initiative(eg_value(score));
 
