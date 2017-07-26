@@ -123,6 +123,7 @@ const vector<string> Defaults[VARIANT_NB] = {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "rnbqkbnr/ppppp1pp/5p2/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 0 1",
     "2k5/p6p/8/1p2p3/PP1p4/4P3/2P2rPP/K3R3 b - - 0 1",
+    "6k1/1pp3pp/5p2/8/8/2P1P3/5PPP/6K1 w - - 0 1",
     "8/k7/P7/8/8/6p1/2p3N1/2K5 w - - 0 1",
     "8/k7/P7/8/8/6p1/2p3N1/2K5 b - - 0 1"
   },

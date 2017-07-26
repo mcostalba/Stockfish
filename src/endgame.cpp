@@ -115,6 +115,9 @@ Endgames::Endgames() {
 #endif
 #ifdef ATOMIC
   add<ATOMIC_VARIANT, KPK>("KPvK");
+  add<ATOMIC_VARIANT, KNK>("KNvK");
+  add<ATOMIC_VARIANT, KBK>("KBvK");
+  add<ATOMIC_VARIANT, KRK>("KRvK");
   add<ATOMIC_VARIANT, KQK>("KQvK");
   add<ATOMIC_VARIANT, KNNK>("KNNvK");
 #endif
@@ -958,6 +961,12 @@ Value Endgame<ATOMIC_VARIANT, KPK>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
+template<> Value Endgame<ATOMIC_VARIANT, KNK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<ATOMIC_VARIANT, KBK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<ATOMIC_VARIANT, KRK>::operator()(const Position&) const { return VALUE_DRAW; }
 
 template<>
 Value Endgame<ATOMIC_VARIANT, KQK>::operator()(const Position& pos) const {

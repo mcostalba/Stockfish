@@ -43,6 +43,9 @@ enum EndgameCode {
 #endif
 #ifdef ATOMIC
   KQK,
+  KRK,
+  KBK,
+  KNK,
 #endif
   KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
