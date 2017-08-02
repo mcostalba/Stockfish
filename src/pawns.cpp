@@ -33,7 +33,7 @@ namespace {
 
   // Isolated pawn penalty by opposed flag
   const Score Isolated[VARIANT_NB][2] = {
-    { S(45, 40), S(30, 27) },
+    { S(27, 30), S(13, 18) },
 #ifdef ANTI
     { S(50, 80), S(54, 69) },
 #endif
@@ -65,7 +65,7 @@ namespace {
 
   // Backward pawn penalty by opposed flag
   const Score Backward[VARIANT_NB][2] = {
-    { S(56, 33), S(41, 19) },
+    { S(40, 26), S(24, 12) },
 #ifdef ANTI
     { S(64, 25), S(26, 50) },
 #endif
@@ -95,40 +95,8 @@ namespace {
 #endif
   };
 
-  // Unsupported pawn penalty for pawns which are neither isolated or backward
-  const Score Unsupported[VARIANT_NB] = {
-    S( 17,   8),
-#ifdef ANTI
-    S(-45, -48),
-#endif
-#ifdef ATOMIC
-    S( 39,   0),
-#endif
-#ifdef CRAZYHOUSE
-    S( 17,   8),
-#endif
-#ifdef HORDE
-    S( 47,  50),
-#endif
-#ifdef KOTH
-    S( 17,   8),
-#endif
-#ifdef LOSERS
-    S(-45, -48),
-#endif
-#ifdef RACE
-    S(  0,   0),
-#endif
-#ifdef RELAY
-    S( 17,   8),
-#endif
-#ifdef THREECHECK
-    S( 17,   8),
-#endif
-  };
-
-  // Connected pawn bonus by opposed, phalanx, twice supported and rank
-  Score Connected[VARIANT_NB][2][2][2][RANK_NB];
+  // Connected pawn bonus by opposed, phalanx, #support and rank
+  Score Connected[VARIANT_NB][2][2][3][RANK_NB];
 
   // Doubled pawn penalty
   const Score Doubled[VARIANT_NB] = {
@@ -431,7 +399,7 @@ namespace {
     const Square Left  = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     Bitboard b, neighbours, stoppers, doubled, supported, phalanx;
-    Bitboard lever, leverPush, connected;
+    Bitboard lever, leverPush;
     Square s;
     bool opposed, backward;
     Score score = SCORE_ZERO;
@@ -488,7 +456,6 @@ namespace {
         else
 #endif
         supported  = neighbours & rank_bb(s - Up);
-        connected  = supported | phalanx;
 
         // A pawn is backward when it is behind all pawns of the same color on the
         // adjacent files and cannot be safely advanced.
@@ -504,7 +471,7 @@ namespace {
             // stopper on adjacent file which controls the way to that rank.
             backward = (b | shift<Up>(b & adjacent_files_bb(f))) & stoppers;
 
-            assert(!backward || !(pawn_attack_span(Them, s + Up) & neighbours));
+            assert(!(backward && (forward_ranks_bb(Them, s + Up) & neighbours)));
         }
 
         // Passed pawns will be properly scored in evaluation because we need
@@ -527,20 +494,17 @@ namespace {
         }
 
         // Score this pawn
-        if (!neighbours)
+#ifdef HORDE
+        if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
+#endif
+        if (supported | phalanx)
+            score += Connected[pos.variant()][opposed][!!phalanx][popcount(supported)][relative_rank(Us, s)];
+
+        else if (!neighbours)
             score -= Isolated[pos.variant()][opposed];
 
         else if (backward)
             score -= Backward[pos.variant()][opposed];
-
-        else if (!supported)
-            score -= Unsupported[pos.variant()];
-
-#ifdef HORDE
-        if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
-#endif
-        if (connected)
-            score += Connected[pos.variant()][opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
 #ifdef HORDE
         if (doubled && (!supported || pos.is_horde()))
@@ -567,7 +531,7 @@ namespace Pawns {
 void init() {
 
   static const int Seed[VARIANT_NB][RANK_NB] = {
-    { 0, 8, 19, 13, 71, 94, 169, 324 },
+    { 0, 13, 24, 18, 76, 100, 175, 330 },
 #ifdef ANTI
     { 0, 8, 19, 13, 71, 94, 169, 324 },
 #endif
@@ -600,12 +564,13 @@ void init() {
   for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
   for (int opposed = 0; opposed <= 1; ++opposed)
       for (int phalanx = 0; phalanx <= 1; ++phalanx)
-          for (int apex = 0; apex <= 1; ++apex)
+          for (int support = 0; support <= 2; ++support)
               for (Rank r = RANK_2; r < RANK_8; ++r)
   {
-      int v = (Seed[var][r] + (phalanx ? (Seed[var][r + 1] - Seed[var][r]) / 2 : 0)) >> opposed;
-      v += (apex ? v / 2 : 0);
-      Connected[var][opposed][phalanx][apex][r] = make_score(v, v * (r-2) / 4);
+      int v = 17 * support;
+      v += (Seed[var][r] + (phalanx ? (Seed[var][r + 1] - Seed[var][r]) / 2 : 0)) >> opposed;
+
+      Connected[var][opposed][phalanx][support][r] = make_score(v, v * (r - 2) / 4);
   }
 }
 
