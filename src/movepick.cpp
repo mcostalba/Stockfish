@@ -21,7 +21,6 @@
 #include <cassert>
 
 #include "movepick.h"
-#include "thread.h"
 
 namespace {
 
@@ -67,23 +66,21 @@ namespace {
 /// search captures, promotions, and some checks) and how important good move
 /// ordering is at the current node.
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, Search::Stack* s)
-           : pos(p), ss(s), depth(d) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
+                       const PieceToHistory** ch, Move cm, Move* killers_p)
+           : pos(p), mainHistory(mh), contHistory(ch), countermove(cm),
+             killers{killers_p[0], killers_p[1]}, depth(d){
 
   assert(d > DEPTH_ZERO);
-
-  Square prevSq = to_sq((ss-1)->currentMove);
-  countermove = pos.this_thread()->counterMoves[pos.piece_on(prevSq)][prevSq];
-  killers[0] = ss->killers[0];
-  killers[1] = ss->killers[1];
 
   stage = pos.checkers() ? EVASION : MAIN_SEARCH;
   ttMove = ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE;
   stage += (ttMove == MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, Square s)
-           : pos(p) {
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
+                       const PieceToHistory** ch, Square s)
+           : pos(p), mainHistory(mh), contHistory(ch) {
 
   assert(d <= DEPTH_ZERO);
 
@@ -123,90 +120,63 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th)
   stage += (ttMove == MOVE_NONE);
 }
 
+/// score() assigns a numerical value to each move in a list, used for sorting.
+/// Captures are ordered by Most Valuable Victim (MVV), preferring captures
+/// near our home rank. Quiets are ordered using the histories.
+template<GenType T>
+void MovePicker::score() {
 
-/// score() assigns a numerical value to each move in a move list. The moves with
-/// highest values will be picked first.
-template<>
-void MovePicker::score<CAPTURES>() {
-  // Winning and equal captures in the main search are ordered by MVV, preferring
-  // captures near our home rank. Surprisingly, this appears to perform slightly
-  // better than SEE-based move ordering: exchanging big pieces before capturing
-  // a hanging piece probably helps to reduce the subtree size.
-  // In the main search we want to push captures with negative SEE values to the
-  // badCaptures[] array, but instead of doing it now we delay until the move
-  // has been picked up, saving some SEE calls in case we get a cutoff.
   for (auto& m : *this)
+      if (T == CAPTURES || (T == EVASIONS && pos.capture(m)))
+      {
 #ifdef ANTI
-      if (pos.is_anti())
-          m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   - Value(50 * relative_rank(pos.side_to_move(), to_sq(m)));
-      else
+          if (pos.is_anti())
+              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                      - Value(50 * relative_rank(pos.side_to_move(), to_sq(m)));
+          else
 #endif
 #ifdef ATOMIC
-      if (pos.is_atomic())
-          m.value = pos.see<ATOMIC_VARIANT>(m)
-                   - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
-      else
+          if (pos.is_atomic())
+              m.value = pos.see<ATOMIC_VARIANT>(m)
+                      - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
+          else
 #endif
 #ifdef CRAZYHOUSE
-      if (pos.is_house())
-          m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   - Value(200 * std::min(distance(to_sq(m), pos.square<KING>(~pos.side_to_move())),
-                                          distance(to_sq(m), pos.square<KING>(pos.side_to_move()))));
-      else
+          if (pos.is_house())
+              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                      - Value(200 * std::min(distance(to_sq(m), pos.square<KING>(~pos.side_to_move())),
+                                             distance(to_sq(m), pos.square<KING>( pos.side_to_move()))));
+          else
 #endif
 #ifdef RACE
-      if (pos.is_race())
-          m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   - Value(200 * relative_rank(BLACK, to_sq(m)));
-      else
+          if (pos.is_race())
+              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                      - Value(200 * relative_rank(BLACK, to_sq(m)));
+          else
 #endif
-      m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-               - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
-}
-
-template<>
-void MovePicker::score<QUIETS>() {
-
-  const ButterflyHistory& history = pos.this_thread()->history;
-
-  const PieceToHistory& cmh = *(ss-1)->history;
-  const PieceToHistory& fmh = *(ss-2)->history;
-  const PieceToHistory& fm2 = *(ss-4)->history;
-
-  Color c = pos.side_to_move();
-
-  for (auto& m : *this)
-  {
-      m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
-               + fmh[pos.moved_piece(m)][to_sq(m)]
-               + fm2[pos.moved_piece(m)][to_sq(m)]
-               + history[c][from_to(m)];
-#ifdef ANTI
-      if (pos.is_anti() && pos.attackers_to(to_sq(m), pos.pieces() ^ from_sq(m)) & pos.pieces(~c))
-      {
-          m.value += (1 << 28);
-          if (!(pos.attackers_to(from_sq(m)) & pos.pieces(~c)))
-              m.value += (1 << 27);
+          m.value =   PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                   - (T == EVASIONS ? Value(type_of(pos.moved_piece(m)))
+                                    : Value(200 * relative_rank(pos.side_to_move(), to_sq(m))));
       }
+      else if (T == QUIETS)
+      {
+          m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   + (*contHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                   + (*contHistory[1])[pos.moved_piece(m)][to_sq(m)]
+                   + (*contHistory[3])[pos.moved_piece(m)][to_sq(m)];
+#ifdef ANTI
+          if (pos.is_anti() && pos.attackers_to(to_sq(m), pos.pieces() ^ from_sq(m)) & pos.pieces(~pos.side_to_move()))
+          {
+              m.value += (1 << 28);
+              if (!(pos.attackers_to(from_sq(m)) & pos.pieces(~pos.side_to_move())))
+                  m.value += (1 << 27);
+          }
 #endif
-  }
+      }
+
+      else // Quiet evasions
+          m.value = (*mainHistory)[pos.side_to_move()][from_to(m)] - (1 << 28);
 }
-
-template<>
-void MovePicker::score<EVASIONS>() {
-  // Try captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
-  const ButterflyHistory& history = pos.this_thread()->history;
-  Color c = pos.side_to_move();
-
-  for (auto& m : *this)
-      if (pos.capture(m))
-          m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   - Value(type_of(pos.moved_piece(m))) + (1 << 28);
-      else
-          m.value = history[c][from_to(m)];
-}
-
 
 /// next_move() is the most important method of the MovePicker class. It returns
 /// a new pseudo legal move every time it is called, until there are no more moves
