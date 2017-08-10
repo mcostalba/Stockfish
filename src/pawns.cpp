@@ -451,8 +451,8 @@ namespace {
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
 #ifdef HORDE
-        if (pos.is_horde() && rank_of(s) == RANK_1)
-            supported = false;
+        if (pos.is_horde() && relative_rank(Us, s) == RANK_1)
+            supported = 0;
         else
 #endif
         supported  = neighbours & rank_bb(s - Up);
