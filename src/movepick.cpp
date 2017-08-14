@@ -129,9 +129,9 @@ void MovePicker::score() {
   static_assert(Type == CAPTURES || Type == QUIETS || Type == EVASIONS, "Wrong type");
 
   for (auto& m : *this)
-      if (Type == CAPTURES || (Type == EVASIONS && pos.capture(m)))
+      if (Type == CAPTURES)
           m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                   - Value(type_of(pos.moved_piece(m)));
+                   - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
 
       else if (Type == QUIETS)
           m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
@@ -139,7 +139,10 @@ void MovePicker::score() {
                    + (*contHistory[1])[pos.moved_piece(m)][to_sq(m)]
                    + (*contHistory[3])[pos.moved_piece(m)][to_sq(m)];
 
-      else // Quiet evasions
+      else if (pos.capture(m))
+          m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
+                   - Value(type_of(pos.moved_piece(m)));
+      else
           m.value = (*mainHistory)[pos.side_to_move()][from_to(m)] - (1 << 28);
 }
 
