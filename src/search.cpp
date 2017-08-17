@@ -200,14 +200,6 @@ namespace {
     return Reductions[PvNode][i][std::min(d / ONE_PLY, 63)][std::min(mn, 63)] * ONE_PLY;
   }
 
-#ifdef CRAZYHOUSE
-  int ZHReductions[2][2][64][64];  // [pv][improving][depth][moveNumber]
-
-  template <bool PvNode> Depth zhReduction(bool i, Depth d, int mn) {
-    return ZHReductions[PvNode][i][std::min(d / ONE_PLY, 63)][std::min(mn, 63)] * ONE_PLY;
-  }
-#endif
-
   // History and stats update bonus, based on depth
   int stat_bonus(Depth depth) {
     int d = depth / ONE_PLY;
