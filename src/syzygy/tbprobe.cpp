@@ -791,7 +791,6 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
             TBFile pawnlessFile(code + PawnlessWdlSuffixes[variant]);
             if (!pawnlessFile.is_open())
                 return;
-
             pawnlessFile.close();
         }
         else
@@ -800,8 +799,8 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
 
     MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
-    wdlTable.push_back(WDLEntry(code, variant));
-    dtzTable.push_back(DTZEntry(wdlTable.back()));
+    wdlTable.emplace_back(code, variant);
+    dtzTable.emplace_back(wdlTable.back());
 
     insert(wdlTable.back().key , &wdlTable.back(), &dtzTable.back());
     insert(wdlTable.back().key2, &wdlTable.back(), &dtzTable.back());

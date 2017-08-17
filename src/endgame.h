@@ -96,7 +96,7 @@ template<Variant V, EndgameCode E, typename T = eg_type<V, E>>
 struct Endgame : public EndgameBase<T> {
 
   explicit Endgame(Color c) : EndgameBase<T>(c) {}
-  T operator()(const Position&) const;
+  T operator()(const Position&) const override;
 };
 
 
