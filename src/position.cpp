@@ -661,9 +661,6 @@ bool Position::gives_check(Move m) const {
       return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
-  default:
-      assert(false);
-      return false;
   }
 }
 
