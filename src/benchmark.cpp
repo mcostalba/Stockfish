@@ -24,12 +24,14 @@
 #include <vector>
 
 #include "position.h"
+#include "uci.h"
 
 using namespace std;
 
 namespace {
 
-const vector<string> Defaults = {
+const vector<string> Defaults[VARIANT_NB] = {
+  {
   "setoption name UCI_Variant value chess",
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -87,8 +89,7 @@ const vector<string> Defaults = {
   "setoption name UCI_Chess960 value true",
   "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
   "setoption name UCI_Chess960 value false"
-
-#if 0
+  },
 #ifdef ANTI
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -242,6 +243,36 @@ const vector<string> Defaults = {
     "r1bqkb1r/ppp1pppp/2n2n2/3p4/Q7/2P2N2/PP1PPPPP/RNB1KB1R w KQkq - 3+3 0 1"
   },
 #endif
+};
+
+const int defaultDepth[VARIANT_NB] = {
+  13,
+#ifdef ANTI
+  13,
+#endif
+#ifdef ATOMIC
+  13,
+#endif
+#ifdef CRAZYHOUSE
+  12,
+#endif
+#ifdef HORDE
+  13,
+#endif
+#ifdef KOTH
+  13,
+#endif
+#ifdef LOSERS
+  13,
+#endif
+#ifdef RACE
+  13,
+#endif
+#ifdef RELAY
+  13,
+#endif
+#ifdef THREECHECK
+  13,
 #endif
 };
 
@@ -264,17 +295,24 @@ vector<string> setup_bench(const Position& current, istream& is) {
   vector<string> fens, list;
   string go, token;
 
+  string varname   = (!isdigit((is >> ws).peek()) && is >> token) ? token : Options["UCI_Variant"];
+  Variant variant  = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
+  streampos args = is.tellg();
+
+  do {
+  Variant mainVariant = main_variant(variant);
+
   // Assign default values to missing arguments
   string ttSize    = (is >> token) ? token : "16";
   string threads   = (is >> token) ? token : "1";
-  string limit     = (is >> token) ? token : "13";
+  string limit     = (is >> token) ? token : to_string(defaultDepth[mainVariant]);
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
 
   go = "go " + limitType + " " + limit;
 
   if (fenFile == "default")
-      fens = Defaults;
+      fens = Defaults[mainVariant];
 
   else if (fenFile == "current")
       fens.push_back(current.fen());
@@ -300,6 +338,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   list.emplace_back("ucinewgame");
   list.emplace_back("setoption name Threads value " + threads);
   list.emplace_back("setoption name Hash value " + ttSize);
+  list.emplace_back("setoption name UCI_Variant value " + variants[variant]);
 
   for (const string& fen : fens)
       if (fen.find("setoption") != string::npos)
@@ -309,6 +348,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
           list.emplace_back("position fen " + fen);
           list.emplace_back(go);
       }
+  } while (varname == "all" && ++variant < SUBVARIANT_NB && (is.clear(), is.seekg(args)));
 
   return list;
 }
