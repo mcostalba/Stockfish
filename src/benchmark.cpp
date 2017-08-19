@@ -297,6 +297,9 @@ vector<string> setup_bench(const Position& current, istream& is) {
 
   string varname   = (!isdigit((is >> ws).peek()) && is >> token) ? token : Options["UCI_Variant"];
   Variant variant  = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
+  streampos args = is.tellg();
+
+  do {
   Variant mainVariant = main_variant(variant);
 
   // Assign default values to missing arguments
@@ -335,7 +338,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   list.emplace_back("ucinewgame");
   list.emplace_back("setoption name Threads value " + threads);
   list.emplace_back("setoption name Hash value " + ttSize);
-  list.emplace_back("setoption name UCI_Variant value " + varname);
+  list.emplace_back("setoption name UCI_Variant value " + variants[variant]);
 
   for (const string& fen : fens)
       if (fen.find("setoption") != string::npos)
@@ -345,6 +348,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
           list.emplace_back("position fen " + fen);
           list.emplace_back(go);
       }
+  } while (varname == "all" && ++variant < SUBVARIANT_NB && (is.clear(), is.seekg(args)));
 
   return list;
 }
