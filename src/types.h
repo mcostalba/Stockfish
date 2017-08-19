@@ -232,7 +232,7 @@ enum MoveType {
 };
 
 enum Color {
-  WHITE, BLACK, NO_COLOR, COLOR_NB = 2
+  WHITE, BLACK, COLOR_NB = 2
 };
 
 enum CastlingSide {
