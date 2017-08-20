@@ -39,7 +39,18 @@ ThreadPool Threads; // Global object
 /// Thread constructor launches the thread and waits until it goes to sleep
 /// in idle_loop(). Note that 'searching' and 'exit' should be alredy set.
 
-Thread::Thread(size_t n) : idx(n), stdThread(&Thread::idle_loop, this) {
+Thread::Thread(size_t n) : idx(n) {
+
+#ifdef _WIN32
+  stdThread = std::thread(&Thread::idle_loop, this);
+#else
+  // With increased MAX_MOVES (for variants) the stack can grow larger than the
+  // system default. Explicitly set a sufficient stack size.
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, 4096 * MAX_MOVES);
+  pthread_create(&nativeThread, &attr, run_idle_loop, this);
+#endif
 
   wait_for_search_finished();
 }
@@ -54,7 +65,11 @@ Thread::~Thread() {
 
   exit = true;
   start_searching();
+#ifdef _WIN32
   stdThread.join();
+#else
+  pthread_join(nativeThread, nullptr);
+#endif
 }
 
 
