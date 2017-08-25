@@ -1052,17 +1052,10 @@ bool Position::gives_check(Move m) const {
 #endif
 
   // Is there a direct check?
-#ifdef CRAZYHOUSE
-  if (st->checkSquares[type_of(is_house() && type_of(m) == DROP ? dropped_piece(m) : piece_on(from))] & to)
-#else
   if (st->checkSquares[type_of(piece_on(from))] & to)
-#endif
       return true;
 
   // Is there a discovered check?
-#ifdef CRAZYHOUSE
-  if (is_house() && type_of(m) == DROP) {} else
-#endif
   if (   (discovered_check_candidates() & from)
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
@@ -1097,10 +1090,6 @@ bool Position::gives_check(Move m) const {
       return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
-#ifdef CRAZYHOUSE
-  case DROP:
-      return false;
-#endif
   default:
       assert(false);
       return false;
