@@ -132,12 +132,6 @@ void MovePicker::score() {
   for (auto& m : *this)
       if (Type == CAPTURES)
       {
-#ifdef ANTI
-          if (pos.is_anti())
-              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                      - Value(50 * relative_rank(pos.side_to_move(), to_sq(m)));
-          else
-#endif
 #ifdef ATOMIC
           if (pos.is_atomic())
               m.value = pos.see<ATOMIC_VARIANT>(m)
