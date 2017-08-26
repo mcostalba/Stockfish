@@ -554,7 +554,7 @@ namespace {
 
   // Per-variant king danger malus factors
   const int KingDangerParams[VARIANT_NB][7] = {
-    {   102,  201,  143, -848,   -9,   40,    0 },
+    {   102,  191,  143, -848,   -9,   40,    0 },
 #ifdef ANTI
     {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
@@ -879,8 +879,8 @@ namespace {
         const auto KDP = KingDangerParams[pos.variant()];
         kingDanger =           kingAttackersCount[Them] * kingAttackersWeight[Them]
                     + KDP[0] * kingAdjacentZoneAttacksCount[Them]
-                    + KDP[1] * popcount(kingOnlyDefended)
-                    + KDP[2] * (popcount(undefended) + !!pos.pinned_pieces(Us))
+                    + KDP[1] * popcount(kingOnlyDefended | undefended)
+                    + KDP[2] * !!pos.pinned_pieces(Us)
                     + KDP[3] * !pos.count<QUEEN>(Them)
                     + KDP[4] * mg_value(score) / 8
                     + KDP[5];
