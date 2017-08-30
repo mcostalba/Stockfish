@@ -1713,10 +1713,11 @@ bool Position::see_ge(Move m, Value threshold) const {
       return true;
 #endif
 
-  // Castling moves are implemented as king capturing the rook so cannot be
-  // handled correctly. Simply assume the SEE value is VALUE_ZERO that is always
-  // correct unless in the rare case the rook ends up under attack.
-  if (type_of(m) == CASTLING)
+  // Only deal with normal moves, assume others pass a simple see
+#ifdef CRAZYHOUSE
+  if (is_house() && type_of(m) == DROP) {} else
+#endif
+  if (type_of(m) != NORMAL)
       return VALUE_ZERO >= threshold;
 
   Square from = from_sq(m), to = to_sq(m);
@@ -1769,16 +1770,8 @@ bool Position::see_ge(Move m, Value threshold) const {
   }
 #endif
 
-  if (type_of(m) == ENPASSANT)
-  {
-      occupied = SquareBB[to - pawn_push(~stm)]; // Remove the captured pawn
-      balance = PieceValue[var][MG][PAWN];
-  }
-  else
-  {
-      balance = PieceValue[var][MG][piece_on(to)];
-      occupied = 0;
-  }
+  balance = PieceValue[var][MG][piece_on(to)];
+  occupied = 0;
 
   if (balance < threshold)
       return false;
