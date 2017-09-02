@@ -1383,41 +1383,19 @@ namespace {
                    & ~pos.pieces(Us, PAWN)
                    & ~attackedBy[Them][PAWN]
                    & (attackedBy[Us][ALL_PIECES] | ~attackedBy[Them][ALL_PIECES]);
-#ifdef HORDE
-    if (pos.is_horde())
-        safe =   ~attackedBy[Them][PAWN]
-               & (attackedBy[Us][ALL_PIECES] | ~attackedBy[Them][ALL_PIECES]);
-#endif
 
     // Find all squares which are at most three squares behind some friendly pawn
     Bitboard behind = pos.pieces(Us, PAWN);
     behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
     behind |= (Us == WHITE ? behind >> 16 : behind << 16);
-#ifdef HORDE
-    if (pos.is_horde())
-        behind |= (Us == WHITE ? behind >> 24 : behind << 24);
-#endif
 
     // Since SpaceMask[Us] is fully on our half of the board...
-#ifdef HORDE
-    assert(pos.is_horde() || unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
-#else
     assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
-#endif
 
     // ...count safe + (behind & safe) with a single popcount.
     int bonus;
-#ifdef HORDE
-    if (pos.is_horde())
-        bonus = popcount(safe) + popcount(behind & safe);
-    else
-#endif
     bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
     int weight = pos.count<ALL_PIECES>(Us) - 2 * pe->open_files();
-#ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Us))
-        return make_score(bonus * weight * weight / 200, 0);
-#endif
 #ifdef KOTH
     if (pos.is_koth())
         return make_score(bonus * weight * weight / 22, 0)
@@ -1560,6 +1538,9 @@ namespace {
     score +=  evaluate_passed_pawns<WHITE>()
             - evaluate_passed_pawns<BLACK>();
 
+#ifdef HORDE
+    if (pos.is_horde()) {} else
+#endif
     if (pos.non_pawn_material() >= SpaceThreshold[pos.variant()])
         score +=  evaluate_space<WHITE>()
                 - evaluate_space<BLACK>();
