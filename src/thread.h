@@ -62,7 +62,7 @@ public:
   Endgames endgames;
   size_t PVIdx;
   int selDepth;
-  std::atomic<uint64_t> nodes, tbHits;
+  std::atomic<uint64_t> nodes, wdlHits, dtzHits;
 
   Position rootPos;
   Search::RootMoves rootMoves;
@@ -102,7 +102,8 @@ struct ThreadPool : public std::vector<Thread*> {
 
   MainThread* main()        const { return static_cast<MainThread*>(front()); }
   uint64_t nodes_searched() const { return accumulate(&Thread::nodes); }
-  uint64_t tb_hits()        const { return accumulate(&Thread::tbHits); }
+  uint64_t wdl_hits()       const { return accumulate(&Thread::wdlHits); }
+  uint64_t dtz_hits()       const { return accumulate(&Thread::dtzHits); }
 
   std::atomic_bool stop, ponder, stopOnPonderhit;
 

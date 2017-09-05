@@ -1467,7 +1467,7 @@ moves_loop: // When in check search starts from here
     TB::ProbeState err;
     TB::WDLScore wdl = Tablebases::probe_wdl(pos, &err);
 
-    thisThread->tbHits.fetch_add(1, std::memory_order_relaxed);
+    thisThread->wdlHits.fetch_add(1, std::memory_order_relaxed);
 
     if (err == TB::ProbeState::FAIL)
     {}
@@ -1519,6 +1519,8 @@ moves_loop: // When in check search starts from here
         assert(!pos.captured_piece()); // Root is in TB
 
         int dtz = Tablebases::probe_dtz(pos, &err);
+
+        thisThread->dtzHits.fetch_add(1, std::memory_order_relaxed);
 
         assert(dtz != 0 || err == TB::ProbeState::FAIL);
 
@@ -1586,7 +1588,7 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
   size_t PVIdx = pos.this_thread()->PVIdx;
   size_t multiPV = std::min((size_t)Options["MultiPV"], rootMoves.size());
   uint64_t nodesSearched = Threads.nodes_searched();
-  uint64_t tbHits = Threads.tb_hits();
+  uint64_t tbHits = Threads.wdl_hits() + Threads.dtz_hits();
 
   for (size_t i = 0; i < multiPV; ++i)
   {

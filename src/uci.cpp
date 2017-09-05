@@ -143,7 +143,7 @@ namespace {
   void bench(Position& pos, istream& args, StateListPtr& states) {
 
     string token, tbh;
-    uint64_t num, nodes = 0, tbHits = 0, cnt = 1;
+    uint64_t num, nodes = 0, wdlHits = 0, dtzHits = 0, cnt = 1;
 
     vector<string> list = setup_bench(pos, args);
     num = count_if(list.begin(), list.end(), [](string s) { return s.find("go ") == 0; });
@@ -160,8 +160,9 @@ namespace {
             cerr << "\nPosition: " << cnt++ << '/' << num << endl;
             go(pos, is, states);
             Threads.main()->wait_for_search_finished();
-            nodes  += Threads.nodes_searched();
-            tbHits += Threads.tb_hits();
+            nodes   += Threads.nodes_searched();
+            wdlHits += Threads.wdl_hits();
+            dtzHits += Threads.dtz_hits();
         }
         else if (token == "setoption")  setoption(is);
         else if (token == "position")   position(pos, is, states);
@@ -173,10 +174,10 @@ namespace {
     dbg_print(); // Just before exiting
 
     cerr << "\n==========================="
-         << "\nTotal time (ms) : " << elapsed
-         << "\nNodes searched  : " << nodes
-         << "\nNodes/second    : " << 1000 * nodes / elapsed
-         << "\nTB hits         : " << tbHits << endl;
+         << "\nTotal time (ms)   : " << elapsed
+         << "\nNodes searched    : " << nodes
+         << "\nNodes/second      : " << 1000 * nodes / elapsed
+         << "\nTB hits (WDL, DTZ): " << wdlHits << ", " << dtzHits << endl;
   }
 
 } // namespace
