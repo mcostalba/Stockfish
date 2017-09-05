@@ -1771,29 +1771,22 @@ bool Position::see_ge(Move m, Value threshold) const {
 #endif
 
   balance = PieceValue[var][MG][piece_on(to)];
-  occupied = 0;
 
   if (balance < threshold)
       return false;
 
-#ifdef ANTI
-  if (is_anti()) {} else
-#endif
-  if (nextVictim == KING)
-      return true;
-
   balance -= PieceValue[var][MG][nextVictim];
 
-  if (balance >= threshold)
+  if (balance >= threshold) // Always true if nextVictim == KING
       return true;
 
   bool relativeStm = true; // True if the opponent is to move
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
-      occupied ^= pieces() ^ to;
+      occupied = pieces() ^ to;
   else
 #endif
-  occupied ^= pieces() ^ from ^ to;
+  occupied = pieces() ^ from ^ to;
 
   // Find all attackers to the destination square, with the moving piece removed,
   // but possibly an X-ray attacker added behind it.
