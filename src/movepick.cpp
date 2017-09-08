@@ -134,8 +134,7 @@ void MovePicker::score() {
       {
 #ifdef ATOMIC
           if (pos.is_atomic())
-              m.value = pos.see<ATOMIC_VARIANT>(m)
-                      - Value(200 * relative_rank(pos.side_to_move(), to_sq(m)));
+              m.value = pos.see<ATOMIC_VARIANT>(m);
           else
 #endif
 #ifdef CRAZYHOUSE
