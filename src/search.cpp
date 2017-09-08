@@ -1622,8 +1622,6 @@ moves_loop: // When in check search starts from here
                          : -qsearch<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
       pos.undo_move(move);
 
-      assert(value > -VALUE_INFINITE);
-      assert(value < VALUE_INFINITE);
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
       // Check for a new best move
