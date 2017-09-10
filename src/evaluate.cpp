@@ -984,6 +984,10 @@ namespace {
             if (pos.is_house() && v > QueenValueMg)
                 v = QueenValueMg;
 #endif
+#ifdef THREECHECK
+            if (pos.is_three_check() && v > QueenValueMg)
+                v = QueenValueMg;
+#endif
             score -= make_score(v, kingDanger / 16 + KDP[6] * v / 256);
         }
     }
