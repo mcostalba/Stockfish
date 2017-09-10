@@ -18,6 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <istream>
@@ -293,11 +294,21 @@ const int defaultDepth[VARIANT_NB] = {
 vector<string> setup_bench(const Position& current, istream& is) {
 
   vector<string> fens, list;
-  string go, token;
+  string go, token, varname;
 
-  string varname   = (!isdigit((is >> ws).peek()) && is >> token) ? token : Options["UCI_Variant"];
-  Variant variant  = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
   streampos args = is.tellg();
+  // Check whether the next token is a variant name
+  if ((is >> token) && (std::find(variants.begin(), variants.end(), token) != variants.end() || token == "all"))
+  {
+      args = is.tellg();
+      varname = token;
+  }
+  else
+  {
+      is.seekg(args);
+      varname = string(Options["UCI_Variant"]);
+  }
+  Variant variant = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
 
   do {
   Variant mainVariant = main_variant(variant);
