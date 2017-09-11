@@ -133,7 +133,7 @@ namespace {
     if (pos.count_in_hand<Pt>(Us))
     {
         if (Checks)
-            b &= pos.check_squares(Pt);
+            return moveList;
         while (b)
             *moveList++ = make_drop(pop_lsb(&b), make_piece(Us, Pt));
     }
@@ -221,7 +221,8 @@ namespace {
         if (V == CRAZYHOUSE_VARIANT && pos.count_in_hand<PAWN>(Us))
         {
             Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
-            moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
+            if (Type != QUIET_CHECKS)
+                moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
         }
 #endif
 
