@@ -67,7 +67,7 @@ void init(OptionsMap& o) {
 #ifdef SKILL
   o["Skill Level"]           << Option(20, 0, 20);
 #endif
-  o["Move Overhead"]         << Option(60, 0, 5000);
+  o["Move Overhead"]         << Option(100, 0, 5000);
   o["nodestime"]             << Option(0, 0, 10000);
   o["UCI_Chess960"]          << Option(false);
   o["UCI_Variant"]           << Option(variants.front().c_str(), variants);
