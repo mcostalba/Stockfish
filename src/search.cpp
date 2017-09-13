@@ -71,31 +71,31 @@ namespace {
   const int razor_margin[VARIANT_NB][4] = {
   { 0, 570, 603, 554 },
 #ifdef ANTI
-  { 1917, 2201, 2334, 2407 },
+  { 0, 2201, 2334, 2407 },
 #endif
 #ifdef ATOMIC
-  { 1867, 2341, 2501, 2218 },
+  { 0, 2341, 2501, 2218 },
 #endif
 #ifdef CRAZYHOUSE
-  { 475, 590, 651, 622 },
+  { 0, 590, 651, 622 },
 #endif
 #ifdef HORDE
-  { 464, 706, 625, 555 },
+  { 0, 706, 625, 555 },
 #endif
 #ifdef KOTH
-  { 524, 587, 676, 582 },
+  { 0, 587, 676, 582 },
 #endif
 #ifdef LOSERS
-  { 1981, 2335, 2351, 2142 },
+  { 0, 2335, 2351, 2142 },
 #endif
 #ifdef RACE
-  { 1043, 1016, 1004, 1012 },
+  { 0, 1016, 1004, 1012 },
 #endif
 #ifdef RELAY
-  { 483, 570, 603, 554 },
+  { 0, 570, 603, 554 },
 #endif
 #ifdef THREECHECK
-  { 1989, 2060, 2257, 2174 },
+  { 0, 2060, 2257, 2174 },
 #endif
   };
   const int futility_margin_factor[VARIANT_NB] = {
