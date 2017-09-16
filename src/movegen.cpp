@@ -218,11 +218,10 @@ namespace {
         }
 #ifdef CRAZYHOUSE
         // Do not require drops to be check (unless already required by target)
-        if (V == CRAZYHOUSE_VARIANT && pos.count_in_hand<PAWN>(Us))
+        if (V == CRAZYHOUSE_VARIANT && Type != QUIET_CHECKS && pos.count_in_hand<PAWN>(Us))
         {
             Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
-            if (Type != QUIET_CHECKS)
-                moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
+            moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
         }
 #endif
 
