@@ -31,67 +31,67 @@ namespace {
   #define V Value
   #define S(mg, eg) make_score(mg, eg)
 
-  // Isolated pawn penalty by opposed flag
-  const Score Isolated[VARIANT_NB][2] = {
-    { S(27, 30), S(13, 18) },
+  // Isolated pawn penalty
+  const Score Isolated[VARIANT_NB] = {
+    S(13, 18),
 #ifdef ANTI
-    { S(50, 80), S(54, 69) },
+    S(54, 69),
 #endif
 #ifdef ATOMIC
-    { S(27, 28), S(24, 14) },
+    S(24, 14),
 #endif
 #ifdef CRAZYHOUSE
-    { S(45, 40), S(30, 27) },
+    S(30, 27),
 #endif
 #ifdef HORDE
-    { S(59, 42), S(16, 38) },
+    S(16, 38),
 #endif
 #ifdef KOTH
-    { S(45, 40), S(30, 27) },
+    S(30, 27),
 #endif
 #ifdef LOSERS
-    { S(50, 80), S(54, 69) },
+    S(54, 69),
 #endif
 #ifdef RACE
-    {},
+    S(0, 0),
 #endif
 #ifdef RELAY
-    { S(45, 40), S(30, 27) },
+    S(30, 27),
 #endif
 #ifdef THREECHECK
-    { S(45, 40), S(30, 27) },
+    S(30, 27),
 #endif
   };
 
-  // Backward pawn penalty by opposed flag
-  const Score Backward[VARIANT_NB][2] = {
-    { S(40, 26), S(24, 12) },
+  // Backward pawn penalty
+  const Score Backward[VARIANT_NB] = {
+    S(24, 12),
 #ifdef ANTI
-    { S(64, 25), S(26, 50) },
+    S(26, 50),
 #endif
 #ifdef ATOMIC
-    { S(48, 21), S(35, 15) },
+    S(35, 15),
 #endif
 #ifdef CRAZYHOUSE
-    { S(56, 33), S(41, 19) },
+    S(41, 19),
 #endif
 #ifdef HORDE
-    { S(44, 24), S(78, 14) },
+    S(78, 14),
 #endif
 #ifdef KOTH
-    { S(56, 33), S(41, 19) },
+    S(41, 19),
 #endif
 #ifdef LOSERS
-    { S(64, 25), S(26, 50) },
+    S(26, 50),
 #endif
 #ifdef RACE
-    {},
+    S(0, 0),
 #endif
 #ifdef RELAY
-    { S(56, 33), S(41, 19) },
+    S(41, 19),
 #endif
 #ifdef THREECHECK
-    { S(56, 33), S(41, 19) },
+    S(41, 19),
 #endif
   };
 
@@ -440,7 +440,7 @@ namespace {
     Bitboard ourPawns   = pos.pieces(  Us, PAWN);
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
-    e->passedPawns[Us]   = e->pawnAttacksSpan[Us] = 0;
+    e->passedPawns[Us] = e->pawnAttacksSpan[Us] = e->weakUnopposed[Us] = 0;
     e->semiopenFiles[Us] = 0xFF;
     e->kingSquares[Us]   = SQ_NONE;
     e->pawnAttacks[Us]   = shift<Right>(ourPawns) | shift<Left>(ourPawns);
@@ -533,10 +533,10 @@ namespace {
             score += Connected[pos.variant()][opposed][!!phalanx][popcount(supported)][relative_rank(Us, s)];
 
         else if (!neighbours)
-            score -= Isolated[pos.variant()][opposed];
+            score -= Isolated[pos.variant()], e->weakUnopposed[Us] += !opposed;
 
         else if (backward)
-            score -= Backward[pos.variant()][opposed];
+            score -= Backward[pos.variant()], e->weakUnopposed[Us] += !opposed;
 
 #ifdef HORDE
         if (doubled && (!supported || pos.is_horde()))
