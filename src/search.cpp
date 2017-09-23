@@ -1196,9 +1196,6 @@ moves_loop: // When in check search starts from here
 #ifdef ANTI
               if (pos.is_anti()) {} else
 #endif
-#ifdef RACE
-              if (pos.is_race()) {} else
-#endif
               if (   lmrDepth < 8
                   && !pos.see_ge(move, Value(-35 * lmrDepth * lmrDepth)))
                   continue;
