@@ -1515,22 +1515,22 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
 }
 
 // Probe DTZ tables for each root move and store the result
-void Tablebases::dtz_score(Position& pos, Search::RootMoves& rootMoves) {
+bool Tablebases::dtz_score(Position& pos, Search::RootMoves& rootMoves) {
 
     ProbeState result;
-    RootInTB = UseDTZ = false;
+    RootInTB = false;
 
     if (   pos.count<ALL_PIECES>() > MaxCardinality
         || pos.can_castle(ANY_CASTLING)
         || rootMoves.empty())
-        return;
+        return false;
 
     // Value of probe_dtz() can be off by 1, so use search_dtz() for RootPosDTZ
     int dtz = search_dtz(pos, &result, pos.rule50_count(), &rootMoves);
-    if (result != FAIL)
-    {
-        RootWDL = dtz_to_wdl(dtz, pos.rule50_count());
-        RootInTB = true, UseDTZ = (dtz > 0);
-    }
-}
+    if (result == FAIL)
+        return false;
 
+    RootWDL = dtz_to_wdl(dtz, pos.rule50_count());
+    RootInTB = true;
+    return dtz > 0;
+}

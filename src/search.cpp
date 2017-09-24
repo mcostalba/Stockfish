@@ -49,7 +49,6 @@ namespace Tablebases {
   Depth ProbeDepth;
   WDLScore DrawScore;
   WDLScore RootWDL;
-  bool UseDTZ;
 }
 
 namespace TB = Tablebases;
@@ -139,6 +138,7 @@ namespace {
 
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
+  thread_local Thread* ThisThread;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning);
@@ -187,10 +187,12 @@ namespace {
 
 bool RootMove::operator<(const RootMove& m) const {
 
-  return  m.wdl != wdl               ? m.wdl < wdl
-        : TB::UseDTZ && m.dtz != dtz ? m.dtz > dtz
-        : m.score != score           ? m.score < score
-                                     : m.previousScore < previousScore;
+  bool useDTZpath = m.dtz != dtz && ThisThread->sortByDTZ;
+
+  return  m.wdl != wdl     ? m.wdl < wdl
+        : useDTZpath       ? m.dtz > dtz
+        : m.score != score ? m.score < score
+                           : m.previousScore < previousScore;
 }
 
 
@@ -349,6 +351,7 @@ void Thread::search() {
   Value bestValue, alpha, beta, delta;
   Move easyMove = MOVE_NONE;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
+  ThisThread = this;
 
   std::memset(ss-4, 0, 7 * sizeof(Stack));
   ss->tbCardinality = TB::Cardinality;
@@ -420,10 +423,10 @@ void Thread::search() {
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
 
               // If we are in mate territory stop using DTZ to score moves
-              if (   TB::UseDTZ
+              if (   sortByDTZ
                   && abs(bestValue) > VALUE_MATE_IN_MAX_PLY
                   && bestValue > alpha && bestValue < beta)
-                  TB::UseDTZ = false; // FIXME SMP
+                  sortByDTZ = false;
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
