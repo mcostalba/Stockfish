@@ -49,6 +49,7 @@ namespace Tablebases {
   Depth ProbeDepth;
   WDLScore DrawScore;
   WDLScore RootWDL;
+  int RootDTZ;
 }
 
 namespace TB = Tablebases;
@@ -178,28 +179,26 @@ namespace {
     return nodes;
   }
 
+  bool dtz_compare(const RootMove& a, const RootMove &b) {
+    return  a.wdl != b.wdl ? b.wdl < a.wdl
+          : a.dtz != b.dtz ? b.dtz > a.dtz : false;
+  }
+
 } // namespace
 
-
-bool tb_compare(const RootMove& a, const RootMove &b) {
-    
-  return  a.wdl != b.wdl     ? b.wdl < a.wdl
-        : a.dtz != b.dtz     ? b.dtz > a.dtz
-        : a.score != b.score ? b.score < a.score
-                             : b.previousScore < a.previousScore;
-}
 
 /// Sort root moves in descending order, when root is in TB score according to
 /// TB knwoledge.
 
 bool RootMove::operator<(const RootMove& m) const {
 
-  bool no_mate = std::max(abs(score), abs(m.score)) < VALUE_MATE_IN_MAX_PLY;
+  bool useDTZ =   TB::RootDTZ > 0
+               && std::max(abs(score), abs(m.score)) < VALUE_MATE_IN_MAX_PLY;
 
-  return  m.wdl != wdl            ? m.wdl < wdl
-        : no_mate && m.dtz != dtz ? m.dtz > dtz
-        : m.score != score        ? m.score < score
-                                  : m.previousScore < previousScore;
+  return  m.wdl != wdl           ? m.wdl < wdl
+        : m.dtz != dtz && useDTZ ? m.dtz > dtz
+        : m.score != score       ? m.score < score
+                                 : m.previousScore < previousScore;
 }
 
 
@@ -426,8 +425,10 @@ void Thread::search() {
           // high/low anymore.
           while (true)
           {
-              std::stable_sort(rootMoves.begin() + PVIdx, rootMoves.end(), tb_compare);
-              
+              // If in TB and winning, search DTZ path first to ensure a PV line
+              if (TB::RootInTB && TB::RootDTZ > 0)
+                  std::stable_sort(rootMoves.begin() + PVIdx, rootMoves.end(), dtz_compare);
+
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
 
               // Bring the best move to the front. It is critical that sorting
