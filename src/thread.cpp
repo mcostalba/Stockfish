@@ -164,7 +164,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
           rootMoves.emplace_back(m);
 
   // If root position is in TB then probe rootMoves for DTZ info
-  bool sortByDTZ = Tablebases::dtz_score(pos, rootMoves);
+  Tablebases::dtz_score(pos, rootMoves);
 
   // After ownership transfer 'states' becomes empty, so if we stop the search
   // and call 'go' again without setting a new position states.get() == NULL.
@@ -184,7 +184,6 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
   {
       th->nodes = th->tbHits = 0;
       th->rootDepth = th->completedDepth = DEPTH_ZERO;
-      th->sortByDTZ = sortByDTZ;
       th->rootMoves = rootMoves;
       th->rootPos.set(pos.fen(), pos.is_chess960(), &setupStates->back(), th);
   }
