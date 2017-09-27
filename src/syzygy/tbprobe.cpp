@@ -1517,7 +1517,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
 // Probe DTZ tables for each root move and store the result
 void Tablebases::dtz_score(Position& pos, Search::RootMoves& rootMoves) {
 
-    ProbeState result;
+    ProbeState result = OK;
     RootInTB = false;
 
     if (   pos.count<ALL_PIECES>() > MaxCardinality
