@@ -216,16 +216,6 @@ namespace {
                 b2 |= dc2;
             }
         }
-#ifdef CRAZYHOUSE
-        if (V == CRAZYHOUSE_VARIANT && pos.count_in_hand<PAWN>(Us))
-        {
-            Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
-            if (Type == QUIET_CHECKS)
-                moveList = generate_drops<Us, PAWN, true>(pos, moveList, b);
-            else
-                moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
-        }
-#endif
 
         while (b1)
         {
@@ -373,6 +363,14 @@ namespace {
 
     const bool Checks = Type == QUIET_CHECKS;
 
+#ifdef CRAZYHOUSE
+    if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES && pos.count_in_hand<PAWN>(Us))
+    {
+        Bitboard emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+        Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares);
+        moveList = generate_drops<Us, PAWN, Checks>(pos, moveList, b & ~(Rank1BB | Rank8BB));
+    }
+#endif
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
 #ifdef CRAZYHOUSE
     if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES &&
