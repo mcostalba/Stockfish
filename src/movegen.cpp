@@ -363,31 +363,23 @@ namespace {
 
     const bool Checks = Type == QUIET_CHECKS;
 
-#ifdef CRAZYHOUSE
-    if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES && pos.count_in_hand<PAWN>(Us))
-    {
-        Bitboard emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
-        Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares);
-        moveList = generate_drops<Us, PAWN, Checks>(pos, moveList, b & ~(Rank1BB | Rank8BB));
-    }
-#endif
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
+    moveList = generate_moves<V, KNIGHT, Checks>(pos, moveList, Us, target);
+    moveList = generate_moves<V, BISHOP, Checks>(pos, moveList, Us, target);
+    moveList = generate_moves<V,   ROOK, Checks>(pos, moveList, Us, target);
+    moveList = generate_moves<V,  QUEEN, Checks>(pos, moveList, Us, target);
 #ifdef CRAZYHOUSE
-    if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES &&
-        (pos.count_in_hand<ALL_PIECES>(Us) - pos.count_in_hand<PAWN>(Us)))
+    if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES && pos.count_in_hand<ALL_PIECES>(Us))
     {
         Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
                      Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
+        moveList = generate_drops<Us,   PAWN, Checks>(pos, moveList, b & ~(Rank1BB | Rank8BB));
         moveList = generate_drops<Us, KNIGHT, Checks>(pos, moveList, b);
         moveList = generate_drops<Us, BISHOP, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,   ROOK, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
     }
 #endif
-    moveList = generate_moves<V, KNIGHT, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V, BISHOP, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V,   ROOK, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V,  QUEEN, Checks>(pos, moveList, Us, target);
 
 #ifdef ANTI
     if (V == ANTI_VARIANT)
