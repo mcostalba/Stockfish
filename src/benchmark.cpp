@@ -126,8 +126,11 @@ const vector<string> Defaults[VARIANT_NB] = {
 #ifdef ATOMIC
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    "rnbqkbnr/ppppp1pp/5p2/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 0 1",
+    "rnb1k1nr/pppp1ppp/4pq2/2b5/3P4/2P1PN2/PP3PPP/RNBQKB1R b KQkq - 0 1",
+    "r1bqkbnr/pp1p3p/1Qn1ppp1/8/8/4P3/PPPP1PPP/RNB1KB1R b KQkq - 0 1",
+    "r2qk2r/ppQ1p2p/2p1bn2/2np4/8/2N1PP2/PPPP2PP/R1B1K2R b KQkq - 0 1",
     "2k5/p6p/8/1p2p3/PP1p4/4P3/2P2rPP/K3R3 b - - 0 1",
+    "5r2/p6k/6p1/1p1p2Bp/8/7P/PPP3P1/5R1K w - - 1 1",
     "6k1/1pp3pp/5p2/8/8/2P1P3/5PPP/6K1 w - - 0 1",
     "8/k7/P7/8/8/6p1/2p3N1/2K5 w - - 0 1",
     "8/k7/P7/8/8/6p1/2p3N1/2K5 b - - 0 1"
