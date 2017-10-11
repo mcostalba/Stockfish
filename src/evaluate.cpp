@@ -564,7 +564,7 @@ namespace {
   const int KingDangerParams[VARIANT_NB][7] = {
     {   102,  191,  143, -848,   -9,   40,    0 },
 #ifdef ANTI
-    {   101,  235,  134, -717,  -11,   -5,    0 },
+    {},
 #endif
 #ifdef ATOMIC
     {   274,  166,  146, -654,  -12,   -7,   29 },
@@ -582,7 +582,7 @@ namespace {
     {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
-    {   101,  235,  134, -717,  -11,   -5,    0 },
+    {},
 #endif
 #ifdef RELAY
     {   101,  235,  134, -717,  -11,   -5,    0 },
