@@ -393,10 +393,7 @@ namespace {
     },
 #endif
 #ifdef RACE
-    {
-      { V(5), V( 5), V(31), V(73), V(166), V(252) },
-      { V(7), V(14), V(38), V(73), V(166), V(252) }
-    },
+    {},
 #endif
 #ifdef RELAY
     {
