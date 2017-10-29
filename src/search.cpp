@@ -915,7 +915,11 @@ namespace {
     else
     {
         eval = ss->staticEval =
+#ifdef CRAZYHOUSE
+        (ss-1)->currentMove != MOVE_NULL || pos.is_house() ? evaluate(pos)
+#else
         (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
+#endif
                                          : -(ss-1)->staticEval + 2 * Eval::Tempo[pos.variant()];
 
         tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
@@ -1522,7 +1526,11 @@ moves_loop: // When in check search starts from here
         }
         else
             ss->staticEval = bestValue =
+#ifdef CRAZYHOUSE
+            (ss-1)->currentMove != MOVE_NULL || pos.is_house() ? evaluate(pos)
+#else
             (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
+#endif
                                              : -(ss-1)->staticEval + 2 * Eval::Tempo[pos.variant()];
 
         // Stand pat. Return immediately if static value is at least beta
