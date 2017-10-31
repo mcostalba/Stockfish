@@ -121,6 +121,9 @@ enum Variant {
 #ifdef CRAZYHOUSE
   CRAZYHOUSE_VARIANT,
 #endif
+#ifdef EXTINCTION
+  EXTINCTION_VARIANT,
+#endif
 #ifdef HORDE
   HORDE_VARIANT,
 #endif
@@ -166,6 +169,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef CRAZYHOUSE
 "crazyhouse",
+#endif
+#ifdef EXTINCTION
+"extinction",
 #endif
 #ifdef HORDE
 "horde",
@@ -220,13 +226,13 @@ enum MoveType {
   ENPASSANT = 2 << 14,
   CASTLING  = 3 << 14,
   // special moves use promotion piece type bits as flags
-#if defined(ANTI) || defined(CRAZYHOUSE)
+#if defined(ANTI) || defined(CRAZYHOUSE) || defined(EXTINCTION)
   SPECIAL = ENPASSANT,
 #endif
 #ifdef CRAZYHOUSE
   DROP = 1 << 12,
 #endif
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
   KING_PROMOTION = 2 << 12, // not used as an actual move type
 #endif
 };
@@ -319,6 +325,14 @@ enum Value : int {
   BishopValueMgHouse = 464,   BishopValueEgHouse = 508,
   RookValueMgHouse   = 673,   RookValueEgHouse   = 727,
   QueenValueMgHouse  = 832,   QueenValueEgHouse  = 1046,
+#endif
+#ifdef EXTINCTION
+  PawnValueMgExtinction   = 250,    PawnValueEgExtinction   = 250,
+  KnightValueMgExtinction = 1000,   KnightValueEgExtinction = 1000,
+  BishopValueMgExtinction = 1000,   BishopValueEgExtinction = 1000,
+  RookValueMgExtinction   = 1000,   RookValueEgExtinction   = 1000,
+  QueenValueMgExtinction  = 2000,   QueenValueEgExtinction  = 2000,
+  KingValueMgExtinction   = 1000,   KingValueEgExtinction   = 1000,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 321,   PawnValueEgHorde   = 326,
@@ -613,14 +627,14 @@ inline int from_to(Move m) {
 }
 
 inline MoveType type_of(Move m) {
-#if defined(ANTI) || defined(CRAZYHOUSE)
+#if defined(ANTI) || defined(CRAZYHOUSE) || defined(EXTINCTION)
   if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)))
   {
 #ifdef CRAZYHOUSE
       if ((m & (3 << 12)) == DROP)
           return DROP;
 #endif
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
       if ((m & (3 << 12)) == KING_PROMOTION)
           return PROMOTION;
 #endif
@@ -630,7 +644,7 @@ inline MoveType type_of(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
   if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)) == KING_PROMOTION)
       return KING;
 #endif
@@ -643,7 +657,7 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
   if (pt == KING)
       return Move(SPECIAL + KING_PROMOTION + (from << 6) + to);
 #endif

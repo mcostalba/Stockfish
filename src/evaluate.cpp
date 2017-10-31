@@ -217,6 +217,23 @@ namespace {
         S( 111, 177), S( 115,181), S(124,197), S(124,199) }
     },
 #endif
+#ifdef EXTINCTION
+    {
+      { S(-126, -96), S(-103,-31), S(-90,-27), S(-40,  3), S(  0,  3), S(  4,  0), // Knights
+        S(  20,  12), S(  15, 33), S( 50, 46) },
+      { S(-156, -79), S(-115,-43), S( 42,-14), S( 35, 26), S( 64, 26), S( 74, 38), // Bishops
+        S(  70,  46), S(  83, 71), S( 70, 68), S( 66, 80), S( 64, 68), S( 70, 77),
+        S(  97,  92), S(  89, 98) },
+      { S( -53, -53), S( -22, -8), S(-48, 30), S(-14, 57), S( -4, 77), S( 11, 87), // Rooks
+        S(   7, 115), S(  12,123), S( 27,120), S(  6,140), S( 55,156), S( 18,161),
+        S(  51, 161), S(  54,171), S( 52,166) },
+      { S( -26, -56), S( -24,-14), S(  7, 14), S(  8, 15), S( 18, 34), S( 14, 41), // Queens
+        S(  28,  58), S(  33, 66), S( 40, 70), S( 47, 74), S( 50,100), S( 52,106),
+        S(  59, 111), S(  50, 95), S( 60,115), S( 61,126), S( 75,144), S( 82,119),
+        S(  95, 137), S( 102,138), S(100,142), S(119,154), S(129,156), S(107,156),
+        S( 111, 177), S( 115,181), S(124,197), S(124,199) }
+    },
+#endif
 #ifdef HORDE
     {
       { S(-126,-90), S( -7,-22), S( -46,-25), S( 19,7), S( -53, 71), S( 31, -1), // Knights
@@ -374,6 +391,12 @@ namespace {
       { V(27), V(13), V(19), V(111), V(140), V(203) }
     },
 #endif
+#ifdef EXTINCTION
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
 #ifdef HORDE
     {
       { V(-66), V(-25), V( 66), V(68), V( 72), V(250) },
@@ -496,6 +519,9 @@ namespace {
 #ifdef CRAZYHOUSE
     S(13, 20),
 #endif
+#ifdef EXTINCTION
+    S( 0,  0),
+#endif
 #ifdef HORDE
     S( 7,  0),
 #endif
@@ -540,6 +566,9 @@ namespace {
 #ifdef CRAZYHOUSE
     { 0, 0, 112, 97, 61, 2 },
 #endif
+#ifdef EXTINCTION
+    {},
+#endif
 #ifdef HORDE
     { 0, 0, 78, 56, 45, 11 },
 #endif
@@ -571,6 +600,9 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
     {   138,  362,  170, -595,   -9,   -1,  306 },
+#endif
+#ifdef EXTINCTION
+    {},
 #endif
 #ifdef HORDE
     {   101,  235,  134, -717,  -11,   -5,    0 },
@@ -616,6 +648,9 @@ namespace {
     Value(12222),
 #endif
 #ifdef CRAZYHOUSE
+    Value(12222),
+#endif
+#ifdef EXTINCTION
     Value(12222),
 #endif
 #ifdef HORDE
@@ -674,6 +709,17 @@ namespace {
     }
     else
 #endif
+#ifdef EXTINCTION
+    if (pos.is_extinction())
+    {
+        attackedBy[Us][KING] = 0;
+        Bitboard kings = pos.pieces(Us, KING);
+        while (kings)
+            attackedBy[Us][KING] |= pos.attacks_from<KING>(pop_lsb(&kings));
+        b = attackedBy[Us][KING];
+    }
+    else
+#endif
     b = attackedBy[Us][KING] = pos.attacks_from<KING>(pos.square<KING>(Us));
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
 
@@ -684,6 +730,9 @@ namespace {
     if ((
 #ifdef ANTI
         !pos.is_anti() &&
+#endif
+#ifdef EXTINCTION
+        !pos.is_extinction() &&
 #endif
         (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
 #ifdef CRAZYHOUSE
@@ -1542,6 +1591,9 @@ namespace {
 
 #ifdef ANTI
     if (pos.is_anti()) {} else
+#endif
+#ifdef EXTINCTION
+    if (pos.is_extinction()) {} else
 #endif
 #ifdef RACE
     if (pos.is_race()) {} else

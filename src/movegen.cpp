@@ -40,6 +40,10 @@ namespace {
     if (V == ANTI_VARIANT)
         kfrom = pos.castling_king_square(Cr);
 #endif
+#ifdef EXTINCTION
+    if (V == EXTINCTION_VARIANT)
+        kfrom = pos.castling_king_square(Cr);
+#endif
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
     Bitboard enemies = pos.pieces(~us);
@@ -51,6 +55,10 @@ namespace {
 
 #ifdef ANTI
     if (V != ANTI_VARIANT)
+    {
+#endif
+#ifdef EXTINCTION
+    if (V != EXTINCTION_VARIANT)
     {
 #endif
     for (Square s = kto; s != kfrom; s += K)
@@ -76,6 +84,9 @@ namespace {
 #endif
         return moveList;
     }
+#ifdef EXTINCTION
+    }
+#endif
 #ifdef ANTI
     }
 #endif
@@ -115,6 +126,10 @@ namespace {
         *moveList++ = make<PROMOTION>(to - D, to, ROOK);
         *moveList++ = make<PROMOTION>(to - D, to, BISHOP);
         *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
+#ifdef EXTINCTION
+        if (V == EXTINCTION_VARIANT)
+            *moveList++ = make<PROMOTION>(to - D, to, KING);
+#endif
     }
 
     // Knight promotion is the only promotion that can give a direct check
@@ -397,6 +412,20 @@ namespace {
     }
     else
 #endif
+#ifdef EXTINCTION
+    if (V == EXTINCTION_VARIANT)
+    {
+        Bitboard kings = pos.pieces(Us, KING);
+        while (kings)
+        {
+            Square ksq = pop_lsb(&kings);
+            Bitboard b = pos.attacks_from<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(&b));
+        }
+    }
+    else
+#endif
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
@@ -494,6 +523,11 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<CRAZYHOUSE_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<CRAZYHOUSE_VARIANT, BLACK, Type>(pos, moveList, target);
 #endif
+#ifdef EXTINCTION
+  if (pos.is_extinction())
+      return us == WHITE ? generate_all<EXTINCTION_VARIANT, WHITE, Type>(pos, moveList, target)
+                         : generate_all<EXTINCTION_VARIANT, BLACK, Type>(pos, moveList, target);
+#endif
 #ifdef HORDE
   if (pos.is_horde())
       return us == WHITE ? generate_all<HORDE_VARIANT, WHITE, Type>(pos, moveList, target)
@@ -534,6 +568,10 @@ template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI
   if (pos.is_anti())
+      return moveList;
+#endif
+#ifdef EXTINCTION
+  if (pos.is_extinction())
       return moveList;
 #endif
 #ifdef RACE
@@ -599,6 +637,10 @@ template<>
 ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI
   if (pos.is_anti())
+      return moveList;
+#endif
+#ifdef EXTINCTION
+  if (pos.is_extinction())
       return moveList;
 #endif
 #ifdef RACE

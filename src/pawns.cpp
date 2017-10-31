@@ -176,6 +176,9 @@ namespace {
       { V(154), V( 84), V( 87), V(188), V(105), V(177), V(275) } }
   },
 #endif
+#ifdef EXTINCTION
+  {},
+#endif
 #ifdef HORDE
   {
     { { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) }, // Not On King file
@@ -305,6 +308,9 @@ namespace {
       { V(   9),  V( 102), V(  77), V( 33), V( 56) },
       { V(  -2),  V(  61), V(  51), V( 56), V( -4) } }
   },
+#endif
+#ifdef EXTINCTION
+  {},
 #endif
 #ifdef HORDE
   {
@@ -572,6 +578,9 @@ void init() {
 #endif
 #ifdef CRAZYHOUSE
     { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef EXTINCTION
+    { 0, 13, 24, 18, 76, 100, 175, 330 },
 #endif
 #ifdef HORDE
     { 37, 29, 3, 1, 105,  99, 343, 350 },

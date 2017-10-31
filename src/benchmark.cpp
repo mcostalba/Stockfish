@@ -155,6 +155,11 @@ const vector<string> Defaults[VARIANT_NB] = {
     "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
   },
 #endif
+#ifdef EXTINCTION
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  },
+#endif
 #ifdef HORDE
   {
     "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1",
@@ -259,6 +264,9 @@ const int defaultDepth[VARIANT_NB] = {
 #endif
 #ifdef CRAZYHOUSE
   12,
+#endif
+#ifdef EXTINCTION
+  13,
 #endif
 #ifdef HORDE
   13,

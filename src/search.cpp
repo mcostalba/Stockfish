@@ -79,6 +79,9 @@ namespace {
 #ifdef CRAZYHOUSE
   { 0, 590, 651, 622 },
 #endif
+#ifdef EXTINCTION
+  { 0, 570, 603, 554 },
+#endif
 #ifdef HORDE
   { 0, 706, 625, 555 },
 #endif
@@ -108,6 +111,9 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
   125,
+#endif
+#ifdef EXTINCTION
+  150,
 #endif
 #ifdef HORDE
   151,
@@ -140,6 +146,9 @@ namespace {
 #ifdef CRAZYHOUSE
   { 256, 200 },
 #endif
+#ifdef EXTINCTION
+  { 256, 200 },
+#endif
 #ifdef HORDE
   { 261, 162 },
 #endif
@@ -168,6 +177,9 @@ namespace {
   200,
 #endif
 #ifdef CRAZYHOUSE
+  200,
+#endif
+#ifdef EXTINCTION
   200,
 #endif
 #ifdef HORDE
@@ -848,6 +860,9 @@ namespace {
     }
 
     // Step 4a. Tablebase probe
+#ifdef EXTINCTION
+    if (pos.is_extinction()) {} else
+#endif
 #ifdef KOTH
     if (pos.is_koth()) {} else
 #endif
