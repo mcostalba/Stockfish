@@ -113,7 +113,7 @@ public:
   int can_castle(Color c) const;
   int can_castle(CastlingRight cr) const;
   bool castling_impeded(CastlingRight cr) const;
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
   Square castling_king_square(CastlingRight cr) const;
 #endif
   Square castling_rook_square(CastlingRight cr) const;
@@ -202,6 +202,11 @@ public:
 #ifdef LOOP
   bool is_loop() const;
 #endif
+#ifdef EXTINCTION
+  bool is_extinction() const;
+  bool is_extinction_win() const;
+  bool is_extinction_loss() const;
+#endif
 #ifdef KOTH
   bool is_koth() const;
   bool is_koth_win() const;
@@ -281,7 +286,7 @@ private:
 #endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
   Square castlingKingSquare[CASTLING_RIGHT_NB];
 #endif
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -372,6 +377,14 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
   if (is_atomic() && pieceCount[make_piece(c, Pt)] == 0)
       return SQ_NONE;
 #endif
+#ifdef EXTINCTION
+  if (is_extinction() && Pt == KING)
+  {
+      if (pieceCount[make_piece(c, Pt)] == 0)
+          return SQ_NONE;
+      return pieceList[make_piece(c, Pt)][0]; // return the first king's square
+  }
+#endif
 #ifdef ANTI
   // There may be zero, one, or multiple kings
   if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
@@ -421,7 +434,7 @@ inline bool Position::castling_impeded(CastlingRight cr) const {
   return byTypeBB[ALL_PIECES] & castlingPath[cr];
 }
 
-#ifdef ANTI
+#if defined(ANTI) || defined(EXTINCTION)
 inline Square Position::castling_king_square(CastlingRight cr) const {
   return castlingKingSquare[cr];
 }
@@ -455,6 +468,9 @@ inline Bitboard Position::attackers_to(Square s) const {
 inline Bitboard Position::checkers() const {
 #ifdef ANTI
   assert(!is_anti() || !st->checkersBB);
+#endif
+#ifdef EXTINCTION
+  assert(!is_extinction() || !st->checkersBB);
 #endif
   return st->checkersBB;
 }
@@ -539,6 +555,22 @@ inline bool Position::is_atomic_win() const {
 // Loss if king is captured (Atomic)
 inline bool Position::is_atomic_loss() const {
   return count<KING>(sideToMove) == 0;
+}
+#endif
+
+#ifdef EXTINCTION
+inline bool Position::is_extinction() const {
+  return var == EXTINCTION_VARIANT;
+}
+
+inline bool Position::is_extinction_win() const {
+  return !(   count<  KING>(~sideToMove) && count< QUEEN>(~sideToMove) && count<ROOK>(~sideToMove)
+           && count<BISHOP>(~sideToMove) && count<KNIGHT>(~sideToMove) && count<PAWN>(~sideToMove));
+}
+
+inline bool Position::is_extinction_loss() const {
+  return !(   count<  KING>(sideToMove) && count< QUEEN>(sideToMove) && count<ROOK>(sideToMove)
+           && count<BISHOP>(sideToMove) && count<KNIGHT>(sideToMove) && count<PAWN>(sideToMove));
 }
 #endif
 
@@ -803,6 +835,10 @@ inline bool Position::is_variant_end() const {
   case ATOMIC_VARIANT:
       return is_atomic_win() || is_atomic_loss();
 #endif
+#ifdef EXTINCTION
+  case EXTINCTION_VARIANT:
+      return is_extinction_win() || is_extinction_loss();
+#endif
 #ifdef HORDE
   case HORDE_VARIANT:
       return is_horde_loss();
@@ -844,6 +880,14 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
       if (is_atomic_win())
           return mate_in(ply);
       if (is_atomic_loss())
+          return mated_in(ply);
+      break;
+#endif
+#ifdef EXTINCTION
+  case EXTINCTION_VARIANT:
+      if (is_extinction_win())
+          return mate_in(ply);
+      if (is_extinction_loss())
           return mated_in(ply);
       break;
 #endif
