@@ -431,7 +431,7 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
   st->castlingRights |= cr;
   castlingRightsMask[kfrom] |= cr;
   castlingRightsMask[rfrom] |= cr;
-#if defined(ANTI) || defined(EXTINCTION)
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
   castlingKingSquare[cr] = kfrom;
 #endif
   castlingRookSquare[cr] = rfrom;
@@ -524,6 +524,11 @@ void Position::set_check_info(StateInfo* si) const {
   si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq);
   si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq);
   si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
+#ifdef TWOKINGS
+  if (is_two_kings())
+      si->checkSquares[KING] = attacks_from<KING>(ksq);
+  else
+#endif
   si->checkSquares[KING]   = 0;
 }
 
@@ -879,7 +884,19 @@ bool Position::legal(Move m) const {
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
   if (type_of(piece_on(from)) == KING)
+  {
+#ifdef TWOKINGS
+      if (is_two_kings())
+      {
+          Square to = to_sq(m);
+          if (type_of(m) == CASTLING)
+              to = make_square(to >= from ? FILE_G : FILE_C, rank_of(from));
+          Square new_ksq = royal_king(pieces(us, KING) ^ from ^ to);
+          return !(attackers_to(new_ksq, (pieces() ^ from) | to) & (pieces(~us) - to));
+      }
+#endif
       return type_of(m) == CASTLING || !(attackers_to(to_sq(m)) & pieces(~us));
+  }
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
@@ -1189,18 +1206,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
 
 #ifdef ANTI
-#ifdef EXTINCTION
-  assert(type_of(captured) != KING || is_anti() || is_extinction());
-#else
-  assert(type_of(captured) != KING || is_anti());
+  if (is_anti()) {} else
 #endif
-#else
 #ifdef EXTINCTION
-  assert(type_of(captured) != KING || is_extinction());
-#else
+  if (is_extinction()) {} else
+#endif
+#ifdef TWOKINGS
+  if (is_two_kings()) {} else
+#endif
+  {
   assert(type_of(captured) != KING);
-#endif
-#endif
+  }
 
   if (type_of(m) == CASTLING)
   {
@@ -1344,6 +1360,15 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       k ^= Zobrist::castling[st->castlingRights & cr];
       st->castlingRights &= ~cr;
   }
+#ifdef TWOKINGS
+  // Moving any king loses the castling rights
+  else if (st->castlingRights && type_of(pc) == KING)
+  {
+      int cr = castlingRightsMask[square<KING>(us)];
+      k ^= Zobrist::castling[st->castlingRights & cr];
+      st->castlingRights &= ~cr;
+  }
+#endif
 
 #ifdef THREECHECK
   if (is_three_check() && givesCheck)
@@ -1517,18 +1542,17 @@ void Position::undo_move(Move m) {
   assert(empty(from) || type_of(m) == CASTLING);
 #endif
 #ifdef ANTI
-#ifdef EXTINCTION
-  assert(type_of(st->capturedPiece) != KING || is_anti() || is_extinction());
-#else
-  assert(type_of(st->capturedPiece) != KING || is_anti());
+  if (is_anti()) {} else
 #endif
-#else
 #ifdef EXTINCTION
-  assert(type_of(st->capturedPiece) != KING || is_extinction());
-#else
+  if (is_extinction()) {} else
+#endif
+#ifdef TWOKINGS
+  if (is_two_kings()) {} else
+#endif
+  {
   assert(type_of(st->capturedPiece) != KING);
-#endif
-#endif
+  }
 
   if (type_of(m) == PROMOTION)
   {
@@ -2125,7 +2149,7 @@ bool Position::pos_is_ok() const {
           if (!can_castle(c | s))
               continue;
 
-#if defined(ANTI) || defined(EXTINCTION)
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
           if (   piece_on(castlingKingSquare[c | s]) != make_piece(c, KING)
               || piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
               || castlingRightsMask[castlingKingSquare[c | s]] != (c | s)

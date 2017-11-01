@@ -252,6 +252,13 @@ const vector<string> Defaults[VARIANT_NB] = {
     "r1bqkb1r/ppp1pppp/2n2n2/3p4/Q7/2P2N2/PP1PPPPP/RNB1KB1R w KQkq - 3+3 0 1"
   },
 #endif
+#ifdef TWOKINGS
+  {
+    "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
+    "r1b1kk1r/pp1ppppp/2N2n2/8/4P3/2N5/PPP2qPP/R1BQKK1R w KQkq - 0 7",
+    "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQkq - 4 4"
+  },
+#endif
 };
 
 const int defaultDepth[VARIANT_NB] = {
@@ -284,6 +291,9 @@ const int defaultDepth[VARIANT_NB] = {
   13,
 #endif
 #ifdef THREECHECK
+  13,
+#endif
+#ifdef TWOKINGS
   13,
 #endif
 };

@@ -113,7 +113,7 @@ public:
   int can_castle(Color c) const;
   int can_castle(CastlingRight cr) const;
   bool castling_impeded(CastlingRight cr) const;
-#if defined(ANTI) || defined(EXTINCTION)
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
   Square castling_king_square(CastlingRight cr) const;
 #endif
   Square castling_rook_square(CastlingRight cr) const;
@@ -235,6 +235,11 @@ public:
   int checks_count() const;
   CheckCount checks_given(Color c) const;
 #endif
+#ifdef TWOKINGS
+  bool is_two_kings() const;
+  Square royal_king(Color c) const;
+  Square royal_king(Bitboard kings) const;
+#endif
 #ifdef ANTI
   bool is_anti() const;
   bool is_anti_win() const;
@@ -286,7 +291,7 @@ private:
 #endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
-#if defined(ANTI) || defined(EXTINCTION)
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
   Square castlingKingSquare[CASTLING_RIGHT_NB];
 #endif
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -385,6 +390,10 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
       return pieceList[make_piece(c, Pt)][0]; // return the first king's square
   }
 #endif
+#ifdef TWOKINGS
+  if (is_two_kings() && Pt == KING && pieceCount[make_piece(c, Pt)] > 1)
+      return royal_king(c);
+#endif
 #ifdef ANTI
   // There may be zero, one, or multiple kings
   if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
@@ -418,6 +427,28 @@ inline CheckCount Position::checks_given(Color c) const {
 }
 #endif
 
+#ifdef TWOKINGS
+inline bool Position::is_two_kings() const {
+  return var == TWOKINGS_VARIANT;
+}
+
+inline Square Position::royal_king(Color c) const {
+  return royal_king(pieces(c, KING));
+}
+
+inline Square Position::royal_king(Bitboard kings) const {
+  assert(kings);
+  // Find the royal king
+  for (File f = FILE_A; f <= FILE_H; ++f)
+  {
+      if (kings & file_bb(f))
+          return lsb(kings & file_bb(f)); // use msb for black to get symmetrical variant
+  }
+  assert(false);
+  return SQ_NONE; // silence a warning
+}
+#endif
+
 inline Square Position::ep_square() const {
   return st->epSquare;
 }
@@ -434,7 +465,7 @@ inline bool Position::castling_impeded(CastlingRight cr) const {
   return byTypeBB[ALL_PIECES] & castlingPath[cr];
 }
 
-#if defined(ANTI) || defined(EXTINCTION)
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
 inline Square Position::castling_king_square(CastlingRight cr) const {
   return castlingKingSquare[cr];
 }

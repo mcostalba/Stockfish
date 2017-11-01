@@ -336,6 +336,23 @@ namespace {
         S(119,164), S(121,184), S(121,192), S(131,203) }
     },
 #endif
+#ifdef TWOKINGS
+    {
+      { S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12), // Knights
+        S( 22, 26), S( 29, 29), S( 36, 29) },
+      { S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42), // Bishops
+        S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
+        S( 91, 88), S( 98, 97) },
+      { S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82), // Rooks
+        S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
+        S( 46,166), S( 48,169), S( 58,171) },
+      { S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54), // Queens
+        S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
+        S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
+        S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
+        S(106,184), S(109,191), S(113,206), S(116,212) }
+    },
+#endif
   };
 
   // Outpost[knight/bishop][supported by pawn] contains bonuses for minor
@@ -425,6 +442,12 @@ namespace {
     },
 #endif
 #ifdef THREECHECK
+    {
+      { V(5), V( 5), V(31), V(73), V(166), V(252) },
+      { V(7), V(14), V(38), V(73), V(166), V(252) }
+    },
+#endif
+#ifdef TWOKINGS
     {
       { V(5), V( 5), V(31), V(73), V(166), V(252) },
       { V(7), V(14), V(38), V(73), V(166), V(252) }
@@ -540,6 +563,9 @@ namespace {
 #ifdef THREECHECK
     S(16,  9),
 #endif
+#ifdef TWOKINGS
+    S( 7,  0),
+#endif
   };
   const Score PawnlessFlank       = S( 20, 80);
   const Score ThreatByHangingPawn = S( 71, 61);
@@ -587,6 +613,9 @@ namespace {
 #ifdef THREECHECK
     { 0, 0, 115, 64, 62, 35 },
 #endif
+#ifdef TWOKINGS
+    { 0, 0, 78, 56, 45, 11 },
+#endif
   };
 
   // Per-variant king danger malus factors
@@ -621,6 +650,9 @@ namespace {
 #endif
 #ifdef THREECHECK
     {    85,  136,  106, -613,   -7,  -73,  181 },
+#endif
+#ifdef TWOKINGS
+    {   102,  191,  143, -848,   -9,   40,    0 },
 #endif
   };
 
@@ -669,6 +701,9 @@ namespace {
     Value(12222),
 #endif
 #ifdef THREECHECK
+    Value(12222),
+#endif
+#ifdef TWOKINGS
     Value(12222),
 #endif
   };

@@ -61,6 +61,9 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #ifdef THREECHECK
   Value(20),
 #endif
+#ifdef TWOKINGS
+  Value(20),
+#endif
 };
 
 std::string trace(const Position& pos);

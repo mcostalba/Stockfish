@@ -142,6 +142,9 @@ enum Variant {
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
+#ifdef TWOKINGS
+  TWOKINGS_VARIANT,
+#endif
   VARIANT_NB,
   LAST_VARIANT = VARIANT_NB - 1,
   //subvariants
@@ -190,6 +193,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef THREECHECK
 "3check",
+#endif
+#ifdef TWOKINGS
+"twokings",
 #endif
 //subvariants
 #ifdef SUICIDE
@@ -368,6 +374,14 @@ enum Value : int {
   BishopValueMgThreeCheck = 693,   BishopValueEgThreeCheck = 754,
   RookValueMgThreeCheck   = 1027,  RookValueEgThreeCheck   = 1418,
   QueenValueMgThreeCheck  = 1947,  QueenValueEgThreeCheck  = 2323,
+#endif
+#ifdef TWOKINGS
+  PawnValueMgTwoKings   = 171,   PawnValueEgTwoKings   = 240,
+  KnightValueMgTwoKings = 764,   KnightValueEgTwoKings = 848,
+  BishopValueMgTwoKings = 826,   BishopValueEgTwoKings = 891,
+  RookValueMgTwoKings   = 1282,  RookValueEgTwoKings   = 1373,
+  QueenValueMgTwoKings  = 2526,  QueenValueEgTwoKings  = 2646,
+  KingValueMgTwoKings   = 1000,  KingValueEgTwoKings   = 1000,
 #endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915

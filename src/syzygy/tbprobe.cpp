@@ -86,6 +86,9 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef THREECHECK
     nullptr,
 #endif
+#ifdef TWOKINGS
+    nullptr,
+#endif
 #ifdef SUICIDE
     ".stbw",
 #endif
@@ -127,6 +130,9 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
+    nullptr,
+#endif
+#ifdef TWOKINGS
     nullptr,
 #endif
 #ifdef SUICIDE
@@ -172,6 +178,9 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef THREECHECK
     nullptr,
 #endif
+#ifdef TWOKINGS
+    nullptr,
+#endif
 #ifdef SUICIDE
     ".stbz",
 #endif
@@ -213,6 +222,9 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef THREECHECK
+    nullptr,
+#endif
+#ifdef TWOKINGS
     nullptr,
 #endif
 #ifdef SUICIDE
@@ -1636,6 +1648,12 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef TWOKINGS
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef SUICIDE
         {
             { 0xE4, 0xCF, 0xE7, 0x23 },
@@ -1716,6 +1734,12 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef THREECHECK
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef TWOKINGS
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -2333,6 +2357,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef THREECHECK
     if (pos.is_three_check()) return false;
 #endif
+#ifdef TWOKINGS
+    if (pos.is_two_kings()) return false;
+#endif
 #ifdef HORDE
     if (pos.is_horde()) return false;
 #endif
@@ -2486,6 +2513,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #endif
 #ifdef THREECHECK
     if (pos.is_three_check()) return false;
+#endif
+#ifdef TWOKINGS
+    if (pos.is_two_kings()) return false;
 #endif
 #ifdef HORDE
     if (pos.is_horde()) return false;
