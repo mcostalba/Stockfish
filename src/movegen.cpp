@@ -44,6 +44,10 @@ namespace {
     if (V == EXTINCTION_VARIANT)
         kfrom = pos.castling_king_square(Cr);
 #endif
+#ifdef TWOKINGS
+    if (V == TWOKINGS_VARIANT)
+        kfrom = pos.castling_king_square(Cr);
+#endif
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
     Bitboard enemies = pos.pieces(~us);
@@ -426,6 +430,20 @@ namespace {
     }
     else
 #endif
+#ifdef TWOKINGS
+    if (V == TWOKINGS_VARIANT && Type != EVASIONS)
+    {
+        Bitboard kings = pos.pieces(Us, KING);
+        while (kings)
+        {
+            Square ksq = pop_lsb(&kings);
+            Bitboard b = pos.attacks_from<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(&b));
+        }
+    }
+    else
+#endif
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
@@ -552,6 +570,11 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<RELAY_VARIANT, BLACK, Type>(pos, moveList, target);
 #endif
+#ifdef TWOKINGS
+  if (pos.is_two_kings())
+      return us == WHITE ? generate_all<TWOKINGS_VARIANT, WHITE, Type>(pos, moveList, target)
+                         : generate_all<TWOKINGS_VARIANT, BLACK, Type>(pos, moveList, target);
+#endif
   return us == WHITE ? generate_all<CHESS_VARIANT, WHITE, Type>(pos, moveList, target)
                      : generate_all<CHESS_VARIANT, BLACK, Type>(pos, moveList, target);
 }
@@ -626,6 +649,11 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
                          : generate_all<RELAY_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
 #endif
+#ifdef TWOKINGS
+  if (pos.is_two_kings())
+      return us == WHITE ? generate_all<TWOKINGS_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
+                         : generate_all<TWOKINGS_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
+#endif
   return us == WHITE ? generate_all<CHESS_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
                      : generate_all<CHESS_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
 }
@@ -697,6 +725,21 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_losers() && pos.can_capture_losers())
       b &= pos.pieces(~us);
 #endif
+#ifdef TWOKINGS
+  // In two king, legality is checked in in Position::legal
+  if (pos.is_two_kings())
+  {
+      Bitboard kings = pos.pieces(us, KING);
+      while (kings)
+      {
+          Square ksq2 = pop_lsb(&kings);
+          Bitboard b2 = pos.attacks_from<KING>(ksq2) & ~pos.pieces(us);
+          while (b2)
+              *moveList++ = make_move(ksq2, pop_lsb(&b2));
+      }
+  }
+  else
+#endif
   while (b)
       *moveList++ = make_move(ksq, pop_lsb(&b));
 
@@ -742,6 +785,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
                          : generate_all<RELAY_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
 #endif
+#ifdef TWOKINGS
+  if (pos.is_two_kings())
+      return us == WHITE ? generate_all<TWOKINGS_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
+                         : generate_all<TWOKINGS_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
+#endif
   return us == WHITE ? generate_all<CHESS_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
                      : generate_all<CHESS_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
 }
@@ -759,6 +807,9 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   bool validate = pinned;
 #ifdef RACE
   if (pos.is_race()) validate = true;
+#endif
+#ifdef TWOKINGS
+  if (pos.is_two_kings()) validate = true;
 #endif
   Square ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;

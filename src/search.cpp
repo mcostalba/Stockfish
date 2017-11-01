@@ -100,6 +100,9 @@ namespace {
 #ifdef THREECHECK
   { 0, 2060, 2257, 2174 },
 #endif
+#ifdef TWOKINGS
+  { 0, 570, 603, 554 },
+#endif
   };
   const int futility_margin_factor[VARIANT_NB] = {
   150,
@@ -132,6 +135,9 @@ namespace {
 #endif
 #ifdef THREECHECK
   223,
+#endif
+#ifdef TWOKINGS
+  150,
 #endif
   };
   Value futility_margin(Variant var, Depth d) { return Value(futility_margin_factor[var] * d / ONE_PLY); }
@@ -167,6 +173,9 @@ namespace {
 #ifdef THREECHECK
   { 420, 332 },
 #endif
+#ifdef TWOKINGS
+  { 256, 200 },
+#endif
   };
   const int probcut_margin[VARIANT_NB] = {
   200,
@@ -199,6 +208,9 @@ namespace {
 #endif
 #ifdef THREECHECK
   418,
+#endif
+#ifdef TWOKINGS
+  200,
 #endif
   };
 
@@ -874,6 +886,9 @@ namespace {
 #endif
 #ifdef THREECHECK
     if (pos.is_three_check()) {} else
+#endif
+#ifdef TWOKINGS
+    if (pos.is_two_kings()) {} else
 #endif
 #ifdef HORDE
     if (pos.is_horde()) {} else
