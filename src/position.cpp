@@ -2148,10 +2148,10 @@ bool Position::pos_is_ok() const {
               continue;
 
 #if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
-          if (   piece_on(castlingKingSquare[c | s]) != make_piece(c, KING)
-              || piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
-              || castlingRightsMask[castlingKingSquare[c | s]] != (c | s)
-              || castlingRightsMask[castlingRookSquare[c | s]] != (c | s))
+          if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
+              || piece_on(castlingKingSquare[c | s]) != make_piece(c, KING)
+              || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
+              || (castlingRightsMask[castlingKingSquare[c | s]] & (c | s)) != (c | s))
 #else
           if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
               || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
