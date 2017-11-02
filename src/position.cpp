@@ -2121,6 +2121,14 @@ bool Position::pos_is_ok() const {
   set_state(&si);
   if (std::memcmp(&si, st, sizeof(StateInfo)))
       assert(0 && "pos_is_ok: State");
+#ifdef ANTI
+  if (is_anti() && st->checkersBB)
+      assert(0 && "pos_is_ok: Checkers (antichess)");
+#endif
+#ifdef EXTINCTION
+  if (is_extinction() && st->checkersBB)
+      assert(0 && "pos_is_ok: Checkers (extinction)");
+#endif
 
   for (Piece pc : Pieces)
   {

@@ -497,14 +497,6 @@ inline Bitboard Position::attackers_to(Square s) const {
 }
 
 inline Bitboard Position::checkers() const {
-#ifdef ANTI
-  assert(!is_anti() || !st->checkersBB);
-#else
-  assert(!st->checkersBB);
-#endif
-#ifdef EXTINCTION
-  assert(!is_extinction() || !st->checkersBB);
-#endif
   return st->checkersBB;
 }
 
