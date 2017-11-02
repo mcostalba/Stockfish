@@ -2101,6 +2101,24 @@ bool Position::pos_is_ok() const {
       || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
       assert(0 && "pos_is_ok: Kings");
 
+#ifdef CRAZYHOUSE
+  if (is_house())
+  {
+      if (   (pieces(PAWN) & (Rank1BB | Rank8BB))
+          || pieceCount[W_PAWN] > 16
+          || pieceCount[B_PAWN] > 16)
+      assert(0 && "pos_is_ok: Pawns (crazyhouse)");
+  }
+  else
+#endif
+#ifdef HORDE
+  if (is_horde())
+  {
+      if (pieces(PAWN) & (is_horde_color(WHITE) ? Rank8BB : Rank1BB))
+          assert(0 && "pos_is_ok: Pawns (horde)");
+  }
+  else
+#endif
   if (   (pieces(PAWN) & (Rank1BB | Rank8BB))
       || pieceCount[W_PAWN] > 8
       || pieceCount[B_PAWN] > 8)
