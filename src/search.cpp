@@ -189,7 +189,7 @@ namespace {
   200,
 #endif
 #ifdef EXTINCTION
-  200,
+  400,
 #endif
 #ifdef HORDE
   153,
