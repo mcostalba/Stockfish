@@ -891,8 +891,8 @@ bool Position::legal(Move m) const {
           Square to = to_sq(m);
           if (type_of(m) == CASTLING)
               to = make_square(to >= from ? FILE_G : FILE_C, rank_of(from));
-          Square new_ksq = royal_king(pieces(us, KING) ^ from ^ to);
-          return !(attackers_to(new_ksq, (pieces() ^ from) | to) & (pieces(~us) - to));
+          Square ksq = royal_king(us, pieces(us, KING) ^ from ^ to);
+          return !(attackers_to(ksq, (pieces() ^ from) | to) & (pieces(~us) - to));
       }
 #endif
       return type_of(m) == CASTLING || !(attackers_to(to_sq(m)) & pieces(~us));
@@ -2082,7 +2082,7 @@ bool Position::pos_is_ok() const {
       if (   std::count(board, board + SQUARE_NB, W_KING) +
              std::count(board, board + SQUARE_NB, B_KING) != 1
           || (is_horde_color(sideToMove) && attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
-      assert(0 && "pos_is_ok: Kings");
+      assert(0 && "pos_is_ok: Kings (horde)");
   } else
 #endif
 #ifdef ATOMIC
@@ -2090,11 +2090,21 @@ bool Position::pos_is_ok() const {
   {
       if (std::count(board, board + SQUARE_NB, W_KING) +
           std::count(board, board + SQUARE_NB, B_KING) != 1)
-      assert(0 && "pos_is_ok: Kings");
+      assert(0 && "pos_is_ok: Kings (atomic)");
   }
   else if (is_atomic() && (attacks_from<KING>(square<KING>(~sideToMove)) & square<KING>(sideToMove)))
   {
   } else
+#endif
+#ifdef TWOKINGS
+  if (is_two_kings())
+  {
+      if (   pieceCount[W_KING] < 1
+          || pieceCount[B_KING] < 1
+          || attackers_to(royal_king(~sideToMove)) & pieces(sideToMove))
+          assert(0 && "pos_is_ok: Kings (two kings)");
+  }
+  else
 #endif
   if (   pieceCount[W_KING] != 1
       || pieceCount[B_KING] != 1
@@ -2124,6 +2134,17 @@ bool Position::pos_is_ok() const {
       || pieceCount[B_PAWN] > 8)
       assert(0 && "pos_is_ok: Pawns");
 
+#ifdef HORDE
+  if (is_horde())
+  {
+      if (   (pieces(WHITE) & pieces(BLACK))
+          || (pieces(WHITE) | pieces(BLACK)) != pieces()
+          || popcount(pieces(WHITE)) > (is_horde_color(WHITE) ? 40 : 16)
+          || popcount(pieces(BLACK)) > (is_horde_color(BLACK) ? 40 : 16))
+          assert(0 && "pos_is_ok: Bitboards (horde)");
+  }
+  else
+#endif
   if (   (pieces(WHITE) & pieces(BLACK))
       || (pieces(WHITE) | pieces(BLACK)) != pieces()
       || popcount(pieces(WHITE)) > 16

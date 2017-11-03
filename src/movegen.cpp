@@ -726,7 +726,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       b &= pos.pieces(~us);
 #endif
 #ifdef TWOKINGS
-  // In two king, legality is checked in in Position::legal
+  // In two kings, legality is checked in in Position::legal
   if (pos.is_two_kings())
   {
       Bitboard kings = pos.pieces(us, KING);

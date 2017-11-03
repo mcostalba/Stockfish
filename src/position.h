@@ -238,7 +238,7 @@ public:
 #ifdef TWOKINGS
   bool is_two_kings() const;
   Square royal_king(Color c) const;
-  Square royal_king(Bitboard kings) const;
+  Square royal_king(Color c, Bitboard kings) const;
 #endif
 #ifdef ANTI
   bool is_anti() const;
@@ -433,11 +433,11 @@ inline bool Position::is_two_kings() const {
 }
 
 inline Square Position::royal_king(Color c) const {
-  return royal_king(pieces(c, KING));
+  return royal_king(c, pieces(c, KING));
 }
 
-inline Square Position::royal_king(Bitboard kings) const {
-  assert(kings);
+inline Square Position::royal_king(Color c, Bitboard kings) const {
+  assert(c != COLOR_NB && kings);
   // Find the royal king
   for (File f = FILE_A; f <= FILE_H; ++f)
   {
