@@ -1245,7 +1245,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->pawnKey ^= Zobrist::psq[captured][capsq];
       }
       else
+      {
           st->nonPawnMaterial[them] -= PieceValue[CHESS_VARIANT][MG][captured];
+#ifdef CRAZYHOUSE
+          if (is_house() && !is_promoted(to))
+          {
+#ifdef BUGHOUSE
+              if (! is_bughouse())
+#endif
+              {
+                  st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][captured];
+              }
+          }
+#endif
+      }
 
       // Update board and piece lists
       remove_piece(captured, capsq);
@@ -1323,12 +1336,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update hash key
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
-  {
-      k ^= Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
+      k ^=  Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
           ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
-      if (type_of(pc) != PAWN)
-          st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][type_of(pc)];
-  }
   else
 #endif
   k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
@@ -2134,6 +2143,17 @@ bool Position::pos_is_ok() const {
       || pieceCount[B_PAWN] > 8)
       assert(0 && "pos_is_ok: Pawns");
 
+#ifdef CRAZYHOUSE
+  if (is_house())
+  {
+      if (   (pieces(WHITE) & pieces(BLACK))
+          || (pieces(WHITE) | pieces(BLACK)) != pieces()
+          || popcount(pieces(WHITE)) > 32
+          || popcount(pieces(BLACK)) > 32)
+          assert(0 && "pos_is_ok: Bitboards (crazyhouse)");
+  }
+  else
+#endif
 #ifdef HORDE
   if (is_horde())
   {
