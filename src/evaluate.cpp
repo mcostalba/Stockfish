@@ -1071,6 +1071,8 @@ namespace {
 #endif
             int v = kingDanger * kingDanger / 4096;
 #ifdef CRAZYHOUSE
+            if (pos.is_house() && Us == pos.side_to_move())
+                v -= v / 10;
             if (pos.is_house() && v > QueenValueMg)
                 v = QueenValueMg;
 #endif
