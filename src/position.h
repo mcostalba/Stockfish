@@ -437,7 +437,7 @@ inline Square Position::royal_king(Color c) const {
 }
 
 inline Square Position::royal_king(Color c, Bitboard kings) const {
-  assert(c != COLOR_NB && kings);
+  assert(kings);
   // Find the royal king
   for (File f = FILE_A; f <= FILE_H; ++f)
   {
@@ -445,7 +445,7 @@ inline Square Position::royal_king(Color c, Bitboard kings) const {
           return lsb(kings & file_bb(f)); // use msb for black to get symmetrical variant
   }
   assert(false);
-  return SQ_NONE; // silence a warning
+  return c == WHITE ? SQ_NONE : SQ_NONE; // silence two warnings
 }
 #endif
 
