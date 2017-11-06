@@ -240,6 +240,9 @@ public:
   Square royal_king(Color c) const;
   Square royal_king(Color c, Bitboard kings) const;
 #endif
+#ifdef TWOKINGSSYMMETRIC
+  bool is_two_kings_symmetric() const;
+#endif
 #ifdef ANTI
   bool is_anti() const;
   bool is_anti_win() const;
@@ -442,10 +445,21 @@ inline Square Position::royal_king(Color c, Bitboard kings) const {
   for (File f = FILE_A; f <= FILE_H; ++f)
   {
       if (kings & file_bb(f))
-          return lsb(kings & file_bb(f)); // use msb for black to get symmetrical variant
+#ifdef TWOKINGSSYMMETRIC
+          return is_two_kings_symmetric() && c == BLACK ? msb(kings & file_bb(f))
+                                                        : lsb(kings & file_bb(f));
+#else
+          return lsb(kings & file_bb(f));
+#endif
   }
   assert(false);
   return c == WHITE ? SQ_NONE : SQ_NONE; // silence two warnings
+}
+#endif
+
+#ifdef TWOKINGSSYMMETRIC
+inline bool Position::is_two_kings_symmetric() const {
+  return subvar == TWOKINGSSYMMETRIC_VARIANT;
 }
 #endif
 

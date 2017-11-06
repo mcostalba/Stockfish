@@ -157,6 +157,9 @@ enum Variant {
 #ifdef LOOP
   LOOP_VARIANT,
 #endif
+#ifdef TWOKINGSSYMMETRIC
+  TWOKINGSSYMMETRIC_VARIANT,
+#endif
   SUBVARIANT_NB,
 };
 
@@ -206,6 +209,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef LOOP
 "loop",
+#endif
+#ifdef TWOKINGSSYMMETRIC
+"twokingssymmetric",
 #endif
 };
 
@@ -708,6 +714,10 @@ inline Variant main_variant(Variant v) {
 #ifdef LOOP
   case LOOP_VARIANT:
       return CRAZYHOUSE_VARIANT;
+#endif
+#ifdef TWOKINGSSYMMETRIC
+  case TWOKINGSSYMMETRIC_VARIANT:
+      return TWOKINGS_VARIANT;
 #endif
   default:
       assert(false);
