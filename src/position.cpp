@@ -1831,6 +1831,11 @@ bool Position::see_ge(Move m, Value threshold) const {
   PieceType nextVictim = type_of(piece_on(from));
   Color stm = ~color_of(piece_on(from)); // First consider opponent's move
 #endif
+#ifdef EXTINCTION
+  // Is it a winning capture?
+  if (is_extinction() && !more_than_one(pieces(color_of(piece_on(to)), type_of(piece_on(to)))))
+      return true;
+#endif
   Value balance; // Values of the pieces taken by us minus opponent's ones
   Bitboard occupied, stmAttackers;
 
