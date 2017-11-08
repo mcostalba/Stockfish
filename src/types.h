@@ -635,7 +635,7 @@ inline Square to_sq(Move m) {
 inline int from_to(Move m) {
 #ifdef CRAZYHOUSE
   if (type_of(m) == DROP)
-      return (m & 0xFFF) + 0x1000;
+      return (m & 0x3F) + 0x1000;
 #endif
  return m & 0xFFF;
 }
