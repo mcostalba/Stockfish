@@ -98,6 +98,9 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef LOOP
     nullptr,
 #endif
+#ifdef TWOKINGSSYMMETRIC
+    nullptr,
+#endif
 };
 
 const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
@@ -142,6 +145,9 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef TWOKINGSSYMMETRIC
     nullptr,
 #endif
 };
@@ -190,6 +196,9 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef LOOP
     nullptr,
 #endif
+#ifdef TWOKINGSSYMMETRIC
+    nullptr,
+#endif
 };
 
 const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
@@ -234,6 +243,9 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef TWOKINGSSYMMETRIC
     nullptr,
 #endif
 };
@@ -1672,6 +1684,12 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef TWOKINGSSYMMETRIC
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
     };
 
     const uint8_t PAWNLESS_TB_MAGIC[SUBVARIANT_NB][2][4] = {
@@ -1758,6 +1776,12 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef LOOP
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef TWOKINGSSYMMETRIC
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }

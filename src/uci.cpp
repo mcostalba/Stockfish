@@ -84,6 +84,9 @@ namespace {
 #ifdef LOOP
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
 #endif
+#ifdef TWOKINGSSYMMETRIC
+  "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
+#endif
   };
 
 
