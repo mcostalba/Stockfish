@@ -102,7 +102,7 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
-#ifdef CRAZYHOUSE
+#if defined(CRAZYHOUSE) || defined(HORDE)
 const int MAX_MOVES = 512;
 #else
 const int MAX_MOVES = 256;
