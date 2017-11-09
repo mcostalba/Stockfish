@@ -1833,7 +1833,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 #endif
 #ifdef EXTINCTION
   // Is it a winning capture?
-  if (is_extinction() && !more_than_one(pieces(color_of(piece_on(to)), type_of(piece_on(to)))))
+  if (is_extinction() && piece_on(to) != NO_PIECE && !more_than_one(pieces(color_of(piece_on(to)), type_of(piece_on(to)))))
       return true;
 #endif
   Value balance; // Values of the pieces taken by us minus opponent's ones
