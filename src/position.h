@@ -446,10 +446,9 @@ inline Square Position::royal_king(Color c, Bitboard kings) const {
   {
       if (kings & file_bb(f))
 #ifdef TWOKINGSSYMMETRIC
-          return is_two_kings_symmetric() && c == BLACK ? msb(kings & file_bb(f))
-                                                        : lsb(kings & file_bb(f));
+          return backmost_sq(is_two_kings_symmetric() ? c : WHITE, kings & file_bb(f));
 #else
-          return lsb(kings & file_bb(f));
+          return backmost_sq(WHITE, kings & file_bb(f));
 #endif
   }
   assert(false);
