@@ -339,12 +339,12 @@ enum Value : int {
   QueenValueMgHouse  = 832,   QueenValueEgHouse  = 1046,
 #endif
 #ifdef EXTINCTION
-  PawnValueMgExtinction   = 250,    PawnValueEgExtinction   = 250,
-  KnightValueMgExtinction = 1000,   KnightValueEgExtinction = 1000,
-  BishopValueMgExtinction = 1000,   BishopValueEgExtinction = 1000,
-  RookValueMgExtinction   = 1000,   RookValueEgExtinction   = 1000,
-  QueenValueMgExtinction  = 2000,   QueenValueEgExtinction  = 2000,
-  KingValueMgExtinction   = 1000,   KingValueEgExtinction   = 1000,
+  PawnValueMgExtinction   = 209,   PawnValueEgExtinction   = 208,
+  KnightValueMgExtinction = 823,   KnightValueEgExtinction = 1091,
+  BishopValueMgExtinction = 1097,  BishopValueEgExtinction = 1055,
+  RookValueMgExtinction   = 726,   RookValueEgExtinction   = 950,
+  QueenValueMgExtinction  = 2111,  QueenValueEgExtinction  = 2014,
+  KingValueMgExtinction   = 919,   KingValueEgExtinction   = 1093,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 321,   PawnValueEgHorde   = 326,
