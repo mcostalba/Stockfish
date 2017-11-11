@@ -43,6 +43,9 @@ namespace {
 #ifdef CRAZYHOUSE
     S(30, 27),
 #endif
+#ifdef EXTINCTION
+    S(13, 18),
+#endif
 #ifdef HORDE
     S(16, 38),
 #endif
@@ -77,6 +80,9 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
     S(41, 19),
+#endif
+#ifdef EXTINCTION
+    S(24, 12),
 #endif
 #ifdef HORDE
     S(78, 14),
@@ -114,6 +120,9 @@ namespace {
     S( 0,  0),
 #endif
 #ifdef CRAZYHOUSE
+    S(18, 38),
+#endif
+#ifdef EXTINCTION
     S(18, 38),
 #endif
 #ifdef HORDE
