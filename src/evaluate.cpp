@@ -929,7 +929,7 @@ namespace {
                                        : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard kingOnlyDefended, undefended, b, b1, b2, safe, other;
+    Bitboard weak, b, b1, b2, safe, other;
     int kingDanger;
 
     // King shelter and enemy pawns storm
@@ -943,23 +943,15 @@ namespace {
 #endif
     )
     {
-        // Find the attacked squares which are defended only by our king...
 #ifdef ATOMIC
         if (pos.is_atomic())
-            kingOnlyDefended =  (attackedBy[Them][ALL_PIECES]
-                                 | (pos.pieces(Them) ^ pos.pieces(Them, KING)))
-                              & attackedBy[Us][KING];
+            weak =  (attackedBy[Them][ALL_PIECES] | (pos.pieces(Them) ^ pos.pieces(Them, KING)))
+                  & (attackedBy[Us][KING] | (attackedBy[Us][QUEEN] & ~attackedBy2[Us]) | ~attackedBy[Us][ALL_PIECES]);
         else
 #endif
-        kingOnlyDefended =   attackedBy[Them][ALL_PIECES]
-                          &  attackedBy[Us][KING]
-                          & ~attackedBy2[Us];
-
-        // ... and those which are not defended at all in the larger king ring
-        undefended =   attackedBy[Them][ALL_PIECES]
-                    & ~attackedBy[Us][ALL_PIECES]
-                    &  kingRing[Us]
-                    & ~pos.pieces(Them);
+        weak =  attackedBy[Them][ALL_PIECES]
+              & ~attackedBy2[Us]
+              & (attackedBy[Us][KING] | attackedBy[Us][QUEEN] | ~attackedBy[Us][ALL_PIECES]);
 
         // Initialize the 'kingDanger' variable, which will be transformed
         // later into a king danger score. The initial value is based on the
@@ -969,7 +961,7 @@ namespace {
         const auto KDP = KingDangerParams[pos.variant()];
         kingDanger =           kingAttackersCount[Them] * kingAttackersWeight[Them]
                     + KDP[0] * kingAdjacentZoneAttacksCount[Them]
-                    + KDP[1] * popcount(kingOnlyDefended | undefended)
+                    + KDP[1] * popcount(kingRing[Us] & weak)
                     + KDP[2] * !!pos.pinned_pieces(Us)
                     + KDP[3] * !pos.count<QUEEN>(Them)
                     + KDP[4] * mg_value(score) / 8
@@ -985,13 +977,13 @@ namespace {
             kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
             kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
             kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
-            h = pos.count_in_hand<QUEEN>(Them) ? kingOnlyDefended & ~pos.pieces() : 0;
+            h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
         }
 #endif
 
         // Analyse the safe enemy's checks which are possible on next move
         safe  = ~pos.pieces(Them);
-        safe &= ~attackedBy[Us][ALL_PIECES] | (kingOnlyDefended & attackedBy2[Them]);
+        safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 #ifdef ATOMIC
         if (pos.is_atomic())
             safe |= attackedBy[Us][KING];
@@ -1001,7 +993,7 @@ namespace {
         b2 = pos.attacks_from<BISHOP>(ksq);
 
         // Enemy queen safe checks
-        if ((b1 | b2) & (h | attackedBy[Them][QUEEN]) & safe)
+        if ((b1 | b2) & (h | attackedBy[Them][QUEEN]) & safe & ~attackedBy[Us][QUEEN])
             kingDanger += QueenCheck;
 
         // Defended by our queen only
