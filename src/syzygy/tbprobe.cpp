@@ -68,6 +68,9 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef EXTINCTION
     nullptr,
 #endif
+#ifdef GRID
+    nullptr,
+#endif
 #ifdef HORDE
     nullptr,
 #endif
@@ -115,6 +118,9 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef EXTINCTION
+    nullptr,
+#endif
+#ifdef GRID
     nullptr,
 #endif
 #ifdef HORDE
@@ -166,6 +172,9 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef EXTINCTION
     nullptr,
 #endif
+#ifdef GRID
+    nullptr,
+#endif
 #ifdef HORDE
     nullptr,
 #endif
@@ -213,6 +222,9 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef EXTINCTION
+    nullptr,
+#endif
+#ifdef GRID
     nullptr,
 #endif
 #ifdef HORDE
@@ -1624,6 +1636,12 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef GRID
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef HORDE
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
@@ -1716,6 +1734,12 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef EXTINCTION
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef GRID
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -2369,6 +2393,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef EXTINCTION
     if (pos.is_extinction()) return false;
 #endif
+#ifdef GRID
+    if (pos.is_grid()) return false;
+#endif
 #ifdef KOTH
     if (pos.is_koth()) return false;
 #endif
@@ -2525,6 +2552,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 {
 #ifdef EXTINCTION
     if (pos.is_extinction()) return false;
+#endif
+#ifdef GRID
+    if (pos.is_grid()) return false;
 #endif
 #ifdef KOTH
     if (pos.is_koth()) return false;

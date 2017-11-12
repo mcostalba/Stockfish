@@ -160,6 +160,12 @@ const vector<string> Defaults[VARIANT_NB] = {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   },
 #endif
+#ifdef GRID
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r1b1kbnr/pppp1ppp/n7/3NN3/4P3/8/PPPP1qPP/R1BQKB1R b KQkq - 0 1 moves f2h4"
+  },
+#endif
 #ifdef HORDE
   {
     "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1",
@@ -273,6 +279,9 @@ const int defaultDepth[VARIANT_NB] = {
   12,
 #endif
 #ifdef EXTINCTION
+  13,
+#endif
+#ifdef GRID
   13,
 #endif
 #ifdef HORDE

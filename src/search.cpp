@@ -82,6 +82,9 @@ namespace {
 #ifdef EXTINCTION
   { 0, 570, 603, 554 },
 #endif
+#ifdef GRID
+  { 0, 570, 603, 554 },
+#endif
 #ifdef HORDE
   { 0, 706, 625, 555 },
 #endif
@@ -116,6 +119,9 @@ namespace {
   125,
 #endif
 #ifdef EXTINCTION
+  150,
+#endif
+#ifdef GRID
   150,
 #endif
 #ifdef HORDE
@@ -190,6 +196,9 @@ namespace {
 #endif
 #ifdef EXTINCTION
   400,
+#endif
+#ifdef GRID
+  200,
 #endif
 #ifdef HORDE
   153,
@@ -835,6 +844,9 @@ namespace {
 #ifdef EXTINCTION
     if (pos.is_extinction()) {} else
 #endif
+#ifdef GRID
+    if (pos.is_grid()) {} else
+#endif
 #ifdef KOTH
     if (pos.is_koth()) {} else
 #endif
@@ -1105,6 +1117,9 @@ moves_loop: // When in check search starts from here
       givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
 #ifdef ATOMIC
                   && !pos.is_atomic()
+#endif
+#ifdef GRID
+                  && !pos.is_grid()
 #endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);
@@ -1557,6 +1572,9 @@ moves_loop: // When in check search starts from here
       givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
 #ifdef ATOMIC
                   && !pos.is_atomic()
+#endif
+#ifdef GRID
+                  && !pos.is_grid()
 #endif
                   ? pos.check_squares(type_of(pos.piece_on(from_sq(move)))) & to_sq(move)
                   : pos.gives_check(move);

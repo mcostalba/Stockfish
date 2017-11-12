@@ -124,6 +124,9 @@ enum Variant {
 #ifdef EXTINCTION
   EXTINCTION_VARIANT,
 #endif
+#ifdef GRID
+  GRID_VARIANT,
+#endif
 #ifdef HORDE
   HORDE_VARIANT,
 #endif
@@ -178,6 +181,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef EXTINCTION
 "extinction",
+#endif
+#ifdef GRID
+"grid",
 #endif
 #ifdef HORDE
 "horde",
@@ -345,6 +351,13 @@ enum Value : int {
   RookValueMgExtinction   = 726,   RookValueEgExtinction   = 950,
   QueenValueMgExtinction  = 2111,  QueenValueEgExtinction  = 2014,
   KingValueMgExtinction   = 919,   KingValueEgExtinction   = 1093,
+#endif
+#ifdef GRID
+  PawnValueMgGrid   = 171,   PawnValueEgGrid   = 240,
+  KnightValueMgGrid = 764,   KnightValueEgGrid = 848,
+  BishopValueMgGrid = 826,   BishopValueEgGrid = 891,
+  RookValueMgGrid   = 1282,  RookValueEgGrid   = 1373,
+  QueenValueMgGrid  = 2526,  QueenValueEgGrid  = 2646,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 321,   PawnValueEgHorde   = 326,
