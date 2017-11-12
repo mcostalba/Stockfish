@@ -493,6 +493,17 @@ void Position::set_check_info(StateInfo* si) const {
   return;
   }
 #endif
+#ifdef GRID
+  if (is_grid()) {
+  si->checkSquares[PAWN]   = attacks_from<PAWN>(ksq, ~sideToMove) & ~grid_bb(ksq);
+  si->checkSquares[KNIGHT] = attacks_from<KNIGHT>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[QUEEN]  = (si->checkSquares[BISHOP] | si->checkSquares[ROOK]) & ~grid_bb(ksq);
+  si->checkSquares[KING]   = 0;
+  return;
+  }
+#endif
 #ifdef HORDE
   if (is_horde() && is_horde_color(~sideToMove)) {
   si->checkSquares[PAWN]   = 0;
@@ -758,6 +769,16 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
 Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 
+#ifdef GRID
+  if (is_grid())
+      return  (  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
+               | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
+               | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+               | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
+               | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
+               | (attacks_from<KING>(s)           & pieces(KING)))
+             & ~grid_bb(s);
+#endif
   return  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
         | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
         | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
@@ -788,6 +809,11 @@ bool Position::legal(Move m) const {
   // All pseudo-legal moves in extinction chess are legal
   if (is_extinction())
       return true;
+#endif
+#ifdef GRID
+  // For simplicity, we only check here that moves cross grid lines
+  if (is_grid() && (grid_bb(from) & to_sq(m)))
+      return false;
 #endif
 #ifdef HORDE
   assert((is_horde() && is_horde_color(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
@@ -851,6 +877,11 @@ bool Position::legal(Move m) const {
       assert(piece_on(capsq) == make_piece(~us, PAWN));
       assert(piece_on(to) == NO_PIECE);
 
+#ifdef GRID
+      if (is_grid())
+          return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK) & ~grid_bb(ksq))
+                && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP) & ~grid_bb(ksq));
+#endif
       return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
             && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
   }
@@ -890,6 +921,11 @@ bool Position::legal(Move m) const {
           Square ksq = royal_king(us, pieces(us, KING) ^ from ^ to);
           return !(attackers_to(ksq, (pieces() ^ from) | to) & (pieces(~us) - to));
       }
+#endif
+#ifdef GRID
+      // We have to take into account here that pieces can give check by moving away from the king
+      if (is_grid())
+          return type_of(m) == CASTLING || !(attackers_to(to_sq(m), pieces() ^ from) & pieces(~us));
 #endif
       return type_of(m) == CASTLING || !(attackers_to(to_sq(m)) & pieces(~us));
   }
@@ -1031,6 +1067,10 @@ bool Position::pseudo_legal(const Move m) const {
       }
       // In case of king moves under check we have to remove king so as to catch
       // invalid moves like b1a1 when opposite queen is on c1.
+#ifdef GRID
+      else if (is_grid() && (attackers_to(to, pieces() ^ from) & pieces(~us) & grid_bb(to)))
+          return false;
+#endif
       else if (attackers_to(to, pieces() ^ from) & pieces(~us))
           return false;
   }
@@ -1109,6 +1149,15 @@ bool Position::gives_check(Move m) const {
   if (   (discovered_check_candidates() & from)
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
+#ifdef GRID
+  // Does the piece give check by moving away from king?
+  if (   is_grid()
+      && (grid_bb(square<KING>(~sideToMove)) & from)
+      && aligned(from, to, square<KING>(~sideToMove))
+      && type_of(piece_on(from)) != PAWN
+      && (attacks_bb(type_of(piece_on(from)), to, pieces() ^ from) & square<KING>(~sideToMove)))
+      return true;
+#endif
 
   switch (type_of(m))
   {
@@ -1116,6 +1165,10 @@ bool Position::gives_check(Move m) const {
       return false;
 
   case PROMOTION:
+#ifdef GRID
+      if (is_grid())
+          return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove) & ~grid_bb(to);
+#endif
       return attacks_bb(promotion_type(m), to, pieces() ^ from) & square<KING>(~sideToMove);
 
   // En passant capture with check? We have already handled the case
@@ -1127,6 +1180,11 @@ bool Position::gives_check(Move m) const {
       Square capsq = make_square(file_of(to), rank_of(from));
       Bitboard b = (pieces() ^ from ^ capsq) | to;
 
+#ifdef GRID
+      if (is_grid())
+          return ((attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
+                | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP))) & ~grid_bb(square<KING>(~sideToMove));
+#endif
       return  (attacks_bb<  ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
             | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, BISHOP));
   }
@@ -1137,6 +1195,11 @@ bool Position::gives_check(Move m) const {
       Square kto = relative_square(sideToMove, rfrom > kfrom ? SQ_G1 : SQ_C1);
       Square rto = relative_square(sideToMove, rfrom > kfrom ? SQ_F1 : SQ_D1);
 
+#ifdef GRID
+      if (is_grid())
+          return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove) & ~grid_bb(rto))
+                && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
+#endif
       return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }

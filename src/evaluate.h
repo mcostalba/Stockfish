@@ -43,6 +43,9 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #ifdef EXTINCTION
   Value(20),
 #endif
+#ifdef GRID
+  Value(20),
+#endif
 #ifdef HORDE
   Value(20),
 #endif

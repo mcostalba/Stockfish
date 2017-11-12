@@ -39,6 +39,9 @@ Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
+#ifdef GRID
+Bitboard GridBB[SQUARE_NB];
+#endif
 
 Magic RookMagics[SQUARE_NB];
 Magic BishopMagics[SQUARE_NB];
@@ -220,6 +223,11 @@ void Bitboards::init() {
               BetweenBB[s1][s2] = attacks_bb(pt, s1, SquareBB[s2]) & attacks_bb(pt, s2, SquareBB[s1]);
           }
   }
+
+#ifdef GRID
+  for (Square s = SQ_A1; s <= SQ_H8; ++s)
+      GridBB[s] = SquareBB[s] | SquareBB[s ^ 8] | SquareBB[s ^ 1] | SquareBB[s ^ 9];
+#endif
 }
 
 

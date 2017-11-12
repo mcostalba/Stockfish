@@ -207,6 +207,9 @@ public:
   bool is_extinction_win() const;
   bool is_extinction_loss() const;
 #endif
+#ifdef GRID
+  bool is_grid() const;
+#endif
 #ifdef KOTH
   bool is_koth() const;
   bool is_koth_win() const;
@@ -609,6 +612,12 @@ inline bool Position::is_extinction_win() const {
 inline bool Position::is_extinction_loss() const {
   return !(   count<  KING>(sideToMove) && count< QUEEN>(sideToMove) && count<ROOK>(sideToMove)
            && count<BISHOP>(sideToMove) && count<KNIGHT>(sideToMove) && count<PAWN>(sideToMove));
+}
+#endif
+
+#ifdef GRID
+inline bool Position::is_grid() const {
+  return var == GRID_VARIANT;
 }
 #endif
 

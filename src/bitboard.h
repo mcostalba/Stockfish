@@ -75,6 +75,9 @@ extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 extern Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
+#ifdef GRID
+extern Bitboard GridBB[SQUARE_NB];
+#endif
 
 
 /// Magic holds all magic bitboards relevant data for a single square
@@ -157,6 +160,12 @@ inline Bitboard file_bb(File f) {
 inline Bitboard file_bb(Square s) {
   return FileBB[file_of(s)];
 }
+
+#ifdef GRID
+inline Bitboard grid_bb(Square s) {
+  return GridBB[s];
+}
+#endif
 
 
 /// shift() moves a bitboard one step along direction D. Mainly for pawns

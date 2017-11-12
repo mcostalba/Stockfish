@@ -546,6 +546,11 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<EXTINCTION_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<EXTINCTION_VARIANT, BLACK, Type>(pos, moveList, target);
 #endif
+#ifdef GRID
+  if (pos.is_grid())
+      return us == WHITE ? generate_all<GRID_VARIANT, WHITE, Type>(pos, moveList, target)
+                         : generate_all<GRID_VARIANT, BLACK, Type>(pos, moveList, target);
+#endif
 #ifdef HORDE
   if (pos.is_horde())
       return us == WHITE ? generate_all<HORDE_VARIANT, WHITE, Type>(pos, moveList, target)
@@ -634,6 +639,11 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<CRAZYHOUSE_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
                          : generate_all<CRAZYHOUSE_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
 #endif
+#ifdef GRID
+  if (pos.is_grid())
+      return us == WHITE ? generate_all<GRID_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
+                         : generate_all<GRID_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
+#endif
 #ifdef HORDE
   if (pos.is_horde())
       return us == WHITE ? generate_all<HORDE_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
@@ -710,6 +720,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   while (sliders)
   {
       Square checksq = pop_lsb(&sliders);
+#ifdef GRID
+      if (pos.is_grid())
+          sliderAttacks |= (LineBB[checksq][ksq] ^ checksq) & ~grid_bb(checksq);
+      else
+#endif
       sliderAttacks |= LineBB[checksq][ksq] ^ checksq;
   }
 
@@ -766,6 +781,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<CRAZYHOUSE_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
                          : generate_all<CRAZYHOUSE_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
 #endif
+#ifdef GRID
+  if (pos.is_grid())
+      return us == WHITE ? generate_all<GRID_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
+                         : generate_all<GRID_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
+#endif
 #ifdef HORDE
   if (pos.is_horde())
       return us == WHITE ? generate_all<HORDE_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
@@ -805,6 +825,9 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
   bool validate = pinned;
+#ifdef GRID
+  if (pos.is_grid()) validate = true;
+#endif
 #ifdef RACE
   if (pos.is_race()) validate = true;
 #endif
