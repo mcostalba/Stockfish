@@ -83,7 +83,7 @@ namespace {
   { 0, 570, 603, 554 },
 #endif
 #ifdef GRID
-  { 0, 570, 603, 554 },
+  { 0, 593, 601, 517 },
 #endif
 #ifdef HORDE
   { 0, 706, 625, 555 },
@@ -122,7 +122,7 @@ namespace {
   150,
 #endif
 #ifdef GRID
-  150,
+  181,
 #endif
 #ifdef HORDE
   151,
@@ -161,6 +161,9 @@ namespace {
 #ifdef EXTINCTION
   { 256, 200 },
 #endif
+#ifdef GRID
+  { 278, 168 },
+#endif
 #ifdef HORDE
   { 261, 162 },
 #endif
@@ -198,7 +201,7 @@ namespace {
   400,
 #endif
 #ifdef GRID
-  200,
+  222,
 #endif
 #ifdef HORDE
   153,
