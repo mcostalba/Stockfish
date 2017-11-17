@@ -10,9 +10,27 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-6', 'g++-6-multilib', 'g++-multilib', 'valgrind', 'expect']
+        artifacts:
+          bucket: variant-stockfish
+          s3_region: us-west-2
+          working_dir: src
+          paths:
+            - stockfish-x86_64
+            - stockfish-x86_64-modern
+            - stockfish-x86_64-bmi2
+          target_paths: ddugovic/${TRAVIS_BRANCH}
+          cache_control: public
+          key:
+            secure: Q+ep2DL+HlYe4jzf4hHRT/0d5oAvyL1DLW7jLhLpukZMaUuOR4MA3MeBiLUjG5cvCoprrTL0YFEdX4dlr7xEj8L/XGPHO4WEzPGThXiK3pTeRRz8V32+9oeqmLeTBAcVXtp6O5xKGna75isNDdDm9jpTBSA5iGQ/wvrXc+rS5RmhAVeVs/Un94fkOd+yWOkGsl1GWx7D9kwUsUaB7jzM34jM+WFhk26uJUQuFTa4VWe/j73uAiWDYiPmpveB2tYWMrD/xmEkrQ8apzhiPkaMBigjLgyYlaEDugoQ9tZYML+/98PiGB1EFiYnydNZpFNtO2jfKN9VPt6Poun+Fhj8jkS07hSBYtId6d1PvbQCjCR6eOak8q3phGraXlly41sq+O9C+RZ64MdgBT0OHzCrE63VZUzB9hZEbeHNH35ZyL1ytMb5SWNzgqb3VkWugITIl8nel+mbSjWgV4fzHOpC4Je7uOiywRvMbdWwBoJ7PSJ72f9GQMJ2Ibc0gQ7+LwxeK7NSsYtd3FZdTfxEp/8a6imCdjuM8huCPXqQxxu8Qp6F3+FiCnJev8+zlNDJlZ9gYi/7Fcfg4QqlbX8kWLhDR4U2ecP/6i+qSZ0mMOM7eNSLbyO5eFZbbYz9UW9IQasrF0PYc94S/dkK+QOtH8BKeVYLgHnKLquX2nMy1lb+Ug0=
+          secret:
+            secure: OWJPxKbGK4xyIkHMqUE100hfXLd4QHAQXLaYj5PemcJxT9vbWurrWHCtkIqhikKMgw6ii12JrdGvOd/wT31ZMR3g1xxc5cu0/cRx1zyBNZkGEScVZE6R3Y1Y5Y812xFY98mdq84mGILsS+mlL0HUqv68331kxTnWHLc8h+59wSOviPUzDCmyAarMd+AfHLqEi4QqR5g377TXImKFhSzOvpQtSlK3LH1Kfyl1LlPlVhBGf7jNlECr7GTGy1y89ahMF4ZEYDQED4qD2IbA988FaaN7GYQWQZ9esZ9mVMco+CIfjk/0+3+6K99tqQYFU7MW4w7AVwCnQqMLZZHz7JlCAInRv99fx3G4QHwjaZbTbfNashHKC7qu1Wvvqsim2RSLb+RkEH/cUXT6PcUHL1K/muHypHDYHxyY7dj8M35rTXaDjYypl0hmGxWPLLoqH7jJRXQpW3Z6ho+4ThTAlQZ3qoBMW+Ses53v93clq6Hr9RaVWNHZ2mCnq/6LAHWz19TPVu3QyrP6nhO1XM1/t/zFsvjTe83/Rp/kRxOjUksUjQRpvlHW4OoxjerQQ8Gu+K+fW6hdryPFyO1hpkJpQ0vPOBRuK81HAIN9BRf9CREhdJ4rj1PvYocKk0FqZVaJIHUtW2jwcwtxAIPephLJJvLyhwa6yx0veeSXSQW0domzxnA=
       env:
         - COMPILER=g++-6
         - COMP=gcc
+        - DEPLOY=stockfish
+      sudo: required
+      services:
+        - docker
 
     - os: linux
       compiler: clang
@@ -35,10 +53,20 @@ matrix:
       env:
         - COMPILER=clang++ V='Apple LLVM 6.0' # Apple LLVM version 6.0 (clang-600.0.54) (based on LLVM 3.5svn)
         - COMP=clang
-
-branches:
-  only:
-   - master
+        - DEPLOY=stockfish-osx
+      addons:
+        artifacts:
+          bucket: variant-stockfish
+          s3_region: us-west-2
+          working_dir: src
+          paths:
+            - stockfish-osx-x86_64
+          target_paths: ddugovic/${TRAVIS_BRANCH}
+          cache_control: public
+          key:
+            secure: Q+ep2DL+HlYe4jzf4hHRT/0d5oAvyL1DLW7jLhLpukZMaUuOR4MA3MeBiLUjG5cvCoprrTL0YFEdX4dlr7xEj8L/XGPHO4WEzPGThXiK3pTeRRz8V32+9oeqmLeTBAcVXtp6O5xKGna75isNDdDm9jpTBSA5iGQ/wvrXc+rS5RmhAVeVs/Un94fkOd+yWOkGsl1GWx7D9kwUsUaB7jzM34jM+WFhk26uJUQuFTa4VWe/j73uAiWDYiPmpveB2tYWMrD/xmEkrQ8apzhiPkaMBigjLgyYlaEDugoQ9tZYML+/98PiGB1EFiYnydNZpFNtO2jfKN9VPt6Poun+Fhj8jkS07hSBYtId6d1PvbQCjCR6eOak8q3phGraXlly41sq+O9C+RZ64MdgBT0OHzCrE63VZUzB9hZEbeHNH35ZyL1ytMb5SWNzgqb3VkWugITIl8nel+mbSjWgV4fzHOpC4Je7uOiywRvMbdWwBoJ7PSJ72f9GQMJ2Ibc0gQ7+LwxeK7NSsYtd3FZdTfxEp/8a6imCdjuM8huCPXqQxxu8Qp6F3+FiCnJev8+zlNDJlZ9gYi/7Fcfg4QqlbX8kWLhDR4U2ecP/6i+qSZ0mMOM7eNSLbyO5eFZbbYz9UW9IQasrF0PYc94S/dkK+QOtH8BKeVYLgHnKLquX2nMy1lb+Ug0=
+          secret:
+            secure: OWJPxKbGK4xyIkHMqUE100hfXLd4QHAQXLaYj5PemcJxT9vbWurrWHCtkIqhikKMgw6ii12JrdGvOd/wT31ZMR3g1xxc5cu0/cRx1zyBNZkGEScVZE6R3Y1Y5Y812xFY98mdq84mGILsS+mlL0HUqv68331kxTnWHLc8h+59wSOviPUzDCmyAarMd+AfHLqEi4QqR5g377TXImKFhSzOvpQtSlK3LH1Kfyl1LlPlVhBGf7jNlECr7GTGy1y89ahMF4ZEYDQED4qD2IbA988FaaN7GYQWQZ9esZ9mVMco+CIfjk/0+3+6K99tqQYFU7MW4w7AVwCnQqMLZZHz7JlCAInRv99fx3G4QHwjaZbTbfNashHKC7qu1Wvvqsim2RSLb+RkEH/cUXT6PcUHL1K/muHypHDYHxyY7dj8M35rTXaDjYypl0hmGxWPLLoqH7jJRXQpW3Z6ho+4ThTAlQZ3qoBMW+Ses53v93clq6Hr9RaVWNHZ2mCnq/6LAHWz19TPVu3QyrP6nhO1XM1/t/zFsvjTe83/Rp/kRxOjUksUjQRpvlHW4OoxjerQQ8Gu+K+fW6hdryPFyO1hpkJpQ0vPOBRuK81HAIN9BRf9CREhdJ4rj1PvYocKk0FqZVaJIHUtW2jwcwtxAIPephLJJvLyhwa6yx0veeSXSQW0domzxnA=
 
 before_script:
   - cd src
@@ -71,3 +99,22 @@ script:
   # Use g++-6 as a proxy for having sanitizers, might need revision as they become available for more recent versions of clang/gcc
   - if [[ "$COMPILER" == "g++-6" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=undefined optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-undefined; fi
   - if [[ "$COMPILER" == "g++-6" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=thread    optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-thread; fi
+
+  #
+  # Build snapshot
+  #
+  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag wheezy-for-sf -f ../deploy/wheezy.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) wheezy-for-sf; fi
+  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish-osx" ]]; then make clean && make build ARCH=x86-64 EXE=stockfish-osx-x86_64; fi
+
+deploy:
+  provider: releases
+  api_key:
+    secure: NnKCSB28jDimmkf4A8KNnve1ROnmBNHJSrZQV+c00uQ2ZFLreBU3D5rpF5MHBVjLhp5I3RYk6JHrnPUk+aobgU5+S1xZWMz9fjSlhhgYaMK5sByoMOUAVFJN+yzSHZDzhfHZ5fsEqqSO1ftGnUz59p4+xlOobPqt+KqUk3nIHFpBDbKxTEmYodp/pJCtiYrXV/1fLLsvlJnXmZ71LzgM94ExxEuZ+tO9WzK9GLdQNP/cWVtAi6wTcVhzNTBYEnM6191zpLMg3ovmGowkKYuqna0CA6GKfR/TvZnQcklyY6VuaCpvNmXM17KO/37C0ZrmehUyLLyvN+a+REgffqcPt84g96an+Q37zHkJGy8TauQjhotMYkKfYkkFJ071xxxNpRITdRK/WuczTusC7V7GT+vDiCoRKsdDx36ORQAldUbrGSjHXjdP75xU7YfuVxPB7GKeK2UuQWBukGWdN3WohoTtiorgIOvc3jnbbXNbVFijs7oN35YfJWu7CKcP9yIHyYyJY8GzHMgm6S1Ec5cmTNPys4cKtkxaoqdBg9B0fxNlP4Wupx21Tt3Jg+MnVwn2eBAADsPo8CXsA4Ykj5AD2Zo+/TeJziMjMv0YRFozYR4AcPcSJVq8XSI4PnmdxZzfgSUo9A0jXYU0gaqS7TpBjvQN0H8SE8a9eGIzH3BKL0A=
+  prerelease: false
+  file_glob: true
+  file:
+    - stockfish-*
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: ddugovic/Stockfish

@@ -1,0 +1,13 @@
+diff --git a/src/thread.h b/src/thread.h
+index 3aa5bb51..ac72d15d 100644
+--- a/src/thread.h
++++ b/src/thread.h
+@@ -84,7 +84,7 @@ public:
+ 
+ struct MainThread : public Thread {
+ 
+-  using Thread::Thread;
++  explicit MainThread(size_t n) : Thread(n) { }
+ 
+   void search() override;
+   void check_time();

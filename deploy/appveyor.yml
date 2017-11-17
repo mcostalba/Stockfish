@@ -1,0 +1,43 @@
+os: Visual Studio 2013
+
+clone_folder: C:\projects\Stockfish
+shallow_clone: true
+clone_depth: 1
+
+platform: x64
+
+cache:
+  - x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z
+
+install:
+  - cinst wget
+  - wget --no-clobber "http://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/mingw-builds/4.9.2/threads-posix/seh/x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z"
+  - 7z x -oC:\MinGW\msys\1.0\ x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z > nul
+
+build_script:
+  - C:\MinGW\msys\1.0\bin\sh.exe -c "cd /c/projects/Stockfish/; /c/projects/Stockfish/deploy/msys.sh"
+
+artifacts:
+  - path: '*\stockfish-windows-*'
+
+deploy:
+  - provider: S3
+    access_key_id:
+      secure: 1BWB8sb0ecF9242HMlKH54uFCn9GtjhxeaysqbVVDG4=
+    secret_access_key:
+      secure: l+Z1nugPzeV5fviFeckmfjjpvz7vfoALSMDt40Se77enlblgsr0/+/MrHQ+PMx/a
+    bucket: variant-stockfish
+    region: us-west-2
+    set_public: true
+    folder: ddugovic
+    artifact: /stockfish-windows-.*/
+  - provider: GitHub
+    release: $(APPVEYOR_REPO_TAG_NAME)
+    description: 'Multi-variant Stockfish binaries'
+    auth_token:
+      secure: HM1uS+Vhume4hO4gY5Ev8XU8rurfeviKBNbfu3xOrl3zWnKcsdAzkNA2JExElSAM
+    artifact: /stockfish-windows-.*/
+    draft: false
+    prerelease: false
+    on:
+      appveyor_repo_tag: true
