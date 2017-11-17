@@ -103,8 +103,8 @@ script:
   #
   # Build snapshot
   #
-  - if [[ "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag wheezy-for-sf -f ../deploy/wheezy.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) wheezy-for-sf; fi
-  - if [[ "$DEPLOY" == "stockfish-osx" ]]; then make clean && make build ARCH=x86-64 EXE=stockfish-osx-x86_64; fi
+  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag wheezy-for-sf -f ../deploy/wheezy.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) wheezy-for-sf; fi
+  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish-osx" ]]; then make clean && make build ARCH=x86-64 EXE=stockfish-osx-x86_64; fi
 
 deploy:
   provider: releases
