@@ -105,3 +105,16 @@ script:
   #
   - if [[ "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag wheezy-for-sf -f ../deploy/wheezy.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) wheezy-for-sf; fi
   - if [[ "$DEPLOY" == "stockfish-osx" ]]; then make clean && make build ARCH=x86-64 EXE=stockfish-osx-x86_64; fi
+
+deploy:
+  provider: releases
+  api_key:
+    secure: NnKCSB28jDimmkf4A8KNnve1ROnmBNHJSrZQV+c00uQ2ZFLreBU3D5rpF5MHBVjLhp5I3RYk6JHrnPUk+aobgU5+S1xZWMz9fjSlhhgYaMK5sByoMOUAVFJN+yzSHZDzhfHZ5fsEqqSO1ftGnUz59p4+xlOobPqt+KqUk3nIHFpBDbKxTEmYodp/pJCtiYrXV/1fLLsvlJnXmZ71LzgM94ExxEuZ+tO9WzK9GLdQNP/cWVtAi6wTcVhzNTBYEnM6191zpLMg3ovmGowkKYuqna0CA6GKfR/TvZnQcklyY6VuaCpvNmXM17KO/37C0ZrmehUyLLyvN+a+REgffqcPt84g96an+Q37zHkJGy8TauQjhotMYkKfYkkFJ071xxxNpRITdRK/WuczTusC7V7GT+vDiCoRKsdDx36ORQAldUbrGSjHXjdP75xU7YfuVxPB7GKeK2UuQWBukGWdN3WohoTtiorgIOvc3jnbbXNbVFijs7oN35YfJWu7CKcP9yIHyYyJY8GzHMgm6S1Ec5cmTNPys4cKtkxaoqdBg9B0fxNlP4Wupx21Tt3Jg+MnVwn2eBAADsPo8CXsA4Ykj5AD2Zo+/TeJziMjMv0YRFozYR4AcPcSJVq8XSI4PnmdxZzfgSUo9A0jXYU0gaqS7TpBjvQN0H8SE8a9eGIzH3BKL0A=
+  prerelease: false
+  file_glob: true
+  file:
+    - stockfish-*
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: ddugovic/Stockfish

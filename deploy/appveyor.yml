@@ -21,13 +21,23 @@ artifacts:
   - path: '*\stockfish-windows-*'
 
 deploy:
-  provider: S3
-  access_key_id:
-    secure: 1BWB8sb0ecF9242HMlKH54uFCn9GtjhxeaysqbVVDG4=
-  secret_access_key:
-    secure: l+Z1nugPzeV5fviFeckmfjjpvz7vfoALSMDt40Se77enlblgsr0/+/MrHQ+PMx/a
-  bucket: variant-stockfish
-  region: us-west-2
-  set_public: true
-  folder: ddugovic
-  artifact: /stockfish-windows-.*/
+  - provider: S3
+    access_key_id:
+      secure: 1BWB8sb0ecF9242HMlKH54uFCn9GtjhxeaysqbVVDG4=
+    secret_access_key:
+      secure: l+Z1nugPzeV5fviFeckmfjjpvz7vfoALSMDt40Se77enlblgsr0/+/MrHQ+PMx/a
+    bucket: variant-stockfish
+    region: us-west-2
+    set_public: true
+    folder: ddugovic
+    artifact: /stockfish-windows-.*/
+  - provider: GitHub
+    release: $(APPVEYOR_REPO_TAG_NAME)
+    description: 'Multi-variant Stockfish binaries'
+    auth_token:
+      secure: HM1uS+Vhume4hO4gY5Ev8XU8rurfeviKBNbfu3xOrl3zWnKcsdAzkNA2JExElSAM
+    artifact: /stockfish-windows-.*/
+    draft: false
+    prerelease: false
+    on:
+      appveyor_repo_tag: true
