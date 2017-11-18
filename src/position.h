@@ -209,6 +209,14 @@ public:
 #endif
 #ifdef GRID
   bool is_grid() const;
+  GridLayout grid_layout() const;
+  Bitboard grid_bb(Square s) const;
+#endif
+#ifdef DISPLACEDGRID
+  bool is_displaced_grid() const;
+#endif
+#ifdef SLIPPEDGRID
+  bool is_slipped_grid() const;
 #endif
 #ifdef KOTH
   bool is_koth() const;
@@ -618,6 +626,42 @@ inline bool Position::is_extinction_loss() const {
 #ifdef GRID
 inline bool Position::is_grid() const {
   return var == GRID_VARIANT;
+}
+
+inline GridLayout Position::grid_layout() const {
+  assert(var == GRID_VARIANT);
+  switch (subvar)
+  {
+  case GRID_VARIANT:
+      return NORMAL_GRID;
+#ifdef DISPLACEDGRID
+  case DISPLACEDGRID_VARIANT:
+      return DISPLACED_GRID;
+#endif
+#ifdef SLIPPEDGRID
+  case SLIPPEDGRID_VARIANT:
+      return SLIPPED_GRID;
+#endif
+  default:
+      assert(false);
+      return NORMAL_GRID;
+  }
+}
+
+inline Bitboard Position::grid_bb(Square s) const {
+  return grid_layout_bb(grid_layout(), s);
+}
+#endif
+
+#ifdef DISPLACEDGRID
+inline bool Position::is_displaced_grid() const {
+  return subvar == DISPLACEDGRID_VARIANT;
+}
+#endif
+
+#ifdef SLIPPEDGRID
+inline bool Position::is_slipped_grid() const {
+  return subvar == SLIPPEDGRID_VARIANT;
 }
 #endif
 

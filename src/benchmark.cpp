@@ -31,7 +31,7 @@ using namespace std;
 
 namespace {
 
-const vector<string> Defaults[VARIANT_NB] = {
+const vector<string> Defaults[SUBVARIANT_NB] = {
   {
   "setoption name UCI_Variant value chess",
   "setoption name UCI_Chess960 value false",
@@ -265,6 +265,93 @@ const vector<string> Defaults[VARIANT_NB] = {
     "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQkq - 4 4"
   },
 #endif
+#ifdef SUICIDE
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "rn1qkbnr/p1pBpppp/8/8/8/4P3/PPPP1PbP/RNBQK1NR w - - 0 4",
+    "rnbqkbnr/p2p1ppp/8/2p1p3/2pP4/2N3P1/PP2PP1P/R1BQKBNR b - d3 0 5",
+    "rnb1kbn1/p4ppr/8/3q4/1p6/6PB/P3PP1P/R1B1K1NR b - - 1 11",
+    "r7/4rp1p/4p3/p1p5/P1P1P2P/8/2K1NPP1/7R w - - 11 26",
+    "8/8/1r6/p7/P2k4/8/2pp2K1/3k2K1 w - - 4 42",
+
+    // 2-man positions
+    "2K5/8/4r3/8/8/8/8/8 b - - 0 1", // win
+
+    // 3-man positions
+    "8/3nP3/8/8/8/8/7R/8 w - - 0 1", // e8B - win
+    "8/8/8/8/3K4/5K2/8/1r6 w - - 0 1", // draw
+
+    // 5-man positions
+    "8/pb4Pp/8/2p5/8/8/8/8 b - - 0 1", // Bc6 - draw
+    "k7/8/3PN3/p4K2/8/8/8/8 b - - 0 1", // loss
+
+    // 6-man positions
+    "8/3K4/2K5/3K1K2/8/8/3kk3/8 b - - 0 1", // draw
+
+    // Win by having no pieces left
+    "3q4/3k1pp1/7n/5p2/8/4r3/8/8 w - - 0 1",
+
+    // Stalemate
+    "1r6/5k2/8/p4b2/P1p5/8/8/8 w - - 0 1", // less pieces
+    "7b/7P/8/2p5/2P5/8/8/8 w - - 0 1", // equal number of pieces
+    "6bB/5pP1/5P2/8/8/8/8/8 w - - 0 1" // more pieces
+  },
+#endif
+#ifdef BUGHOUSE
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
+    "rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR[] w KQkq d6 4 3", // en passant
+    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[NQPBqb] b - - 23 12", // repetition detection
+    "r3k2r/pppb1ppp/4n3/2P1Q3/2p1n3/2Pb1N2/PP1NpPPP/R1BqR1K1[BP] w kq - 28 15",
+    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[BBQNnqnppp] b kq - 39 20", // many pieces in hand
+    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNbrnp] w - - 42 22", // promoted queen
+    "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
+    "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
+
+    // Checkmate
+    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[NPPQQrp] w - - 64 33", // promoted knight
+    "1Rbk3r/p1pQ1ppp/2Bn3n/4p1b1/4Pn2/3p4/PbPP1PPP/3RK1R1[QPPn] b - - 45 23",
+
+    // Stalemate
+    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
+  },
+#endif
+#ifdef DISPLACEDGRID
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  },
+#endif
+#ifdef LOOP
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
+    "rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR[] w KQkq d6 4 3", // en passant
+    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[NQPBqb] b - - 23 12", // repetition detection
+    "r3k2r/pppb1ppp/4n3/2P1Q3/2p1n3/2Pb1N2/PP1NpPPP/R1BqR1K1[BP] w kq - 28 15",
+    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[BBQNnqnppp] b kq - 39 20", // many pieces in hand
+    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q1KB1R[NNbrnp] w - - 42 22",
+    "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
+    "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
+
+    // Checkmate
+    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n[NPPQQrp] w - - 64 33",
+    "1Rbk3r/p1pQ1ppp/2Bn3n/4p1b1/4Pn2/3p4/PbPP1PPP/3RK1R1[QPPn] b - - 45 23",
+
+    // Stalemate
+    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
+  },
+#endif
+#ifdef SLIPPEDGRID
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  },
+#endif
+#ifdef TWOKINGSSYMMETRIC
+  {
+    "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
+    "r1b1kk1r/pp1ppppp/2N2n2/8/4P3/2N5/PPP2qPP/R1BQKK1R w KQkq - 0 7",
+    "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQkq - 4 4"
+  },
+#endif
 };
 
 const int defaultDepth[VARIANT_NB] = {
@@ -353,7 +440,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   go = "go " + limitType + " " + limit;
 
   if (fenFile == "default")
-      fens = Defaults[mainVariant];
+      fens = Defaults[variant];
 
   else if (fenFile == "current")
       fens.push_back(current.fen());

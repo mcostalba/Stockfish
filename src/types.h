@@ -157,8 +157,14 @@ enum Variant {
 #ifdef BUGHOUSE
   BUGHOUSE_VARIANT,
 #endif
+#ifdef DISPLACEDGRID
+  DISPLACEDGRID_VARIANT,
+#endif
 #ifdef LOOP
   LOOP_VARIANT,
+#endif
+#ifdef SLIPPEDGRID
+  SLIPPEDGRID_VARIANT,
 #endif
 #ifdef TWOKINGSSYMMETRIC
   TWOKINGSSYMMETRIC_VARIANT,
@@ -213,8 +219,14 @@ static std::vector<std::string> variants = {
 #ifdef BUGHOUSE
 "bughouse",
 #endif
+#ifdef DISPLACEDGRID
+"displacedgrid",
+#endif
 #ifdef LOOP
 "loop",
+#endif
+#ifdef SLIPPEDGRID
+"slippedgrid",
 #endif
 #ifdef TWOKINGSSYMMETRIC
 "twokingssymmetric",
@@ -278,6 +290,19 @@ template<Color C, CastlingSide S> struct MakeCastling {
   right = C == WHITE ? S == QUEEN_SIDE ? WHITE_OOO : WHITE_OO
                      : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
 };
+
+#ifdef GRID
+enum GridLayout {
+  NORMAL_GRID,
+#ifdef DISPLACEDGRID
+  DISPLACED_GRID,
+#endif
+#ifdef SLIPPEDGRID
+  SLIPPED_GRID,
+#endif
+  GRIDLAYOUT_NB
+};
+#endif
 
 #ifdef THREECHECK
 enum CheckCount : int {
@@ -724,9 +749,17 @@ inline Variant main_variant(Variant v) {
   case BUGHOUSE_VARIANT:
       return CRAZYHOUSE_VARIANT;
 #endif
+#ifdef DISPLACEDGRID
+  case DISPLACEDGRID_VARIANT:
+      return GRID_VARIANT;
+#endif
 #ifdef LOOP
   case LOOP_VARIANT:
       return CRAZYHOUSE_VARIANT;
+#endif
+#ifdef SLIPPEDGRID
+  case SLIPPEDGRID_VARIANT:
+      return GRID_VARIANT;
 #endif
 #ifdef TWOKINGSSYMMETRIC
   case TWOKINGSSYMMETRIC_VARIANT:

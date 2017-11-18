@@ -76,7 +76,7 @@ extern Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 #ifdef GRID
-extern Bitboard GridBB[SQUARE_NB];
+extern Bitboard GridBB[GRIDLAYOUT_NB][SQUARE_NB];
 #endif
 
 
@@ -162,8 +162,8 @@ inline Bitboard file_bb(Square s) {
 }
 
 #ifdef GRID
-inline Bitboard grid_bb(Square s) {
-  return GridBB[s];
+inline Bitboard grid_layout_bb(GridLayout l, Square s) {
+  return GridBB[l][s];
 }
 #endif
 

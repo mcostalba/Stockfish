@@ -98,7 +98,13 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef BUGHOUSE
     nullptr,
 #endif
+#ifdef DISPLACEDGRID
+    nullptr,
+#endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef SLIPPEDGRID
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
@@ -150,7 +156,13 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
 #ifdef BUGHOUSE
     nullptr,
 #endif
+#ifdef DISPLACEDGRID
+    nullptr,
+#endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef SLIPPEDGRID
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
@@ -202,7 +214,13 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef BUGHOUSE
     nullptr,
 #endif
+#ifdef DISPLACEDGRID
+    nullptr,
+#endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef SLIPPEDGRID
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
@@ -254,7 +272,13 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
 #ifdef BUGHOUSE
     nullptr,
 #endif
+#ifdef DISPLACEDGRID
+    nullptr,
+#endif
 #ifdef LOOP
+    nullptr,
+#endif
+#ifdef SLIPPEDGRID
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
@@ -1696,7 +1720,19 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef DISPLACEDGRID
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef LOOP
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef SLIPPEDGRID
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -1799,7 +1835,19 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
+#ifdef DISPLACEDGRID
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
 #ifdef LOOP
+        {
+            { 0xD7, 0x66, 0x0C, 0xA5 },
+            { 0x71, 0xE8, 0x23, 0x5D }
+        },
+#endif
+#ifdef SLIPPEDGRID
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }

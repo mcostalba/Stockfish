@@ -722,7 +722,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       Square checksq = pop_lsb(&sliders);
 #ifdef GRID
       if (pos.is_grid())
-          sliderAttacks |= (LineBB[checksq][ksq] ^ checksq) & ~grid_bb(checksq);
+          sliderAttacks |= (LineBB[checksq][ksq] ^ checksq) & ~pos.grid_bb(checksq);
       else
 #endif
       sliderAttacks |= LineBB[checksq][ksq] ^ checksq;
