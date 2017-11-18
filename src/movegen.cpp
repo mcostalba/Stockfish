@@ -184,6 +184,10 @@ namespace {
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));
+#ifdef ATOMIC
+    if (V == ATOMIC_VARIANT)
+        enemies &= (Type == CAPTURES || Type == NON_EVASIONS) ? target : ~pos.attacks_from<KING>(pos.square<KING>(Us));
+#endif
 
     // Single and double pawn pushes, no promotions
     if (Type != CAPTURES)
@@ -530,8 +534,8 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 #ifdef ATOMIC
   if (pos.is_atomic())
   {
-      if (Type == CAPTURES)
-          target &= ~pos.attacks_from<KING>(pos.square<KING>(us));
+      if (Type == CAPTURES || Type == NON_EVASIONS)
+          target &= ~(pos.pieces(~us) & pos.attacks_from<KING>(pos.square<KING>(us)));
       return us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<ATOMIC_VARIANT, BLACK, Type>(pos, moveList, target);
   }

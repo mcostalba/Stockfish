@@ -367,6 +367,10 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           st->epSquare = SQ_NONE;
       else if (sideToMove == BLACK && !(shift<NORTH>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
+#ifdef ATOMIC
+      else if (attacks_from<KING>(st->epSquare) && square<KING>(sideToMove))
+          st->epSquare = SQ_NONE;
+#endif
   }
   else
       st->epSquare = SQ_NONE;
@@ -845,8 +849,8 @@ bool Position::legal(Move m) const {
   {
       Square ksq = square<KING>(us);
       Square to = to_sq(m);
-      if (capture(m) && (attacks_from<KING>(to) & ksq))
-          return false;
+
+      assert(!capture(m) || !(attacks_from<KING>(to) & ksq));
       if (type_of(piece_on(from)) != KING)
       {
           if (attacks_from<KING>(square<KING>(~us)) & ksq)
@@ -855,9 +859,11 @@ bool Position::legal(Move m) const {
           {
               Square capsq = type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
               Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN));
+
               if (blast & square<KING>(~us))
                   return true;
               Bitboard b = pieces() ^ ((blast | capsq) | from);
+
               if (checkers() & b)
                   return false;
               if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
@@ -969,6 +975,7 @@ bool Position::pseudo_legal(const Move m) const {
           if (type_of(pc) == KING)
               return false;
           Square ksq = square<KING>(us);
+
           if ((pieces(us) & to) || (attacks_from<KING>(ksq) & to))
               return false;
           if (!(attacks_from<KING>(square<KING>(~us)) & ksq))
@@ -977,10 +984,12 @@ bool Position::pseudo_legal(const Move m) const {
               if (type_of(pc) == PAWN && file_of(from) == file_of(to))
                  return false;
               Square capsq = type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
+
               if (!(attacks_from<KING>(to) & square<KING>(~us)))
               {
                   Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN));
                   Bitboard b = pieces() ^ ((blast | capsq) | from);
+
                   if (checkers() & b)
                       return false;
                   if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
@@ -1482,16 +1491,20 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef HORDE
       if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)); else
 #endif
-#ifdef ATOMIC
-      if (is_atomic() && captured); else
-#endif
       if (   (int(to) ^ int(from)) == 16
+#ifdef ATOMIC
+          && !(is_atomic() && (attacks_from<KING>(to - pawn_push(us)) & square<KING>(them)))
+#endif
           && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
       }
+#ifdef ATOMIC
+      else if (!(is_atomic() && captured) && type_of(m) == PROMOTION)
+#else
       else if (type_of(m) == PROMOTION)
+#endif
       {
           Piece promotion = make_piece(us, promotion_type(m));
 
