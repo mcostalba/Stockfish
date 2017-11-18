@@ -353,11 +353,11 @@ enum Value : int {
   KingValueMgExtinction   = 919,   KingValueEgExtinction   = 1093,
 #endif
 #ifdef GRID
-  PawnValueMgGrid   = 51,    PawnValueEgGrid   = 72,
-  KnightValueMgGrid = 982,   KnightValueEgGrid = 900,
-  BishopValueMgGrid = 690,   BishopValueEgGrid = 781,
-  RookValueMgGrid   = 1018,  RookValueEgGrid   = 1094,
-  QueenValueMgGrid  = 2568,  QueenValueEgGrid  = 2354,
+  PawnValueMgGrid   = 38,    PawnValueEgGrid   = 55,
+  KnightValueMgGrid = 993,   KnightValueEgGrid = 903,
+  BishopValueMgGrid = 685,   BishopValueEgGrid = 750,
+  RookValueMgGrid   = 1018,  RookValueEgGrid   = 1055,
+  QueenValueMgGrid  = 2556,  QueenValueEgGrid  = 2364,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 321,   PawnValueEgHorde   = 326,
