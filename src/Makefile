@@ -259,15 +259,25 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
-CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DEXTINCTION -DGRID -DHORDE -DKOTH -DLOOP -DLOSERS -DRACE -DSKILL -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC -DUSELONGESTPV
+CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DDISPLACEDGRID -DEXTINCTION -DGRID -DHORDE -DKOTH -DLOOP -DLOSERS -DRACE -DSKILL -DSLIPPEDGRID -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC -DUSELONGESTPV
 ifneq (,$(filter -DBUGHOUSE,$(CXXFLAGS)))
 ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant bughouse chess)
 endif
 endif
+ifneq (,$(filter -DDISPLACEDGRID,$(CXXFLAGS)))
+ifeq (,$(filter -DGRID,$(CXXFLAGS)))
+$(error Grid (-GRID) is required for subvariant displaced grid)
+endif
+endif
 ifneq (,$(filter -DLOOP,$(CXXFLAGS)))
 ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant loop chess)
+endif
+endif
+ifneq (,$(filter -DSLIPPEDGRID,$(CXXFLAGS)))
+ifeq (,$(filter -DGRID,$(CXXFLAGS)))
+$(error Grid (-GRID) is required for subvariant slipped grid)
 endif
 endif
 ifneq (,$(filter -DSUICIDE,$(CXXFLAGS)))
