@@ -971,15 +971,16 @@ bool Position::pseudo_legal(const Move m) const {
               if (type_of(pc) == PAWN && file_of(from) == file_of(to))
                  return false;
               Square capsq = type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
-              Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN));
-              if (blast & square<KING>(~us))
-                  return true;
-              Bitboard b = pieces() ^ ((blast | capsq) | from);
-              if (checkers() & b)
-                  return false;
-              if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
-                  (attacks_bb<BISHOP>(ksq, b) & pieces(~us, QUEEN, BISHOP) & b))
-                  return false;
+              if (!(attacks_from<KING>(to) & square<KING>(~us)))
+              {
+                  Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN));
+                  Bitboard b = pieces() ^ ((blast | capsq) | from);
+                  if (checkers() & b)
+                      return false;
+                  if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
+                      (attacks_bb<BISHOP>(ksq, b) & pieces(~us, QUEEN, BISHOP) & b))
+                      return false;
+              }
           }
       }
   }
@@ -1050,8 +1051,14 @@ bool Position::pseudo_legal(const Move m) const {
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
 #ifdef ATOMIC
-  if (is_atomic() && (attacks_from<KING>(square<KING>(~us)) & (type_of(pc) == KING ? to : square<KING>(us))))
-      return true;
+  // In case of adjacent kings or moves that capture the king, we can ignore attacks on our king
+  if (is_atomic())
+  {
+      if (attacks_from<KING>(square<KING>(~us)) & (type_of(pc) == KING ? to : square<KING>(us)))
+          return true;
+      if (capture(m) && (attacks_from<KING>(square<KING>(~us)) & to))
+          return true;
+  }
 #endif
   if (checkers())
   {
