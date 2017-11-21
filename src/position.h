@@ -119,6 +119,9 @@ public:
   Square castling_rook_square(CastlingRight cr) const;
 
   // Checking
+#ifdef ATOMIC
+  bool kings_adjacent() const;
+#endif
   Bitboard checkers() const;
   Bitboard discovered_check_candidates() const;
   Bitboard pinned_pieces(Color c) const;
@@ -127,6 +130,10 @@ public:
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
   Bitboard attackers_to(Square s, Bitboard occupied) const;
+#ifdef ATOMIC
+  Bitboard slider_attackers_to(Square s) const;
+  Bitboard slider_attackers_to(Square s, Bitboard occupied) const;
+#endif
   Bitboard attacks_from(PieceType pt, Square s) const;
   template<PieceType> Bitboard attacks_from(Square s) const;
   template<PieceType> Bitboard attacks_from(Square s, Color c) const;
@@ -519,6 +526,16 @@ inline Bitboard Position::attacks_from(PieceType pt, Square s) const {
 inline Bitboard Position::attackers_to(Square s) const {
   return attackers_to(s, byTypeBB[ALL_PIECES]);
 }
+
+#ifdef ATOMIC
+inline Bitboard Position::slider_attackers_to(Square s) const {
+  return slider_attackers_to(s, byTypeBB[ALL_PIECES]);
+}
+
+inline bool Position::kings_adjacent() const {
+  return attacks_from<KING>(square<KING>(~sideToMove)) & pieces(sideToMove, KING);
+}
+#endif
 
 inline Bitboard Position::checkers() const {
   return st->checkersBB;

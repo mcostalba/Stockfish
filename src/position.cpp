@@ -568,8 +568,7 @@ void Position::set_state(StateInfo* si) const {
   else
 #endif
 #ifdef ATOMIC
-  if (is_atomic() && (square<KING>(sideToMove) == SQ_NONE ||
-         (attacks_from<KING>(square<KING>(sideToMove)) & square<KING>(~sideToMove))))
+  if (is_atomic() && (square<KING>(sideToMove) == SQ_NONE || kings_adjacent()))
       si->checkersBB = 0;
   else
 #endif
@@ -787,6 +786,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
         | (attacks_from<KING>(s)           & pieces(KING));
 }
 
+#ifdef ATOMIC
+Bitboard Position::slider_attackers_to(Square s, Bitboard occupied) const {
+
+  return  (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
+        | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN));
+}
+#endif
 
 /// Position::legal() tests whether a pseudo-legal move is legal
 
@@ -894,15 +900,12 @@ bool Position::legal(Move m) const {
 #ifdef ATOMIC
   if (is_atomic() && type_of(piece_on(from)) == KING && type_of(m) != CASTLING)
   {
-      Square ksq = square<KING>(~us);
       Square to = to_sq(m);
-      if ((attacks_from<KING>(ksq) & from) && !(attacks_from<KING>(ksq) & to))
+      if (kings_adjacent() && !(attacks_from<KING>(square<KING>(~us)) & to))
       {
           if (attackers_to(to) & pieces(~us, KNIGHT, PAWN))
               return false;
-          Bitboard occupied = (pieces() ^ from) | to;
-          return   !(attacks_bb<  ROOK>(to, occupied) & pieces(~us, QUEEN, ROOK))
-                && !(attacks_bb<BISHOP>(to, occupied) & pieces(~us, QUEEN, BISHOP));
+          return !(slider_attackers_to(to, (pieces() ^ from) | to) & pieces(~us));
       }
   }
 #endif
@@ -1115,11 +1118,11 @@ bool Position::gives_check(Move m) const {
 #ifdef ATOMIC
   if (is_atomic())
   {
+      // Separating adjacent kings exposes direct checks (minus castle rook)
+      // For simplicity, resolves castling discovered checks by fall-through
       Square ksq = square<KING>(~sideToMove);
       Bitboard attacks = attacks_from<KING>(ksq);
 
-      // Separating adjacent kings exposes direct checks (minus castle rook)
-      // For simplicity, resolves castling discovered checks by fall-through
       switch (type_of(m))
       {
       case CASTLING:
@@ -1132,7 +1135,7 @@ bool Position::gives_check(Move m) const {
       default:
           if (attacks & (type_of(piece_on(from)) == KING ? to : square<KING>(sideToMove)))
               return false;
-          if (type_of(piece_on(from)) == KING && (attacks & square<KING>(sideToMove)))
+          if (type_of(piece_on(from)) == KING && kings_adjacent())
               return attackers_to(ksq, pieces() ^ from ^ to) & (pieces(sideToMove) ^ from);
           if (capture(m))
           {
@@ -1142,7 +1145,7 @@ bool Position::gives_check(Move m) const {
               Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN));
               blast |= type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
 
-              return attackers_to(ksq, pieces() ^ (blast | from)) & (pieces(sideToMove) ^ from) & ~blast;
+              return slider_attackers_to(ksq, pieces() ^ (blast | from)) & (pieces(sideToMove) ^ from) & ~blast;
           }
       }
   }
@@ -2196,7 +2199,7 @@ bool Position::pos_is_ok() const {
           std::count(board, board + SQUARE_NB, B_KING) != 1)
       assert(0 && "pos_is_ok: Kings (atomic)");
   }
-  else if (is_atomic() && (attacks_from<KING>(square<KING>(~sideToMove)) & square<KING>(sideToMove)))
+  else if (is_atomic() && kings_adjacent())
   {
   } else
 #endif
