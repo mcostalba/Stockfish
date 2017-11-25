@@ -957,6 +957,9 @@ namespace {
     }
 
     // Step 7. Futility pruning: child node (skipped when in check)
+#ifdef EXTINCTION
+    if (pos.is_extinction()) {} else
+#endif
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(pos.variant(), depth) >= beta
