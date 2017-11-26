@@ -123,7 +123,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePiece
 
 /// score() assigns a numerical value to each move in a list, used for sorting.
 /// Captures are ordered by Most Valuable Victim (MVV), preferring captures
-/// near our home rank. Quiets are ordered using the histories.
+/// with a good history. Quiets are ordered using the histories.
 template<GenType Type>
 void MovePicker::score() {
 
@@ -179,12 +179,7 @@ Move MovePicker::next_move(bool skipQuiets) {
           move = pick_best(cur++, endMoves);
           if (move != ttMove)
           {
-              if (pos.see_ge(move))
-                  return move;
-
-              if (   type_of(pos.piece_on(to_sq(move))) == KNIGHT
-                  && type_of(pos.moved_piece(move)) == BISHOP
-                  && (cur-1)->value > 1090)
+              if (pos.see_ge(move, Value(-55 * (cur-1)->value / 1024)))
                   return move;
 
               // Losing capture, move it to the beginning of the array
