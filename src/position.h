@@ -1085,7 +1085,7 @@ inline bool Position::capture_or_promotion(Move m) const {
   if (is_race())
   {
     Square from = from_sq(m), to = to_sq(m);
-    return (type_of(board[from]) == KING && rank_of(to) >= rank_of(from)) || !empty(to);
+    return (type_of(board[from]) == KING && rank_of(to) > rank_of(from)) || !empty(to);
   }
 #endif
 #ifdef CRAZYHOUSE
