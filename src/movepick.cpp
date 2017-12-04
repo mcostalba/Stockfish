@@ -139,16 +139,17 @@ void MovePicker::score() {
 #endif
 #ifdef CRAZYHOUSE
           if (pos.is_house())
-              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                      - Value(200 * std::min(distance(to_sq(m), pos.square<KING>(~pos.side_to_move())),
-                                             distance(to_sq(m), pos.square<KING>( pos.side_to_move()))));
+              m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                       - Value(200 * std::min(distance(to_sq(m), pos.square<KING>(~pos.side_to_move())),
+                                              distance(to_sq(m), pos.square<KING>( pos.side_to_move()))))
+                       + Value((*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]);
           else
 #endif
 #ifdef RACE
           if (pos.is_race())
-              m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                      - Value(200 * relative_rank(BLACK, to_sq(m)))
-                      + Value((*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]);
+              m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
+                       - Value(200 * relative_rank(BLACK, to_sq(m)))
+                       + Value((*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]);
           else
 #endif
           m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
