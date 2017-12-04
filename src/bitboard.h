@@ -169,7 +169,7 @@ inline Bitboard grid_layout_bb(GridLayout l, Square s) {
 
 /// shift() moves a bitboard one step along direction D. Mainly for pawns
 
-template<Square D>
+template<Direction D>
 constexpr Bitboard shift(Bitboard b) {
   return  D == NORTH      ?  b             << 8 : D == SOUTH      ?  b             >> 8
         : D == NORTH_EAST ? (b & ~FileHBB) << 9 : D == SOUTH_EAST ? (b & ~FileHBB) >> 7
