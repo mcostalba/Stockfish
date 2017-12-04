@@ -147,7 +147,8 @@ void MovePicker::score() {
 #ifdef RACE
           if (pos.is_race())
               m.value = PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                      - Value(200 * relative_rank(BLACK, to_sq(m)));
+                      - Value(200 * relative_rank(BLACK, to_sq(m)))
+                      + Value((*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]);
           else
 #endif
           m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
