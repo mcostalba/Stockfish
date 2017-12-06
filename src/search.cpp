@@ -253,8 +253,6 @@ namespace {
   };
 #endif
 
-  Value DrawValue[COLOR_NB];
-
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning);
 
@@ -381,8 +379,9 @@ void MainThread::search() {
   TT.new_search();
 
   int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
-  DrawValue[ us] = VALUE_DRAW - Value(contempt);
-  DrawValue[~us] = VALUE_DRAW + Value(contempt);
+
+  Eval::Contempt = (us == WHITE ?  make_score(contempt, contempt / 2)
+                                : -make_score(contempt, contempt / 2));
 
   if (rootMoves.empty())
   {
@@ -686,7 +685,7 @@ void Thread::search() {
               int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
 
               Color us = rootPos.side_to_move();
-              bool thinkHard =    DrawValue[us] == bestValue
+              bool thinkHard =    bestValue == VALUE_DRAW
                                && Limits.time[us] - Time.elapsed() > Limits.time[~us]
                                && ::pv_is_draw(rootPos);
 
@@ -775,12 +774,11 @@ namespace {
     if (!rootNode)
     {
         if (pos.is_variant_end())
-            return pos.variant_result(ss->ply, DrawValue[pos.side_to_move()]);
+            return pos.variant_result(ss->ply, VALUE_DRAW);
 
         // Step 2. Check for aborted search and immediate draw
         if (Threads.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
-            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos)
-                                                  : DrawValue[pos.side_to_move()];
+            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos) : VALUE_DRAW;
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
         // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -1419,10 +1417,10 @@ moves_loop: // When in check search starts from here
 
     if (!moveCount)
     {
-        bestValue = excludedMove ? alpha
-                    : pos.is_variant_end() ? pos.variant_result(ss->ply, DrawValue[pos.side_to_move()])
-                    : inCheck ? pos.checkmate_value(ss->ply)
-                    : pos.stalemate_value(ss->ply, DrawValue[pos.side_to_move()]);
+        bestValue =          excludedMove ? alpha
+                   : pos.is_variant_end() ? pos.variant_result(ss->ply, VALUE_DRAW)
+                   :              inCheck ? pos.checkmate_value(ss->ply)
+                   :                        pos.stalemate_value(ss->ply, VALUE_DRAW);
     }
     else if (bestMove)
     {
@@ -1490,12 +1488,11 @@ moves_loop: // When in check search starts from here
     moveCount = 0;
 
     if (pos.is_variant_end())
-        return pos.variant_result(ss->ply, DrawValue[pos.side_to_move()]);
+        return pos.variant_result(ss->ply, VALUE_DRAW);
 
     // Check for an instant draw or if the maximum ply has been reached
     if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
-        return ss->ply >= MAX_PLY && !InCheck ? evaluate(pos)
-                                              : DrawValue[pos.side_to_move()];
+        return ss->ply >= MAX_PLY && !InCheck ? evaluate(pos) : VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 

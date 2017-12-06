@@ -69,6 +69,8 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #endif
 };
 
+extern Score Contempt;
+
 std::string trace(const Position& pos);
 
 Value evaluate(const Position& pos);
