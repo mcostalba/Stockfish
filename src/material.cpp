@@ -179,13 +179,14 @@ namespace {
 #ifdef TWOKINGS
     {
       //            OUR PIECES
-      // pair pawn knight bishop rook queen
-      {1667                               }, // Bishop pair
-      {  40,    0                         }, // Pawn
-      {  32,  255,  -3                    }, // Knight      OUR PIECES
-      {   0,  104,   4,    0              }, // Bishop
-      { -26,   -2,  47,   105,  -149      }, // Rook
-      {-185,   24, 122,   137,  -134,   0 }  // Queen
+      // pair pawn knight bishop rook queen king
+      {1667                                    }, // Bishop pair
+      {  40,    0                              }, // Pawn
+      {  32,  255,  -3                         }, // Knight      OUR PIECES
+      {   0,  104,   4,    0                   }, // Bishop
+      { -26,   -2,  47,   105,  -149           }, // Rook
+      {-185,   24, 122,   137,  -134,   0      }, // Queen
+      {   0,    0,   0,     0,    0,    0,   0 }  // King
     },
 #endif
   };
@@ -350,13 +351,14 @@ namespace {
 #ifdef TWOKINGS
     {
       //           THEIR PIECES
-      // pair pawn knight bishop rook queen
-      {   0                               }, // Bishop pair
-      {  36,    0                         }, // Pawn
-      {   9,   63,   0                    }, // Knight      OUR PIECES
-      {  59,   65,  42,     0             }, // Bishop
-      {  46,   39,  24,   -24,    0       }, // Rook
-      { 101,  100, -37,   141,  268,    0 }  // Queen
+      // pair pawn knight bishop rook queen king
+      {   0                                    }, // Bishop pair
+      {  36,    0                              }, // Pawn
+      {   9,   63,   0                         }, // Knight      OUR PIECES
+      {  59,   65,  42,     0                  }, // Bishop
+      {  46,   39,  24,   -24,    0            }, // Rook
+      { 101,  100, -37,   141,  268,    0      }, // Queen
+      {   0,    0,   0,     0,    0,    0,   0 }  // King
     },
 #endif
   };
@@ -433,6 +435,9 @@ namespace {
 #endif
 #ifdef HORDE
                       pos.is_horde() ? KING :
+#endif
+#ifdef TWOKINGS
+                      pos.is_two_kings() ? KING :
 #endif
                       QUEEN;
 
