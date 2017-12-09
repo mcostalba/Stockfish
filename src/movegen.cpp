@@ -602,6 +602,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_extinction())
       return moveList;
 #endif
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      return moveList;
+#endif
 #ifdef RACE
   if (pos.is_race())
       return moveList;

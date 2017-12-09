@@ -826,6 +826,9 @@ bool Position::legal(Move m) const {
 #else
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 #endif
+#ifdef LOSERS
+  assert(!(is_losers() && !capture(m) && can_capture_losers()));
+#endif
 
 #ifdef RACE
   // Checking moves are illegal
