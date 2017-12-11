@@ -290,6 +290,8 @@ void Thread::search() {
   Depth lastBestMoveDepth = DEPTH_ZERO;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
   double timeReduction = 1.0;
+  Position rootPosCopy;
+  std::memcpy(&rootPosCopy, &rootPos, sizeof(Position));
 
   std::memset(ss-4, 0, 7 * sizeof(Stack));
   for (int i = 4; i > 0; i--)
@@ -355,7 +357,12 @@ void Thread::search() {
           // high/low anymore.
           while (true)
           {
-              bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
+              try {
+                  bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
+              } catch (...) {
+                  // Restore the rootPos because exception skips undo_move()
+                  std::memcpy(&rootPos, &rootPosCopy, sizeof rootPos);
+              }
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -530,7 +537,10 @@ namespace {
     if (!rootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (Threads.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
+        if (Threads.stop.load(std::memory_order_relaxed))
+           throw 42;
+
+        if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
             return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos) : VALUE_DRAW;
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -996,7 +1006,7 @@ moves_loop: // When in check search starts from here
       // the search cannot be trusted, and we return immediately without
       // updating best move, PV and TT.
       if (Threads.stop.load(std::memory_order_relaxed))
-          return VALUE_ZERO;
+          throw 42;
 
       if (rootNode)
       {
@@ -1496,7 +1506,7 @@ moves_loop: // When in check search starts from here
     if (   (Limits.use_time_management() && elapsed > Time.maximum())
         || (Limits.movetime && elapsed >= Limits.movetime)
         || (Limits.nodes && Threads.nodes_searched() >= (uint64_t)Limits.nodes))
-            Threads.stop = true;
+            Threads.stop = true; // Do not throw here, just set the flag
   }
 
 
