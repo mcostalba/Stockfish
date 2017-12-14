@@ -111,7 +111,8 @@ namespace {
     Score mobility[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
 
     // attackedBy[color][piece type] is a bitboard representing all squares
-    // attacked by a given color and piece type (can be also ALL_PIECES).
+    // attacked by a given color and piece type. Special "piece types" which are
+    // also calculated are QUEEN_DIAGONAL and ALL_PIECES.
     Bitboard attackedBy[COLOR_NB][PIECE_TYPE_NB];
 
     // attackedBy2[color] are the squares attacked by 2 pieces of a given color,
@@ -553,7 +554,6 @@ namespace {
   const Score RookOnPawn            = S(  8, 24);
   const Score TrappedRook           = S( 92,  0);
   const Score WeakQueen             = S( 50, 10);
-  const Score OtherCheck            = S( 10, 10);
   const Score CloseEnemies[VARIANT_NB] = {
     S( 7,  0),
 #ifdef ANTI
@@ -690,10 +690,10 @@ namespace {
   };
 
   // Penalties for enemy's safe checks
-  const int QueenCheck  = 780;
-  const int RookCheck   = 880;
-  const int BishopCheck = 435;
-  const int KnightCheck = 790;
+  const int QueenSafeCheck  = 780;
+  const int RookSafeCheck   = 880;
+  const int BishopSafeCheck = 435;
+  const int KnightSafeCheck = 790;
 #ifdef ATOMIC
   const int IndirectKingAttack = 883;
 #endif
@@ -971,7 +971,7 @@ namespace {
                                         : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard weak, b, b1, b2, safe, other;
+    Bitboard weak, b, b1, b2, safe, unsafeChecks;
     int kingDanger;
 
     // King shelter and enemy pawns storm
@@ -995,32 +995,11 @@ namespace {
               & ~attackedBy2[Us]
               & (attackedBy[Us][KING] | attackedBy[Us][QUEEN] | ~attackedBy[Us][ALL_PIECES]);
 
-        // Initialize the 'kingDanger' variable, which will be transformed
-        // later into a king danger score. The initial value is based on the
-        // number and types of the enemy's attacking pieces, the number of
-        // attacked and weak squares around our king, the absence of queen and
-        // the quality of the pawn shelter (current 'score' value).
-        const auto KDP = KingDangerParams[pos.variant()];
-        kingDanger =           kingAttackersCount[Them] * kingAttackersWeight[Them]
-                    + KDP[0] * kingAdjacentZoneAttacksCount[Them]
-                    + KDP[1] * popcount(kingRing[Us] & weak)
-                    + KDP[2] * bool(pos.pinned_pieces(Us))
-                    + KDP[3] * !pos.count<QUEEN>(Them)
-                    + KDP[4] * mg_value(score) / 8
-                    + KDP[5];
         Bitboard h = 0;
-
+        kingDanger = unsafeChecks = 0;
 #ifdef CRAZYHOUSE
         if (pos.is_house())
-        {
-            kingDanger += KingDangerInHand[ALL_PIECES] * pos.count_in_hand<ALL_PIECES>(Them);
-            kingDanger += KingDangerInHand[PAWN] * pos.count_in_hand<PAWN>(Them);
-            kingDanger += KingDangerInHand[KNIGHT] * pos.count_in_hand<KNIGHT>(Them);
-            kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
-            kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
-            kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
             h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
-        }
 #endif
 
         // Analyse the safe enemy's checks which are possible on next move
@@ -1035,59 +1014,69 @@ namespace {
         b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
         // Enemy queen safe checks
-        if ((b1 | b2) & (h | attackedBy[Them][QUEEN]) & safe & ~attackedBy[Us][QUEEN])
-            kingDanger += QueenCheck;
+        if ((b1 | b2) & attackedBy[Them][QUEEN] & safe & ~attackedBy[Us][QUEEN])
+            kingDanger += QueenSafeCheck;
 
-        // Defended by our queen only
-        Bitboard dqo =  attackedBy2[Them]
-                      & ~(attackedBy2[Us] | pos.pieces(Them))
-                      & attackedBy[Us][QUEEN];
-        // For minors and rooks, also consider the square safe if attacked twice,
-        // and only defended by our queen.
-        Bitboard dropSafe = (safe | (attackedBy[Them][ALL_PIECES] & dqo)) & ~pos.pieces(Us);
-        safe |=  dqo;
-
-        // Some other potential checks are also analysed, even from squares
-        // currently occupied by the opponent own pieces, as long as the square
-        // is not attacked by our pawns, and is not occupied by a blocked pawn.
-        other = ~(   attackedBy[Us][PAWN]
-                  | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
+        b1 &= attackedBy[Them][ROOK];
+        b2 &= attackedBy[Them][BISHOP];
 #ifdef THREECHECK
         if (pos.is_three_check() && pos.checks_given(Them))
-            other = safe = ~pos.pieces(Them);
+            safe = ~pos.pieces(Them);
 #endif
 
-        // Enemy rooks safe and other checks
+        // Enemy rooks checks
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
 #endif
-        if (b1 & ((attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
-            kingDanger += RookCheck;
+        if (b1 & safe)
+            kingDanger += RookSafeCheck;
+        else
+            unsafeChecks |= b1;
 
-        else if (b1 & (h | attackedBy[Them][ROOK]) & other)
-            score -= OtherCheck;
-
-        // Enemy bishops safe and other checks
+        // Enemy bishops checks
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<BISHOP>(Them) ? ~pos.pieces() : 0;
 #endif
-        if (b2 & ((attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
-            kingDanger += BishopCheck;
+        if (b2 & safe)
+            kingDanger += BishopSafeCheck;
+        else
+            unsafeChecks |= b2;
 
-        else if (b2 & (h | attackedBy[Them][BISHOP]) & other)
-            score -= OtherCheck;
-
-        // Enemy knights safe and other checks
+        // Enemy knights checks
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<KNIGHT>(Them) ? ~pos.pieces() : 0;
 #endif
-        Bitboard k = pos.attacks_from<KNIGHT>(ksq);
-        b = k & attackedBy[Them][KNIGHT];
-        if ((b & safe) | (k & h & dropSafe))
-            kingDanger += KnightCheck;
+        b = pos.attacks_from<KNIGHT>(ksq) & attackedBy[Them][KNIGHT];
+        if (b & safe)
+            kingDanger += KnightSafeCheck;
+        else
+            unsafeChecks |= b;
 
-        else if ((b | (k & h)) & other)
-            score -= OtherCheck;
+        // Unsafe or occupied checking squares will also be considered, as long as
+        // the square is not defended by our pawns or occupied by a blocked pawn.
+        unsafeChecks &= ~(   attackedBy[Us][PAWN]
+                          | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
+
+        const auto KDP = KingDangerParams[pos.variant()];
+        kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
+                     + KDP[0] * kingAdjacentZoneAttacksCount[Them]
+                     + KDP[1] * popcount(kingRing[Us] & weak)
+                     + KDP[2] * popcount(pos.pinned_pieces(Us) | unsafeChecks)
+                     + KDP[3] * !pos.count<QUEEN>(Them)
+                     + KDP[4] * mg_value(score) / 8
+                     + KDP[5];
+#ifdef CRAZYHOUSE
+        if (pos.is_house())
+        {
+            kingDanger += KingDangerInHand[ALL_PIECES] * pos.count_in_hand<ALL_PIECES>(Them);
+            kingDanger += KingDangerInHand[PAWN] * pos.count_in_hand<PAWN>(Them);
+            kingDanger += KingDangerInHand[KNIGHT] * pos.count_in_hand<KNIGHT>(Them);
+            kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
+            kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
+            kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
+            h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
+        }
+#endif
 
 #ifdef ATOMIC
         if (pos.is_atomic())
