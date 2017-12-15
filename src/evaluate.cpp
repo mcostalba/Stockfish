@@ -526,7 +526,7 @@ namespace {
 
 #ifdef CRAZYHOUSE
   const int KingDangerInHand[PIECE_TYPE_NB] = {
-    83, 17, 203, 64, 156, 146
+    79, 16, 200, 61, 138, 152
   };
 #endif
 
@@ -563,7 +563,7 @@ namespace {
     S(17,  0),
 #endif
 #ifdef CRAZYHOUSE
-    S(13, 20),
+    S(14, 20),
 #endif
 #ifdef EXTINCTION
     S( 0,  0),
@@ -617,7 +617,7 @@ namespace {
     { 0, 0, 76, 64, 46, 11 },
 #endif
 #ifdef CRAZYHOUSE
-    { 0, 0, 112, 97, 61, 2 },
+    { 0, 0, 112, 87, 63, 2 },
 #endif
 #ifdef EXTINCTION
     {},
@@ -658,7 +658,7 @@ namespace {
     {   274,  166,  146, -654,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   138,  362,  170, -595,   -9,   -1,  306 },
+    {   133,  414,  171, -577,   -8,   -1,  305 },
 #endif
 #ifdef EXTINCTION
     {},
