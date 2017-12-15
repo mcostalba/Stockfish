@@ -242,11 +242,11 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 
       else if (token == '/')
       {
+          sq += 2 * SOUTH;
 #ifdef CRAZYHOUSE
-          if (is_house() && sq < Square(SQ_A3))
+          if (is_house() && sq < SQ_A1)
               break;
 #endif
-          sq += 2 * SOUTH;
       }
 
       else if ((idx = PieceToChar.find(token)) != string::npos)
@@ -261,22 +261,23 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 #else
       else if (is_house() && token == '~')
 #endif
-          promotedPieces |= sq - 1;
+          promotedPieces |= SquareBB[sq - 1];
       // Stop before pieces in hand
       else if (is_house() && token == '[')
-      {
-          // Pieces in hand
-          while ((ss >> token) && !isspace(token))
-          {
-              if (token == ']')
-                  continue;
-              else if ((idx = PieceToChar.find(token)) != string::npos)
-                  add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
-          }
           break;
-      }
 #endif
   }
+#ifdef CRAZYHOUSE
+  // Pieces in hand
+  if (!isspace(token))
+      while ((ss >> token) && !isspace(token))
+      {
+          if (token == ']')
+              continue;
+          else if ((idx = PieceToChar.find(token)) != string::npos)
+              add_to_hand(color_of(Piece(idx)), type_of(Piece(idx)));
+      }
+#endif
 
   // 2. Active color
   ss >> token;
@@ -368,7 +369,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       else if (sideToMove == BLACK && !(shift<NORTH>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
 #ifdef ATOMIC
-      else if (attacks_from<KING>(st->epSquare) && square<KING>(sideToMove))
+      else if (is_atomic() && (attacks_from<KING>(st->epSquare) && square<KING>(sideToMove)))
           st->epSquare = SQ_NONE;
 #endif
   }

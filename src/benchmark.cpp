@@ -140,19 +140,19 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
     "rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR[] w KQkq d6 4 3", // en passant
-    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[NQPBqb] b - - 23 12", // repetition detection
+    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[QBNPqb] b - - 23 12", // repetition detection
     "r3k2r/pppb1ppp/4n3/2P1Q3/2p1n3/2Pb1N2/PP1NpPPP/R1BqR1K1[BP] w kq - 28 15",
-    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[BBQNnqnppp] b kq - 39 20", // many pieces in hand
-    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNbrnp] w - - 42 22", // promoted queen
+    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[QBBNqnnppp] b kq - 39 20", // many pieces in hand
+    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNrbnp] w - - 42 22", // promoted queen
     "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
     "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
 
     // Checkmate
-    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[NPPQQrp] w - - 64 33", // promoted knight
+    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[QQNPPrp] w - - 64 33", // promoted knight
     "1Rbk3r/p1pQ1ppp/2Bn3n/4p1b1/4Pn2/3p4/PbPP1PPP/3RK1R1[QPPn] b - - 45 23",
 
     // Stalemate
-    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
+    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[RRBBBNNNNPPP] b - - 98 55",
   },
 #endif
 #ifdef EXTINCTION
@@ -262,12 +262,12 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   {
     "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
     "r1b1kk1r/pp1ppppp/2N2n2/8/4P3/2N5/PPP2qPP/R1BQKK1R w KQkq - 0 7",
-    "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQkq - 4 4"
+    "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQ - 4 4"
   },
 #endif
 #ifdef SUICIDE
   {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
     "rn1qkbnr/p1pBpppp/8/8/8/4P3/PPPP1PbP/RNBQK1NR w - - 0 4",
     "rnbqkbnr/p2p1ppp/8/2p1p3/2pP4/2N3P1/PP2PP1P/R1BQKBNR b - d3 0 5",
     "rnb1kbn1/p4ppr/8/3q4/1p6/6PB/P3PP1P/R1B1K1NR b - - 1 11",
@@ -301,19 +301,19 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
     "rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR[] w KQkq d6 4 3", // en passant
-    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[NQPBqb] b - - 23 12", // repetition detection
+    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[QBNPqb] b - - 23 12", // repetition detection
     "r3k2r/pppb1ppp/4n3/2P1Q3/2p1n3/2Pb1N2/PP1NpPPP/R1BqR1K1[BP] w kq - 28 15",
-    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[BBQNnqnppp] b kq - 39 20", // many pieces in hand
-    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNbrnp] w - - 42 22", // promoted queen
+    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[QBBNqnnppp] b kq - 39 20", // many pieces in hand
+    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNrbnp] w - - 42 22", // promoted queen
     "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
     "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
 
     // Checkmate
-    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[NPPQQrp] w - - 64 33", // promoted knight
+    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[QQNPPrp] w - - 64 33", // promoted knight
     "1Rbk3r/p1pQ1ppp/2Bn3n/4p1b1/4Pn2/3p4/PbPP1PPP/3RK1R1[QPPn] b - - 45 23",
 
     // Stalemate
-    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
+    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[RRBBBNNNNPPP] b - - 98 55",
   },
 #endif
 #ifdef DISPLACEDGRID
@@ -325,19 +325,19 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[] w KQkq - 0 1",
     "rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR[] w KQkq d6 4 3", // en passant
-    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[NQPBqb] b - - 23 12", // repetition detection
+    "r1bk3r/pppp1Bpp/2n5/4p1N1/4P3/3P4/PPP1p1PP/RNK4R[QBNPqb] b - - 23 12", // repetition detection
     "r3k2r/pppb1ppp/4n3/2P1Q3/2p1n3/2Pb1N2/PP1NpPPP/R1BqR1K1[BP] w kq - 28 15",
-    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[BBQNnqnppp] b kq - 39 20", // many pieces in hand
-    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q1KB1R[NNbrnp] w - - 42 22",
+    "r1b1kb1r/p1p3pp/2pp4/8/4P3/2NR3P/PPP2P1P/5K1R[QBBNqnnppp] b kq - 39 20", // many pieces in hand
+    "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q1KB1R[NNrbnp] w - - 42 22", // promoted queen
     "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
     "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
 
     // Checkmate
-    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n[NPPQQrp] w - - 64 33",
+    "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n[QQNPPrp] w - - 64 33", // promoted knight
     "1Rbk3r/p1pQ1ppp/2Bn3n/4p1b1/4Pn2/3p4/PbPP1PPP/3RK1R1[QPPn] b - - 45 23",
 
     // Stalemate
-    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[NRBNPBPRNPBN] b - - 98 55",
+    "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[RRBBBNNNNPPP] b - - 98 55",
   },
 #endif
 #ifdef SLIPPEDGRID
