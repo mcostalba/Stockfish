@@ -1010,15 +1010,17 @@ namespace {
             safe |= attackedBy[Us][KING];
 #endif
 
+        // Defended by our queen or king only
+        Bitboard dqko = ~attackedBy2[Us] & (attackedBy[Us][QUEEN] | attackedBy[Us][KING]);
+        Bitboard dropSafe = (safe | (attackedBy[Them][ALL_PIECES] & dqko)) & ~pos.pieces(Us);
+
         b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
         b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
 
         // Enemy queen safe checks
-        if ((b1 | b2) & attackedBy[Them][QUEEN] & safe & ~attackedBy[Us][QUEEN])
+        if ((b1 | b2) & (h | attackedBy[Them][QUEEN]) & safe & ~attackedBy[Us][QUEEN])
             kingDanger += QueenSafeCheck;
 
-        b1 &= attackedBy[Them][ROOK];
-        b2 &= attackedBy[Them][BISHOP];
 #ifdef THREECHECK
         if (pos.is_three_check() && pos.checks_given(Them))
             safe = ~pos.pieces(Them);
@@ -1028,29 +1030,29 @@ namespace {
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
 #endif
-        if (b1 & safe)
+        if (b1 & ((attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
             kingDanger += RookSafeCheck;
         else
-            unsafeChecks |= b1;
+            unsafeChecks |= b1 & (attackedBy[Them][ROOK] | h);
 
         // Enemy bishops checks
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<BISHOP>(Them) ? ~pos.pieces() : 0;
 #endif
-        if (b2 & safe)
+        if (b2 & ((attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
             kingDanger += BishopSafeCheck;
         else
-            unsafeChecks |= b2;
+            unsafeChecks |= b2 & (attackedBy[Them][BISHOP] | h);
 
         // Enemy knights checks
+        b = pos.attacks_from<KNIGHT>(ksq);
 #ifdef CRAZYHOUSE
         h = pos.is_house() && pos.count_in_hand<KNIGHT>(Them) ? ~pos.pieces() : 0;
 #endif
-        b = pos.attacks_from<KNIGHT>(ksq) & attackedBy[Them][KNIGHT];
-        if (b & safe)
+        if (b & ((attackedBy[Them][KNIGHT] & safe) | (h & dropSafe)))
             kingDanger += KnightSafeCheck;
         else
-            unsafeChecks |= b;
+            unsafeChecks |= b & (attackedBy[Them][KNIGHT] | h);
 
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is not defended by our pawns or occupied by a blocked pawn.
