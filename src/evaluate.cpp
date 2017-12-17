@@ -966,13 +966,11 @@ namespace {
   Score Evaluation<T>::evaluate_king() {
 
     const Color     Them = (Us == WHITE ? BLACK : WHITE);
-    const Direction Up   = (Us == WHITE ? NORTH : SOUTH);
     const Bitboard  Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                         : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
     Bitboard weak, b, b1, b2, safe, unsafeChecks;
-    int kingDanger;
 
     // King shelter and enemy pawns storm
     Score score = pe->king_safety<Us>(pos, ksq);
@@ -996,11 +994,11 @@ namespace {
               & (attackedBy[Us][KING] | attackedBy[Us][QUEEN] | ~attackedBy[Us][ALL_PIECES]);
 
         Bitboard h = 0;
-        kingDanger = unsafeChecks = 0;
 #ifdef CRAZYHOUSE
         if (pos.is_house())
             h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
 #endif
+        int kingDanger = unsafeChecks = 0;
 
         // Analyse the safe enemy's checks which are possible on next move
         safe  = ~pos.pieces(Them);
@@ -1055,9 +1053,8 @@ namespace {
             unsafeChecks |= b & (attackedBy[Them][KNIGHT] | h);
 
         // Unsafe or occupied checking squares will also be considered, as long as
-        // the square is not defended by our pawns or occupied by a blocked pawn.
-        unsafeChecks &= ~(   attackedBy[Us][PAWN]
-                          | (pos.pieces(Them, PAWN) & shift<Up>(pos.pieces(PAWN))));
+        // the square is in the attacker's mobility area.
+        unsafeChecks &= mobilityArea[Them];
 
         const auto KDP = KingDangerParams[pos.variant()];
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
@@ -1716,7 +1713,7 @@ namespace {
         Trace::add(TOTAL, score);
     }
 
-    return (pos.side_to_move() == WHITE ? v : -v) + Eval::Tempo[pos.variant()]; // Side to move point of view
+    return pos.side_to_move() == WHITE ? v : -v; // Side to move point of view
   }
 
 } // namespace
@@ -1728,7 +1725,7 @@ Score Eval::Contempt = SCORE_ZERO;
 
 Value Eval::evaluate(const Position& pos)
 {
-   return Evaluation<>(pos).value();
+   return Evaluation<>(pos).value() + Eval::Tempo[pos.variant()];
 }
 
 /// trace() is like evaluate(), but instead of returning a value, it returns
@@ -1739,7 +1736,7 @@ std::string Eval::trace(const Position& pos) {
 
   std::memset(scores, 0, sizeof(scores));
 
-  Value v = Evaluation<TRACE>(pos).value();
+  Value v = Evaluation<TRACE>(pos).value() + Eval::Tempo[pos.variant()];
   v = pos.side_to_move() == WHITE ? v : -v; // White's point of view
 
   std::stringstream ss;
