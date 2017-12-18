@@ -69,7 +69,7 @@ public:
   Material::Table materialTable;
   Endgames endgames;
   size_t PVIdx;
-  int selDepth;
+  int selDepth, nmp_ply, pair;
   std::atomic<uint64_t> nodes, tbHits;
 
   Position rootPos;
