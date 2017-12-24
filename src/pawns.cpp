@@ -708,6 +708,11 @@ void init() {
       int v = 17 * support;
       v += (Seed[var][r] + (phalanx ? (Seed[var][r + 1] - Seed[var][r]) / 2 : 0)) >> opposed;
 
+#ifdef HORDE
+      if (var == HORDE_VARIANT)
+          Connected[var][opposed][phalanx][support][r] = make_score(v, v);
+      else
+#endif
       Connected[var][opposed][phalanx][support][r] = make_score(v, v * (r - 2) / 4);
   }
 }
