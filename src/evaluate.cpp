@@ -594,7 +594,6 @@ namespace {
 #endif
   };
   const Score PawnlessFlank         = S( 20, 80);
-  const Score ThreatByHangingPawn   = S( 71, 61);
   const Score ThreatBySafePawn      = S(192,175);
   const Score ThreatByRank          = S( 16,  3);
   const Score Hanging               = S( 48, 27);
@@ -1251,9 +1250,6 @@ namespace {
         safeThreats = (shift<Right>(b) | shift<Left>(b)) & weak;
 
         score += ThreatBySafePawn * popcount(safeThreats);
-
-        if (weak ^ safeThreats)
-            score += ThreatByHangingPawn;
     }
 
     // Squares strongly protected by the opponent, either because they attack the
@@ -1340,7 +1336,7 @@ namespace {
                     min = std::min(min, pawnsl + pawnsr);
                 }
             }
-            score += ThreatByHangingPawn * pos.count<PAWN>(Them) / (1 + min) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + min) / (pos.pieces(Us, QUEEN) ? 2 : 4);
         }
     }
 #endif
