@@ -424,8 +424,6 @@ void MainThread::search() {
   size_t longestPlies = 0;
   Thread* longestPVThread = this;
   const size_t minPlies = 6;
-  const int maxScoreDiff = 20;
-  const int maxDepthDiff = 2;
 #endif
   if (    Options["MultiPV"] == 1
       && !Limits.depth
@@ -452,6 +450,9 @@ void MainThread::search() {
       longestPVThread = bestThread;
       if (bestThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies))
       {
+          const int maxScoreDiff = Eval::Tempo[rootPos.variant()];
+          const int maxDepthDiff = 2;
+
           // Select the best thread that meets the minimum move criteria
           // and is within the appropriate range of score eval
           for (Thread* th : Threads)
