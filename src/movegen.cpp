@@ -122,6 +122,19 @@ namespace {
         return moveList;
     }
 #endif
+#ifdef LOSERS
+    if (V == LOSERS_VARIANT)
+    {
+        if (Type == QUIETS || Type == CAPTURES || Type == NON_EVASIONS)
+        {
+            *moveList++ = make<PROMOTION>(to - D, to, QUEEN);
+            *moveList++ = make<PROMOTION>(to - D, to, ROOK);
+            *moveList++ = make<PROMOTION>(to - D, to, BISHOP);
+            *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
+        }
+        return moveList;
+    }
+#endif
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         *moveList++ = make<PROMOTION>(to - D, to, QUEEN);
 
