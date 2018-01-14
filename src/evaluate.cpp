@@ -694,6 +694,9 @@ namespace {
   const int RookSafeCheck   = 880;
   const int BishopSafeCheck = 435;
   const int KnightSafeCheck = 790;
+#ifdef CRAZYHOUSE
+  const int PawnSafeCheck   = 435;
+#endif
 #ifdef ATOMIC
   const int IndirectKingAttack = 883;
 #endif
@@ -970,6 +973,9 @@ namespace {
   Score Evaluation<T>::evaluate_king() {
 
     const Color     Them = (Us == WHITE ? BLACK : WHITE);
+#ifdef CRAZYHOUSE
+    const Direction Down = (Us == WHITE ? SOUTH : NORTH);
+#endif
     const Bitboard  Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                         : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
@@ -1055,6 +1061,20 @@ namespace {
             kingDanger += KnightSafeCheck;
         else
             unsafeChecks |= b & (attackedBy[Them][KNIGHT] | h);
+
+#ifdef CRAZYHOUSE
+        // Enemy pawn checks
+        if (pos.is_house())
+        {
+            b = pos.attacks_from<PAWN>(ksq, Us);
+            h = pos.count_in_hand<PAWN>(Them) ? ~pos.pieces() : 0;
+            Bitboard pawn_moves = (attackedBy[Them][PAWN] & pos.pieces(Us)) | (shift<Down>(pos.pieces(Them, PAWN)) & ~pos.pieces());
+            if (b & ((pawn_moves & safe) | (h & dropSafe)))
+                kingDanger += PawnSafeCheck;
+            else
+                unsafeChecks |=  b & (pawn_moves | h);
+        }
+#endif
 
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
