@@ -400,11 +400,11 @@ enum Value : int {
   QueenValueMgHill  = 2104,  QueenValueEgHill  = 2402,
 #endif
 #ifdef LOSERS
-  PawnValueMgLosers   = -41,   PawnValueEgLosers   = -23,
-  KnightValueMgLosers = -22,   KnightValueEgLosers = 329,
-  BishopValueMgLosers = -219,  BishopValueEgLosers = 231,
-  RookValueMgLosers   = -457,  RookValueEgLosers   = 77,
-  QueenValueMgLosers  = -122,  QueenValueEgLosers  = -213,
+  PawnValueMgLosers   = -40,   PawnValueEgLosers   = -25,
+  KnightValueMgLosers = -23,   KnightValueEgLosers = 369,
+  BishopValueMgLosers = -206,  BishopValueEgLosers = 245,
+  RookValueMgLosers   = -415,  RookValueEgLosers   = 80,
+  QueenValueMgLosers  = -111,  QueenValueEgLosers  = -209,
 #endif
 #ifdef RACE
   KnightValueMgRace = 777,   KnightValueEgRace = 881,
