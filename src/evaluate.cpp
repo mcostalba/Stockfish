@@ -1432,7 +1432,8 @@ namespace {
         {
             int dist = distance(ksq, center[i])
                       + popcount(pos.attackers_to(center[i]) & pos.pieces(Them))
-                      + popcount(pos.pieces(Us) & center[i]) ;
+                      + !!(pos.pieces(Us) & center[i])
+                      + !!(shift<Up>(pos.pieces(Us, PAWN) & center[i]) & pos.pieces(Them, PAWN));
             assert(dist > 0);
             score += KothDistanceBonus[std::min(dist - 1, 5)];
         }
