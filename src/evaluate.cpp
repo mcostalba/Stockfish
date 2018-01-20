@@ -1230,13 +1230,10 @@ namespace {
             Bitboard blast = (pos.attacks_from<KING>(s) & (pos.pieces() ^ pos.pieces(PAWN))) | s;
             int count = popcount(blast & pos.pieces(Them)) - popcount(blast & pos.pieces(Us)) - 1;
             if (blast & pos.pieces(Them, QUEEN))
-               count += 2;
-            if (blast & pos.pieces(Us, QUEEN))
-               count -= 2;
-            else if ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us])
+                count++;
+            if ((blast & pos.pieces(Us, QUEEN)) || ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us]))
                 count--;
-            if (count > 0)
-                score += ThreatByBlast * count;
+            score += std::max(SCORE_ZERO, ThreatByBlast * count);
         }
     }
     else
