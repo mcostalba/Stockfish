@@ -59,6 +59,9 @@ using namespace Search;
 
 namespace {
 
+  // Time threshold for printing upperbound/lowerbound info
+  const int PV_MIN_ELAPSED = 2500;
+
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV };
 
@@ -611,7 +614,7 @@ void Thread::search() {
               if (   mainThread
                   && multiPV == 1
                   && (bestValue <= alpha || bestValue >= beta)
-                  && Time.elapsed() > 3000)
+                  && Time.elapsed() > PV_MIN_ELAPSED)
                   sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
 
               // In case of failing low/high increase aspiration window and
@@ -641,7 +644,7 @@ void Thread::search() {
           std::stable_sort(rootMoves.begin(), rootMoves.begin() + PVIdx + 1);
 
           if (    mainThread
-              && (Threads.stop || PVIdx + 1 == multiPV || Time.elapsed() > 3000))
+              && (Threads.stop || PVIdx + 1 == multiPV || Time.elapsed() > PV_MIN_ELAPSED))
               sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
       }
 
@@ -1105,7 +1108,7 @@ moves_loop: // When in check search starts from here
 
       ss->moveCount = ++moveCount;
 #ifdef PRINTCURRMOVE
-      if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
+      if (rootNode && thisThread == Threads.main() && Time.elapsed() > PV_MIN_ELAPSED)
           sync_cout << "info depth " << depth / ONE_PLY
                     << " currmove " << UCI::move(move, pos.is_chess960())
                     << " currmovenumber " << moveCount + thisThread->PVIdx << sync_endl;
