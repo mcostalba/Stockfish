@@ -56,7 +56,7 @@ namespace {
     S(30, 27),
 #endif
 #ifdef LOSERS
-    S(54, 69),
+    S(53, 69),
 #endif
 #ifdef RACE
     S(0, 0),
@@ -97,7 +97,7 @@ namespace {
     S(41, 19),
 #endif
 #ifdef LOSERS
-    S(26, 50),
+    S(26, 49),
 #endif
 #ifdef RACE
     S(0, 0),
@@ -141,7 +141,7 @@ namespace {
     S(18, 38),
 #endif
 #ifdef LOSERS
-    S( 4, 51),
+    S( 4, 54),
 #endif
 #ifdef RACE
     S( 0,  0),
@@ -674,7 +674,7 @@ void init() {
     { 0, 8, 19, 13, 71, 94, 169, 324 },
 #endif
 #ifdef LOSERS
-    { 0, 8, 19, 13, 71, 94, 169, 324 },
+    { 0, 8, 20, 11, 69, 91, 183, 310 },
 #endif
 #ifdef RACE
     {},
