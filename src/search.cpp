@@ -70,44 +70,43 @@ namespace {
   const int skipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
   // Razoring and futility margin based on depth
-  // razor_margin[0] is unused as long as depth >= ONE_PLY in search
-  const int razor_margin[VARIANT_NB][4] = {
-  { 0, 570, 603, 554 },
+  const int razor_margin[VARIANT_NB] = {
+  600,
 #ifdef ANTI
-  { 0, 2201, 2334, 2407 },
+  2334,
 #endif
 #ifdef ATOMIC
-  { 0, 2341, 2501, 2218 },
+  2501,
 #endif
 #ifdef CRAZYHOUSE
-  { 0, 590, 651, 622 },
+  651,
 #endif
 #ifdef EXTINCTION
-  { 0, 570, 603, 554 },
+  603,
 #endif
 #ifdef GRID
-  { 0, 593, 601, 517 },
+  601,
 #endif
 #ifdef HORDE
-  { 0, 706, 625, 555 },
+  625,
 #endif
 #ifdef KOTH
-  { 0, 587, 676, 582 },
+  676,
 #endif
 #ifdef LOSERS
-  { 0, 2335, 2351, 2142 },
+  2351,
 #endif
 #ifdef RACE
-  { 0, 1016, 1004, 1012 },
+  1004,
 #endif
 #ifdef RELAY
-  { 0, 570, 603, 554 },
+  603,
 #endif
 #ifdef THREECHECK
-  { 0, 2060, 2257, 2174 },
+  2257,
 #endif
 #ifdef TWOKINGS
-  { 0, 570, 603, 554 },
+  603,
 #endif
   };
   const int futility_margin_factor[VARIANT_NB] = {
@@ -149,7 +148,6 @@ namespace {
   150,
 #endif
   };
-  Value futility_margin(Variant var, Depth d) { return Value(futility_margin_factor[var] * d / ONE_PLY); }
   const int futility_margin_parent[VARIANT_NB][2] = {
   { 256, 200 },
 #ifdef ANTI
@@ -228,6 +226,7 @@ namespace {
   200,
 #endif
   };
+  Value futility_margin(Variant var, Depth d) { return Value(futility_margin_factor[var] * d / ONE_PLY); }
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[VARIANT_NB][2][16]; // [improving][depth]
@@ -945,12 +944,12 @@ namespace {
     // Step 6. Razoring (skipped when in check)
     if (   !PvNode
         &&  depth < 4 * ONE_PLY
-        &&  eval + razor_margin[pos.variant()][depth / ONE_PLY] <= alpha)
+        &&  eval + razor_margin[pos.variant()] <= alpha)
     {
         if (depth <= ONE_PLY)
             return qsearch<NonPV, false>(pos, ss, alpha, alpha+1);
 
-        Value ralpha = alpha - razor_margin[pos.variant()][depth / ONE_PLY];
+        Value ralpha = alpha - razor_margin[pos.variant()];
         Value v = qsearch<NonPV, false>(pos, ss, ralpha, ralpha+1);
         if (v <= ralpha)
             return v;
@@ -1631,7 +1630,6 @@ moves_loop: // When in check search starts from here
 
       // Don't search moves with negative SEE values
       if (  (!InCheck || evasionPrunable)
-          &&  type_of(move) != PROMOTION
           &&  !pos.see_ge(move))
           continue;
 
