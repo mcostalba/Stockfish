@@ -1434,14 +1434,14 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth())
     {
-        Square ksq = pos.square<KING>(Us);
-        Square center[4] = {SQ_E4, SQ_D4, SQ_D5, SQ_E5};
-        for (int i = 0; i<4; i++)
+        Bitboard center = Center;
+        while (center)
         {
-            int dist = distance(ksq, center[i])
-                      + popcount(pos.attackers_to(center[i]) & pos.pieces(Them))
-                      + !!(pos.pieces(Us) & center[i])
-                      + !!(shift<Up>(pos.pieces(Us, PAWN) & center[i]) & pos.pieces(Them, PAWN));
+            Square s = pop_lsb(&center);
+            int dist = distance(pos.square<KING>(Us), s)
+                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
+                      + !!(pos.pieces(Us) & s)
+                      + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
             assert(dist > 0);
             score += KothDistanceBonus[std::min(dist - 1, 5)];
         }
