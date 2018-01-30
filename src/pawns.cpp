@@ -157,12 +157,6 @@ namespace {
 #endif
   };
 
-  // Lever bonus by rank
-  const Score Lever[RANK_NB] = {
-    S( 0,  0), S( 0,  0), S(0, 0), S(0, 0),
-    S(17, 16), S(33, 32), S(0, 0), S(0, 0)
-  };
-
   // Weakness of our pawn shelter in front of the king by [isKingFile][distance from edge][rank].
   // RANK_1 = 0 is used for files where we have no pawns or our pawn is behind our king.
   const Value ShelterWeakness[VARIANT_NB][2][int(FILE_NB) / 2][RANK_NB] = {
@@ -632,9 +626,6 @@ namespace {
         if (doubled && !supported)
 #endif
             score -= Doubled[pos.variant()];
-
-        if (lever)
-            score += Lever[relative_rank(Us, s)];
     }
 
     return score;
