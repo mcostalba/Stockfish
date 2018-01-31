@@ -111,10 +111,10 @@ public:
 
 } // namespace
 
-/// engine_info() returns the full name of the current Stockfish version. This
-/// will be either "Stockfish <Tag> DD-MM-YY" (where DD-MM-YY is the date when
-/// the program was compiled) or "Stockfish <Version>", depending on whether
-/// Version is empty.
+/// engine_info() returns the full name of the current Stockfish version.
+/// This will be either "Stockfish <Tag> YYYY-MM-DD" (where YYYY-MM-DD is the
+/// date when the program was compiled) or "Stockfish <Version>", depending on
+/// whether Version is empty.
 
 const string engine_info(bool to_uci) {
 
@@ -127,7 +127,9 @@ const string engine_info(bool to_uci) {
   if (Version.empty())
   {
       date >> month >> day >> year;
-      ss << setw(2) << day << setw(2) << (1 + months.find(month) / 4) << year.substr(2);
+      ss << year << "-"
+         << setw(2) << (1 + months.find(month) / 4) << "-"
+         << setw(2) << day;
   }
 
   ss << (Is64Bit ? " 64" : "")
