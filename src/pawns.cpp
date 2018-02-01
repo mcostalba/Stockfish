@@ -561,6 +561,11 @@ namespace {
         stoppers   = theirPawns & passed_pawn_mask(Us, s);
         lever      = theirPawns & PawnAttacks[Us][s];
         leverPush  = theirPawns & PawnAttacks[Us][s + Up];
+#ifdef HORDE
+        if (pos.is_horde() && relative_rank(Us, s) == RANK_1)
+            doubled = 0;
+        else
+#endif
         doubled    = ourPawns   & (s - Up);
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
