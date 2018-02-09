@@ -1611,6 +1611,9 @@ moves_loop: // When in check search starts from here
       // Futility pruning
       if (   !InCheck
           && !givesCheck
+#ifdef EXTINCTION
+          && !pos.is_extinction()
+#endif
 #ifdef RACE
           && !(pos.is_race() && type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8)
 #endif
