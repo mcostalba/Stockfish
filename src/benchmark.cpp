@@ -244,7 +244,10 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #ifdef RACE
   {
     "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1",
-    "8/k5K1/1r4Q1/2n2R2/8/8/6B1/8 w - - 4 16"
+    "8/8/8/2r5/3N1K2/7Q/kqNn2B1/1r1nR3 b - - 4 8",
+    "8/6R1/qr3Q2/1k6/4bK2/8/1n1nN1B1/1r2N1R1 w - - 0 9",
+    "8/k5K1/1r4Q1/2n2R2/8/8/6B1/8 w - - 4 16",
+    "1r6/3R4/1k2N2q/2N1K3/5R2/8/8/8 b - - 11 20"
   },
 #endif
 #ifdef RELAY

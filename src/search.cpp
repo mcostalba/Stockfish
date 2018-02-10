@@ -97,7 +97,7 @@ namespace {
   2351,
 #endif
 #ifdef RACE
-  1004,
+  1029,
 #endif
 #ifdef RELAY
   603,
@@ -175,7 +175,7 @@ namespace {
   { 299, 281 },
 #endif
 #ifdef RACE
-  { 305, 311 },
+  { 304, 315 },
 #endif
 #ifdef RELAY
   { 256, 200 },
@@ -214,7 +214,7 @@ namespace {
   200,
 #endif
 #ifdef RACE
-  235,
+  242,
 #endif
 #ifdef RELAY
   200,
