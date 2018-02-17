@@ -1484,6 +1484,9 @@ namespace {
                 ebonus +=  distance(pos.square<KING>(Them), blockSq) * 5 * rr;
             else
 #endif
+#ifdef GRID
+            if (pos.is_grid()) {} else
+#endif
             {
             // Adjust bonus based on the king's proximity
             ebonus += (king_distance(Them, blockSq) * 5 - king_distance(Us, blockSq) * 2) * rr;
