@@ -1391,6 +1391,34 @@ namespace {
     score += ThreatByAttackOnQueen * popcount(b & safeThreats);
     }
 
+#ifdef RACE
+    if (pos.is_race())
+    {
+        Square ksq = pos.square<KING>(Us);
+        int s = relative_rank(BLACK, ksq);
+        for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
+            if (!(rank_bb(r) & DistanceRingBB[ksq][r - 1 - kr] & ~attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
+                s++;
+        score += KingRaceBonus[std::min(s, 7)];
+    }
+#endif
+#ifdef KOTH
+    if (pos.is_koth())
+    {
+        Bitboard center = Center;
+        while (center)
+        {
+            Square s = pop_lsb(&center);
+            int dist = distance(pos.square<KING>(Us), s)
+                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
+                      + !!(pos.pieces(Us) & s)
+                      + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
+            assert(dist > 0);
+            score += KothDistanceBonus[std::min(dist - 1, 5)];
+        }
+    }
+#endif
+
     if (T)
         Trace::add(THREAT, Us, score);
 
@@ -1416,37 +1444,8 @@ namespace {
     Bitboard b, bb, squaresToQueen, defendedSquares, unsafeSquares;
     Score score = SCORE_ZERO;
 
-#ifdef RACE
-    if (pos.is_race())
-    {
-        Square ksq = pos.square<KING>(Us);
-        int s = relative_rank(BLACK, ksq);
-        for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
-            if (!(rank_bb(r) & DistanceRingBB[ksq][r - 1 - kr] & ~attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
-                s++;
-        score = KingRaceBonus[std::min(s, 7)];
-    }
-    else
-    {
-#endif
     b = pe->passed_pawns(Us);
 
-#ifdef KOTH
-    if (pos.is_koth())
-    {
-        Bitboard center = Center;
-        while (center)
-        {
-            Square s = pop_lsb(&center);
-            int dist = distance(pos.square<KING>(Us), s)
-                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
-                      + !!(pos.pieces(Us) & s)
-                      + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
-            assert(dist > 0);
-            score += KothDistanceBonus[std::min(dist - 1, 5)];
-        }
-    }
-#endif
     while (b)
     {
         Square s = pop_lsb(&b);
@@ -1535,9 +1534,6 @@ namespace {
 
         score += make_score(mbonus, ebonus) + PassedFile[file_of(s)];
     }
-#ifdef RACE
-    }
-#endif
 
     if (T)
         Trace::add(PASSED, Us, score);

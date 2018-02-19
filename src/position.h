@@ -554,10 +554,6 @@ inline Bitboard Position::check_squares(PieceType pt) const {
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
-#ifdef RACE
-  if (is_race())
-    return true;
-#endif
 #ifdef HORDE
   if (is_horde() && is_horde_color(c))
       return !(pieces(~c, PAWN) & forward_file_bb(c, s));
