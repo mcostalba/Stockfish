@@ -1,117 +1,119 @@
-# Generated with 'git shortlog -sn | cut -c8-', which sorts by commits, manually ordered the first four authors, merged duplicates
+# List of authors for Stockfish, updated just after version 9
 
-Tord Romstad
+Tord Romstad (romstad)
 Marco Costalba (mcostalba)
 Joona Kiiski (zamar)
 Gary Linscott (glinscott)
-Daniel Dugovic (ddugovic)
-Fabian Fichter (ianfab)
-Lucas Braesch (lucasart)
-Bill Henry (VoyagerOne)
-Niklas Fiekas (niklasf)
-Michael Stembera (mstembera, Fisherman)
-Joost VandeVondele (Joost Vandevondele)
-Stéphane Nicolet (Stephane Nicolet, snicolet)
-Stefan Geschwentner
-Alain SAVARD (Rocky640)
-Jörg Oster (Joerg Oster, joergoster)
-Reuven Peleg
-Chris Cain (Chris Caino, ceebo)
-Stefano Cardanobile (Stefano80)
-Lakin Wecker
-Jean-Francois Romang
-homoSapiensSapiens
-Leonid Pechenik
-Arjun Temurnikar
-Uri Blass (uriblass)
-hxim
-jundery
-ElbertoOne
-Ajith (ajithcj)
-Jonathan Calovski (Mysseno)
-Ralph Stößer (Ralph Stoesser)
-mbootsector
-Guenther Demetz
-Tom Vijlbrief
-loco-loco
-sf-x
-Daylen Yang
-Henri Wiechers
-Aram Tumanian
-Isaac Levy
-Ronald de Man (syzygy)
-DU-jdto
-David Zar
-Eelco de Groot
-Jerry Donald
-NicklasPersson
-Ryan Schmitt
-ThyChief
-erbsenzaehler
-pb00068
+
+absimaldata
+Ajith Chandy Jose (ajithcj)
+Alain Savard (Rocky640)
 Alexander Kure
-Andrew Grant
-Dan Schmidt
-H. Felix Wittmann
-Ivan Ivec (IIvec)
-Jacques
-Joseph R. Prostko
-Justin Blanchard
-Linus Arver
-Luca Brivio
-Lyudmil Antonov
-Miroslav Fontán
-Rodrigo Exterckötter Tjäder
-Ron Britvich
-RyanTaker
-Vince Negri
-atumanian
-gamander
-Joseph Hellis (jhellis3)
-Pasquale Pigazzini (ppigazzini)
-shane31
-torfranz
-user
-Andrey Neporada
+Ali AlZhrani (Cooffe)
+Andrew Grant (AndyGrant)
+Andrey Neporada (nepal)
 Andy Duplain
+Aram Tumanian (atumanian)
+Arjun Temurnikar
 Auguste Pop
 Balint Pfliegel
+Ben Koshy (BKSpurgeon)
+Bill Henry (VoyagerOne)
+braich
+Brian Sheppard (SapphireBrand)
+Bryan Cross (crossbr)
+Chris Cain (ceebo)
+Dan Schmidt
+Daniel Dugovic (ddugovic)
 Dariusz Orzechowski
+David Zar
+Daylen Yang (daylen)
 DiscanX
+Eelco de Groot
+ElbertoOne
+erbsenzaehler
 Ernesto Gatti
-Fabian Beuke
-FauziAkram
+Fabian Beuke (madnight)
+Fabian Fichter (ianfab)
+fanon
+Fauzi Akram Dabat (FauziAkram)
+Felix Wittmann
+gamander
+gguliash
+Gian-Carlo Pascutto (gcp)
+Gontran Lemaire (gonlem)
+Goodkov Vasiliy Aleksandrovich (goodkov)
 Gregor Cramer
-GuardianRM
+Günther Demetz (pb00067, pb00068)
+Guy Vreuls (gvreuls)
+Henri Wiechers
 Hiraoka Takuya (HiraokaTakuya)
+homoSapiensSapiens
 Hongzhi Cheng
+Ivan Ivec (IIvec)
+Jacques B. (Timshel)
+Jan Ondruš (hxim)
+Jarrod Torriero (DU-jdto)
+Jean-Francois Romang
+Jerry Donald Watson (jerrydonaldwatson)
+Jonathan Calovski (jcalovski)
+Jonathan Calovski (Mysseno)
+Joost VandeVondele (vondele)
+Jörg Oster (joergoster)
+Joseph Hellis (jhellis3)
+Joseph R. Prostko
+jundery
+Justin Blanchard
 Kelly Wilson
-Ken T Takusagawa
+Ken Takusagawa
+kinderchocolate
+Kiran Panditrao (Krgp)
 Kojirion
-Krgp
-Matt Sullivan
+Leonardo Ljubičić (GM)
+Leonid Pechenik (lp--)
+Linus Arver
+loco-loco
+Luca Brivio (lucabrivio)
+Lucas Braesch (lucasart)
+Lyudmil Antonov (lantonov)
+Mathew Lai (matthewlai)
 Matthew Lai
 Matthew Sullivan
-Michael Byrne
-Michel Van den Bergh
-Mira
+mbootsector
+Michael Byrne (MichaelB7)
+Michael Stembera (mstembera)
+Michel Van den Bergh (vdbergh)
+Mike Whiteley (protonspring)
+Miroslav Fontán (Hexik)
+Mohammed Li (tthsqe12)
+Nathan Rugg (nmrugg)
+Nicklas Persson (NicklasPersson)
+Niklas Fiekas (niklasf)
 Oskar Werkelin Ahlin
 Pablo Vazquez
 Pascal Romaret
-Raminder Singh
-Richard Lloyd
-Ryan Takker
-Sergei Antonov
-Thanar2
-absimaldata
-alwey
-braich
-fanon
-gguliash
-goodkov
-kinderchocolate
+Pasquale Pigazzini (ppigazzini)
+Patrick Jansen (mibere)
 pellanda
+Ralph Stößer (Ralph Stoesser)
+Raminder Singh
 renouve
+Reuven Peleg
+Richard Lloyd
+Rodrigo Exterckötter Tjäder
+Ron Britvich
+Ronald de Man (syzygy1)
+Ryan Schmitt
+Ryan Takker
+Sergei Antonov (saproj)
+sf-x
+shane31
+Stefan Geschwentner (locutus2)
+Stefano Cardanobile (Stefano80)
+Stéphane Nicolet (snicolet)
+Thanar2
 thaspel
-theo77186
-unknown
+Tom Vijlbrief (tomtor)
+Torsten Franz (torfranz)
+Uri Blass (uriblass)
+Vince Negri
