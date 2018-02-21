@@ -1409,6 +1409,9 @@ namespace {
 
         Score bonus = PassedRank[pos.variant()][r];
 
+#ifdef GRID
+        if (pos.is_grid()) {} else
+#endif
         if (w)
         {
             Square blockSq = s + Up;
@@ -1430,9 +1433,6 @@ namespace {
             if (pos.is_atomic())
                 bonus += make_score(0, king_proximity(Them, blockSq) * 5 * w);
             else
-#endif
-#ifdef GRID
-            if (pos.is_grid()) {} else
 #endif
             {
             // Adjust bonus based on the king's proximity
