@@ -2056,6 +2056,11 @@ bool Position::see_ge(Move m, Value threshold) const {
       //
       assert(balance < VALUE_ZERO);
 
+#ifdef HORDE
+      if (is_horde() && nextVictim == KING)
+          balance = -balance - 1;
+      else
+#endif
       balance = -balance - 1 - PieceValue[var][MG][nextVictim];
 
       // If balance is still non-negative after giving away nextVictim then we
