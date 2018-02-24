@@ -151,6 +151,9 @@ namespace {
 
     // Knight promotion is the only promotion that can give a direct check
     // that's not already included in the queen promotion.
+#ifdef HORDE
+    if (V == HORDE_VARIANT && ksq == SQ_NONE) {} else
+#endif
     if (Type == QUIET_CHECKS && (PseudoAttacks[KNIGHT][to] & ksq))
         *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
     else
@@ -294,7 +297,13 @@ namespace {
         Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
         Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
 
-        Square ksq = pos.square<KING>(Them);
+        Square ksq;
+#ifdef HORDE
+        if (V == HORDE_VARIANT && pos.is_horde_color(Them))
+            ksq = SQ_NONE;
+        else
+#endif
+        ksq = pos.square<KING>(Them);
 
         while (b1)
             moveList = make_promotions<V, Type, UpRight>(moveList, pop_lsb(&b1), ksq);
@@ -446,6 +455,9 @@ namespace {
         }
     }
     else
+#endif
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Us)) {} else
 #endif
 #ifdef TWOKINGS
     if (V == TWOKINGS_VARIANT && Type != EVASIONS)
@@ -617,6 +629,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 #endif
 #ifdef EXTINCTION
   if (pos.is_extinction())
+      return moveList;
+#endif
+#ifdef HORDE
+  if (pos.is_horde() && pos.is_horde_color(~pos.side_to_move()))
       return moveList;
 #endif
 #ifdef LOSERS
@@ -855,7 +871,13 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #ifdef TWOKINGS
   if (pos.is_two_kings()) validate = true;
 #endif
-  Square ksq = pos.square<KING>(pos.side_to_move());
+  Square ksq;
+#ifdef HORDE
+  if (pos.is_horde() && pos.is_horde_color(pos.side_to_move()))
+      ksq = SQ_NONE;
+  else
+#endif
+  ksq = pos.square<KING>(pos.side_to_move());
   ExtMove* cur = moveList;
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);

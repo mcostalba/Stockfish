@@ -736,6 +736,11 @@ namespace {
         mobilityArea[Us] = ~0;
     else
 #endif
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Us))
+        mobilityArea[Us] = ~(b | pe->pawn_attacks(Them));
+    else
+#endif
     mobilityArea[Us] = ~(b | pos.square<KING>(Us) | pe->pawn_attacks(Them));
 
     // Initialise the attack bitboards with the king and pawn information
@@ -759,6 +764,11 @@ namespace {
     }
     else
 #endif
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Us))
+        attackedBy[Us][KING] = 0;
+    else
+#endif
     // Initialise attackedBy bitboards for kings and pawns
     attackedBy[Us][KING] = pos.attacks_from<KING>(pos.square<KING>(Us));
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
@@ -772,6 +782,9 @@ namespace {
 #endif
 #ifdef EXTINCTION
         !pos.is_extinction() &&
+#endif
+#ifdef HORDE
+        !(pos.is_horde() && pos.is_horde_color(Us)) &&
 #endif
         (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
 #ifdef CRAZYHOUSE
@@ -846,7 +859,8 @@ namespace {
             continue;
 #endif
 #ifdef HORDE
-        if (pos.is_horde() && pos.is_horde_color(Us)) {} else
+        if (pos.is_horde() && pos.is_horde_color(Us))
+            continue;
 #endif
         // Penalty if the piece is far from the king
         score -= KingProtector[Pt - 2] * distance(s, pos.square<KING>(Us));
@@ -935,6 +949,10 @@ namespace {
 #endif
 #ifdef EXTINCTION
     if (pos.is_extinction())
+        return SCORE_ZERO;
+#endif
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Us))
         return SCORE_ZERO;
 #endif
 #ifdef RACE
@@ -1605,6 +1623,14 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic()) {} else
 #endif
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(~strongSide))
+    {
+        if (pos.non_pawn_material(~strongSide) >= QueenValueMg)
+            sf = ScaleFactor(10);
+    }
+    else
+#endif
     if (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
     {
         if (pos.opposite_bishops())
@@ -1627,12 +1653,6 @@ namespace {
                  && !pos.pawn_passed(~strongSide, pos.square<KING>(~strongSide)))
             sf = 37 + 7 * pos.count<PAWN>(strongSide);
     }
-#ifdef HORDE
-    if (   pos.is_horde()
-        && pos.non_pawn_material(pos.is_horde_color(WHITE) ? WHITE : BLACK) >= QueenValueMg
-        && !pos.is_horde_color(strongSide))
-        sf = ScaleFactor(10);
-#endif
 
     return ScaleFactor(sf);
   }

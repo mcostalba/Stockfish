@@ -293,6 +293,10 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   {
       Square rsq;
       Color c = islower(token) ? BLACK : WHITE;
+#ifdef HORDE
+      if (is_horde() && is_horde_color(c))
+          continue;
+#endif
       Rank rank = relative_rank(c, RANK_1);
       Square ksq = square<KING>(c);
 #ifdef ANTI
@@ -470,11 +474,32 @@ void Position::set_check_info(StateInfo* si) const {
   }
   else
 #endif
+#ifdef HORDE
+  if (is_horde())
+  {
+      si->blockersForKing[WHITE] = si->pinnersForKing[WHITE] = is_horde_color(WHITE)
+          ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinnersForKing[WHITE]);
+      si->blockersForKing[BLACK] = si->pinnersForKing[BLACK] = is_horde_color(BLACK)
+          ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinnersForKing[BLACK]);
+  }
+  else
+#endif
   {
   si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinnersForKing[WHITE]);
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinnersForKing[BLACK]);
   }
 
+#ifdef HORDE
+  if (is_horde() && is_horde_color(~sideToMove)) {
+  si->checkSquares[PAWN]   = 0;
+  si->checkSquares[KNIGHT] = 0;
+  si->checkSquares[BISHOP] = 0;
+  si->checkSquares[ROOK]   = 0;
+  si->checkSquares[QUEEN]  = 0;
+  si->checkSquares[KING]   = 0;
+  return;
+  }
+#endif
   Square ksq = square<KING>(~sideToMove);
 #ifdef ANTI
   if (is_anti()) { // There are no checks in antichess
@@ -505,17 +530,6 @@ void Position::set_check_info(StateInfo* si) const {
   si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq) & ~grid_bb(ksq);
   si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq) & ~grid_bb(ksq);
   si->checkSquares[QUEEN]  = (si->checkSquares[BISHOP] | si->checkSquares[ROOK]) & ~grid_bb(ksq);
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
-#ifdef HORDE
-  if (is_horde() && is_horde_color(~sideToMove)) {
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
   si->checkSquares[KING]   = 0;
   return;
   }
@@ -2145,7 +2159,17 @@ bool Position::pos_is_ok() const {
 
   const bool Fast = true; // Quick (default) or full check?
 
-  Square wksq = square<KING>(WHITE), bksq = square<KING>(BLACK);
+  Square wksq, bksq;
+#ifdef HORDE
+  if (is_horde())
+  {
+      wksq = is_horde_color(WHITE) ? SQ_NONE : square<KING>(WHITE);
+      bksq = is_horde_color(BLACK) ? SQ_NONE : square<KING>(BLACK);
+  }
+  else
+#endif
+  wksq = square<KING>(WHITE), bksq = square<KING>(BLACK);
+
 #ifdef ANTI
   if (is_anti())
   {
