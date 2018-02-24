@@ -71,7 +71,7 @@ namespace {
 
   // Razoring and futility margins
   const int RazorMargin[VARIANT_NB] = {
-  600,
+  590,
 #ifdef ANTI
   2334,
 #endif
@@ -958,7 +958,7 @@ namespace {
 
     // Step 7. Razoring (skipped when in check)
     if (   !PvNode
-        &&  depth < 4 * ONE_PLY
+        &&  depth < 3 * ONE_PLY
         &&  eval + RazorMargin[pos.variant()] <= alpha)
     {
         if (depth <= ONE_PLY)
