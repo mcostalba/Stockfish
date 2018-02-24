@@ -2056,8 +2056,18 @@ bool Position::see_ge(Move m, Value threshold) const {
       //
       assert(balance < VALUE_ZERO);
 
+#ifdef EXTINCTION
+      if (is_extinction() && !(pieces(~stm, nextVictim) & occupied))
+          balance = -balance - 1;
+      else
+#endif
 #ifdef HORDE
       if (is_horde() && nextVictim == KING)
+          balance = -balance - 1;
+      else
+#endif
+#ifdef TWOKINGS
+      if (is_two_kings() && nextVictim == KING && !(pieces(~stm, KING) & occupied))
           balance = -balance - 1;
       else
 #endif
@@ -2071,14 +2081,30 @@ bool Position::see_ge(Move m, Value threshold) const {
 #ifdef ANTI
           if (is_anti()) {} else
 #endif
+#ifdef EXTINCTION
+          if (is_extinction())
+          {
+              if (!(pieces(~stm, nextVictim) & occupied) && (attackers & pieces(stm)))
+                  stm = ~stm;
+          }
+          else
+#endif
+#ifdef TWOKINGS
+          if (is_two_kings() && nextVictim == KING)
+          {
+              if (!(pieces(~stm, KING) & occupied) && (attackers & pieces(stm)))
+                  stm = ~stm;
+          }
+          else
+#endif
           if (nextVictim == KING && (attackers & pieces(stm)))
               stm = ~stm;
           break;
       }
 #ifdef ANTI
-      assert(is_anti() || nextVictim != KING);
+      assert(is_anti() || nextVictim != KING || (pieces(~stm, KING) & occupied));
 #else
-      assert(nextVictim != KING);
+      assert(nextVictim != KING || (pieces(~stm, KING) & occupied));
 #endif
   }
   return us != stm; // We break the above loop when stm loses
