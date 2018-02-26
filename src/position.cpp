@@ -1942,6 +1942,40 @@ bool Position::see_ge(Move m, Value threshold) const {
   Color us = color_of(piece_on(from));
 #endif
   Color stm = ~us; // First consider opponent's move
+#ifdef ATOMIC
+  if (is_atomic())
+  {
+      if (capture(m))
+          return see<ATOMIC_VARIANT>(m) >= threshold + 1;
+      if (threshold > VALUE_ZERO)
+          return false;
+
+      Bitboard occupied = pieces() ^ from;
+      stmAttackers = attackers_to(to, occupied) & occupied & pieces(stm) & ~pieces(KING);
+
+      // Loop over attacking pieces
+      while (stmAttackers)
+      {
+          Square s = pop_lsb(&stmAttackers);
+          Value blastEval = VALUE_ZERO;
+          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from] & ~SquareBB[s];
+
+          if (blast & pieces(~us,KING))
+              continue;
+          if (blast & pieces(us,KING))
+              return false;
+          for (Color c = WHITE; c <= BLACK; ++c)
+              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
+                  if (c == us)
+                      blastEval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
+                  else
+                      blastEval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
+          if (blastEval + PieceValue[var][MG][piece_on(s)] - PieceValue[var][MG][moved_piece(m)] < threshold)
+              return false;
+      }
+      return true;
+  }
+#endif
 #ifdef EXTINCTION
   // Is it a winning capture?
   if (is_extinction() && piece_on(to) != NO_PIECE && !more_than_one(pieces(color_of(piece_on(to)), type_of(piece_on(to)))))
@@ -1951,11 +1985,6 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   // The opponent may be able to recapture so this is the best result
   // we can hope for.
-#ifdef ATOMIC
-  if (is_atomic())
-      balance = VALUE_ZERO;
-  else
-#endif
   balance = PieceValue[var][MG][piece_on(to)]- threshold;
 
   if (balance < VALUE_ZERO)
@@ -1974,40 +2003,6 @@ bool Position::see_ge(Move m, Value threshold) const {
   // Find all attackers to the destination square, with the moving piece
   // removed, but possibly an X-ray attacker added behind it.
   Bitboard occupied;
-#ifdef ATOMIC
-  if (is_atomic())
-  {
-      if (capture(m))
-          return see<ATOMIC_VARIANT>(m) >= threshold + 1;
-      if (threshold > VALUE_ZERO)
-          return false;
-
-      occupied = pieces() ^ from;
-      stmAttackers = attackers_to(to, occupied) & occupied & pieces(stm) & ~pieces(KING);
-
-      // Loop over attacking pieces
-      while (stmAttackers)
-      {
-          Square s = pop_lsb(&stmAttackers);
-          Value blastEval = VALUE_ZERO;
-          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from] & ~SquareBB[s];
-
-          if (blast & pieces(us,KING))
-              continue;
-          if (blast & pieces(stm,KING))
-              return false;
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-                  if (c == us)
-                      blastEval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-                  else
-                      blastEval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-          if (blastEval + PieceValue[var][MG][piece_on(s)] - PieceValue[var][MG][moved_piece(m)] < threshold)
-              return false;
-      }
-      return true;
-  }
-#endif
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
       occupied = pieces() ^ to;
