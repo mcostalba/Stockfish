@@ -833,7 +833,7 @@ namespace {
         if (pos.is_grid())
             b &= ~pos.grid_bb(s);
 #endif
-        if (pos.pinned_pieces(Us) & s)
+        if (pos.blockers_for_king(Us) & s)
             b &= LineBB[pos.square<KING>(Us)][s];
 
         attackedBy2[Us] |= attackedBy[Us][ALL_PIECES] & b;
@@ -927,8 +927,8 @@ namespace {
         if (Pt == QUEEN)
         {
             // Penalty if any relative pin or discovered attack against the queen
-            Bitboard pinners;
-            if (pos.slider_blockers(pos.pieces(Them, ROOK, BISHOP), s, pinners))
+            Bitboard queenPinners;
+            if (pos.slider_blockers(pos.pieces(Them, ROOK, BISHOP), s, queenPinners))
                 score -= WeakQueen;
         }
     }
@@ -965,7 +965,7 @@ namespace {
                                        : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard weak, b, b1, b2, safe, unsafeChecks;
+    Bitboard weak, b, b1, b2, safe, unsafeChecks, pinned;
 
     // King shelter and enemy pawns storm
     Score score = pe->king_safety<Us>(pos, ksq);
@@ -1067,12 +1067,13 @@ namespace {
         // Unsafe or occupied checking squares will also be considered, as long as
         // the square is in the attacker's mobility area.
         unsafeChecks &= mobilityArea[Them];
+        pinned = pos.blockers_for_king(Us) & pos.pieces(Us);
 
         const auto KDP = KingDangerParams[pos.variant()];
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
                      + KDP[0] * kingAdjacentZoneAttacksCount[Them]
                      + KDP[1] * popcount(kingRing[Us] & weak)
-                     + KDP[2] * popcount(pos.pinned_pieces(Us) | unsafeChecks)
+                     + KDP[2] * popcount(pinned | unsafeChecks)
                      + KDP[3] * !pos.count<QUEEN>(Them)
                      + KDP[4] * mg_value(score) / 8
                      + KDP[5];
@@ -1123,22 +1124,20 @@ namespace {
             score -= make_score(v, kingDanger / 16 + KDP[6] * v / 256);
         }
     }
+
+    Bitboard kf = KingFlank[file_of(ksq)];
+
     // Penalty when our king is on a pawnless flank
-    if (!(pos.pieces(PAWN) & KingFlank[file_of(ksq)]))
+    if (!(pos.pieces(PAWN) & kf))
         score -= PawnlessFlank;
 
-    // King tropism: firstly, find attacked squares in our king flank
-    b = attackedBy[Them][ALL_PIECES] & KingFlank[file_of(ksq)] & Camp;
+    // Find the squares that opponent attacks in our king flank, and the squares  
+    // which are attacked twice in that flank but not defended by our pawns.
+    b1 = attackedBy[Them][ALL_PIECES] & kf & Camp;
+    b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
 
-    assert(((Us == WHITE ? b << 4 : b >> 4) & b) == 0);
-    assert(popcount(Us == WHITE ? b << 4 : b >> 4) == popcount(b));
-
-    // Secondly, add the squares which are attacked twice in that flank and
-    // which are not defended by our pawns.
-    b =  (Us == WHITE ? b << 4 : b >> 4)
-       | (b & attackedBy2[Them] & ~attackedBy[Us][PAWN]);
-
-    score -= CloseEnemies[pos.variant()] * popcount(b);
+    // King tropism, to anticipate slow motion attacks on our king
+    score -= CloseEnemies[pos.variant()] * (popcount(b1) + popcount(b2));
 
     if (T)
         Trace::add(KING, Us, score);
@@ -1740,7 +1739,8 @@ namespace {
         Trace::add(TOTAL, score);
     }
 
-    return pos.side_to_move() == WHITE ? v : -v; // Side to move point of view
+    return  (pos.side_to_move() == WHITE ? v : -v) // Side to move point of view
+           + Eval::Tempo[pos.variant()];
   }
 
 } // namespace
@@ -1750,7 +1750,7 @@ namespace {
 /// evaluation of the position from the point of view of the side to move.
 
 Value Eval::evaluate(const Position& pos) {
-  return Evaluation<NO_TRACE>(pos).value() + Eval::Tempo[pos.variant()];
+  return Evaluation<NO_TRACE>(pos).value();
 }
 
 
@@ -1764,7 +1764,7 @@ std::string Eval::trace(const Position& pos) {
 
   Eval::Contempt = SCORE_ZERO; // Reset any dynamic contempt
 
-  Value v = Evaluation<TRACE>(pos).value() + Eval::Tempo[pos.variant()];
+  Value v = Evaluation<TRACE>(pos).value();
 
   v = pos.side_to_move() == WHITE ? v : -v; // Trace scores are from white's point of view
 

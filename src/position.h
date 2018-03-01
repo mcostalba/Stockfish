@@ -123,8 +123,7 @@ public:
   bool kings_adjacent() const;
 #endif
   Bitboard checkers() const;
-  Bitboard discovered_check_candidates() const;
-  Bitboard pinned_pieces(Color c) const;
+  Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
 
   // Attacks to/from a given square
@@ -539,12 +538,8 @@ inline Bitboard Position::checkers() const {
   return st->checkersBB;
 }
 
-inline Bitboard Position::discovered_check_candidates() const {
-  return st->blockersForKing[~sideToMove] & pieces(sideToMove);
-}
-
-inline Bitboard Position::pinned_pieces(Color c) const {
-  return st->blockersForKing[c] & pieces(c);
+inline Bitboard Position::blockers_for_king(Color c) const {
+  return st->blockersForKing[c];
 }
 
 inline Bitboard Position::check_squares(PieceType pt) const {
@@ -755,7 +750,7 @@ inline bool Position::can_capture_losers() const {
   Bitboard attacks = attacks_from<KING>(ksq) & pieces(~sideToMove);
 
   // If not in check, unpinned non-king pieces and pawns may freely capture
-  if (!attacks && !checkers() && !pinned_pieces(sideToMove) && ep_square() == SQ_NONE)
+  if (!attacks && !checkers() && !st->blockersForKing[sideToMove] && ep_square() == SQ_NONE)
       return can_capture();
   while (attacks)
       if (!(attackers_to(pop_lsb(&attacks), pieces() ^ ksq) & pieces(~sideToMove)))
@@ -797,7 +792,7 @@ inline bool Position::can_capture_losers() const {
       attacks = pt == PAWN ? attacks_from<PAWN>(s, sideToMove) : attacks_from(pt, s);
 
       // A pinned piece may only capture along the pin
-      if (pinned_pieces(sideToMove) & s)
+      if (st->blockersForKing[sideToMove] & s)
           attacks &= LineBB[s][ksq];
       if (attacks & target)
           return true;

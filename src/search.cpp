@@ -69,8 +69,8 @@ namespace {
   const int SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
   const int SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
-  // Razoring and futility margins
-  const int RazorMargin[VARIANT_NB] = {
+  // Razor and futility margins
+  const int RazorMargin1[VARIANT_NB] = {
   590,
 #ifdef ANTI
   2334,
@@ -109,6 +109,7 @@ namespace {
   603,
 #endif
   };
+  const int RazorMargin2 = 604;
   const int FutilityMarginFactor[VARIANT_NB] = {
   150,
 #ifdef ANTI
@@ -267,6 +268,19 @@ namespace {
   void update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus);
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, int bonus);
   void update_capture_stats(const Position& pos, Move move, Move* captures, int captureCnt, int bonus);
+
+  inline bool gives_check(const Position& pos, Move move) {
+    Color us = pos.side_to_move();
+    return  type_of(move) == NORMAL && !(pos.blockers_for_king(~us) & pos.pieces(us))
+#ifdef ATOMIC
+          && !pos.is_atomic()
+#endif
+#ifdef GRID
+          && !pos.is_grid()
+#endif
+          ? pos.check_squares(type_of(pos.moved_piece(move))) & to_sq(move)
+          : pos.gives_check(move);
+  }
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -562,7 +576,7 @@ void Thread::search() {
 
       // Age out PV variability metric
       if (mainThread)
-          mainThread->bestMoveChanges *= 0.505, mainThread->failedLow = false;
+          mainThread->bestMoveChanges *= 0.517, mainThread->failedLow = false;
 
       // Save the last iteration's scores before first PV line is searched and
       // all the move scores except the (new) PV are set to -VALUE_INFINITE.
@@ -683,21 +697,21 @@ void Thread::search() {
               const int F[] = { mainThread->failedLow,
                                 bestValue - mainThread->previousScore };
 
-              int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
+              int improvingFactor = std::max(246, std::min(832, 306 + 119 * F[0] - 6 * F[1]));
 
               // If the bestMove is stable over several iterations, reduce time accordingly
               timeReduction = 1.0;
               for (int i : {3, 4, 5})
                   if (lastBestMoveDepth * i < completedDepth)
-                     timeReduction *= 1.3;
+                     timeReduction *= 1.25;
 
               // Use part of the gained time from a previous stable move for the current move
               double unstablePvFactor = 1.0 + mainThread->bestMoveChanges;
-              unstablePvFactor *= std::pow(mainThread->previousTimeReduction, 0.51) / timeReduction;
+              unstablePvFactor *= std::pow(mainThread->previousTimeReduction, 0.528) / timeReduction;
 
               // Stop the search if we have only one legal move, or if available time elapsed
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 605)
+                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 581)
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -755,7 +769,6 @@ namespace {
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
     moveCount = captureCount = quietCount = ss->moveCount = 0;
-    ss->statScore = 0;
     bestValue = -VALUE_INFINITE;
     maxValue = VALUE_INFINITE;
 
@@ -797,6 +810,13 @@ namespace {
     ss->contHistory = &thisThread->contHistory[NO_PIECE][0];
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
     Square prevSq = to_sq((ss-1)->currentMove);
+
+    // Initialize statScore to zero for the grandchildren of the current position.
+    // So statScore is shared between all grandchildren and only the first grandchild
+    // starts with statScore = 0. Later grandchildren start with the last calculated
+    // statScore of the previous grandchild. This influences the reduction rules in
+    // LMR which are based on the statScore of parent position.
+    (ss+2)->statScore = 0;
 
     // Step 4. Transposition table lookup. We don't want the score of a partial
     // search to overwrite a previous full search TT value, so we use a different
@@ -958,9 +978,20 @@ namespace {
 
     // Step 7. Razoring (skipped when in check)
     if (   !PvNode
-        &&  depth <= ONE_PLY
-        &&  eval + RazorMargin[pos.variant()] <= alpha)
-        return qsearch<NonPV, false>(pos, ss, alpha, alpha+1);
+        &&  depth <= ONE_PLY)
+    {
+        if (eval + RazorMargin1[pos.variant()] <= alpha)
+            return qsearch<NonPV, false>(pos, ss, alpha, alpha+1);
+    }
+    else if (   !PvNode
+             &&  depth <= 2 * ONE_PLY
+             &&  eval + RazorMargin2 <= alpha)
+    {
+        Value ralpha = alpha - RazorMargin2;
+        Value v = qsearch<NonPV, false>(pos, ss, ralpha, ralpha+1);
+        if (v <= ralpha)
+            return v;
+    }
 
     // Step 8. Futility pruning: child node (skipped when in check)
 #ifdef EXTINCTION
@@ -1050,7 +1081,18 @@ namespace {
                 assert(depth >= 5 * ONE_PLY);
 
                 pos.do_move(move, st);
-                value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, depth - 4 * ONE_PLY, !cutNode, false);
+
+                // Perform a preliminary search at depth 1 to verify that the move holds.
+                // We will only do this search if the depth is not 5, thus avoiding two
+                // searches at depth 1 in a row.
+                if (depth != 5 * ONE_PLY)
+                    value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, ONE_PLY, !cutNode, true);
+
+                // If the first search was skipped or was performed and held, perform
+                // the regular search.
+                if (depth == 5 * ONE_PLY || value >= rbeta)
+                    value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, depth - 4 * ONE_PLY, !cutNode, false);
+
                 pos.undo_move(move);
                 if (value >= rbeta)
                     return value;
@@ -1070,6 +1112,7 @@ namespace {
         search<NT>(pos, ss, alpha, beta, d, cutNode, true);
 
         tte = TT.probe(posKey, ttHit);
+        ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
         ttMove = ttHit ? tte->move() : MOVE_NONE;
     }
 
@@ -1124,16 +1167,7 @@ moves_loop: // When in check, search starts from here
       extension = DEPTH_ZERO;
       captureOrPromotion = pos.capture_or_promotion(move);
       movedPiece = pos.moved_piece(move);
-
-      givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
-#ifdef ATOMIC
-                  && !pos.is_atomic()
-#endif
-#ifdef GRID
-                  && !pos.is_grid()
-#endif
-                  ? pos.check_squares(type_of(movedPiece)) & to_sq(move)
-                  : pos.gives_check(move);
+      givesCheck = gives_check(pos, move);
 
       moveCountPruning =   depth < 16 * ONE_PLY
                         && moveCount >= FutilityMoveCounts[pos.variant()][improving][depth / ONE_PLY];
@@ -1520,8 +1554,8 @@ moves_loop: // When in check, search starts from here
     // Transposition table lookup
     posKey = pos.key();
     tte = TT.probe(posKey, ttHit);
-    ttMove = ttHit ? tte->move() : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
+    ttMove = ttHit ? tte->move() : MOVE_NONE;
 
     if (  !PvNode
         && ttHit
@@ -1586,15 +1620,7 @@ moves_loop: // When in check, search starts from here
     {
       assert(is_ok(move));
 
-      givesCheck =  type_of(move) == NORMAL && !pos.discovered_check_candidates()
-#ifdef ATOMIC
-                  && !pos.is_atomic()
-#endif
-#ifdef GRID
-                  && !pos.is_grid()
-#endif
-                  ? pos.check_squares(type_of(pos.moved_piece(move))) & to_sq(move)
-                  : pos.gives_check(move);
+      givesCheck = gives_check(pos, move);
 
       moveCount++;
 
