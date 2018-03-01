@@ -164,6 +164,8 @@ public:
 #ifdef ATOMIC
   template<Variant V>
   Value see(Move m) const;
+  template<Variant V>
+  Value see(Move m, PieceType nextVictim, Square s) const;
 #endif
   bool see_ge(Move m, Value threshold = VALUE_ZERO) const;
 
@@ -601,6 +603,11 @@ inline bool Position::opposite_bishops() const {
 }
 
 #ifdef ATOMIC
+template<Variant V>
+Value Position::see(Move m) const {
+  return see<V>(m, type_of(moved_piece(m)), to_sq(m));
+}
+
 inline bool Position::is_atomic() const {
   return var == ATOMIC_VARIANT;
 }

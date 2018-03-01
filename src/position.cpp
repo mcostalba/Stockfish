@@ -1879,23 +1879,28 @@ Key Position::key_after(Move m) const {
 
 #ifdef ATOMIC
 template<>
-Value Position::see<ATOMIC_VARIANT>(Move m) const {
+Value Position::see<ATOMIC_VARIANT>(Move m, PieceType nextVictim, Square s) const {
   assert(is_ok(m));
 
-  Square from = from_sq(m), to = to_sq(m);
-  Color stm = color_of(piece_on(from));
+  Square from = from_sq(m);
+  Color us = color_of(piece_on(from));
+  Bitboard blast = attacks_from<KING>(to_sq(m)) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
+  if (s != to_sq(m))
+      blast &= ~SquareBB[s];
 
-  Value blastEval = VALUE_ZERO;
-  Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from];
-  if (blast & pieces(~stm,KING))
+  if (blast & pieces(~us,KING))
       return VALUE_MATE;
+  if (s != to_sq(m) && (blast & pieces(us,KING)))
+      return -VALUE_MATE;
+
+  Value blastEval = PieceValue[var][MG][type_of(piece_on(s))] - PieceValue[var][MG][nextVictim];
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-          if (c == stm)
+          if (c == us)
               blastEval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
           else
               blastEval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-  return blastEval + PieceValue[var][MG][piece_on(to_sq(m))] - PieceValue[var][MG][moved_piece(m)];
+  return blastEval;
 }
 #endif
 
@@ -1946,7 +1951,7 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (is_atomic())
   {
       if (capture(m))
-          return see<ATOMIC_VARIANT>(m) >= threshold + 1;
+          return see<ATOMIC_VARIANT>(m, nextVictim, to_sq(m)) >= threshold + 1;
       if (threshold > VALUE_ZERO)
           return false;
 
@@ -1957,20 +1962,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       while (stmAttackers)
       {
           Square s = pop_lsb(&stmAttackers);
-          Value blastEval = VALUE_ZERO;
-          Bitboard blast = attacks_from<KING>(to) & (pieces() ^ pieces(PAWN)) & ~SquareBB[from] & ~SquareBB[s];
-
-          if (blast & pieces(~us,KING))
-              continue;
-          if (blast & pieces(us,KING))
-              return false;
-          for (Color c = WHITE; c <= BLACK; ++c)
-              for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-                  if (c == us)
-                      blastEval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-                  else
-                      blastEval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-          if (blastEval + PieceValue[var][MG][piece_on(s)] - PieceValue[var][MG][moved_piece(m)] < threshold)
+          if (see<ATOMIC_VARIANT>(m, nextVictim, s) < threshold)
               return false;
       }
       return true;
