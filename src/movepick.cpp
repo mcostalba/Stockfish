@@ -28,7 +28,7 @@ namespace {
     MAIN_SEARCH, CAPTURES_INIT, GOOD_CAPTURES, KILLER0, KILLER1, COUNTERMOVE, QUIET_INIT, QUIET, BAD_CAPTURES,
     EVASION, EVASIONS_INIT, ALL_EVASIONS,
     PROBCUT, PROBCUT_CAPTURES_INIT, PROBCUT_CAPTURES,
-    QSEARCH, QCAPTURES_INIT, QCAPTURES, QCHECKS
+    QSEARCH, QCAPTURES_INIT, QCAPTURES, QCHECKS_INIT, QCHECKS
   };
 
   // partial_insertion_sort() sorts moves in descending order up to and including
@@ -134,14 +134,24 @@ void MovePicker::score() {
       }
 }
 
+/// return next best move (or next in line), subject to a general predicate.
+template<bool best, typename Pred>
+Move MovePicker::next_best(Pred pred) {
+
+  while (cur < endMoves)
+  {
+      move = best ? pick_best(cur++, endMoves) : *cur++;
+      if (move != ttMove && pred())
+          return move;
+  }
+  return move = MOVE_NONE;
+}
+
 /// next_move() is the most important method of the MovePicker class. It returns
 /// a new pseudo legal move every time it is called, until there are no more moves
 /// left. It picks the move with the biggest value from a list of generated moves
 /// taking care not to return the ttMove if it has already been searched.
-
 Move MovePicker::next_move(bool skipQuiets) {
-
-  Move move;
 
   switch (stage) {
 
@@ -210,24 +220,15 @@ Move MovePicker::next_move(bool skipQuiets) {
       /* fallthrough */
 
   case QUIET:
-      if (!skipQuiets)
-          while (cur < endMoves)
-          {
-              move = *cur++;
-              if (   move != ttMove
-                  && move != killers[0]
-                  && move != killers[1]
-                  && move != countermove)
-                  return move;
-          }
+      if (   !skipQuiets
+          && next_best<false>([&](){return move != killers[0] && move != killers[1] && move != countermove;}))
+          return move;
+      cur = moves, endMoves = endBadCaptures; // Point to beginning and end of bad captures
       ++stage;
-      cur = moves; // Point to beginning of bad captures
       /* fallthrough */
 
   case BAD_CAPTURES:
-      if (cur < endBadCaptures)
-          return *cur++;
-      break;
+      return next_best<false>([&](){return true;});
 
   case EVASIONS_INIT:
       cur = moves;
@@ -237,47 +238,26 @@ Move MovePicker::next_move(bool skipQuiets) {
       /* fallthrough */
 
   case ALL_EVASIONS:
-      while (cur < endMoves)
-      {
-          move = pick_best(cur++, endMoves);
-          if (move != ttMove)
-              return move;
-      }
-      break;
+      return next_best<true>([&](){return true;});
 
   case PROBCUT_CAPTURES:
-      while (cur < endMoves)
-      {
-          move = pick_best(cur++, endMoves);
-          if (   move != ttMove
-              && pos.see_ge(move, threshold))
-              return move;
-      }
-      break;
+      return next_best<true>([&](){return pos.see_ge(move, threshold);});
 
   case QCAPTURES:
-      while (cur < endMoves)
-      {
-          move = pick_best(cur++, endMoves);
-          if (   move != ttMove
-              && (depth > DEPTH_QS_RECAPTURES || to_sq(move) == recaptureSquare))
-              return move;
-      }
-      if (depth <= DEPTH_QS_NO_CHECKS)
-          break;
+      if (   next_best<true>([&](){return depth > DEPTH_QS_RECAPTURES || to_sq(move) == recaptureSquare;})
+          || depth <= DEPTH_QS_NO_CHECKS)
+          return move;
+      ++stage;
+      /* fallthrough */
+
+  case QCHECKS_INIT:
       cur = moves;
       endMoves = generate<QUIET_CHECKS>(pos, cur);
       ++stage;
       /* fallthrough */
 
   case QCHECKS:
-      while (cur < endMoves)
-      {
-          move = *cur++;
-          if (move != ttMove)
-              return move;
-      }
-      break;
+      return next_best<false>([&](){return true;});
 
   default:
       assert(false);
