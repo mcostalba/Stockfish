@@ -120,7 +120,7 @@ public:
   Move next_move(bool skipQuiets = false);
 
 private:
-  template<bool best, typename Pred> Move next_best(Pred pred);
+  template<int Best, typename Pred> Move pick(Pred);
   template<GenType> void score();
   ExtMove* begin() { return cur; }
   ExtMove* end() { return endMoves; }

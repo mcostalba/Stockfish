@@ -31,6 +31,10 @@ namespace {
     QSEARCH, QCAPTURES_INIT, QCAPTURES, QCHECKS_INIT, QCHECKS
   };
 
+  enum PickType { Next, Best };
+
+  const auto Any = [](){ return true; }; // Helper argument used with pick()
+
   // partial_insertion_sort() sorts moves in descending order up to and including
   // a given limit. The order of moves smaller than the limit is left unspecified.
   void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
@@ -44,15 +48,6 @@ namespace {
                 *q = *(q - 1);
             *q = tmp;
         }
-  }
-
-  // pick_best() finds the best move in the range (begin, end) and moves it to
-  // the front. It's faster than sorting all the moves in advance when there
-  // are few moves, e.g., the possible captures.
-  Move pick_best(ExtMove* begin, ExtMove* end) {
-
-    std::swap(*begin, *std::max_element(begin, end));
-    return *begin;
   }
 
 } // namespace
@@ -134,14 +129,18 @@ void MovePicker::score() {
       }
 }
 
-/// return next best move (or next in line), subject to a general predicate.
-template<bool best, typename Pred>
-Move MovePicker::next_best(Pred pred) {
+/// pick() returns the next (best) move satisfying a predicate function
+template<int Best, typename Pred>
+Move MovePicker::pick(Pred fun) {
 
   while (cur < endMoves)
   {
-      move = best ? pick_best(cur++, endMoves) : *cur++;
-      if (move != ttMove && pred())
+      if (Best)
+          std::swap(*cur, *std::max_element(cur, endMoves));
+
+      move = *cur++;
+
+      if (move != ttMove && fun())
           return move;
   }
   return move = MOVE_NONE;
@@ -171,18 +170,10 @@ Move MovePicker::next_move(bool skipQuiets) {
       return next_move(skipQuiets);
 
   case GOOD_CAPTURES:
-      while (cur < endMoves)
-      {
-          move = pick_best(cur++, endMoves);
-          if (move != ttMove)
-          {
-              if (pos.see_ge(move, Value(-55 * (cur-1)->value / 1024)))
-                  return move;
-
-              // Losing capture, move it to the beginning of the array
-              *endBadCaptures++ = move;
-          }
-      }
+      // Move losing capture to endBadCaptures to be tried later
+      if (pick<Best>([&](){ return  pos.see_ge(move, Value(-55 * (cur-1)->value / 1024))
+                                  ? true : (*endBadCaptures++ = move, false); }))
+          return move;
       ++stage;
       /* fallthrough */
 
@@ -221,14 +212,16 @@ Move MovePicker::next_move(bool skipQuiets) {
 
   case QUIET:
       if (   !skipQuiets
-          && next_best<false>([&](){return move != killers[0] && move != killers[1] && move != countermove;}))
+          && pick<Next>([&](){ return   move != killers[0]
+                                     && move != killers[1]
+                                     && move != countermove; }))
           return move;
       cur = moves, endMoves = endBadCaptures; // Point to beginning and end of bad captures
       ++stage;
       /* fallthrough */
 
   case BAD_CAPTURES:
-      return next_best<false>([&](){return true;});
+      return pick<Next>(Any);
 
   case EVASIONS_INIT:
       cur = moves;
@@ -238,15 +231,21 @@ Move MovePicker::next_move(bool skipQuiets) {
       /* fallthrough */
 
   case ALL_EVASIONS:
-      return next_best<true>([&](){return true;});
+      return pick<Best>(Any);
 
   case PROBCUT_CAPTURES:
-      return next_best<true>([&](){return pos.see_ge(move, threshold);});
+      return pick<Best>([&](){ return pos.see_ge(move, threshold); });
 
   case QCAPTURES:
-      if (   next_best<true>([&](){return depth > DEPTH_QS_RECAPTURES || to_sq(move) == recaptureSquare;})
-          || depth <= DEPTH_QS_NO_CHECKS)
+      if (pick<Best>([&](){ return   depth > DEPTH_QS_RECAPTURES
+                                  || to_sq(move) == recaptureSquare; }))
           return move;
+
+      // If we didn't find any move and we don't have to try checks
+      // then we have finished.
+      if (depth != DEPTH_QS_CHECKS)
+          break;
+
       ++stage;
       /* fallthrough */
 
@@ -257,7 +256,7 @@ Move MovePicker::next_move(bool skipQuiets) {
       /* fallthrough */
 
   case QCHECKS:
-      return next_best<false>([&](){return true;});
+      return pick<Next>(Any);
 
   default:
       assert(false);
