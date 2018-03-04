@@ -1632,6 +1632,11 @@ namespace {
 #endif
     if (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
     {
+#ifdef GRID
+        if (pos.is_grid() && pos.non_pawn_material(strongSide) <= RookValueMg)
+            sf = 10;
+        else
+#endif
         if (pos.opposite_bishops())
         {
             // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
