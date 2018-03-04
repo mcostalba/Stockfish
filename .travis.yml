@@ -1,74 +1,40 @@
-language: cpp
 sudo: required
 dist: trusty
 
-matrix:
-  include:
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'g++-7-multilib', 'g++-multilib', 'valgrind', 'expect']
-      env:
-        - COMPILER=g++-7
-        - COMP=gcc
-
-    - os: linux
-      compiler: clang
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-          packages: ['clang-5.0', 'llvm-5.0-dev', 'g++-multilib', 'valgrind', 'expect']
-      env:
-        - COMPILER=clang++-5.0
-        - COMP=clang
-        - LDFLAGS=-fuse-ld=gold
-
-    - os: osx
-      compiler: gcc
-      env:
-        - COMPILER=g++
-        - COMP=gcc
-
-    - os: osx
-      compiler: clang
-      env:
-        - COMPILER=clang++ V='Apple LLVM 6.0' # Apple LLVM version 6.0 (clang-600.0.54) (based on LLVM 3.5svn)
-        - COMP=clang
-
 branches:
   only:
-   - master
+   - master android
 
-before_script:
-  - cd src
+matrix:
+  include:
+    - language: android
+        sudo: true
+        android:
+          components:
+            - tools
+            - platform-tools
+            - build-tools-25.0.2
+            - android-25
+            - extra-android-m2repository
+        compiler:
+          - gcc
+        before_install:
+          - git clone https://github.com/urho3d/android-ndk.git $HOME/android-ndk-root
+          - export ANDROID_NDK_HOME=$HOME/android-ndk-root
+          # Setup environment for Linux build which is required to build the sample.
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq; fi
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -qq g++-$GCC_VERSION; fi
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -qq gcc-$GCC_VERSION; fi
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo ln -s -v -f $(which g++-$GCC_VERSION) /usr/bin/g++; fi
+          - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo ln -s -v -f $(which gcc-$GCC_VERSION) /usr/bin/gcc; fi
+        script:
+        # Obtain bench reference from git log
+        - git log HEAD | grep "\b[Bb]ench[ :]\+[0-9]\{7\}" | head -n 1 | sed "s/[^0-9]*\([0-9]*\).*/\1/g" > git_sig
+        - export benchref=$(cat git_sig)
+        - echo "Reference bench:" $benchref
+        #
+        # Verify bench number against various builds
+        - export CXXFLAGS=-Werror
+        - make clean && make ARCH=armv7 debug=yes build && ../tests/signature.sh $benchref
 
-script:
-  # Obtain bench reference from git log
-  - git log HEAD | grep "\b[Bb]ench[ :]\+[0-9]\{7\}" | head -n 1 | sed "s/[^0-9]*\([0-9]*\).*/\1/g" > git_sig
-  - export benchref=$(cat git_sig)
-  - echo "Reference bench:" $benchref
-  #
-  # Verify bench number against various builds
-  - export CXXFLAGS=-Werror
-  - make clean && make -j2 ARCH=x86-64 optimize=no debug=yes build && ../tests/signature.sh $benchref
-  - make clean && make -j2 ARCH=x86-32 optimize=no debug=yes build && ../tests/signature.sh $benchref
-  - make clean && make -j2 ARCH=x86-32 build && ../tests/signature.sh $benchref
-  - make clean && make -j2 ARCH=x86-64 build && ../tests/signature.sh $benchref
-  #
-  # Check perft and reproducible search
-  - ../tests/perft.sh
-  - ../tests/reprosearch.sh
-  #
-  # Valgrind
-  #
-  - export CXXFLAGS=-O1
-  - if [ -x "$(command -v valgrind )" ]; then make clean && make -j2 ARCH=x86-64 debug=yes optimize=no build > /dev/null && ../tests/instrumented.sh --valgrind; fi
-  - if [ -x "$(command -v valgrind )" ]; then ../tests/instrumented.sh --valgrind-thread; fi
-  #
-  # Sanitizer
-  #
-  # Use g++-7 as a proxy for having sanitizers, might need revision as they become available for more recent versions of clang/gcc
-  - if [[ "$COMPILER" == "g++-7" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=undefined optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-undefined; fi
-  - if [[ "$COMPILER" == "g++-7" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=thread    optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-thread; fi
