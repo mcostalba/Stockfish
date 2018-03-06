@@ -471,6 +471,14 @@ void Position::set_check_info(StateInfo* si) const {
   }
   else
 #endif
+#ifdef ATOMIC
+  if (is_atomic() && is_atomic_loss())
+  {
+      si->blockersForKing[WHITE] = si->pinnersForKing[WHITE] = 0;
+      si->blockersForKing[BLACK] = si->pinnersForKing[BLACK] = 0;
+  }
+  else
+#endif
 #ifdef EXTINCTION
   if (is_extinction())
   {
@@ -2180,6 +2188,14 @@ bool Position::pos_is_ok() const {
   const bool Fast = true; // Quick (default) or full check?
 
   Square wksq, bksq;
+#ifdef ATOMIC
+  if (is_atomic() && is_atomic_loss())
+  {
+      wksq = sideToMove == WHITE ? SQ_NONE : square<KING>(WHITE);
+      bksq = sideToMove == BLACK ? SQ_NONE : square<KING>(BLACK);
+  }
+  else
+#endif
 #ifdef HORDE
   if (is_horde())
   {

@@ -396,10 +396,6 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
 }
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
-#ifdef ATOMIC
-  if (is_atomic() && pieceCount[make_piece(c, Pt)] == 0)
-      return SQ_NONE;
-#endif
 #ifdef EXTINCTION
   if (is_extinction() && Pt == KING)
   {
