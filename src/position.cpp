@@ -2196,6 +2196,14 @@ bool Position::pos_is_ok() const {
   }
   else
 #endif
+#ifdef EXTINCTION
+  if (is_extinction() && is_extinction_loss())
+  {
+      wksq = sideToMove == WHITE ? SQ_NONE : square<KING>(WHITE);
+      bksq = sideToMove == BLACK ? SQ_NONE : square<KING>(BLACK);
+  }
+  else
+#endif
 #ifdef HORDE
   if (is_horde())
   {
@@ -2216,7 +2224,7 @@ bool Position::pos_is_ok() const {
   else
 #endif
 #ifdef EXTINCTION
-  if (is_extinction())
+  if (is_extinction() && is_extinction_loss())
   {
       if ((sideToMove != WHITE && sideToMove != BLACK)
           || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
@@ -2258,23 +2266,27 @@ bool Position::pos_is_ok() const {
   if (is_anti()) {} else
 #endif
 #ifdef EXTINCTION
-  if (is_extinction()) {} else
+  if (is_extinction())
+  {
+      if (pieceCount[W_KING] + pieceCount[B_KING] < 1)
+          assert(0 && "pos_is_ok: Kings (extinction)");
+  }
+  else
 #endif
 #ifdef HORDE
   if (is_horde())
   {
-      if (   std::count(board, board + SQUARE_NB, W_KING) +
-             std::count(board, board + SQUARE_NB, B_KING) != 1
+      if (pieceCount[W_KING] + pieceCount[B_KING] != 1
           || (is_horde_color(sideToMove) && attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove)))
-      assert(0 && "pos_is_ok: Kings (horde)");
-  } else
+          assert(0 && "pos_is_ok: Kings (horde)");
+  }
+  else
 #endif
 #ifdef ATOMIC
   if (is_atomic() && (is_atomic_win() || is_atomic_loss()))
   {
-      if (std::count(board, board + SQUARE_NB, W_KING) +
-          std::count(board, board + SQUARE_NB, B_KING) != 1)
-      assert(0 && "pos_is_ok: Kings (atomic)");
+      if (pieceCount[W_KING] + pieceCount[B_KING] != 1)
+          assert(0 && "pos_is_ok: Kings (atomic)");
   }
   else if (is_atomic() && kings_adjacent())
   {

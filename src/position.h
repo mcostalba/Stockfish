@@ -397,12 +397,8 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
 #ifdef EXTINCTION
-  if (is_extinction() && Pt == KING)
-  {
-      if (pieceCount[make_piece(c, Pt)] == 0)
-          return SQ_NONE;
+  if (is_extinction() && Pt == KING && pieceCount[make_piece(c, Pt)] > 1)
       return pieceList[make_piece(c, Pt)][0]; // return the first king's square
-  }
 #endif
 #ifdef TWOKINGS
   if (is_two_kings() && Pt == KING && pieceCount[make_piece(c, Pt)] > 1)
