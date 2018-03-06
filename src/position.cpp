@@ -600,7 +600,7 @@ void Position::set_state(StateInfo* si) const {
   else
 #endif
 #ifdef ATOMIC
-  if (is_atomic() && (square<KING>(sideToMove) == SQ_NONE || kings_adjacent()))
+  if (is_atomic() && (is_atomic_loss() || kings_adjacent()))
       si->checkersBB = 0;
   else
 #endif
