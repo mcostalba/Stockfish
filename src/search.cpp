@@ -1075,6 +1075,7 @@ namespace {
         Value rbeta = std::min(beta + ProbcutMargin[pos.variant()], VALUE_INFINITE);
         MovePicker mp(pos, ttMove, rbeta - ss->staticEval, &thisThread->captureHistory);
         int probCutCount = 0;
+
         while (  (move = mp.next_move()) != MOVE_NONE
                && probCutCount < depth / ONE_PLY - 3)
             if (pos.legal(move))
@@ -1091,7 +1092,7 @@ namespace {
                 // Perform a preliminary search at depth 1 to verify that the move holds.
                 // We will only do this search if the depth is not 5, thus avoiding two
                 // searches at depth 1 in a row.
-                if (depth > 5 * ONE_PLY)
+                if (depth != 5 * ONE_PLY)
                     value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, ONE_PLY, !cutNode, true);
 
                 // If the first search was skipped or was performed and held, perform
