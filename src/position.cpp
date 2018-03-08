@@ -472,7 +472,7 @@ void Position::set_check_info(StateInfo* si) const {
   else
 #endif
 #ifdef ATOMIC
-  if (is_atomic() && is_atomic_loss())
+  if (is_atomic() && (is_atomic_loss() || kings_adjacent()))
   {
       si->blockersForKing[WHITE] = si->pinnersForKing[WHITE] = 0;
       si->blockersForKing[BLACK] = si->pinnersForKing[BLACK] = 0;
@@ -768,12 +768,6 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
 
   Bitboard blockers = 0;
   pinners = 0;
-#ifdef HORDE
-  if (is_horde() && s == SQ_NONE) return blockers;
-#endif
-#ifdef ATOMIC
-  if (is_atomic() && s == SQ_NONE) return blockers;
-#endif
 
   // Snipers are sliders that attack 's' when a piece is removed
   Bitboard snipers = (  (PseudoAttacks[  ROOK][s] & pieces(QUEEN, ROOK))
@@ -2290,7 +2284,11 @@ bool Position::pos_is_ok() const {
   }
   else if (is_atomic() && kings_adjacent())
   {
-  } else
+      if (   pieceCount[W_KING] != 1
+          || pieceCount[B_KING] != 1)
+          assert(0 && "pos_is_ok: Kings (atomic)");
+  }
+  else
 #endif
 #ifdef TWOKINGS
   if (is_two_kings())
