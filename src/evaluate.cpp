@@ -1194,6 +1194,7 @@ namespace {
             score += ThreatsAnti[0] * popcount(attackedBy[Them][ALL_PIECES] & (pawnPushes | pieceMoves));
             score += ThreatsAnti[1] * popcount(attackedBy[Them][ALL_PIECES] & (unprotectedPawnPushes | unprotectedPieceMoves));
         }
+        stronglyProtected = 0;
     }
     else
 #endif
@@ -1212,6 +1213,7 @@ namespace {
                 count--;
             score += std::max(SCORE_ZERO, ThreatByBlast * count);
         }
+        stronglyProtected = 0;
     }
     else
 #endif
@@ -1248,6 +1250,7 @@ namespace {
             score += ThreatsLosers[0] * popcount(attackedBy[Them][ALL_PIECES] & (pawnPushes | pieceMoves));
             score += ThreatsLosers[1] * popcount(attackedBy[Them][ALL_PIECES] & (unprotectedPawnPushes | unprotectedPieceMoves));
         }
+        stronglyProtected = 0;
     }
     else
 #endif
