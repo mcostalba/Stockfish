@@ -111,42 +111,42 @@ namespace {
   };
   const int RazorMargin2 = 604;
   const int FutilityMarginFactor[VARIANT_NB] = {
-  150,
+  175,
 #ifdef ANTI
-  586,
+  611,
 #endif
 #ifdef ATOMIC
-  560,
+  585,
 #endif
 #ifdef CRAZYHOUSE
-  125,
+  150,
 #endif
 #ifdef EXTINCTION
-  150,
+  175,
 #endif
 #ifdef GRID
-  181,
+  206,
 #endif
 #ifdef HORDE
-  151,
+  176,
 #endif
 #ifdef KOTH
-  192,
+  217,
 #endif
 #ifdef LOSERS
-  593,
+  618,
 #endif
 #ifdef RACE
-  336,
+  361,
 #endif
 #ifdef RELAY
-  150,
+  175,
 #endif
 #ifdef THREECHECK
-  223,
+  248,
 #endif
 #ifdef TWOKINGS
-  150,
+  175,
 #endif
   };
   const int FutilityMarginParent[VARIANT_NB][2] = {
@@ -227,7 +227,9 @@ namespace {
   200,
 #endif
   };
-  Value futility_margin(Variant var, Depth d) { return Value(FutilityMarginFactor[var] * d / ONE_PLY); }
+  Value futility_margin(Variant var, Depth d, bool improving) {
+    return Value((FutilityMarginFactor[var] - 50 * improving) * d / ONE_PLY);
+  }
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[VARIANT_NB][2][16]; // [improving][depth]
@@ -599,10 +601,7 @@ void Thread::search() {
               ct =  Options["Contempt"] * PawnValueEg / 100; // From centipawns
 
               // Adjust contempt based on current bestValue (dynamic contempt)
-              int sign = (bestValue > 0) - (bestValue < 0);
-              ct +=  bestValue >  500 ?  70 :
-                     bestValue < -500 ? -70 :
-                     bestValue / 10 + sign * int(std::round(3.22 * log(1 + abs(bestValue))));
+              ct += int(std::round(48 * atan(float(bestValue) / 128)));
 
               Eval::Contempt = (us == WHITE ?  make_score(ct, ct / 2)
                                             : -make_score(ct, ct / 2));
@@ -971,6 +970,10 @@ namespace {
         goto moves_loop;
 #endif
 
+    improving =   ss->staticEval >= (ss-2)->staticEval
+            /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
+               ||(ss-2)->staticEval == VALUE_NONE;
+
 #ifdef HORDE
     if (skipEarlyPruning || !(pos.is_horde() || pos.non_pawn_material(pos.side_to_move())))
 #else
@@ -1002,8 +1005,8 @@ namespace {
 #endif
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
-        &&  eval - futility_margin(pos.variant(), depth) >= beta
-        &&  eval < VALUE_KNOWN_WIN)  // Do not return unproven wins
+        &&  eval - futility_margin(pos.variant(), depth, improving) >= beta
+        &&  eval < VALUE_KNOWN_WIN) // Do not return unproven wins
         return eval;
 
     // Step 9. Null move search with verification search

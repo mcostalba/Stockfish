@@ -640,6 +640,7 @@ namespace {
   };
   const Score Hanging           = S( 52, 30);
   const Score HinderPassedPawn  = S(  8,  1);
+  const Score KnightOnQueen     = S( 21, 11);
   const Score LongRangedBishop  = S( 22,  0);
   const Score MinorBehindPawn   = S( 16,  0);
   const Score PawnlessFlank     = S( 20, 80);
@@ -1131,7 +1132,7 @@ namespace {
     if (!(pos.pieces(PAWN) & kf))
         score -= PawnlessFlank;
 
-    // Find the squares that opponent attacks in our king flank, and the squares  
+    // Find the squares that opponent attacks in our king flank, and the squares
     // which are attacked twice in that flank but not defended by our pawns.
     b1 = attackedBy[Them][ALL_PIECES] & kf & Camp;
     b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
@@ -1388,6 +1389,21 @@ namespace {
     }
 #endif
 
+    // Bonus for knight threats on the next moves against enemy queen
+#ifdef CRAZYHOUSE
+    if ((pos.is_house() ? pos.count<QUEEN>(Them) - pos.count_in_hand<QUEEN>(Them) : pos.count<QUEEN>(Them)) == 1)
+#else
+    if (pos.count<QUEEN>(Them) == 1)
+#endif
+    {
+        b =   pos.attacks_from<KNIGHT>(pos.square<QUEEN>(Them))
+           &  attackedBy[Us][KNIGHT]
+           & ~pos.pieces(Us, PAWN, KING)
+           & ~stronglyProtected;
+
+        score += KnightOnQueen * popcount(b);
+    }
+
     if (T)
         Trace::add(THREAT, Us, score);
 
@@ -1545,13 +1561,9 @@ namespace {
     behind |= (Us == WHITE ? behind >>  8 : behind <<  8);
     behind |= (Us == WHITE ? behind >> 16 : behind << 16);
 
-    // Since SpaceMask[Us] is fully on our half of the board...
-    assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
-
-    // ...count safe + (behind & safe) with a single popcount.
-    int bonus;
-    bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
+    int bonus = popcount(safe) + popcount(behind & safe);
     int weight = pos.count<ALL_PIECES>(Us) - 2 * pe->open_files();
+
     Score score;
 #ifdef KOTH
     if (pos.is_koth())
