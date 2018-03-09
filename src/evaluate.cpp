@@ -744,7 +744,7 @@ namespace {
 #endif
     mobilityArea[Us] = ~(b | pos.square<KING>(Us) | pe->pawn_attacks(Them));
 
-    // Initialise the attack bitboards with the king and pawn information
+    // Initialise attackedBy bitboards for kings and pawns
 #ifdef ANTI
     if (pos.is_anti())
     {
@@ -770,7 +770,6 @@ namespace {
         attackedBy[Us][KING] = 0;
     else
 #endif
-    // Initialise attackedBy bitboards for kings and pawns
     attackedBy[Us][KING] = pos.attacks_from<KING>(pos.square<KING>(Us));
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
@@ -972,12 +971,7 @@ namespace {
     Score score = pe->king_safety<Us>(pos, ksq);
 
     // Main king safety evaluation
-    if (kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them)
-#ifdef HORDE
-        // Hack to prevent segmentation fault for multi-queen positions
-        && !(pos.is_horde() && ksq == SQ_NONE)
-#endif
-    )
+    if (kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them))
     {
         int kingDanger = unsafeChecks = 0;
 
@@ -1338,9 +1332,9 @@ namespace {
         // Add a bonus according to how close we are to breaking through the pawn wall
         if (pos.pieces(Us, ROOK) | pos.pieces(Us, QUEEN))
         {
-            int min = 8;
-            if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(RANK_1))
-                min = 0;
+            int dist = 8;
+            if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, RANK_8)))
+                dist = 0;
             else
             {
                 for (File f = FILE_A; f <= FILE_H; ++f)
@@ -1348,10 +1342,10 @@ namespace {
                     int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
                     int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f - 1]), pawns) : 0;
                     int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f + 1]), pawns) : 0;
-                    min = std::min(min, pawnsl + pawnsr);
+                    dist = std::min(dist, pawnsl + pawnsr);
                 }
             }
-            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + min) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
         }
     }
 #endif

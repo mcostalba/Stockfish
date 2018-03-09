@@ -1511,7 +1511,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       // Set en-passant square if the moved pawn can be captured
 #ifdef HORDE
-      if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)); else
+      if (is_horde() && rank_of(from) == relative_rank(us, RANK_1)) {} else
 #endif
       if (   (int(to) ^ int(from)) == 16
 #ifdef ATOMIC
