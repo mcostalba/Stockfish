@@ -935,6 +935,7 @@ namespace {
     if (inCheck)
     {
         ss->staticEval = eval = VALUE_NONE;
+        improving = true;
         goto moves_loop;
     }
     else if (ttHit)
@@ -961,6 +962,10 @@ namespace {
         tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                   ss->staticEval, TT.generation());
     }
+
+    improving =   ss->staticEval >= (ss-2)->staticEval
+               ||(ss-2)->staticEval == VALUE_NONE;
+
 #ifdef ANTI
     if (pos.is_anti() && pos.can_capture())
         goto moves_loop;
@@ -969,11 +974,6 @@ namespace {
     if (pos.is_losers() && pos.can_capture_losers())
         goto moves_loop;
 #endif
-
-    improving =   ss->staticEval >= (ss-2)->staticEval
-            /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
-               ||(ss-2)->staticEval == VALUE_NONE;
-
 #ifdef HORDE
     if (skipEarlyPruning || !(pos.is_horde() || pos.non_pawn_material(pos.side_to_move())))
 #else
@@ -1134,9 +1134,6 @@ moves_loop: // When in check, search starts from here
 
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory, contHist, countermove, ss->killers);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-    improving =   ss->staticEval >= (ss-2)->staticEval
-            /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
-               ||(ss-2)->staticEval == VALUE_NONE;
 
     singularExtensionNode =   !rootNode
                            &&  depth >= 8 * ONE_PLY
