@@ -100,6 +100,16 @@ PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitbo
   return KING; // No need to update bitboards: it is the last cycle
 }
 
+#ifdef TWOKINGS
+void two_kings_min_attacker(const Bitboard* byTypeBB, Square to, Bitboard stmAttackers,
+                       Bitboard& occupied, Bitboard& attackers) {
+  occupied ^= lsb(stmAttackers);
+  attackers |= attacks_bb<BISHOP>(to, occupied) & (byTypeBB[BISHOP] | byTypeBB[QUEEN]);
+  attackers |= attacks_bb<ROOK>(to, occupied) & (byTypeBB[ROOK] | byTypeBB[QUEEN]);
+  attackers &= occupied;
+}
+#endif
+
 } // namespace
 
 
@@ -2004,6 +2014,9 @@ bool Position::see_ge(Move m, Value threshold) const {
 #endif
   occupied = pieces() ^ from ^ to;
   Bitboard attackers = attackers_to(to, occupied) & occupied;
+#ifdef TWOKINGS
+  Square ksq = SQ_NONE;
+#endif
 
   while (true)
   {
@@ -2035,6 +2048,13 @@ bool Position::see_ge(Move m, Value threshold) const {
       // Locate and remove the next least valuable attacker, and add to
       // the bitboard 'attackers' the possibly X-ray attackers behind it.
       nextVictim = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
+#ifdef TWOKINGS
+      if (is_two_kings() && nextVictim == KING)
+      {
+          two_kings_min_attacker(byTypeBB, to, stmAttackers, occupied, attackers);
+          ksq = royal_king(stm, (pieces(stm, KING) & occupied) ^ to);
+      }
+#endif
 
       stm = ~stm; // Switch side to move
 
@@ -2056,7 +2076,8 @@ bool Position::see_ge(Move m, Value threshold) const {
       else
 #endif
 #ifdef TWOKINGS
-      if (is_two_kings() && nextVictim == KING)
+      // Moving the royal king (possibly into check) terminates the sequence
+      if (is_two_kings() && nextVictim == KING && ksq == to)
           balance = VALUE_ZERO;
       else
 #endif
@@ -2079,21 +2100,27 @@ bool Position::see_ge(Move m, Value threshold) const {
           else
 #endif
 #ifdef TWOKINGS
-          if (is_two_kings() && nextVictim == KING)
-          {
-              if (!(pieces(~stm, KING) & occupied) && (attackers & pieces(stm)))
-                  stm = ~stm;
-          }
-          else
+          // If a non-royal king performed the final capture, do not apply
+          // the special rule for a (valueless) royal king moving into check.
+          if (is_two_kings() && nextVictim == KING && ksq != to) {} else
 #endif
           if (nextVictim == KING && (attackers & pieces(stm)))
               stm = ~stm;
           break;
       }
 #ifdef ANTI
+#ifdef TWOKINGS
+      // Assertions only impact debug mode performance
+      assert(is_anti() || (is_two_kings() && pieces(~stm, KING) & occupied) || nextVictim != KING);
+#else
       assert(is_anti() || nextVictim != KING);
+#endif
+#else
+#ifdef TWOKINGS
+      assert((is_two_kings() && pieces(~stm, KING) & occupied) || nextVictim != KING);
 #else
       assert(nextVictim != KING);
+#endif
 #endif
   }
   return us != stm; // We break the above loop when stm loses
