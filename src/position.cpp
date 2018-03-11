@@ -1981,8 +1981,9 @@ bool Position::see_ge(Move m, Value threshold) const {
   }
 #endif
 #ifdef EXTINCTION
-  // Is it a winning capture?
-  if (is_extinction() && piece_on(to) != NO_PIECE && !more_than_one(pieces(color_of(piece_on(to)), type_of(piece_on(to)))))
+  // Is this move a winning capture?
+  if (is_extinction() && (stm == sideToMove ? is_extinction_loss()
+          : ! more_than_one(pieces(stm, type_of(m) == ENPASSANT ? PAWN : type_of(piece_on(to))))))
       return true;
 #endif
   Value balance;   // Values of the pieces taken by us minus opponent's ones
@@ -1993,6 +1994,18 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   if (balance < VALUE_ZERO)
       return false;
+#ifdef EXTINCTION
+  // Does a capture refute this move?
+  if (is_extinction() && ! more_than_one(pieces(us, nextVictim)))
+  {
+      // Toggles to square occupancy in case of stm != sideToMove
+      Bitboard occupied = pieces() ^ from ^ to;
+      if (type_of(m) == ENPASSANT)
+          occupied ^= make_square(file_of(to), rank_of(from));
+      if (attackers_to(to, occupied) & occupied & pieces(stm))
+          return false;
+  }
+#endif
 
   // Now assume the worst possible result: that the opponent can
   // capture our piece for free.
