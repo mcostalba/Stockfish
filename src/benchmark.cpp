@@ -146,6 +146,7 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "r1b1r1k1/ppp1Pppp/8/3p4/3P2P1/PN6/2PBQP1P/q1q~1KB1R[NNrbnp] w - - 42 22", // promoted queen
     "r3kb1r/1bpppppp/p1N2p2/2NPP3/2PP4/2N2Pb1/P3P1R1/R1Q2KBq[Pn] w kq - 54 28",
     "7k/Q2P1pp1/2PPpn1p/3p1b2/3P4/P1n1P3/P1n1bPPP/R1B3KR[RRqbnp] w - - 48 25", // promotion
+    "r5k1/p4ppp/4p3/3p2qn/3PB3/4P1B1/PrP2PPP/R4RK1/PBQPBnpnn w - - 42 22", // syuuban
 
     // Checkmate
     "r1b2rk1/pppp1ppp/2P2b2/1N6/5N2/4P1K1/P1P4P/1Nrb1b1n~[QQNPPrp] w - - 64 33", // promoted knight
