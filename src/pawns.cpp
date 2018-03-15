@@ -61,9 +61,6 @@ namespace {
 #ifdef RACE
     S(0, 0),
 #endif
-#ifdef RELAY
-    S(30, 27),
-#endif
 #ifdef THREECHECK
     S(30, 27),
 #endif
@@ -101,9 +98,6 @@ namespace {
 #endif
 #ifdef RACE
     S(0, 0),
-#endif
-#ifdef RELAY
-    S(41, 19),
 #endif
 #ifdef THREECHECK
     S(41, 19),
@@ -145,9 +139,6 @@ namespace {
 #endif
 #ifdef RACE
     S( 0,  0),
-#endif
-#ifdef RELAY
-    S(18, 38),
 #endif
 #ifdef THREECHECK
     S(18, 38),
@@ -241,18 +232,6 @@ namespace {
 #endif
 #ifdef RACE
   {},
-#endif
-#ifdef RELAY
-  {
-    { { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) }, // Not On King file
-      { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
-      { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
-      { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) } },
-    { { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) }, // On King file
-      { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
-      { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
-      { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) } }
-  },
 #endif
 #ifdef THREECHECK
   {
@@ -430,26 +409,6 @@ namespace {
 #endif
 #ifdef RACE
   {},
-#endif
-#ifdef RELAY
-  {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
-    { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
-      { V( 1),  V(  64), V( 143), V(26), V(13) },
-      { V( 1),  V(  47), V( 110), V(44), V(24) },
-      { V( 0),  V(  72), V( 127), V(50), V(31) } },
-    { { V( 0),  V(   0), V(  79), V(23), V( 1) },  // BlockedByPawn
-      { V( 0),  V(   0), V( 148), V(27), V( 2) },
-      { V( 0),  V(   0), V( 161), V(16), V( 1) },
-      { V( 0),  V(   0), V( 171), V(22), V(15) } },
-    { { V(22),  V(  45), V( 104), V(62), V( 6) },  // Unblocked
-      { V(31),  V(  30), V(  99), V(39), V(19) },
-      { V(23),  V(  29), V(  96), V(41), V(15) },
-      { V(21),  V(  23), V( 116), V(41), V(15) } }
-  },
 #endif
 #ifdef THREECHECK
   {
@@ -672,9 +631,6 @@ void init() {
 #endif
 #ifdef RACE
     {},
-#endif
-#ifdef RELAY
-    { 0, 8, 19, 13, 71, 94, 169, 324 },
 #endif
 #ifdef THREECHECK
     { 0, 8, 19, 13, 71, 94, 169, 324 },

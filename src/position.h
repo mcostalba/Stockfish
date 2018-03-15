@@ -61,10 +61,6 @@ struct StateInfo {
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
   Bitboard   pinnersForKing[COLOR_NB];
-#ifdef RELAY
-  Square     pieceListRelay[PIECE_NB][16];
-  Bitboard   byTypeBBRelay[PIECE_TYPE_NB];
-#endif
   Bitboard   checkSquares[PIECE_TYPE_NB];
 };
 
@@ -243,9 +239,6 @@ public:
   bool is_race_win() const;
   bool is_race_draw() const;
   bool is_race_loss() const;
-#endif
-#ifdef RELAY
-  bool is_relay() const;
 #endif
 #ifdef THREECHECK
   bool is_three_check() const;
@@ -897,12 +890,6 @@ inline bool Position::is_race_loss() const {
       if (!(attackers_to(pop_lsb(&b)) & pieces(~sideToMove)))
           return false;
   return true;
-}
-#endif
-
-#ifdef RELAY
-inline bool Position::is_relay() const {
-  return var == RELAY_VARIANT;
 }
 #endif
 

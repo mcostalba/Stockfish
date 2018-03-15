@@ -377,20 +377,6 @@ namespace {
         }
 
         Bitboard b = pos.attacks_from<Pt>(from) & target;
-#ifdef RELAY
-        if (V == RELAY_VARIANT)
-        {
-            const Bitboard defenders = pos.attackers_to(from) & pos.pieces(us);
-            if (defenders & pos.pieces(KNIGHT))
-                b |= pos.attacks_from<KNIGHT>(from) & target;
-            if (defenders & pos.pieces(QUEEN, BISHOP))
-                b |= pos.attacks_from<BISHOP>(from) & target;
-            if (defenders & pos.pieces(QUEEN, ROOK))
-                b |= pos.attacks_from<ROOK>(from) & target;
-            if (defenders & pos.pieces(KING))
-                b |= pos.attacks_from<KING>(from) & target;
-        }
-#endif
 
         if (Checks)
             b &= pos.check_squares(Pt);
@@ -484,18 +470,6 @@ namespace {
                 b |= pos.attacks_from<KING>(ksq) & passed_pawn_mask(WHITE, ksq) & ~pos.pieces();
             if (Type == QUIETS)
                 b &= ~passed_pawn_mask(WHITE, ksq);
-        }
-#endif
-#ifdef RELAY
-        if (V == RELAY_VARIANT)
-        {
-            const Bitboard defenders = pos.attackers_to(ksq) & pos.pieces(Us);
-            if (defenders & pos.pieces(KNIGHT))
-                b |= pos.attacks_from<KNIGHT>(ksq) & target;
-            if (defenders & pos.pieces(QUEEN, BISHOP))
-                b |= pos.attacks_from<BISHOP>(ksq) & target;
-            if (defenders & pos.pieces(QUEEN, ROOK))
-                b |= pos.attacks_from<ROOK>(ksq) & target;
         }
 #endif
         while (b)
@@ -599,11 +573,6 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<RACE_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<RACE_VARIANT, BLACK, Type>(pos, moveList, target);
 #endif
-#ifdef RELAY
-  if (pos.is_relay())
-      return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, Type>(pos, moveList, target)
-                         : generate_all<RELAY_VARIANT, BLACK, Type>(pos, moveList, target);
-#endif
 #ifdef TWOKINGS
   if (pos.is_two_kings())
       return us == WHITE ? generate_all<TWOKINGS_VARIANT, WHITE, Type>(pos, moveList, target)
@@ -690,11 +659,6 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_losers())
       return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
                          : generate_all<LOSERS_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
-#endif
-#ifdef RELAY
-  if (pos.is_relay())
-      return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
-                         : generate_all<RELAY_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
 #endif
 #ifdef TWOKINGS
   if (pos.is_two_kings())
@@ -836,11 +800,6 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
                          : generate_all<LOSERS_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
   }
-#endif
-#ifdef RELAY
-  if (pos.is_relay())
-      return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
-                         : generate_all<RELAY_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
 #endif
 #ifdef TWOKINGS
   if (pos.is_two_kings())

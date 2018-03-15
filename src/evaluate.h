@@ -59,9 +59,6 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #ifdef RACE
   Value(100),
 #endif
-#ifdef RELAY
-  Value(20),
-#endif
 #ifdef THREECHECK
   Value(20),
 #endif

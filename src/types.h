@@ -139,9 +139,6 @@ enum Variant {
 #ifdef RACE
   RACE_VARIANT,
 #endif
-#ifdef RELAY
-  RELAY_VARIANT,
-#endif
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
@@ -202,9 +199,6 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef RACE
 "racingkings",
-#endif
-#ifdef RELAY
-"relay",
 #endif
 #ifdef THREECHECK
 "3check",

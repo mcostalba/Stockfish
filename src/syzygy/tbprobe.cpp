@@ -83,9 +83,6 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef RACE
     nullptr,
 #endif
-#ifdef RELAY
-    nullptr,
-#endif
 #ifdef THREECHECK
     nullptr,
 #endif
@@ -139,9 +136,6 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef RACE
-    nullptr,
-#endif
-#ifdef RELAY
     nullptr,
 #endif
 #ifdef THREECHECK
@@ -199,9 +193,6 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef RACE
     nullptr,
 #endif
-#ifdef RELAY
-    nullptr,
-#endif
 #ifdef THREECHECK
     nullptr,
 #endif
@@ -255,9 +246,6 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef RACE
-    nullptr,
-#endif
-#ifdef RELAY
     nullptr,
 #endif
 #ifdef THREECHECK
@@ -1690,12 +1678,6 @@ void* init(Entry& e, const Position& pos) {
             { 0x71, 0xE8, 0x23, 0x5D }
         },
 #endif
-#ifdef RELAY
-        {
-            { 0xD7, 0x66, 0x0C, 0xA5 },
-            { 0x71, 0xE8, 0x23, 0x5D }
-        },
-#endif
 #ifdef THREECHECK
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
@@ -1800,12 +1782,6 @@ void* init(Entry& e, const Position& pos) {
         },
 #endif
 #ifdef RACE
-        {
-            { 0xD7, 0x66, 0x0C, 0xA5 },
-            { 0x71, 0xE8, 0x23, 0x5D }
-        },
-#endif
-#ifdef RELAY
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }

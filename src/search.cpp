@@ -99,9 +99,6 @@ namespace {
 #ifdef RACE
   1029,
 #endif
-#ifdef RELAY
-  603,
-#endif
 #ifdef THREECHECK
   2257,
 #endif
@@ -139,9 +136,6 @@ namespace {
 #ifdef RACE
   361,
 #endif
-#ifdef RELAY
-  175,
-#endif
 #ifdef THREECHECK
   248,
 #endif
@@ -178,9 +172,6 @@ namespace {
 #ifdef RACE
   { 304, 315 },
 #endif
-#ifdef RELAY
-  { 256, 200 },
-#endif
 #ifdef THREECHECK
   { 420, 332 },
 #endif
@@ -216,9 +207,6 @@ namespace {
 #endif
 #ifdef RACE
   242,
-#endif
-#ifdef RELAY
-  200,
 #endif
 #ifdef THREECHECK
   418,

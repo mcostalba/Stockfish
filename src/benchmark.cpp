@@ -250,11 +250,6 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "1r6/3R4/1k2N2q/2N1K3/5R2/8/8/8 b - - 11 20"
   },
 #endif
-#ifdef RELAY
-  {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-  },
-#endif
 #ifdef THREECHECK
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3+3 0 1",
@@ -384,9 +379,6 @@ const int defaultDepth[VARIANT_NB] = {
   13,
 #endif
 #ifdef RACE
-  13,
-#endif
-#ifdef RELAY
   13,
 #endif
 #ifdef THREECHECK
