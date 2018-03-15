@@ -881,30 +881,38 @@ Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 // tables are initialized by flipping and changing the sign of the white scores.
 void init() {
 
-  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
-      for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
+for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
+  for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
+  {
+      PieceValue[var][MG][~pc] = PieceValue[var][MG][pc];
+      PieceValue[var][EG][~pc] = PieceValue[var][EG][pc];
+
+      Score score = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
+
+      for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-          PieceValue[var][MG][~pc] = PieceValue[var][MG][pc];
-          PieceValue[var][EG][~pc] = PieceValue[var][EG][pc];
-
-          Score v = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
-
-          for (Square s = SQ_A1; s <= SQ_H8; ++s)
-          {
-              File f = std::min(file_of(s), ~file_of(s));
-              psq[var][ pc][ s] = v + Bonus[var][pc][rank_of(s)][f];
+          File f = std::min(file_of(s), ~file_of(s));
 #ifdef RACE
-              if (var == RACE_VARIANT)
-                  psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
-              else
-#endif
+          if (var == RACE_VARIANT)
+          {
+              psq[var][ pc][horizontal_flip(s)] = score + Bonus[var][pc][rank_of(s)][f];
               psq[var][~pc][~s] = -psq[var][pc][s];
           }
-#ifdef CRAZYHOUSE
-          psq[var][ pc][SQ_NONE] = v + inHandBonus[type_of(pc)];
-          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
+          else
 #endif
+          {
+          psq[var][ pc][ s] = score + Bonus[var][pc][rank_of(s)][f];
+          psq[var][~pc][~s] = -psq[var][pc][s];
+          }
       }
+#ifdef CRAZYHOUSE
+      if (var == CRAZYHOUSE_VARIANT)
+      {
+          psq[var][ pc][SQ_NONE] = score + inHandBonus[type_of(pc)];
+          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
+      }
+#endif
+  }
 }
 
 } // namespace PSQT

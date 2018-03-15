@@ -569,7 +569,7 @@ namespace {
   const Score KingProtector[] = { S(3, 5), S(4, 3), S(3, 0), S(1, -1) };
 
   // Assorted bonuses and penalties
-  const Score BishopPawns       = S(  8, 12);
+  const Score BishopPawns        = S(  8, 12);
   const Score CloseEnemies[VARIANT_NB] = {
     S( 7,  0),
 #ifdef ANTI
@@ -606,22 +606,22 @@ namespace {
     S( 7,  0),
 #endif
   };
-  const Score Connectivity      = S(  3,  1);
-  const Score Hanging           = S( 52, 30);
-  const Score HinderPassedPawn  = S(  8,  1);
-  const Score KnightOnQueen     = S( 21, 11);
-  const Score LongRangedBishop  = S( 22,  0);
-  const Score MinorBehindPawn   = S( 16,  0);
-  const Score PawnlessFlank     = S( 20, 80);
-  const Score RookOnPawn        = S(  8, 24);
-  const Score SliderOnQueen     = S( 42, 21);
-  const Score ThreatByPawnPush  = S( 47, 26);
-  const Score ThreatByRank      = S( 16,  3);
-  const Score ThreatBySafePawn  = S(175,168);
-  const Score TrappedBishopA1H1 = S( 50, 50);
-  const Score TrappedRook       = S( 92,  0);
-  const Score WeakQueen         = S( 50, 10);
-  const Score WeakUnopposedPawn = S(  5, 25);
+  const Score Connectivity       = S(  3,  1);
+  const Score CorneredBishop     = S( 50, 50);
+  const Score Hanging            = S( 52, 30);
+  const Score HinderPassedPawn   = S(  8,  1);
+  const Score KnightOnQueen      = S( 21, 11);
+  const Score LongDiagonalBishop = S( 22,  0);
+  const Score MinorBehindPawn    = S( 16,  0);
+  const Score PawnlessFlank      = S( 20, 80);
+  const Score RookOnPawn         = S(  8, 24);
+  const Score SliderOnQueen      = S( 42, 21);
+  const Score ThreatByPawnPush   = S( 47, 26);
+  const Score ThreatByRank       = S( 16,  3);
+  const Score ThreatBySafePawn   = S(175,168);
+  const Score TrappedRook        = S( 92,  0);
+  const Score WeakQueen          = S( 50, 10);
+  const Score WeakUnopposedPawn  = S(  5, 25);
 
 #undef S
 
@@ -671,18 +671,18 @@ namespace {
     // which attack a square in the kingRing of the enemy king.
     int kingAttackersCount[COLOR_NB];
 
-    // kingAttackersWeight[color] is the sum of the "weights" of the pieces of the
-    // given color which attack a square in the kingRing of the enemy king. The
-    // weights of the individual piece types are given by the elements in the
-    // KingAttackWeights array.
+    // kingAttackersWeight[color] is the sum of the "weights" of the pieces of
+    // the given color which attack a square in the kingRing of the enemy king.
+    // The weights of the individual piece types are given by the elements in
+    // the KingAttackWeights array.
     int kingAttackersWeight[COLOR_NB];
 
-    // kingAdjacentZoneAttacksCount[color] is the number of attacks by the given
-    // color to squares directly adjacent to the enemy king. Pieces which attack
-    // more than one square are counted multiple times. For instance, if there is
+    // kingAttacksCount[color] is the number of attacks by the given color to
+    // squares directly adjacent to the enemy king. Pieces which attack more
+    // than one square are counted multiple times. For instance, if there is
     // a white knight on g5 and black's king is on g8, this white knight adds 2
-    // to kingAdjacentZoneAttacksCount[WHITE].
-    int kingAdjacentZoneAttacksCount[COLOR_NB];
+    // to kingAttacksCount[WHITE].
+    int kingAttacksCount[COLOR_NB];
   };
 
 
@@ -766,7 +766,7 @@ namespace {
             kingRing[Us] |= shift<Up>(kingRing[Us]);
 
         kingAttackersCount[Them] = popcount(attackedBy[Us][KING] & pe->pawn_attacks(Them));
-        kingAdjacentZoneAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+        kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     }
     else
         kingRing[Us] = kingAttackersCount[Them] = 0;
@@ -810,7 +810,7 @@ namespace {
         {
             kingAttackersCount[Us]++;
             kingAttackersWeight[Us] += KingAttackWeights[pos.variant()][Pt];
-            kingAdjacentZoneAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
+            kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
 
         int mob = popcount(b & mobilityArea[Us]);
@@ -850,7 +850,7 @@ namespace {
 
                 // Bonus for bishop on a long diagonal which can "see" both center squares
                 if (more_than_one(Center & (attacks_bb<BISHOP>(s, pos.pieces(PAWN)) | s)))
-                    score += LongRangedBishop;
+                    score += LongDiagonalBishop;
             }
 
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -862,9 +862,9 @@ namespace {
             {
                 Direction d = pawn_push(Us) + (file_of(s) == FILE_A ? EAST : WEST);
                 if (pos.piece_on(s + d) == make_piece(Us, PAWN))
-                    score -= !pos.empty(s + d + pawn_push(Us))                ? TrappedBishopA1H1 * 4
-                            : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? TrappedBishopA1H1 * 2
-                                                                              : TrappedBishopA1H1;
+                    score -= !pos.empty(s + d + pawn_push(Us))                ? CorneredBishop * 4
+                            : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? CorneredBishop * 2
+                                                                              : CorneredBishop;
             }
         }
 
@@ -1029,7 +1029,7 @@ namespace {
 
         const auto KDP = KingDangerParams[pos.variant()];
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                     + KDP[0] * kingAdjacentZoneAttacksCount[Them]
+                     + KDP[0] * kingAttacksCount[Them]
                      + KDP[1] * popcount(kingRing[Us] & weak)
                      + KDP[2] * popcount(pinned | unsafeChecks)
                      + KDP[3] * !pos.count<QUEEN>(Them)
