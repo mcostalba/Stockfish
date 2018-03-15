@@ -189,7 +189,7 @@ namespace {
 #endif
   };
   const int ProbcutMargin[VARIANT_NB] = {
-  200,
+  216,
 #ifdef ANTI
   200,
 #endif
@@ -935,7 +935,7 @@ namespace {
     if (inCheck)
     {
         ss->staticEval = eval = VALUE_NONE;
-        improving = true;
+        improving = false;
         goto moves_loop;
     }
     else if (ttHit)
@@ -1075,12 +1075,12 @@ namespace {
     {
         assert(is_ok((ss-1)->currentMove));
 
-        Value rbeta = std::min(beta + ProbcutMargin[pos.variant()], VALUE_INFINITE);
+        Value rbeta = std::min(beta + ProbcutMargin[pos.variant()] - 48 * improving, VALUE_INFINITE);
         MovePicker mp(pos, ttMove, rbeta - ss->staticEval, &thisThread->captureHistory);
         int probCutCount = 0;
 
         while (  (move = mp.next_move()) != MOVE_NONE
-               && probCutCount < depth / ONE_PLY - 3)
+               && probCutCount < 3)
             if (pos.legal(move))
             {
                 probCutCount++;
@@ -1358,8 +1358,8 @@ moves_loop: // When in check, search starts from here
 
       // Step 17. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
-          value = newDepth <   ONE_PLY ? -qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha)
-                                       : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode, false);
+          value = newDepth < ONE_PLY ? -qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha)
+                                     : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode, false);
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
@@ -1369,8 +1369,8 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = newDepth <   ONE_PLY ? -qsearch<PV>(pos, ss+1, -beta, -alpha)
-                                       : - search<PV>(pos, ss+1, -beta, -alpha, newDepth, false, false);
+          value = newDepth < ONE_PLY ? -qsearch<PV>(pos, ss+1, -beta, -alpha)
+                                     : - search<PV>(pos, ss+1, -beta, -alpha, newDepth, false, false);
       }
 
       // Step 18. Undo move
@@ -1507,7 +1507,7 @@ moves_loop: // When in check, search starts from here
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
 
     const bool PvNode = NT == PV;
-    const bool InCheck = bool(pos.checkers());
+    const bool inCheck = bool(pos.checkers());
 
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -1541,14 +1541,14 @@ moves_loop: // When in check, search starts from here
     // Check for an immediate draw or maximum ply reached
     if (   pos.is_draw(ss->ply)
         || ss->ply >= MAX_PLY)
-        return (ss->ply >= MAX_PLY && !InCheck) ? evaluate(pos) : VALUE_DRAW;
+        return (ss->ply >= MAX_PLY && !inCheck) ? evaluate(pos) : VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Decide whether or not to include checks: this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
     // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-    ttDepth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
+    ttDepth = inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
                                                   : DEPTH_QS_NO_CHECKS;
     // Transposition table lookup
     posKey = pos.key();
@@ -1565,7 +1565,7 @@ moves_loop: // When in check, search starts from here
         return ttValue;
 
     // Evaluate the position statically
-    if (InCheck)
+    if (inCheck)
     {
         ss->staticEval = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
@@ -1624,7 +1624,7 @@ moves_loop: // When in check, search starts from here
       moveCount++;
 
       // Futility pruning
-      if (   !InCheck
+      if (   !inCheck
           && !givesCheck
 #ifdef EXTINCTION
           && !pos.is_extinction()
@@ -1663,13 +1663,13 @@ moves_loop: // When in check, search starts from here
       }
 
       // Detect non-capture evasions that are candidates to be pruned
-      evasionPrunable =    InCheck
+      evasionPrunable =    inCheck
                        &&  (depth != DEPTH_ZERO || moveCount > 2)
                        &&  bestValue > VALUE_MATED_IN_MAX_PLY
                        && !pos.capture(move);
 
       // Don't search moves with negative SEE values
-      if (  (!InCheck || evasionPrunable)
+      if (  (!inCheck || evasionPrunable)
           && !pos.see_ge(move))
           continue;
 
@@ -1720,7 +1720,7 @@ moves_loop: // When in check, search starts from here
 
     // All legal moves have been searched. A special case: If we're in check
     // and no legal moves were found, it is checkmate.
-    if (InCheck && bestValue == -VALUE_INFINITE)
+    if (inCheck && bestValue == -VALUE_INFINITE)
         return pos.checkmate_value(ss->ply); // Plies to mate from the root
 
     tte->save(posKey, value_to_tt(bestValue, ss->ply),
@@ -1875,7 +1875,7 @@ void MainThread::check_time() {
       return;
 
   // When using nodes, ensure checking rate is not lower than 0.1% of nodes
-  callsCnt = Limits.nodes ? std::min(4096, int(Limits.nodes / 1024)) : 4096;
+  callsCnt = Limits.nodes ? std::min(1024, int(Limits.nodes / 1024)) : 1024;
 
   static TimePoint lastInfoTime = now();
 
