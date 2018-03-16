@@ -501,15 +501,15 @@ void Position::set_check_info(StateInfo* si) const {
   if (is_horde())
   {
       si->blockersForKing[WHITE] = si->pinners[WHITE] = is_horde_color(WHITE)
-          ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[WHITE]);
+          ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
       si->blockersForKing[BLACK] = si->pinners[BLACK] = is_horde_color(BLACK)
-          ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[BLACK]);
+          ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
   }
   else
 #endif
   {
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[WHITE]);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[BLACK]);
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
   }
 
 #ifdef HORDE
@@ -2037,7 +2037,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // all pinners are on their original square.
-      if (!(st->pinners[stm] & ~occupied))
+      if (!(st->pinners[~stm] & ~occupied))
           stmAttackers &= ~st->blockersForKing[stm];
 #ifdef RACE
       // Exclude checks in racing kings
@@ -2049,7 +2049,7 @@ bool Position::see_ge(Move m, Value threshold) const {
                   stmAttackers &= ~pieces(stm, pt);
 
           // Discovered checks
-          if (!(st->pinners[~stm] & ~occupied))
+          if (!(st->pinners[stm] & ~occupied))
               stmAttackers &= ~st->blockersForKing[~stm];
       }
 #endif
