@@ -895,8 +895,8 @@ for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
 #ifdef RACE
           if (var == RACE_VARIANT)
           {
-              psq[var][ pc][horizontal_flip(s)] = score + Bonus[var][pc][rank_of(s)][f];
-              psq[var][~pc][~s] = -psq[var][pc][s];
+              psq[var][ pc][s] = score + Bonus[var][pc][rank_of(s)][f];
+              psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
           }
           else
 #endif
