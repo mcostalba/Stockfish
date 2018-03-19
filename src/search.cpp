@@ -66,47 +66,46 @@ namespace {
   enum NodeType { NonPV, PV };
 
   // Sizes and phases of the skip-blocks, used for distributing search depths across the threads
-  const int SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-  const int SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+  constexpr int SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+  constexpr int SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
   // Razor and futility margins
-  const int RazorMargin1[VARIANT_NB] = {
-  590,
+  constexpr int RazorMargin[VARIANT_NB][3] = {
+  {0, 590, 604},
 #ifdef ANTI
-  2334,
+  {0, 2234, 604},
 #endif
 #ifdef ATOMIC
-  2501,
+  {0, 2501, 604},
 #endif
 #ifdef CRAZYHOUSE
-  651,
+  {0, 651, 604},
 #endif
 #ifdef EXTINCTION
-  603,
+  {0, 603, 604},
 #endif
 #ifdef GRID
-  601,
+  {0, 601, 604},
 #endif
 #ifdef HORDE
-  625,
+  {0, 625, 604},
 #endif
 #ifdef KOTH
-  676,
+  {0, 676, 604},
 #endif
 #ifdef LOSERS
-  2351,
+  {0, 2351, 604},
 #endif
 #ifdef RACE
-  1029,
+  {0, 1029, 604},
 #endif
 #ifdef THREECHECK
-  2257,
+  {0, 2257, 604},
 #endif
 #ifdef TWOKINGS
-  603,
+  {0, 603, 604},
 #endif
   };
-  const int RazorMargin2 = 604;
   const int FutilityMarginFactor[VARIANT_NB] = {
   175,
 #ifdef ANTI
@@ -975,21 +974,13 @@ namespace {
 
     // Step 7. Razoring (skipped when in check)
     if (  !PvNode
-        && depth <= 2 * ONE_PLY)
+        && depth <= 2 * ONE_PLY
+        && eval <= alpha - Value(RazorMargin[pos.variant()][depth / ONE_PLY]))
     {
-        if (   depth == ONE_PLY
-            && eval + RazorMargin1[pos.variant()] <= alpha)
-            return qsearch<NonPV>(pos, ss, alpha, alpha+1);
-
-        else if (eval + RazorMargin2 <= alpha)
-        {
-            Value ralpha = alpha - RazorMargin2;
-
-            Value v = qsearch<NonPV>(pos, ss, ralpha, ralpha+1);
-
-            if (v <= ralpha)
-                return v;
-        }
+        Value ralpha = alpha - Value((depth != ONE_PLY) * RazorMargin[pos.variant()][depth / ONE_PLY]);
+        Value v = qsearch<NonPV>(pos, ss, ralpha, ralpha+1);
+        if (depth == ONE_PLY || v <= ralpha)
+            return v;
     }
 
     // Step 8. Futility pruning: child node (skipped when in check)

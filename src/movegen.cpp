@@ -28,7 +28,7 @@ namespace {
   template<Variant V, CastlingRight Cr, bool Checks, bool Chess960>
   ExtMove* generate_castling(const Position& pos, ExtMove* moveList, Color us) {
 
-    static const bool KingSide = (Cr == WHITE_OO || Cr == BLACK_OO);
+    static constexpr bool KingSide = (Cr == WHITE_OO || Cr == BLACK_OO);
 
     if (pos.castling_impeded(Cr) || !pos.can_castle(Cr))
         return moveList;
@@ -54,8 +54,8 @@ namespace {
 
     assert(!pos.checkers());
 
-    const Direction K = Chess960 ? kto > kfrom ? WEST : EAST
-                                 : KingSide    ? WEST : EAST;
+    const Direction step = Chess960 ? kto > kfrom ? WEST : EAST
+                                    : KingSide    ? WEST : EAST;
 
 #ifdef ANTI
     if (V != ANTI_VARIANT)
@@ -65,7 +65,7 @@ namespace {
     if (V != EXTINCTION_VARIANT)
     {
 #endif
-    for (Square s = kto; s != kfrom; s += K)
+    for (Square s = kto; s != kfrom; s += step)
 #ifdef ATOMIC
         if (V == ATOMIC_VARIANT)
         {
@@ -182,16 +182,16 @@ namespace {
 
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
-    const Color     Them     = (Us == WHITE ? BLACK      : WHITE);
-    const Bitboard  TRank8BB = (Us == WHITE ? Rank8BB    : Rank1BB);
-    const Bitboard  TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
+    constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
+    constexpr Bitboard  TRank8BB = (Us == WHITE ? Rank8BB    : Rank1BB);
+    constexpr Bitboard  TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
 #ifdef HORDE
-    const Bitboard  TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
+    constexpr Bitboard  TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
 #endif
-    const Bitboard  TRank3BB = (Us == WHITE ? Rank3BB    : Rank6BB);
-    const Direction Up       = (Us == WHITE ? NORTH      : SOUTH);
-    const Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
-    const Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
+    constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB    : Rank6BB);
+    constexpr Direction Up       = (Us == WHITE ? NORTH      : SOUTH);
+    constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
+    constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     Bitboard emptySquares;
 
@@ -392,7 +392,7 @@ namespace {
   template<Variant V, Color Us, GenType Type>
   ExtMove* generate_all(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    const bool Checks = Type == QUIET_CHECKS;
+    constexpr bool Checks = Type == QUIET_CHECKS;
 
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
     moveList = generate_moves<V, KNIGHT, Checks>(pos, moveList, Us, target);

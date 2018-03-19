@@ -32,7 +32,7 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Isolated pawn penalty
-  const Score Isolated[VARIANT_NB] = {
+  constexpr Score Isolated[VARIANT_NB] = {
     S(13, 18),
 #ifdef ANTI
     S(54, 69),
@@ -70,7 +70,7 @@ namespace {
   };
 
   // Backward pawn penalty
-  const Score Backward[VARIANT_NB] = {
+  constexpr Score Backward[VARIANT_NB] = {
     S(24, 12),
 #ifdef ANTI
     S(26, 50),
@@ -111,7 +111,7 @@ namespace {
   Score Connected[VARIANT_NB][2][2][3][RANK_NB];
 
   // Doubled pawn penalty
-  const Score Doubled[VARIANT_NB] = {
+  constexpr Score Doubled[VARIANT_NB] = {
     S(18, 38),
 #ifdef ANTI
     S( 4, 51),
@@ -150,7 +150,7 @@ namespace {
 
   // Weakness of our pawn shelter in front of the king by [isKingFile][distance from edge][rank].
   // RANK_1 = 0 is used for files where we have no pawns or our pawn is behind our king.
-  const Value ShelterWeakness[VARIANT_NB][2][int(FILE_NB) / 2][RANK_NB] = {
+  constexpr Value ShelterWeakness[VARIANT_NB][2][int(FILE_NB) / 2][RANK_NB] = {
   {
     { { V( 98), V(20), V(11), V(42), V( 83), V( 84), V(101) }, // Not On King file
       { V(103), V( 8), V(33), V(86), V( 87), V(105), V(113) },
@@ -260,9 +260,9 @@ namespace {
   };
 
   // Danger of enemy pawns moving toward our king by [type][distance from edge][rank].
-  // For the unopposed and unblocked cases, RANK_1 = 0 is used when opponent has no pawn
-  // on the given file, or their pawn is behind our king.
-  const Value StormDanger[VARIANT_NB][4][4][RANK_NB] = {
+  // For the unopposed and unblocked cases, RANK_1 = 0 is used when opponent has
+  // no pawn on the given file, or their pawn is behind our king.
+  constexpr Value StormDanger[VARIANT_NB][4][4][RANK_NB] = {
   {
     { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
       { V( 0),  V(  60), V( 144), V(39), V(13) },
@@ -454,7 +454,7 @@ namespace {
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
-  const Value MaxSafetyBonus = V(258);
+  constexpr Value MaxSafetyBonus = V(258);
 
 #ifdef HORDE
   const Score ImbalancedHorde = S(49, 39);
@@ -466,8 +466,8 @@ namespace {
   template<Color Us>
   Score evaluate(const Position& pos, Pawns::Entry* e) {
 
-    const Color     Them = (Us == WHITE ? BLACK : WHITE);
-    const Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+    constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
 
     Bitboard b, neighbours, stoppers, doubled, supported, phalanx;
     Bitboard lever, leverPush;
@@ -603,7 +603,7 @@ namespace Pawns {
 
 void init() {
 
-  static const int Seed[VARIANT_NB][RANK_NB] = {
+  static constexpr int Seed[VARIANT_NB][RANK_NB] = {
     { 0, 13, 24, 18, 76, 100, 175, 330 },
 #ifdef ANTI
     { 0, 8, 19, 13, 71, 94, 169, 324 },

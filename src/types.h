@@ -82,32 +82,32 @@
 #endif
 
 #ifdef USE_POPCNT
-const bool HasPopCnt = true;
+constexpr bool HasPopCnt = true;
 #else
-const bool HasPopCnt = false;
+constexpr bool HasPopCnt = false;
 #endif
 
 #ifdef USE_PEXT
-const bool HasPext = true;
+constexpr bool HasPext = true;
 #else
-const bool HasPext = false;
+constexpr bool HasPext = false;
 #endif
 
 #ifdef IS_64BIT
-const bool Is64Bit = true;
+constexpr bool Is64Bit = true;
 #else
-const bool Is64Bit = false;
+constexpr bool Is64Bit = false;
 #endif
 
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
 #if defined(CRAZYHOUSE) || defined(HORDE)
-const int MAX_MOVES = 512;
+constexpr int MAX_MOVES = 512;
 #else
-const int MAX_MOVES = 256;
+constexpr int MAX_MOVES = 256;
 #endif
-const int MAX_PLY   = 128;
+constexpr int MAX_PLY   = 128;
 
 enum Variant {
   //main variants

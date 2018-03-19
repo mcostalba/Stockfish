@@ -30,7 +30,7 @@ class Position;
 
 namespace Eval {
 
-const Value Tempo[VARIANT_NB] = { // Must be visible to search
+constexpr Value Tempo[VARIANT_NB] = { // Must be visible to search
   Value(20),
 #ifdef ANTI
   Value(20),
