@@ -1415,9 +1415,9 @@ namespace {
             {
                 // Assume a horde king distance of approximately 5
                 if (pos.is_horde_color(Us))
-                    bonus += make_score(0, (king_proximity(Them, blockSq) * 5 - 10) * w);
+                    bonus += make_score(0, king_proximity(Them, blockSq) * 5 * w);
                 else
-                    bonus += make_score(0, (25 - king_proximity(Us,   blockSq) * 2) * w);
+                    bonus += make_score(0, 15 * w);
             }
             else
 #endif
