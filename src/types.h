@@ -414,12 +414,12 @@ enum Value : int {
   QueenValueMgThreeCheck  = 1947,  QueenValueEgThreeCheck  = 2323,
 #endif
 #ifdef TWOKINGS
-  PawnValueMgTwoKings   = 196,   PawnValueEgTwoKings   = 275,
-  KnightValueMgTwoKings = 851,   KnightValueEgTwoKings = 872,
-  BishopValueMgTwoKings = 917,   BishopValueEgTwoKings = 904,
-  RookValueMgTwoKings   = 1320,  RookValueEgTwoKings   = 1374,
-  QueenValueMgTwoKings  = 2409,  QueenValueEgTwoKings  = 2832,
-  KingValueMgTwoKings   = 622,   KingValueEgTwoKings   = 793,
+  PawnValueMgTwoKings   = 206,   PawnValueEgTwoKings   = 265,
+  KnightValueMgTwoKings = 887,   KnightValueEgTwoKings = 871,
+  BishopValueMgTwoKings = 940,   BishopValueEgTwoKings = 898,
+  RookValueMgTwoKings   = 1360,  RookValueEgTwoKings   = 1415,
+  QueenValueMgTwoKings  = 2455,  QueenValueEgTwoKings  = 2846,
+  KingValueMgTwoKings   = 554,   KingValueEgTwoKings   = 806,
 #endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
