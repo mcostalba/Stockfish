@@ -1474,14 +1474,11 @@ namespace {
     int bonus = popcount(safe) + popcount(behind & safe);
     int weight = pos.count<ALL_PIECES>(Us) - 2 * pe->open_files();
 
-    Score score;
+    Score score = make_score(bonus * weight * weight / 16, 0);
 #ifdef KOTH
     if (pos.is_koth())
-        score =  make_score(bonus * weight * weight / 22, 0)
-               + KothSafeCenter * popcount(safe & behind & Center);
-    else
+        score += KothSafeCenter * popcount(behind & safe & Center);
 #endif
-    score = make_score(bonus * weight * weight / 16, 0);
 
     if (T)
         Trace::add(SPACE, Us, score);
