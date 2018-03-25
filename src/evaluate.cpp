@@ -36,7 +36,7 @@ namespace Trace {
   enum Tracing { NO_TRACE, TRACE };
 
   enum Term { // The first 8 entries are reserved for PieceType
-    MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, TOTAL, TERM_NB
+    MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, INITIATIVE, VARIANT, TOTAL, TERM_NB
   };
 
   Score scores[TERM_NB][COLOR_NB];
@@ -642,6 +642,7 @@ namespace {
     template<Color Us> Score threats() const;
     template<Color Us> Score passed() const;
     template<Color Us> Score space() const;
+    template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
     Score initiative(Value eg) const;
 
@@ -1286,61 +1287,6 @@ namespace {
 
     score += ThreatByPawnPush * popcount(b);
 
-#ifdef THREECHECK
-    if (pos.is_three_check())
-        score += ChecksGivenBonus[pos.checks_given(Us)];
-#endif
-#ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Them))
-    {
-        // Add a bonus according to how close we are to breaking through the pawn wall
-        if (pos.pieces(Us, ROOK) | pos.pieces(Us, QUEEN))
-        {
-            int dist = 8;
-            if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, RANK_8)))
-                dist = 0;
-            else
-            {
-                for (File f = FILE_A; f <= FILE_H; ++f)
-                {
-                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
-                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f - 1]), pawns) : 0;
-                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f + 1]), pawns) : 0;
-                    dist = std::min(dist, pawnsl + pawnsr);
-                }
-            }
-            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
-        }
-    }
-#endif
-#ifdef RACE
-    if (pos.is_race())
-    {
-        Square ksq = pos.square<KING>(Us);
-        int s = relative_rank(BLACK, ksq);
-        for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
-            if (!(rank_bb(r) & DistanceRingBB[ksq][r - 1 - kr] & ~attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
-                s++;
-        score += KingRaceBonus[std::min(s, 7)];
-    }
-#endif
-#ifdef KOTH
-    if (pos.is_koth())
-    {
-        Bitboard center = Center;
-        while (center)
-        {
-            Square s = pop_lsb(&center);
-            int dist = distance(pos.square<KING>(Us), s)
-                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
-                      + !!(pos.pieces(Us) & s)
-                      + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
-            assert(dist > 0);
-            score += KothDistanceBonus[std::min(dist - 1, 5)];
-        }
-    }
-#endif
-
     // Bonus for threats on the next moves against enemy queen
 #ifdef CRAZYHOUSE
     if ((pos.is_house() ? pos.count<QUEEN>(Them) - pos.count_in_hand<QUEEN>(Them) : pos.count<QUEEN>(Them)) == 1)
@@ -1541,6 +1487,77 @@ namespace {
     return score;
   }
 
+  // Evaluation::variant() computes variant-specific evaluation terms.
+
+  template<Tracing T> template<Color Us>
+  Score Evaluation<T>::variant() const {
+
+    const Color     Them = (Us == WHITE ? BLACK : WHITE);
+    const Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+
+    Score score = SCORE_ZERO;
+
+#ifdef HORDE
+    if (pos.is_horde() && pos.is_horde_color(Them))
+    {
+        // Add a bonus according to how close we are to breaking through the pawn wall
+        if (pos.pieces(Us, ROOK) | pos.pieces(Us, QUEEN))
+        {
+            int dist = 8;
+            if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, RANK_8)))
+                dist = 0;
+            else
+            {
+                for (File f = FILE_A; f <= FILE_H; ++f)
+                {
+                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
+                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f - 1]), pawns) : 0;
+                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f + 1]), pawns) : 0;
+                    dist = std::min(dist, pawnsl + pawnsr);
+                }
+            }
+            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+        }
+    }
+#endif
+#ifdef KOTH
+    if (pos.is_koth())
+    {
+        Bitboard center = Center;
+        while (center)
+        {
+            Square s = pop_lsb(&center);
+            int dist = distance(pos.square<KING>(Us), s)
+                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
+                      + !!(pos.pieces(Us) & s)
+                      + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
+            assert(dist > 0);
+            score += KothDistanceBonus[std::min(dist - 1, 5)];
+        }
+    }
+#endif
+#ifdef RACE
+    if (pos.is_race())
+    {
+        Square ksq = pos.square<KING>(Us);
+        int s = relative_rank(BLACK, ksq);
+        for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
+            if (!(rank_bb(r) & DistanceRingBB[ksq][r - 1 - kr] & ~attackedBy[Them][ALL_PIECES] & ~pos.pieces(Us)))
+                s++;
+        score += KingRaceBonus[std::min(s, 7)];
+    }
+#endif
+#ifdef THREECHECK
+    if (pos.is_three_check())
+        score += ChecksGivenBonus[pos.checks_given(Us)];
+#endif
+
+    if (T)
+        Trace::add(VARIANT, Us, score);
+
+    return score;
+  }
+
 
   // Evaluation::initiative() computes the initiative correction value
   // for the position. It is a second order bonus/malus based on the
@@ -1700,6 +1717,9 @@ namespace {
             + passed< WHITE>() - passed< BLACK>()
             + space<  WHITE>() - space<  BLACK>();
 
+    if (pos.variant() != CHESS_VARIANT)
+        score += variant<WHITE>() - variant<BLACK>();
+
     score += initiative(eg_value(score));
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
@@ -1766,6 +1786,7 @@ std::string Eval::trace(const Position& pos) {
      << "     Threats | " << Term(THREAT)
      << "      Passed | " << Term(PASSED)
      << "       Space | " << Term(SPACE)
+     << "     Variant | " << Term(VARIANT)
      << " ------------+-------------+-------------+------------\n"
      << "       Total | " << Term(TOTAL);
 
