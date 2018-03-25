@@ -105,7 +105,7 @@ namespace {
     Value(12222),
 #endif
 #ifdef HORDE
-    VALUE_ZERO,
+    Value(12222),
 #endif
 #ifdef KOTH
     VALUE_ZERO,
@@ -1449,10 +1449,6 @@ namespace {
       Us == WHITE ? CenterFiles & (Rank2BB | Rank3BB | Rank4BB)
                   : CenterFiles & (Rank7BB | Rank6BB | Rank5BB);
 
-#ifdef HORDE
-    if (pos.is_horde())
-        return SCORE_ZERO;
-#endif
     if (pos.non_pawn_material() < SpaceThreshold[pos.variant()])
         return SCORE_ZERO;
 
@@ -1475,8 +1471,8 @@ namespace {
     Score score;
 #ifdef KOTH
     if (pos.is_koth())
-        score = make_score(bonus * weight * weight / 22, 0)
-              + KothSafeCenter * popcount(safe & behind & (Rank4BB | Rank5BB) & (FileDBB | FileEBB));
+        score =  make_score(bonus * weight * weight / 22, 0)
+               + KothSafeCenter * popcount(safe & behind & Center);
     else
 #endif
     score = make_score(bonus * weight * weight / 16, 0);
