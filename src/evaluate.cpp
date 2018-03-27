@@ -1494,8 +1494,7 @@ namespace {
   template<Tracing T> template<Color Us>
   Score Evaluation<T>::variant() const {
 
-    const Color     Them = (Us == WHITE ? BLACK : WHITE);
-    const Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
     Score score = SCORE_ZERO;
 
@@ -1525,12 +1524,14 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth())
     {
+        constexpr Direction Up = (Us == WHITE ? NORTH : SOUTH);
+        Bitboard pinned = pos.blockers_for_king(Them) & pos.pieces(Them);
         Bitboard center = Center;
         while (center)
         {
             Square s = pop_lsb(&center);
             int dist = distance(pos.square<KING>(Us), s)
-                      + popcount(pos.attackers_to(s) & pos.pieces(Them))
+                      + ((pinned || (attackedBy[Them][ALL_PIECES] & s)) ? popcount(pos.attackers_to(s) & pos.pieces(Them)) : 0)
                       + !!(pos.pieces(Us) & s)
                       + !!(shift<Up>(pos.pieces(Us, PAWN) & s) & pos.pieces(Them, PAWN));
             assert(dist > 0);
