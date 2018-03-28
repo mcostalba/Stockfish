@@ -357,11 +357,11 @@ enum Value : int {
   QueenValueMgAtomic  = 1447,  QueenValueEgAtomic  = 1892,
 #endif
 #ifdef CRAZYHOUSE
-  PawnValueMgHouse   = 140,   PawnValueEgHouse   = 232,
-  KnightValueMgHouse = 441,   KnightValueEgHouse = 538,
-  BishopValueMgHouse = 464,   BishopValueEgHouse = 508,
-  RookValueMgHouse   = 673,   RookValueEgHouse   = 727,
-  QueenValueMgHouse  = 832,   QueenValueEgHouse  = 1046,
+  PawnValueMgHouse   = 149,   PawnValueEgHouse   = 206,
+  KnightValueMgHouse = 447,   KnightValueEgHouse = 527,
+  BishopValueMgHouse = 450,   BishopValueEgHouse = 521,
+  RookValueMgHouse   = 619,   RookValueEgHouse   = 669,
+  QueenValueMgHouse  = 878,   QueenValueEgHouse  = 965,
 #endif
 #ifdef EXTINCTION
   PawnValueMgExtinction   = 209,   PawnValueEgExtinction   = 208,
