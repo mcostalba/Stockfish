@@ -358,15 +358,17 @@ struct TBEntry {
     void* baseAddress;
     uint8_t* map;
     uint64_t mapping;
+    Variant variant;
     Key key;
     Key key2;
     int pieceCount;
     bool hasPawns;
-    int numUniquePieces;
-    int minLikeMan;
+    uint8_t numUniquePieces; // count of piece types
+#ifdef ANTI
+    uint8_t minModePieces; // minimum mode of pieces per piece type
+#endif
     uint8_t pawnCount[2]; // [Lead color / other color]
     PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
-    Variant variant;
 
     PairsData* get(int stm, int f) {
         return &items[stm % Sides][hasPawns ? f : 0];
@@ -390,15 +392,14 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
     hasPawns = pos.pieces(PAWN);
 
     for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt < KING; ++pt)
-            if (popcount(pos.pieces(c, pt)) == 1)
-                numUniquePieces++;
-
-    for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+        for (PieceType pt = PAWN; pt < KING; ++pt) {
             int count = popcount(pos.pieces(c, pt));
-            if (2 <= count && (count < minLikeMan || !minLikeMan))
-                minLikeMan = count;
+            if (count == 1)
+                numUniquePieces++;
+#ifdef ANTI
+            else if (variant == ANTI_VARIANT && (count < minModePieces || !minModePieces))
+                minModePieces = count;
+#endif
         }
 
     if (hasPawns) {
@@ -424,7 +425,9 @@ TBEntry<DTZ>::TBEntry(const TBEntry<WDL>& wdl) : TBEntry() {
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
     numUniquePieces = wdl.numUniquePieces;
-    minLikeMan = wdl.minLikeMan;
+#ifdef ANTI
+    minModePieces = wdl.minModePieces;
+#endif
 
     if (hasPawns) {
         pawnCount[0] = wdl.pawnCount[0];
@@ -1182,7 +1185,8 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
             // the kings.
             idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
 
-    } else if (entry->minLikeMan == 2) {
+#ifdef ANTI
+    } else if (entry->variant == ANTI_VARIANT && entry->minModePieces == 2) {
         if (Triangle[squares[0]] > Triangle[squares[1]])
             std::swap(squares[0], squares[1]);
 
@@ -1205,6 +1209,7 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
         }
 
         idx = MapPP[Triangle[squares[0]]][squares[1]];
+#endif
     } else {
         for (int i = 1; i < d->groupLen[0]; ++i)
             if (Triangle[squares[0]] > Triangle[squares[i]])
@@ -1317,10 +1322,10 @@ void set_groups(TBEntry<Type>& e, PairsData* d, int order[], File f) {
             else if (e.numUniquePieces == 2)
                 // Standard or Atomic/Giveaway
                 idx *= (e.variant == CHESS_VARIANT) ? 462 : 518;
-            else if (e.minLikeMan == 2)
-                idx *= 278;
-            else
-                idx *= MultFactor[e.minLikeMan - 1];
+#ifdef ANTI
+            else if (e.variant == ANTI_VARIANT)
+                idx *= (e.minModePieces == 2) ? 278 : MultFactor[e.minModePieces - 1];
+#endif
         }
         else if (k == order[1]) // Remaining pawns
         {
