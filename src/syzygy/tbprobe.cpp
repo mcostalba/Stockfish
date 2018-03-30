@@ -319,7 +319,7 @@ struct TBEntry {
 
     TBEntry() : ready(false), baseAddress(nullptr) {}
     explicit TBEntry(const std::string& code, Variant v);
-    explicit TBEntry(const TBEntry<WDL>& wdl, Variant v);
+    explicit TBEntry(const TBEntry<WDL>& wdl);
     ~TBEntry();
 };
 
@@ -339,6 +339,13 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
+    for (Color c = WHITE; c <= BLACK; ++c)
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+            int count = popcount(pos.pieces(c, pt));
+            if (2 <= count && (count < minLikeMan || !minLikeMan))
+                minLikeMan = count;
+        }
+
     if (hasPawns) {
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
@@ -354,14 +361,15 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
 }
 
 template<>
-TBEntry<DTZ>::TBEntry(const TBEntry<WDL>& wdl, Variant v) : TBEntry() {
+TBEntry<DTZ>::TBEntry(const TBEntry<WDL>& wdl) : TBEntry() {
 
-    variant = v;
+    variant = wdl.variant;
     key = wdl.key;
     key2 = wdl.key2;
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
     numUniquePieces = wdl.numUniquePieces;
+    minLikeMan = wdl.minLikeMan;
 
     if (hasPawns) {
         pawnCount[0] = wdl.pawnCount[0];
@@ -732,7 +740,7 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
     MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
     wdlTable.emplace_back(code, variant);
-    dtzTable.emplace_back(wdlTable.back(), variant);
+    dtzTable.emplace_back(wdlTable.back());
 
     insert(wdlTable.back().key , &wdlTable.back(), &dtzTable.back());
     insert(wdlTable.back().key2, &wdlTable.back(), &dtzTable.back());
