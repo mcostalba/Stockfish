@@ -112,6 +112,7 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #endif
 };
 
+#ifdef ANTI
 const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
@@ -166,7 +167,7 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 };
-
+#endif
 
 const char* DtzSuffixes[SUBVARIANT_NB] = {
     ".rtbz",
@@ -223,6 +224,7 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #endif
 };
 
+#ifdef ANTI
 const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
@@ -277,6 +279,7 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 };
+#endif
 
 // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
 enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, SingleValue = 128 };
@@ -397,7 +400,7 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
             if (count == 1)
                 numUniquePieces++;
 #ifdef ANTI
-            else if (variant == ANTI_VARIANT && (count < minModePieces || !minModePieces))
+            else if (main_variant(variant) == ANTI_VARIANT && (count < minModePieces || !minModePieces))
                 minModePieces = count;
 #endif
         }
@@ -784,14 +787,15 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
 
     if (file.is_open()) // Only WDL file is checked
         file.close();
-    else if (variant != CHESS_VARIANT && code.find("P") == std::string::npos &&
-             PawnlessWdlSuffixes[variant])
+#ifdef ANTI
+    else if (main_variant(variant) == ANTI_VARIANT && code.find("P") == std::string::npos)
     {
         TBFile pawnlessFile(code + PawnlessWdlSuffixes[variant]);
         if (!pawnlessFile.is_open()) // Only WDL file is checked
             return;
         pawnlessFile.close();
     }
+#endif
     else
         return;
 
@@ -1120,8 +1124,8 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
     //
     // In case we have at least 3 unique pieces (inlcuded kings) we encode them
     // together.
-    if (entry->numUniquePieces >= 3) {
-
+    if (entry->numUniquePieces >= 3)
+    {
         int adjust1 =  squares[1] > squares[0];
         int adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
 
@@ -1154,39 +1158,8 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
                  +  rank_of(squares[0])         * 7 * 6
                  + (rank_of(squares[1]) - adjust1)  * 6
                  + (rank_of(squares[2]) - adjust2);
-    } else if (entry->numUniquePieces == 2) {
-
-        bool connectedKings = false;
-#ifdef ATOMIC
-        connectedKings = connectedKings || entry->variant == ATOMIC_VARIANT;
-#endif
-#ifdef ANTI
-        connectedKings = connectedKings || main_variant(entry->variant) == ANTI_VARIANT;
-#endif
-
-        if (connectedKings) {
-            int adjust = squares[1] > squares[0];
-
-            if (off_A1H8(squares[0]))
-                idx =   MapA1D1D4[squares[0]] * 63
-                     + (squares[1] - adjust);
-
-            else if (off_A1H8(squares[1]))
-                idx =  6 * 63
-                     + rank_of(squares[0]) * 28
-                     + MapB1H1H7[squares[1]];
-
-            else
-                idx =   6 * 63 + 4 * 28
-                     +  rank_of(squares[0]) * 7
-                     + (rank_of(squares[1]) - adjust);
-        } else
-            // We don't have at least 3 unique pieces, like in KRRvKBB, just map
-            // the kings.
-            idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
-
-#ifdef ANTI
-    } else if (entry->variant == ANTI_VARIANT && entry->minModePieces == 2) {
+#if defined(ATOMIC) || defined(ANTI)
+    } else if (entry->variant != CHESS_VARIANT && entry->numUniquePieces != 2 && entry->minModePieces == 2) {
         if (Triangle[squares[0]] > Triangle[squares[1]])
             std::swap(squares[0], squares[1]);
 
@@ -1209,8 +1182,7 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
         }
 
         idx = MapPP[Triangle[squares[0]]][squares[1]];
-#endif
-    } else {
+    } else if (entry->variant != CHESS_VARIANT && entry->numUniquePieces != 2) {
         for (int i = 1; i < d->groupLen[0]; ++i)
             if (Triangle[squares[0]] > Triangle[squares[i]])
                 std::swap(squares[0], squares[i]);
@@ -1236,6 +1208,39 @@ T do_probe_table(const Position& pos, TBEntry<Type>* entry, WDLScore wdl, ProbeS
 
         for (int i = 1; i < d->groupLen[0]; ++i)
             idx += Binomial[i][MultTwist[squares[i]]];
+#endif
+    } else {
+        bool connectedKings = false;
+#ifdef ATOMIC
+        connectedKings = connectedKings || entry->variant == ATOMIC_VARIANT;
+#endif
+#ifdef ANTI
+        connectedKings = connectedKings || main_variant(entry->variant) == ANTI_VARIANT;
+#endif
+
+        if (connectedKings)
+        {
+            int adjust = squares[1] > squares[0];
+
+            if (off_A1H8(squares[0]))
+                idx =   MapA1D1D4[squares[0]] * 63
+                     + (squares[1] - adjust);
+
+            else if (off_A1H8(squares[1]))
+                idx =  6 * 63
+                     + rank_of(squares[0]) * 28
+                     + MapB1H1H7[squares[1]];
+
+            else
+                idx =   6 * 63 + 4 * 28
+                     +  rank_of(squares[0]) * 7
+                     + (rank_of(squares[1]) - adjust);
+        }
+        else
+            // We don't have at least 3 unique pieces, like in KRRvKBB, just map
+            // the kings.
+            idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+
     }
 
 encode_remaining:
@@ -1323,7 +1328,7 @@ void set_groups(TBEntry<Type>& e, PairsData* d, int order[], File f) {
                 // Standard or Atomic/Giveaway
                 idx *= (e.variant == CHESS_VARIANT) ? 462 : 518;
 #ifdef ANTI
-            else if (e.variant == ANTI_VARIANT)
+            else if (main_variant(e.variant) == ANTI_VARIANT)
                 idx *= (e.minModePieces == 2) ? 278 : MultFactor[e.minModePieces - 1];
 #endif
         }
@@ -1648,6 +1653,7 @@ void* init(TBEntry<Type>& e, const Position& pos) {
 #endif
     };
 
+#ifdef ANTI
     constexpr uint8_t PAWNLESS_TB_MAGIC[SUBVARIANT_NB][2][4] = {
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
@@ -1756,20 +1762,25 @@ void* init(TBEntry<Type>& e, const Position& pos) {
         },
 #endif
     };
+#endif
 
     fname = e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w;
 
     const char** Suffixes = Type == WDL ? WdlSuffixes : DtzSuffixes;
+#ifdef ANTI
     const char** PawnlessSuffixes = Type == WDL ? PawnlessWdlSuffixes : PawnlessDtzSuffixes;
+#endif
     uint8_t* data = nullptr;
     TBFile file(fname + Suffixes[e.variant]);
 
     if (file.is_open())
         data = file.map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][Type == WDL]);
+#ifdef ANTI
     else if (fname.find("P") == std::string::npos && PawnlessSuffixes[e.variant]) {
         TBFile pawnlessFile(fname + PawnlessSuffixes[e.variant]);
         data = pawnlessFile.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][Type == WDL]);
     }
+#endif
 
     if (data)
     {
