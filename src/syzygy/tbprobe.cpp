@@ -319,7 +319,7 @@ struct TBEntry {
 
     TBEntry() : ready(false), baseAddress(nullptr) {}
     explicit TBEntry(const std::string& code, Variant v);
-    explicit TBEntry(const TBEntry<WDL>& wdl);
+    explicit TBEntry(const TBEntry<WDL>& wdl, Variant v);
     ~TBEntry();
 };
 
@@ -329,6 +329,7 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
     StateInfo st;
     Position pos;
 
+    variant = v;
     key = pos.set(code, WHITE, v, &st).material_key();
     pieceCount = popcount(pos.pieces());
     hasPawns = pos.pieces(PAWN);
@@ -353,8 +354,9 @@ TBEntry<WDL>::TBEntry(const std::string& code, Variant v) : TBEntry() {
 }
 
 template<>
-TBEntry<DTZ>::TBEntry(const TBEntry<WDL>& wdl) : TBEntry() {
+TBEntry<DTZ>::TBEntry(const TBEntry<WDL>& wdl, Variant v) : TBEntry() {
 
+    variant = v;
     key = wdl.key;
     key2 = wdl.key2;
     pieceCount = wdl.pieceCount;
@@ -730,7 +732,7 @@ void HashTable::insert(const std::vector<PieceType>& w, const std::vector<PieceT
     MaxCardinality = std::max((int)(w.size() + b.size()), MaxCardinality);
 
     wdlTable.emplace_back(code, variant);
-    dtzTable.emplace_back(wdlTable.back());
+    dtzTable.emplace_back(wdlTable.back(), variant);
 
     insert(wdlTable.back().key , &wdlTable.back(), &dtzTable.back());
     insert(wdlTable.back().key2, &wdlTable.back(), &dtzTable.back());
