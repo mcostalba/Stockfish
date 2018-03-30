@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'g++-7-multilib', 'g++-multilib', 'valgrind', 'expect']
+          packages: ['g++-7', 'g++-7-multilib', 'g++-multilib', 'valgrind', 'expect', 'curl']
         artifacts:
           bucket: variant-stockfish
           s3_region: us-west-2
@@ -37,7 +37,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-          packages: ['clang-5.0', 'llvm-5.0-dev', 'g++-multilib', 'valgrind', 'expect']
+          packages: ['clang-5.0', 'llvm-5.0-dev', 'g++-multilib', 'valgrind', 'expect', 'curl']
       env:
         - COMPILER=clang++-5.0
         - COMP=clang
