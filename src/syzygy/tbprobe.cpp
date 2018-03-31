@@ -462,6 +462,7 @@ int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
 int LeadPawnIdx[5][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
 int LeadPawnsSize[5][4];       // [leadPawnsCnt][FILE_A..FILE_D]
 
+#if defined(ATOMIC) || defined(ANTI)
 const int Triangle[SQUARE_NB] = {
     6, 0, 1, 2, 2, 1, 0, 6,
     0, 7, 3, 4, 4, 3, 7, 0,
@@ -571,6 +572,7 @@ const Bitboard Test45 = 0x1030700000000ULL; // A5-C5-A7 triangle
 const int InvTriangle[] = { 1, 2, 3, 10, 11, 19, 0, 9, 18, 27 };
 int MultIdx[5][10];
 int MultFactor[5];
+#endif
 
 enum { BigEndian, LittleEndian };
 
@@ -2085,6 +2087,7 @@ void Tablebases::init(const std::string& paths, Variant variant) {
             Binomial[k][n] =  (k > 0 ? Binomial[k - 1][n - 1] : 0)
                             + (k < n ? Binomial[k    ][n - 1] : 0);
 
+#if defined(ATOMIC) || defined(ANTI)
     // For antichess (with less than two unique pieces).
     for (int i = 0; i < 5; i++) {
         int s = 0;
@@ -2094,6 +2097,7 @@ void Tablebases::init(const std::string& paths, Variant variant) {
         }
         MultFactor[i] = s;
     }
+#endif
 
     // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
     // available squares when the leading one is in 's'. Moreover the pawn with
