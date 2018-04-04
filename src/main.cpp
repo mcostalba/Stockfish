@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
   Bitbases::init();
   Search::init();
   Pawns::init();
-  Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
+  Tablebases::init(CHESS_VARIANT, Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
   Threads.set(Options["Threads"]);
   Search::clear(); // After threads are up
