@@ -336,7 +336,7 @@ inline Piece Position::piece_on(Square s) const {
 
 inline Piece Position::moved_piece(Move m) const {
 #ifdef CRAZYHOUSE
-  if (is_house() && type_of(m) == DROP)
+  if (type_of(m) == DROP)
       return dropped_piece(m);
 #endif
   return board[from_sq(m)];
