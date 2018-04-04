@@ -791,6 +791,7 @@ namespace {
     Bitboard b, bb;
     Square s;
     Score score = SCORE_ZERO;
+    int mob;
 
     attackedBy[Us][Pt] = 0;
 
@@ -819,7 +820,8 @@ namespace {
             kingAttacksCount[Us] += popcount(b & attackedBy[Them][KING]);
         }
 
-        int mob = popcount(b & mobilityArea[Us]);
+        mob = (Pt == KNIGHT || Pt == BISHOP) ? popcount(b & mobilityArea[Us] & ~pos.pieces(Us, QUEEN))
+                                             : popcount(b & mobilityArea[Us]);
 
         mobility[Us] += MobilityBonus[pos.variant()][Pt - 2][mob];
 
@@ -876,7 +878,7 @@ namespace {
 
         if (Pt == ROOK)
         {
-            // Bonus for aligning rook with with enemy pawns on the same rank/file
+            // Bonus for aligning rook with enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
                 score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s]);
 
@@ -1222,17 +1224,13 @@ namespace {
 
     // Non-pawn enemies attacked by a pawn
     nonPawnEnemies = pos.pieces(Them) ^ pos.pieces(Them, PAWN);
-    weak = nonPawnEnemies & attackedBy[Us][PAWN];
 
-    if (weak)
-    {
-        // Our safe or protected pawns
-        b =  pos.pieces(Us, PAWN)
-           & (~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES]);
+    // Our safe or protected pawns
+    b =   pos.pieces(Us, PAWN)
+       & (~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES]);
 
-        safeThreats = pawn_attacks_bb<Us>(b) & weak;
-        score += ThreatBySafePawn * popcount(safeThreats);
-    }
+    safeThreats = pawn_attacks_bb<Us>(b) & nonPawnEnemies;
+    score += ThreatBySafePawn * popcount(safeThreats);
 
     // Squares strongly protected by the enemy, either because they defend the
     // square with a pawn, or because they defend the square twice and we don't.
@@ -1421,7 +1419,7 @@ namespace {
             }
             else if (pos.pieces(Us) & blockSq)
                 bonus += make_score(w + r * 2, w + r * 2);
-        } // rr != 0
+        } // w != 0
 
         // Scale down bonus for candidate passers which need more than one
         // pawn push to become passed or have a pawn in front of them.
@@ -1630,11 +1628,10 @@ namespace {
 #endif
         if (pos.opposite_bishops())
         {
-            // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-            // is almost a draw, in case of KBP vs KB, it is even more a draw.
+            // Endgame with opposite-colored bishops and no other pieces is almost a draw
             if (   pos.non_pawn_material(WHITE) == BishopValueMg
                 && pos.non_pawn_material(BLACK) == BishopValueMg)
-                sf = more_than_one(pos.pieces(PAWN)) ? 31 : 9;
+                sf = 31;
 
             // Endgame with opposite-colored bishops, but also other pieces. Still
             // a bit drawish, but not as drawish as with only the two bishops.
