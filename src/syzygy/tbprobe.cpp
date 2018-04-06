@@ -395,6 +395,7 @@ TBEntry<WDL>::TBEntry(Variant v, const std::string& code) : TBEntry() {
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
+    minLikeMan = 0;
     for (Color c = WHITE; c <= BLACK; ++c)
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
             int count = popcount(pos.pieces(c, pt));
