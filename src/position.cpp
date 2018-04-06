@@ -834,6 +834,9 @@ Bitboard Position::slider_attackers_to(Square s, Bitboard occupied) const {
 
 bool Position::legal(Move m) const {
 
+#ifdef CRAZYHOUSE
+  assert(is_house() || type_of(m) != DROP);
+#endif
   assert(is_ok(m));
 
   Color us = sideToMove;
@@ -986,6 +989,12 @@ bool Position::legal(Move m) const {
 /// due to SMP concurrent access or hash position key aliasing.
 
 bool Position::pseudo_legal(const Move m) const {
+
+#ifdef CRAZYHOUSE
+  // Early return on TT move which does not apply for this variant
+  if (!is_house() && type_of(m) == DROP)
+      return false;
+#endif
 
   Color us = sideToMove;
   Square from = from_sq(m);
