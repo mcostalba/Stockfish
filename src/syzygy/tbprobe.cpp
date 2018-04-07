@@ -87,7 +87,7 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef TWOKINGS
-    nullptr,
+    ".rtbw",
 #endif
 #ifdef SUICIDE
     ".stbw",
@@ -105,7 +105,7 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
-    nullptr,
+    ".rtbw",
 #endif
 };
 
@@ -197,7 +197,7 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef TWOKINGS
-    nullptr,
+    ".rtbz",
 #endif
 #ifdef SUICIDE
     ".stbz",
@@ -215,7 +215,7 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 #ifdef TWOKINGSSYMMETRIC
-    nullptr,
+    ".rtbz",
 #endif
 };
 

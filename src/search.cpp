@@ -881,9 +881,6 @@ namespace {
 #ifdef THREECHECK
     if (pos.is_three_check()) {} else
 #endif
-#ifdef TWOKINGS
-    if (pos.is_two_kings()) {} else
-#endif
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
