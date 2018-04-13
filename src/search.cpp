@@ -1002,6 +1002,9 @@ namespace {
         return eval;
 
     // Step 9. Null move search with verification search (~40 Elo)
+#ifdef GRID
+    if (pos.is_grid()) {} else
+#endif
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
