@@ -973,6 +973,10 @@ namespace {
     if (pos.is_losers() && pos.can_capture_losers())
         goto moves_loop;
 #endif
+#ifdef RACE
+    if (pos.is_race() && (pos.pieces(KING) & (Rank7BB | Rank8BB)))
+        goto moves_loop;
+#endif
 #ifdef HORDE
     if (skipEarlyPruning || !(pos.is_horde() || pos.non_pawn_material(pos.side_to_move())))
 #else
