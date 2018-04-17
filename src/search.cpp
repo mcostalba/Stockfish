@@ -94,7 +94,7 @@ namespace {
   {0, 676, 604},
 #endif
 #ifdef LOSERS
-  {0, 2351, 604},
+  {0, 2351, 2351},
 #endif
 #ifdef RACE
   {0, 1029, 604},
