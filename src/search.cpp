@@ -73,7 +73,7 @@ namespace {
   constexpr int RazorMargin[VARIANT_NB][3] = {
   {0, 590, 604},
 #ifdef ANTI
-  {0, 2234, 604},
+  {0, 2234, 2234},
 #endif
 #ifdef ATOMIC
   {0, 2501, 604},
