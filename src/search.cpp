@@ -1260,6 +1260,9 @@ moves_loop: // When in check, search starts from here
 #ifdef LOSERS
               if (pos.is_losers()) {} else
 #endif
+#ifdef RACE
+              if (pos.is_race()) {} else
+#endif
               if (   lmrDepth < 7
                   && !inCheck
                   && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha)
