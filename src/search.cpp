@@ -1248,6 +1248,9 @@ moves_loop: // When in check, search starts from here
                   continue;
 
               // Futility pruning: parent node (~2 Elo)
+#ifdef LOSERS
+              if (pos.is_losers()) {} else
+#endif
               if (   lmrDepth < 7
                   && !inCheck
                   && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha)
