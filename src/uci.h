@@ -52,12 +52,13 @@ public:
   Option(const char* v, OnChange = nullptr);
   Option(const char* v, const std::vector<std::string>& variants, OnChange = nullptr);
   Option(int v, int minv, int maxv, OnChange = nullptr);
+  Option(const char* v, const char *cur, OnChange = nullptr);
 
   Option& operator=(const std::string&);
   void operator<<(const Option&);
   operator int() const;
   operator std::string() const;
-  int compare(const char*) const;
+  bool operator==(const char*);
 
 private:
   friend std::ostream& operator<<(std::ostream&, const OptionsMap&);
