@@ -1802,7 +1802,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
         data = pawnlessFile.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][Type == WDL]);
     }
 #else
-    uint8_t* data = nullptr; 
+    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, Type);
 #endif
 
     if (data) {
