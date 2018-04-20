@@ -121,7 +121,7 @@ cat << EOF > syzygy.exp
  send "setoption name SyzygyPath value ../tests/syzygy/\n"
  expect "info string Found 35 tablebases" {} timeout {exit 1}
  send "bench 128 1 10 default depth\n"
- send "bench twokings 128 1 10 default depth\n"
+ send "bench all 128 1 10 default depth\n"
  send "quit\n"
  expect eof
 
