@@ -165,7 +165,6 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
 #endif
 };
 
-#if 0//#ifdef ANTI
 const char* DtzSuffixes[SUBVARIANT_NB] = {
     ".rtbz",
 #ifdef ANTI
@@ -275,7 +274,6 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #endif
 };
-#endif
 
 constexpr int TBPIECES = 6; // Max number of supported pieces
 
@@ -300,20 +298,6 @@ int Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
 int LeadPawnIdx[5][SQUARE_NB]; // [leadPawnsCnt][SQUARE_NB]
 int LeadPawnsSize[5][4];       // [leadPawnsCnt][FILE_A..FILE_D]
 
-// Comparison function to sort leading pawns in ascending MapPawns[] order
-bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
-int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
-Square flipdiag(Square sq) { return Square(((sq >> 3) | (sq << 3)) & 63); }
-
-constexpr Value WDL_to_value[] = {
-   -VALUE_MATE + MAX_PLY + 1,
-    VALUE_DRAW - 2,
-    VALUE_DRAW,
-    VALUE_DRAW + 2,
-    VALUE_MATE - MAX_PLY - 1
-};
-
-#if 0//#ifdef ANTI
 const int Triangle[SQUARE_NB] = {
     6, 0, 1, 2, 2, 1, 0, 6,
     0, 7, 3, 4, 4, 3, 7, 0,
@@ -423,7 +407,19 @@ const Bitboard Test45 = 0x1030700000000ULL; // A5-C5-A7 triangle
 const int InvTriangle[] = { 1, 2, 3, 10, 11, 19, 0, 9, 18, 27 };
 int MultIdx[5][10];
 int MultFactor[5];
-#endif
+
+// Comparison function to sort leading pawns in ascending MapPawns[] order
+bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
+int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
+Square flipdiag(Square sq) { return Square(((sq >> 3) | (sq << 3)) & 63); }
+
+constexpr Value WDL_to_value[] = {
+   -VALUE_MATE + MAX_PLY + 1,
+    VALUE_DRAW - 2,
+    VALUE_DRAW,
+    VALUE_DRAW + 2,
+    VALUE_MATE - MAX_PLY - 1
+};
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 inline void swap_endian(T& x)
@@ -536,7 +532,7 @@ public:
 
     // Memory map the file and check it. File should be already open and will be
     // closed after mapping.
-    uint8_t* map(void** baseAddress, uint64_t* mapping, TBType type) {
+    uint8_t* map(void** baseAddress, uint64_t* mapping, const uint8_t magic[]) {
 
         assert(is_open());
 
@@ -586,10 +582,7 @@ public:
 #endif
         uint8_t* data = (uint8_t*)*baseAddress;
 
-        constexpr uint8_t Magics[][4] = { { 0xD7, 0x66, 0x0C, 0xA5 },
-                                          { 0x71, 0xE8, 0x23, 0x5D } };
-
-        if (memcmp(data, Magics[type == WDL], 4)) {
+        if (memcmp(data, magic, 4)) {
             std::cerr << "Corrupted table in file " << fname << std::endl;
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
@@ -655,10 +648,8 @@ struct TBTable {
     Key key2;
     int pieceCount;
     bool hasPawns;
-    uint8_t numUniquePieces;
-#if 0//#ifdef ANTI
-    uint8_t minLikeMan;
-#endif
+    int numUniquePieces;
+    int minLikeMan;
     uint8_t pawnCount[2]; // [Lead color / other color]
     PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
@@ -689,11 +680,10 @@ TBTable<WDL>::TBTable(Variant v, const std::string& code) : TBTable() {
 
     numUniquePieces = 0;
     for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt < KING; ++pt)
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
-#if 0//#ifdef ANTI
     minLikeMan = 0;
     for (Color c = WHITE; c <= BLACK; ++c)
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
@@ -701,7 +691,6 @@ TBTable<WDL>::TBTable(Variant v, const std::string& code) : TBTable() {
             if (2 <= count && (count < minLikeMan || !minLikeMan))
                 minLikeMan = count;
         }
-#endif
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with less pawns because this leads to better compression.
@@ -725,9 +714,7 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdl) : TBTable() {
     pieceCount = wdl.pieceCount;
     hasPawns = wdl.hasPawns;
     numUniquePieces = wdl.numUniquePieces;
-#if 0//#ifdef ANTI
     minLikeMan = wdl.minLikeMan;
-#endif
     pawnCount[0] = wdl.pawnCount[0];
     pawnCount[1] = wdl.pawnCount[1];
 }
@@ -739,7 +726,13 @@ class TBTables {
 
     typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
+#if defined(ANTI)
+    static const int Size = 1 << 18; // 256K table, indexed by key's 18 lsb
+#elif defined(ATOMIC)
+    static const int Size = 1 << 14; // 16K table, indexed by key's 14 lsb
+#else
     static const int Size = 1 << 12; // 4K table, indexed by key's 12 lsb
+#endif
 
     Entry hashTable[Size];
 
@@ -1169,7 +1162,6 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
                  +  rank_of(squares[0])         * 7 * 6
                  + (rank_of(squares[1]) - adjust1)  * 6
                  + (rank_of(squares[2]) - adjust2);
-#if 0//#ifdef ANTI
     } else if (entry->numUniquePieces == 2) {
 
         bool connectedKings = false;
@@ -1251,12 +1243,6 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         for (int i = 1; i < d->groupLen[0]; ++i)
             idx += Binomial[i][MultTwist[squares[i]]];
-#else
-    } else {
-        // We don't have at least 3 unique pieces, like in KRRvKBB, just map
-        // the kings.
-        idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
-#endif
     }
 
 encode_remaining:
@@ -1343,12 +1329,10 @@ void set_groups(T& e, PairsData* d, int order[], File f) {
             else if (e.numUniquePieces == 2)
                 // Standard or Atomic/Giveaway
                 idx *= (e.variant == CHESS_VARIANT) ? 462 : 518;
-#if 0//#ifdef ANTI
             else if (e.minLikeMan == 2)
                 idx *= 278;
             else
                 idx *= MultFactor[e.minLikeMan - 1];
-#endif
         }
         else if (k == order[1]) // Remaining pawns
         {
@@ -1471,7 +1455,7 @@ uint8_t* set_dtz_map(TBTable<DTZ>& e, uint8_t* data, File maxFile) {
 
 // Populate entry's PairsData records with data from the just memory mapped file.
 // Called at first access.
-template<typename T>
+template<TBType Type, typename T = TBTable<Type>>
 void set(T& e, uint8_t* data) {
 
     PairsData* d;
@@ -1512,8 +1496,8 @@ void set(T& e, uint8_t* data) {
     for (File f = FILE_A; f <= maxFile; ++f)
         for (int i = 0; i < sides; i++) {
             data = set_sizes(e.get(i, f), data);
-#if 0//#ifdef ANTI
-            if (!(T == WDL) && main_variant(e.variant) == ANTI_VARIANT && e.get(i, f)->flags & TBFlag::SingleValue)
+#ifdef ANTI
+            if (Type == DTZ && main_variant(e.variant) == ANTI_VARIANT && e.get(i, f)->flags & TBFlag::SingleValue)
                 e.get(i, f)->minSymLen = 1;
 #endif
         }
@@ -1559,8 +1543,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
     if (e.ready.load(std::memory_order_relaxed)) // Recheck under lock
         return e.baseAddress;
 
-#if 0//#ifdef ANTI
-    constexpr uint8_t TB_MAGIC[SUBVARIANT_NB][2][4] = {
+    constexpr uint8_t Magic[SUBVARIANT_NB][2][4] = {
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -1669,7 +1652,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
 #endif
     };
 
-    constexpr uint8_t PAWNLESS_TB_MAGIC[SUBVARIANT_NB][2][4] = {
+    constexpr uint8_t PawnlessMagic[SUBVARIANT_NB][2][4] = {
         {
             { 0xD7, 0x66, 0x0C, 0xA5 },
             { 0x71, 0xE8, 0x23, 0x5D }
@@ -1777,7 +1760,6 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
         },
 #endif
     };
-#endif
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
     std::string fname, w, b;
@@ -1788,7 +1770,6 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
 
     fname = e.key == pos.material_key() ? w + 'v' + b : b + 'v' + w;
 
-#if 0//#ifdef ANTI
     const char** Suffixes = Type == WDL ? WdlSuffixes : DtzSuffixes;
     const char** PawnlessSuffixes = Type == WDL ? PawnlessWdlSuffixes : PawnlessDtzSuffixes;
 
@@ -1796,17 +1777,14 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
     TBFile file(fname + Suffixes[e.variant]);
 
     if (file.is_open())
-        data = file.map(&e.baseAddress, &e.mapping, TB_MAGIC[e.variant][Type == WDL]);
+        data = file.map(&e.baseAddress, &e.mapping, Magic[e.variant][Type == WDL]);
     else if (fname.find("P") == std::string::npos && PawnlessSuffixes[e.variant]) {
         TBFile pawnlessFile(fname + PawnlessSuffixes[e.variant]);
-        data = pawnlessFile.map(&e.baseAddress, &e.mapping, PAWNLESS_TB_MAGIC[e.variant][Type == WDL]);
+        data = pawnlessFile.map(&e.baseAddress, &e.mapping, PawnlessMagic[e.variant][Type == WDL]);
     }
-#else
-    uint8_t* data = TBFile(fname).map(&e.baseAddress, &e.mapping, Type);
-#endif
 
     if (data) {
-        set(e, data);
+        set<Type>(e, data);
 
 #ifdef ANTI
         if (!e.hasPawns) {
@@ -1838,6 +1816,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
 
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret result_to_score(Value value) {
+
     if (value > 0)
         return Type == WDL ? Ret(WDLWin) : Ret(1);
     else if (value < 0)
@@ -2110,7 +2089,6 @@ void Tablebases::init(Variant variant, const std::string& paths) {
             Binomial[k][n] =  (k > 0 ? Binomial[k - 1][n - 1] : 0)
                             + (k < n ? Binomial[k    ][n - 1] : 0);
 
-#if 0//#ifdef ANTI
     // For antichess (with less than two unique pieces).
     for (int i = 0; i < 5; i++) {
         int s = 0;
@@ -2120,7 +2098,6 @@ void Tablebases::init(Variant variant, const std::string& paths) {
         }
         MultFactor[i] = s;
     }
-#endif
 
     // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
     // available squares when the leading one is in 's'. Moreover the pawn with
@@ -2160,6 +2137,7 @@ void Tablebases::init(Variant variant, const std::string& paths) {
             LeadPawnsSize[leadPawnsCnt][f] = idx;
         }
 
+    // Add entries in TB tables if the corresponding files exsist
 #ifdef ANTI
     if (main_variant(variant) == ANTI_VARIANT) {
         for (PieceType p1 = PAWN; p1 <= KING; ++p1) {
@@ -2203,8 +2181,6 @@ void Tablebases::init(Variant variant, const std::string& paths) {
         }
     } else
 #endif
-
-    // Add entries in TB tables if the corresponding ".rtbw" file exsists
     for (PieceType p1 = PAWN; p1 < KING; ++p1) {
         TBTables.add(variant, {KING, p1}, {KING});
 
