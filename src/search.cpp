@@ -241,7 +241,6 @@ namespace {
     return d > 17 ? 0 : d * d + 2 * d - 2;
   }
 
-#ifdef SKILL
   // Skill structure is used to implement strength limit
   struct Skill {
     explicit Skill(int l) : level(l) {}
@@ -252,7 +251,6 @@ namespace {
     int level;
     Move best = MOVE_NONE;
   };
-#endif
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning);
@@ -435,9 +433,7 @@ void MainThread::search() {
 #endif
   if (    Options["MultiPV"] == 1
       && !Limits.depth
-#ifdef SKILL
       && !Skill(Options["Skill Level"]).enabled()
-#endif
       &&  rootMoves[0].pv[0] != MOVE_NONE)
   {
       for (Thread* th : Threads)
@@ -544,14 +540,12 @@ void Thread::search() {
       mainThread->bestMoveChanges = 0, mainThread->failedLow = false;
 
   size_t multiPV = Options["MultiPV"];
-#ifdef SKILL
   Skill skill(Options["Skill Level"]);
 
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
   if (skill.enabled())
       multiPV = std::max(multiPV, (size_t)4);
-#endif
 
   multiPV = std::min(multiPV, rootMoves.size());
 
@@ -700,11 +694,9 @@ void Thread::search() {
       if (!mainThread)
           continue;
 
-#ifdef SKILL
       // If skill level is enabled and time is up, pick a sub-optimal best move
       if (skill.enabled() && skill.time_to_pick(rootDepth))
           skill.pick_best(multiPV);
-#endif
 
       // Do we have time for the next iteration? Can we stop searching now?
       if (    Limits.use_time_management()
@@ -745,12 +737,10 @@ void Thread::search() {
 
   mainThread->previousTimeReduction = timeReduction;
 
-#ifdef SKILL
   // If skill level is enabled, swap best PV line with the sub-optimal one
   if (skill.enabled())
       std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
                 skill.best ? skill.best : skill.pick_best(multiPV)));
-#endif
 }
 
 
@@ -1847,7 +1837,6 @@ moves_loop: // When in check, search starts from here
     }
   }
 
-#ifdef SKILL
   // When playing with strength handicap, choose best move among a set of RootMoves
   // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 
@@ -1880,7 +1869,6 @@ moves_loop: // When in check, search starts from here
 
     return best;
   }
-#endif
 
 } // namespace
 
