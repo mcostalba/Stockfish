@@ -121,18 +121,18 @@ void MovePicker::score() {
               m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
                        - Value(200 * std::min(distance(to_sq(m), pos.square<KING>(~pos.side_to_move())),
                                               distance(to_sq(m), pos.square<KING>( pos.side_to_move()))))
-                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] / 16;
           else
 #endif
 #ifdef RACE
           if (pos.is_race())
               m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
                        - Value(200 * relative_rank(BLACK, to_sq(m)))
-                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] / 16;
           else
 #endif
           m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+                   + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] / 16;
       }
 
       else if (Type == QUIETS)

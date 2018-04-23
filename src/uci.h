@@ -51,12 +51,12 @@ public:
   Option(bool v, OnChange = nullptr);
   Option(const char* v, OnChange = nullptr);
   Option(const char* v, const std::vector<std::string>& variants, OnChange = nullptr);
-  Option(int v, int minv, int maxv, OnChange = nullptr);
+  Option(double v, int minv, int maxv, OnChange = nullptr);
   Option(const char* v, const char *cur, OnChange = nullptr);
 
   Option& operator=(const std::string&);
   void operator<<(const Option&);
-  operator int() const;
+  operator double() const;
   operator std::string() const;
   bool operator==(const char*);
 
