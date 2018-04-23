@@ -351,7 +351,7 @@ namespace {
   };
 
 #ifdef HORDE
-  const Score ImbalancedHorde = S(49, 39);
+  constexpr Score ImbalancedHorde = S(49, 39);
 #endif
 
   #undef S

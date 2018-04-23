@@ -452,11 +452,11 @@ namespace {
   constexpr Score ThreatByKing[] = { S(3, 65), S(9, 145) };
 
 #ifdef ATOMIC
-  const Score ThreatByBlast = S(80, 80);
+  constexpr Score ThreatByBlast = S(80, 80);
 #endif
 
 #ifdef THREECHECK
-  const Score ChecksGivenBonus[CHECKS_NB] = {
+  constexpr Score ChecksGivenBonus[CHECKS_NB] = {
       S(0, 0),
       S(444, 181),
       S(2425, 603),
@@ -465,16 +465,16 @@ namespace {
 #endif
 
 #ifdef KOTH
-  const Score KothDistanceBonus[6] = {
+  constexpr Score KothDistanceBonus[6] = {
     S(1949, 1934), S(454, 364), S(151, 158), S(75, 85), S(42, 49), S(0, 0)
   };
-  const Score KothSafeCenter = S(163, 207);
+  constexpr Score KothSafeCenter = S(163, 207);
 #endif
 
 #ifdef ANTI
-  const Score PieceCountAnti    = S(119, 123);
-  const Score ThreatsAnti[]     = { S(192, 203), S(411, 322) };
-  const Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
+  constexpr Score PieceCountAnti    = S(119, 123);
+  constexpr Score ThreatsAnti[]     = { S(192, 203), S(411, 322) };
+  constexpr Score AttacksAnti[2][2][PIECE_TYPE_NB] = {
     {
       { S( 30, 141), S( 26,  94), S(161, 105), S( 70, 123), S( 61,  72), S( 78, 12), S(139, 115) },
       { S( 56,  89), S( 82, 107), S(114,  93), S(110, 115), S(188, 112), S( 73, 59), S(122,  59) }
@@ -487,8 +487,8 @@ namespace {
 #endif
 
 #ifdef LOSERS
-  const Score ThreatsLosers[]     = { S(216, 279), S(441, 341) };
-  const Score AttacksLosers[2][2][PIECE_TYPE_NB] = {
+  constexpr Score ThreatsLosers[]     = { S(216, 279), S(441, 341) };
+  constexpr Score AttacksLosers[2][2][PIECE_TYPE_NB] = {
     {
       { S( 27, 140), S( 23,  95), S(160, 112), S( 78, 129), S( 65,  75), S( 70, 13), S(146, 123) },
       { S( 58,  82), S( 80, 112), S(124,  87), S(103, 110), S(185, 107), S( 72, 60), S(126,  62) }
@@ -501,15 +501,15 @@ namespace {
 #endif
 
 #ifdef CRAZYHOUSE
-  const int KingDangerInHand[PIECE_TYPE_NB] = {
+  constexpr int KingDangerInHand[PIECE_TYPE_NB] = {
     79, 16, 200, 61, 138, 152
   };
-  const Score DropMobilityBonus = S(30, 30);
+  constexpr Score DropMobilityBonus = S(30, 30);
 #endif
 
 #ifdef RACE
   // Bonus for distance of king from 8th rank
-  const Score KingRaceBonus[RANK_NB] = {
+  constexpr Score KingRaceBonus[RANK_NB] = {
     S(14282, 14493), S(6369, 5378), S(4224, 3557), S(2633, 2219),
     S( 1614,  1456), S( 975,  885), S( 528,  502), S(   0,    0)
   };
@@ -1021,7 +1021,7 @@ namespace {
         // Enemy pawn checks
         if (pos.is_house())
         {
-            const Direction Down = (Us == WHITE ? SOUTH : NORTH);
+            constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
             b = pos.attacks_from<PAWN>(ksq, Us);
             h = pos.count_in_hand<PAWN>(Them) ? ~pos.pieces() : 0;
             Bitboard pawn_moves = (attackedBy[Them][PAWN] & pos.pieces(Us)) | (shift<Down>(pos.pieces(Them, PAWN)) & ~pos.pieces());
@@ -1128,7 +1128,7 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti())
     {
-        const Bitboard TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
+        constexpr Bitboard TRank2BB = (Us == WHITE ? Rank2BB : Rank7BB);
         bool weCapture = attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
         bool theyCapture = attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
 
@@ -1189,7 +1189,7 @@ namespace {
 #ifdef LOSERS
     if (pos.is_losers())
     {
-        const Bitboard TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
+        constexpr Bitboard TRank2BB = (Us == WHITE ? Rank2BB : Rank7BB);
         bool weCapture = attackedBy[Us][ALL_PIECES] & pos.pieces(Them);
         bool theyCapture = attackedBy[Them][ALL_PIECES] & pos.pieces(Us);
 

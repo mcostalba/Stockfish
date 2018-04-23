@@ -105,7 +105,7 @@ namespace {
   {0, 603, 604},
 #endif
   };
-  const int FutilityMarginFactor[VARIANT_NB] = {
+  constexpr int FutilityMarginFactor[VARIANT_NB] = {
   175,
 #ifdef ANTI
   611,
@@ -141,7 +141,7 @@ namespace {
   175,
 #endif
   };
-  const int FutilityMarginParent[VARIANT_NB][2] = {
+  constexpr int FutilityMarginParent[VARIANT_NB][2] = {
   { 256, 200 },
 #ifdef ANTI
   { 331, 372 },
@@ -177,7 +177,7 @@ namespace {
   { 256, 200 },
 #endif
   };
-  const int ProbcutMargin[VARIANT_NB] = {
+  constexpr int ProbcutMargin[VARIANT_NB] = {
   216,
 #ifdef ANTI
   200,
