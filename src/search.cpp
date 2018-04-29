@@ -1115,12 +1115,11 @@ namespace {
 
     // Step 11. Internal iterative deepening (skipped when in check, ~2 Elo)
 #ifdef CRAZYHOUSE
-    if (    depth >= (pos.is_house() ? 4 : 6) * ONE_PLY
+    if (    depth >= (pos.is_house() ? 6 : 8) * ONE_PLY
 #else
-    if (    depth >= 6 * ONE_PLY
+    if (    depth >= 8 * ONE_PLY
 #endif
-        && !ttMove
-        && (PvNode || ss->staticEval + 128 >= beta))
+        && !ttMove)
     {
         Depth d = 3 * depth / 4 - 2 * ONE_PLY;
         search<NT>(pos, ss, alpha, beta, d, cutNode, true);
@@ -1135,7 +1134,11 @@ moves_loop: // When in check, search starts from here
     const PieceToHistory* contHist[] = { (ss-1)->contHistory, (ss-2)->contHistory, nullptr, (ss-4)->contHistory };
     Move countermove = thisThread->counterMoves[pos.piece_on(prevSq)][prevSq];
 
-    MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory, contHist, countermove, ss->killers);
+    MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
+                                      &thisThread->captureHistory,
+                                      contHist,
+                                      countermove,
+                                      ss->killers);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
 
     skipQuiets = false;
@@ -1623,7 +1626,9 @@ moves_loop: // When in check, search starts from here
     // to search the moves. Because the depth is <= 0 here, only captures,
     // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
     // be generated.
-    MovePicker mp(pos, ttMove, depth, &pos.this_thread()->mainHistory, &pos.this_thread()->captureHistory, to_sq((ss-1)->currentMove));
+    MovePicker mp(pos, ttMove, depth, &pos.this_thread()->mainHistory,
+                                      &pos.this_thread()->captureHistory,
+                                      to_sq((ss-1)->currentMove));
 
     // Loop through the moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != MOVE_NONE)

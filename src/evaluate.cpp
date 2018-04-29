@@ -1430,7 +1430,7 @@ namespace {
         } // w != 0
 
         // Scale down bonus for candidate passers which need more than one
-        // pawn push to become passed or have a pawn in front of them.
+        // pawn push to become passed, or have a pawn in front of them.
         if (   !pos.pawn_passed(Us, s + Up)
             || (pos.pieces(PAWN) & forward_file_bb(Us, s)))
             bonus = bonus / 2;
@@ -1463,9 +1463,7 @@ namespace {
     if (pos.non_pawn_material() < SpaceThreshold[pos.variant()])
         return SCORE_ZERO;
 
-    // Find the safe squares for our pieces inside the area defined by
-    // SpaceMask. A square is unsafe if it is attacked by an enemy
-    // pawn, or if it is undefended and attacked by an enemy piece.
+    // Find the available squares for our pieces inside the area defined by SpaceMask
     Bitboard safe =   SpaceMask
                    & ~pos.pieces(Us, PAWN)
                    & ~attackedBy[Them][PAWN];
@@ -1613,8 +1611,6 @@ namespace {
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
     int sf = me->scale_factor(pos, strongSide);
 
-    // If we don't already have an unusual scale factor, check for certain
-    // types of endgames, and use a lower scale for those.
 #ifdef ATOMIC
     if (pos.is_atomic()) {} else
 #endif
@@ -1626,13 +1622,14 @@ namespace {
     }
     else
 #endif
-    if (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
-    {
 #ifdef GRID
-        if (pos.is_grid() && pos.non_pawn_material(strongSide) <= RookValueMg)
-            sf = 10;
-        else
+    if (pos.is_grid() && pos.non_pawn_material(strongSide) <= RookValueMg)
+        sf = 10;
+    else
 #endif
+    // If scale is not already specific, scale down the endgame via general heuristics
+    if (sf == SCALE_FACTOR_NORMAL)
+    {
         if (pos.opposite_bishops())
         {
             // Endgame with opposite-colored bishops and no other pieces is almost a draw
@@ -1645,12 +1642,8 @@ namespace {
             else
                 sf = 46;
         }
-        // Endings where weaker side can place his king in front of the enemy's
-        // pawns are drawish.
-        else if (    abs(eg) <= BishopValueEg
-                 &&  pos.count<PAWN>(strongSide) <= 2
-                 && !pos.pawn_passed(~strongSide, pos.square<KING>(~strongSide)))
-            sf = 37 + 7 * pos.count<PAWN>(strongSide);
+        else
+            sf = std::min(40 + 7 * pos.count<PAWN>(strongSide), sf);
     }
 
     return ScaleFactor(sf);
