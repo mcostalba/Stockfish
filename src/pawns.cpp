@@ -160,12 +160,8 @@ namespace {
   // Danger of enemy pawns moving toward our king by [type][distance from edge][rank].
   // For the unopposed and unblocked cases, RANK_1 = 0 is used when opponent has
   // no pawn on the given file, or their pawn is behind our king.
-  constexpr Value StormDanger[VARIANT_NB][4][4][RANK_NB] = {
+  constexpr Value StormDanger[VARIANT_NB][3][4][RANK_NB] = {
   {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
     { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
@@ -184,10 +180,6 @@ namespace {
 #endif
 #ifdef ATOMIC
   {
-    { { V(-25),  V(-332), V(-235), V( 79), V( 41) },  // BlockedByKing
-      { V(-17),  V(  35), V( 206), V(-21), V(-11) },
-      { V(-31),  V(  52), V( 103), V( 42), V( 94) },
-      { V( -5),  V( 101), V(  67), V( 29), V( 64) } },
     { { V(-47),  V(  62), V( 114), V( 16), V( 13) },  // Unopposed
       { V( 82),  V(  41), V( 161), V( 48), V( 35) },
       { V( 44),  V(  56), V( 115), V( 17), V( 48) },
@@ -204,10 +196,6 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
   {
-    { { V( -54),  V(-364), V(-273), V( -2), V( 72) },  // BlockedByKing
-      { V( -35),  V(  99), V( 123), V( 85), V(-25) },
-      { V(   4),  V(  51), V( 136), V(111), V(149) },
-      { V( -55),  V(  26), V( 164), V( 74), V( 67) } },
     { { V( 106),  V(  88), V( 213), V( 68), V( 47) },  // Unopposed
       { V( -82),  V( 122), V(  92), V(148), V(  6) },
       { V(  25),  V(   3), V( 120), V(141), V( 22) },
@@ -227,10 +215,6 @@ namespace {
 #endif
 #ifdef GRID
   {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
     { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
@@ -247,10 +231,6 @@ namespace {
 #endif
 #ifdef HORDE
   {
-    { { V(-11),  V(-364), V(-337), V( 43), V( 69) },  // BlockedByKing
-      { V(-24),  V(   2), V( 133), V(-33), V(-73) },
-      { V(  9),  V(  72), V( 152), V( 99), V( 66) },
-      { V( 71),  V(  18), V(  38), V( 30), V( 69) } },
     { { V( 18),  V( -11), V( 131), V( 42), V(114) },  // Unopposed
       { V( -4),  V(  63), V( -77), V( 62), V( 28) },
       { V( 66),  V(  82), V(  43), V( 11), V( 95) },
@@ -267,10 +247,6 @@ namespace {
 #endif
 #ifdef KOTH
   {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
     { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
@@ -287,10 +263,6 @@ namespace {
 #endif
 #ifdef LOSERS
   {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
     { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
@@ -310,10 +282,6 @@ namespace {
 #endif
 #ifdef THREECHECK
   {
-    { { V(-40),  V(-310), V(-236), V( 86), V(107) },  // BlockedByKing
-      { V( 24),  V(  80), V( 168), V( 38), V( -4) },
-      { V( 16),  V( -41), V( 171), V( 63), V( 19) },
-      { V( 12),  V(  80), V( 182), V( 36), V(-16) } },
     { { V( 27),  V( -18), V( 175), V( 31), V( 29) },  // Unopposed
       { V(106),  V(  81), V( 106), V( 86), V( 19) },
       { V( 42),  V(  62), V(  96), V( 84), V( 40) },
@@ -330,10 +298,6 @@ namespace {
 #endif
 #ifdef TWOKINGS
   {
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },  // BlockedByKing
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } },
     { { V( 4),  V(  73), V( 132), V(46), V(31) },  // Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
@@ -583,15 +547,19 @@ Entry* probe(const Position& pos) {
 template<Color Us>
 Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
-  enum { BlockedByKing, Unopposed, BlockedByPawn, Unblocked };
+  enum { Unopposed, BlockedByPawn, Unblocked };
   constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
-  constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
+  constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+  constexpr Bitboard  BlockRanks = (Us == WHITE ? Rank2BB | Rank3BB : Rank7BB | Rank6BB);
 
   Bitboard b = pos.pieces(PAWN) & (forward_ranks_bb(Us, ksq) | rank_bb(ksq));
   Bitboard ourPawns = b & pos.pieces(Us);
   Bitboard theirPawns = b & pos.pieces(Them);
 
   Value safety = (ourPawns & file_bb(ksq)) ? Value(5) : Value(-5);
+
+  if ((theirPawns & (FileABB | FileHBB) & BlockRanks) & (ksq + Up))
+      safety += 374;
 
   File center = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
   for (File f = File(center - 1); f <= File(center + 1); ++f)
@@ -604,11 +572,9 @@ Value Entry::evaluate_shelter(const Position& pos, Square ksq) {
 
       int d = std::min(f, ~f);
       safety +=  ShelterStrength[d][rkUs]
-               - StormDanger[pos.variant()]
-                 [(shift<Down>(b) & ksq) ? BlockedByKing :
-                  rkUs   == RANK_1       ? Unopposed     :
-                  rkThem == (rkUs + 1)   ? BlockedByPawn : Unblocked]
-                 [d][rkThem];
+               - StormDanger[pos.variant()][rkUs == RANK_1     ? Unopposed     :
+                                            rkUs == rkThem - 1 ? BlockedByPawn : Unblocked]
+                                           [d][rkThem];
   }
 
   return safety;
