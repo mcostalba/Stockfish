@@ -115,14 +115,17 @@ extern Magic BishopMagics[SQUARE_NB];
 /// whether a given bit is set in a bitboard, and for setting and clearing bits.
 
 inline Bitboard operator&(Bitboard b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
   return b & SquareBB[s];
 }
 
 inline Bitboard operator|(Bitboard b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
   return b | SquareBB[s];
 }
 
 inline Bitboard operator^(Bitboard b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
   return b ^ SquareBB[s];
 }
 
@@ -131,10 +134,12 @@ inline Bitboard operator-(Bitboard b, Square s) {
 }
 
 inline Bitboard& operator|=(Bitboard& b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
   return b |= SquareBB[s];
 }
 
 inline Bitboard& operator^=(Bitboard& b, Square s) {
+  assert(s >= SQ_A1 && s <= SQ_H8);
   return b ^= SquareBB[s];
 }
 
