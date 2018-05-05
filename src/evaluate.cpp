@@ -1189,6 +1189,9 @@ namespace {
     }
     else
 #endif
+#ifdef GRID
+    if (pos.is_grid()) {} else
+#endif
 #ifdef LOSERS
     if (pos.is_losers())
     {
