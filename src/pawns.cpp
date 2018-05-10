@@ -112,7 +112,7 @@ namespace {
 
   // Doubled pawn penalty
   constexpr Score Doubled[VARIANT_NB] = {
-    S(18, 40),
+    S(13, 40),
 #ifdef ANTI
     S( 4, 51),
 #endif
@@ -120,19 +120,19 @@ namespace {
     S( 0,  0),
 #endif
 #ifdef CRAZYHOUSE
-    S(18, 40),
+    S(13, 40),
 #endif
 #ifdef EXTINCTION
-    S(18, 40),
+    S(13, 40),
 #endif
 #ifdef GRID
-    S(18, 40),
+    S(13, 40),
 #endif
 #ifdef HORDE
     S(11, 83),
 #endif
 #ifdef KOTH
-    S(18, 40),
+    S(13, 40),
 #endif
 #ifdef LOSERS
     S( 4, 54),
@@ -141,10 +141,10 @@ namespace {
     S( 0,  0),
 #endif
 #ifdef THREECHECK
-    S(18, 40),
+    S(13, 40),
 #endif
 #ifdef TWOKINGS
-    S(18, 40),
+    S(13, 40),
 #endif
   };
 
