@@ -125,7 +125,7 @@ namespace {
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[VARIANT_NB][PIECE_TYPE_NB] = {
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 77, 55, 44, 10 },
 #ifdef ANTI
     {},
 #endif
@@ -142,13 +142,13 @@ namespace {
     { 0, 0, 89, 62, 47, 11 },
 #endif
 #ifdef HORDE
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 77, 55, 44, 10 },
 #endif
 #ifdef KOTH
     { 0, 0, 76, 48, 44, 10 },
 #endif
 #ifdef LOSERS
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 77, 55, 44, 10 },
 #endif
 #ifdef RACE
     {},
@@ -157,7 +157,7 @@ namespace {
     { 0, 0, 115, 64, 62, 35 },
 #endif
 #ifdef TWOKINGS
-    { 0, 0, 78, 56, 45, 11 },
+    { 0, 0, 77, 55, 44, 10 },
 #endif
   };
 
@@ -772,7 +772,7 @@ namespace {
         else if (file_of(pos.square<KING>(Us)) == FILE_A)
             kingRing[Us] |= shift<EAST>(kingRing[Us]);
 
-        kingAttackersCount[Them] = popcount(attackedBy[Us][KING] & pe->pawn_attacks(Them));
+        kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
         kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     }
     else
