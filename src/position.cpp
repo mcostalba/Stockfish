@@ -423,7 +423,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       else if (sideToMove == BLACK && !(shift<NORTH>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
 #ifdef ATOMIC
-      else if (is_atomic() && (attacks_from<KING>(st->epSquare) && square<KING>(sideToMove)))
+      else if (is_atomic() && (attacks_from<KING>(st->epSquare) & square<KING>(sideToMove)))
           st->epSquare = SQ_NONE;
 #endif
   }
