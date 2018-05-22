@@ -180,7 +180,7 @@ namespace {
   constexpr int ProbcutMargin[VARIANT_NB] = {
   216,
 #ifdef ANTI
-  200,
+  216,
 #endif
 #ifdef ATOMIC
   200,
@@ -1094,9 +1094,6 @@ namespace {
     // Step 10. ProbCut (~10 Elo)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-#ifdef ANTI
-    if (pos.is_anti()) {} else
-#endif
     if (   !PvNode
         &&  depth >= 5 * ONE_PLY
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
