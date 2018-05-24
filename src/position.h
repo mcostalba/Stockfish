@@ -700,9 +700,8 @@ inline bool Position::can_capture() const {
       return true;
   Bitboard target = pieces(~sideToMove);
   Bitboard b1 = pieces(sideToMove, PAWN), b2 = pieces(sideToMove) - b1;
-  while (b1)
-      if (attacks_from<PAWN>(pop_lsb(&b1), sideToMove) & target)
-          return true;
+  if ((sideToMove == WHITE ? pawn_attacks_bb<WHITE>(b1) : pawn_attacks_bb<BLACK>(b1)) & target)
+      return true;
   while (b2)
   {
       Square s = pop_lsb(&b2);
