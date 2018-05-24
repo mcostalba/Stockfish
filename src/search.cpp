@@ -1225,10 +1225,10 @@ moves_loop: // When in check, search starts from here
                &&  pos.see_ge(move))
           extension = ONE_PLY;
 #ifdef ANTI
-      else if (   pos.is_anti()
+      else if (    pos.is_anti() // Capture extension (all moves are captures)
                && !moveCountPruning
                &&  pos.capture(move)
-               &&  MoveList<LEGAL>(pos).size() == 1)
+               &&  MoveList<CAPTURES>(pos).size() == 1)
           extension = ONE_PLY;
 #endif
 
