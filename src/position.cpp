@@ -52,8 +52,8 @@ namespace {
 
 const string PieceToChar(" PNBRQK  pnbrqk");
 
-const Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-                         B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
+constexpr Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+                             B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
 
 // min_attacker() is a helper function used by see_ge() to locate the least
 // valuable attacker for the side to move, remove the attacker we just found
@@ -130,6 +130,19 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
 }
 
 
+// Marcel van Kervinck's cuckoo algorithm for fast detection of "upcoming repetition"
+// situations. Description of the algorithm in the following paper:
+// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+
+// First and second hash functions for indexing the cuckoo tables
+inline int H1(Key h) { return h & 0x1fff; }
+inline int H2(Key h) { return (h >> 16) & 0x1fff; }
+
+// Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
+Key cuckoo[8192];
+Move cuckooMove[8192];
+
+
 /// Position::init() initializes at startup the various arrays used to compute
 /// hash keys.
 
@@ -157,6 +170,28 @@ void Position::init() {
 
   Zobrist::side = rng.rand<Key>();
   Zobrist::noPawns = rng.rand<Key>();
+
+  // Prepare the cuckoo tables
+  int count = 0;
+  for (Piece pc : Pieces)
+      for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+          for (Square s2 = Square(s1 + 1); s2 <= SQ_H8; ++s2)
+              if (PseudoAttacks[type_of(pc)][s1] & s2)
+              {
+                  Move move = make_move(s1, s2);
+                  Key key = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::side;
+                  int i = H1(key);
+                  while (true)
+                  {
+                      std::swap(cuckoo[i], key);
+                      std::swap(cuckooMove[i], move);
+                      if (move == 0)   // Arrived at empty slot ?
+                          break;
+                      i = (i == H1(key)) ? H2(key) : H1(key); // Push victim to alternative slot
+                  }
+                  count++;
+             }
+  assert(count == 3668);
 }
 
 
@@ -322,8 +357,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinnersForKing[WHITE]);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinnersForKing[BLACK]);
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
 
   Square ksq = square<KING>(~sideToMove);
 
@@ -1037,7 +1072,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // all pinners are on their original square.
-      if (!(st->pinnersForKing[stm] & ~occupied))
+      if (!(st->pinners[~stm] & ~occupied))
           stmAttackers &= ~st->blockersForKing[stm];
 
       // If stm has no more attackers then give up: stm loses
@@ -1105,6 +1140,86 @@ bool Position::is_draw(int ply) const {
 }
 
 
+// Position::has_repeated() tests whether there has been at least one repetition
+// of positions since the last capture or pawn move.
+
+bool Position::has_repeated() const {
+
+    StateInfo* stc = st;
+    while (true)
+    {
+        int i = 4, end = std::min(stc->rule50, stc->pliesFromNull);
+
+        if (end < i)
+            return false;
+
+        StateInfo* stp = st->previous->previous;
+
+        do {
+            stp = stp->previous->previous;
+
+            if (stp->key == stc->key)
+                return true;
+
+            i += 2;
+        } while (i <= end);
+
+        stc = stc->previous;
+    }
+}
+
+
+/// Position::has_game_cycle() tests if the position has a move which draws by repetition,
+/// or an earlier position has a move that directly reaches the current position.
+
+bool Position::has_game_cycle(int ply) const {
+
+  int j;
+
+  int end = std::min(st->rule50, st->pliesFromNull);
+
+  if (end < 3)
+    return false;
+
+  Key originalKey = st->key;
+  StateInfo* stp = st->previous;
+
+  for (int i = 3; i <= end; i += 2)
+  {
+      stp = stp->previous->previous;
+
+      Key moveKey = originalKey ^ stp->key;
+      if (   (j = H1(moveKey), cuckoo[j] == moveKey)
+          || (j = H2(moveKey), cuckoo[j] == moveKey))
+      {
+          Move move = cuckooMove[j];
+          Square from = from_sq(move);
+          Square to = to_sq(move);
+
+          if (!(between_bb(from, to) & pieces()))
+          {
+              // Take care to reverse the move in the no-progress case (opponent to move)
+              if (empty(from))
+                  move = make_move(to, from);
+
+              if (ply > i)
+                  return true;
+
+              // For repetitions before or at the root, require one more
+              StateInfo* next_stp = stp;
+              for (int k = i + 2; k <= end; k += 2)
+              {
+                  next_stp = next_stp->previous->previous;
+                  if (next_stp->key == stp->key)
+                     return true;
+              }
+          }
+      }
+  }
+  return false;
+}
+
+
 /// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging e.g. for finding evaluation symmetry bugs.
 
@@ -1146,7 +1261,7 @@ void Position::flip() {
 
 bool Position::pos_is_ok() const {
 
-  const bool Fast = true; // Quick (default) or full check?
+  constexpr bool Fast = true; // Quick (default) or full check?
 
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || piece_on(square<KING>(WHITE)) != W_KING

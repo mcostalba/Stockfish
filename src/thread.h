@@ -60,8 +60,9 @@ public:
   Pawns::Table pawnsTable;
   Material::Table materialTable;
   Endgames endgames;
-  size_t PVIdx;
-  int selDepth, nmp_ply, nmp_odd;
+  size_t PVIdx, PVLast;
+  int selDepth, nmp_min_ply;
+  Color nmp_color;
   std::atomic<uint64_t> nodes, tbHits;
 
   Position rootPos;
@@ -71,6 +72,7 @@ public:
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
   ContinuationHistory contHistory;
+  Score contempt;
 };
 
 
