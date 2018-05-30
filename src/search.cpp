@@ -1140,8 +1140,7 @@ namespace {
 #endif
         && !ttMove)
     {
-        Depth d = 3 * depth / 4 - 2 * ONE_PLY;
-        search<NT>(pos, ss, alpha, beta, d, cutNode);
+        search<NT>(pos, ss, alpha, beta, depth - 7 * ONE_PLY, cutNode);
 
         tte = TT.probe(posKey, ttHit);
         ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
