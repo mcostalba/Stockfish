@@ -1071,6 +1071,10 @@ namespace {
         if (kingDanger > 0)
         {
             int mobilityDanger = mg_value(mobility[Them] - mobility[Us]);
+#ifdef CRAZYHOUSE
+            if (pos.is_house())
+                mobilityDanger = 0;
+#endif
             kingDanger = std::max(0, kingDanger + mobilityDanger);
 #ifdef THREECHECK
             if (pos.is_three_check())
