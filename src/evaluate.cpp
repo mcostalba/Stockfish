@@ -101,7 +101,7 @@ namespace {
     Value(12222),
 #endif
 #ifdef GRID
-    Value(12222),
+    2 * MidgameLimit,
 #endif
 #ifdef HORDE
     Value(12222),
