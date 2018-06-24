@@ -1491,8 +1491,8 @@ moves_loop: // When in check, search starts from here
 
     if (!moveCount)
     {
+        assert(!pos.is_variant_end()); // was already checked
         bestValue =          excludedMove ? alpha
-                   : pos.is_variant_end() ? pos.variant_result(ss->ply, VALUE_DRAW)
                    :              inCheck ? pos.checkmate_value(ss->ply)
                    :                        pos.stalemate_value(ss->ply, VALUE_DRAW);
     }
