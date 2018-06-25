@@ -163,39 +163,39 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][7] = {
-    {    64,  182,  128, -857,   31,    0 },
+    {    64,  183,  122, -860,   -7,   17,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   274,  166,  146, -654,   -7,   29 },
+    {   274,  166,  146, -654,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   119,  439,  130, -613,   -1,  320 },
+    {   119,  439,  130, -613,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   119,  211,  158, -722,   41,    0 },
+    {   119,  211,  158, -722,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   101,  235,  134, -717,   -5,    0 },
+    {   101,  235,  134, -717,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {    85,  229,  131, -658,   -5,    0 },
+    {    85,  229,  131, -658,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   101,  235,  134, -717,   -5,    0 },
+    {   101,  235,  134, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {    85,  136,  106, -613,  -73,  181 },
+    {    85,  136,  106, -613,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {    92,  155,  136, -967,   38,    0 },
+    {    92,  155,  136, -967,   -8,   38,    0 },
 #endif
   };
 
@@ -449,7 +449,7 @@ namespace {
 
   // ThreatByKing[on one/on many] contains bonuses for king attacks on
   // pawns or pieces which are not pawn-defended.
-  constexpr Score ThreatByKing[] = { S(25, 57), S(4, 139) };
+  constexpr Score ThreatByKing[] = { S(30, 62), S(-9, 160) };
 
 #ifdef ATOMIC
   constexpr Score ThreatByBlast = S(80, 80);
@@ -518,7 +518,7 @@ namespace {
   // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
   constexpr Score PassedRank[VARIANT_NB][RANK_NB] = {
     {
-    S(0, 0), S(7, 10), S(7, 26), S(14, 31), S(42, 63), S(178, 167), S(279, 244)
+    S(0, 0), S(4, 17), S(7, 20), S(14, 36), S(42, 62), S(165, 171), S(279, 252)
     },
 #ifdef ANTI
     { S(0, 0), S(5, 7), S(5, 14), S(31, 38), S(73, 73), S(166, 166), S(252, 252) },
@@ -557,15 +557,15 @@ namespace {
 
   // PassedFile[File] contains a bonus according to the file of a passed pawn
   constexpr Score PassedFile[FILE_NB] = {
-    S( 17,  6), S(-4,  7), S( 2,-12), S(-17,-14),
-    S(-17,-14), S( 2,-12), S(-4,  7), S( 17,  6)
+    S( 11, 14), S( 0, -5), S(-2, -8), S(-25,-13),
+    S(-25,-13), S(-2, -8), S( 0, -5), S( 11, 14)
   };
 
   // PassedDanger[Rank] contains a term to weight the passed score
-  constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 3, 6, 12, 21 };
+  constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 2, 7, 12, 19 };
 
   // KingProtector[PieceType-2] contains a penalty according to distance from king
-  constexpr Score KingProtector[] = { S(3, 5), S(5, 3), S(3, 0), S(0, -2) };
+  constexpr Score KingProtector[] = { S(4, 6), S(6, 3), S(1, 0), S(0, -2) };
 
   // Assorted bonuses and penalties
   constexpr Score BishopPawns        = S(  3,  5);
@@ -608,7 +608,7 @@ namespace {
   constexpr Score Connectivity       = S(  3,  1);
   constexpr Score CorneredBishop     = S( 50, 50);
   constexpr Score Hanging            = S( 52, 30);
-  constexpr Score HinderPassedPawn   = S(  5,  2);
+  constexpr Score HinderPassedPawn   = S(  5, -1);
   constexpr Score KnightOnQueen      = S( 21, 11);
   constexpr Score LongDiagonalBishop = S( 22,  0);
   constexpr Score MinorBehindPawn    = S( 16,  0);
@@ -618,10 +618,10 @@ namespace {
   constexpr Score SliderOnQueen      = S( 42, 21);
   constexpr Score ThreatByPawnPush   = S( 49, 30);
   constexpr Score ThreatByRank       = S( 16,  3);
-  constexpr Score ThreatBySafePawn   = S(186,140);
+  constexpr Score ThreatBySafePawn   = S(165,133);
   constexpr Score TrappedRook        = S( 92,  0);
   constexpr Score WeakQueen          = S( 50, 10);
-  constexpr Score WeakUnopposedPawn  = S( 14, 19);
+  constexpr Score WeakUnopposedPawn  = S(  5, 26);
 
 #undef S
 
@@ -948,7 +948,7 @@ namespace {
     // Main king safety evaluation
     if (kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them))
     {
-        int kingDanger = -mg_value(score);
+        int kingDanger = 0;
         unsafeChecks = 0;
 
         // Attacked squares defended at most once by our queen or king
@@ -1045,7 +1045,8 @@ namespace {
                      + KDP[1] * popcount(kingRing[Us] & weak)
                      + KDP[2] * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                      + KDP[3] * !pos.count<QUEEN>(Them)
-                     + KDP[4];
+                     + KDP[4] * mg_value(score) / 8
+                     + KDP[5];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
@@ -1094,7 +1095,7 @@ namespace {
             if (pos.is_three_check() && v > QueenValueMg)
                 v = QueenValueMg;
 #endif
-            score -= make_score(v, kingDanger / 16 + KDP[5] * v / 256);
+            score -= make_score(v, kingDanger / 16 + KDP[6] * v / 256);
         }
     }
 
