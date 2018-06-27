@@ -36,14 +36,6 @@
 
 using std::string;
 
-namespace PSQT {
-#ifdef CRAZYHOUSE
-  extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
-#else
-  extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
-#endif
-}
-
 namespace Zobrist {
 
   Key psq[PIECE_NB][SQUARE_NB];
@@ -627,7 +619,7 @@ void Position::set_state(StateInfo* si) const {
   si->key = si->materialKey = Zobrist::variant[var];
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
-  si->psq = SCORE_ZERO;
+
   set_check_info(si);
 #ifdef HORDE
   if (is_horde() && is_horde_color(sideToMove))
@@ -658,15 +650,7 @@ void Position::set_state(StateInfo* si) const {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[pc][s];
-      si->psq += PSQT::psq[var][pc][s];
   }
-#ifdef CRAZYHOUSE
-  if (is_house())
-  {
-      for (Piece pc : Pieces)
-          si->psq += PSQT::psq[var][pc][SQ_NONE] * pieceCountInHand[color_of(pc)][type_of(pc)];
-  }
-#endif
 
   if (si->epSquare != SQ_NONE)
       si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
@@ -1373,7 +1357,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       Square rfrom, rto;
       do_castling<true>(us, from, to, rfrom, rto);
 
-      st->psq += PSQT::psq[var][captured][rto] - PSQT::psq[var][captured][rfrom];
       k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
       captured = NO_PIECE;
   }
@@ -1429,7 +1412,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           {
               Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
               add_to_hand(color_of(add), type_of(add));
-              st->psq += PSQT::psq[var][add][SQ_NONE];
               k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
                   ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
           }
@@ -1461,9 +1443,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                   k ^= Zobrist::psq[bpc][bsq];
                   st->materialKey ^= Zobrist::psq[bpc][pieceCount[bpc]];
 
-                  // Update incremental scores
-                  st->psq -= PSQT::psq[var][bpc][bsq];
-
                   // Update castling rights if needed
                   if (st->castlingRights && castlingRightsMask[bsq])
                   {
@@ -1477,9 +1456,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #endif
 
       prefetch(thisThread->materialTable[st->materialKey]);
-
-      // Update incremental scores
-      st->psq -= PSQT::psq[var][captured][capsq];
 
       // Reset rule 50 counter
       st->rule50 = 0;
@@ -1617,9 +1593,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->materialKey ^=  Zobrist::psq[promotion][pieceCount[promotion]-1]
                             ^ Zobrist::psq[pc][pieceCount[pc]];
 
-          // Update incremental score
-          st->psq += PSQT::psq[var][promotion][to] - PSQT::psq[var][pc][to];
-
           // Update material
           st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][promotion];
       }
@@ -1641,14 +1614,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       // Reset rule 50 draw counter
       st->rule50 = 0;
   }
-
-#ifdef ATOMIC
-  if (is_atomic() && captured)
-      st->psq -= PSQT::psq[var][pc][from];
-  else
-#endif
-  // Update incremental scores
-  st->psq += PSQT::psq[var][pc][to] - PSQT::psq[var][pc][from];
 
   // Set capture piece
   st->capturedPiece = captured;
