@@ -2225,10 +2225,6 @@ bool Position::has_game_cycle(int ply) const {
   if (is_anti())
       return false;
 #endif
-#ifdef GRID
-  if (is_grid())
-      return false;
-#endif
 #ifdef LOSERS
   if (is_losers())
       return false;
