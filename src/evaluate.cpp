@@ -163,7 +163,7 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][7] = {
-    {    64,  183,  122, -860,   -7,   17,    0 },
+    {    69,  185,  129, -873,   -6,   -2,    0 },
 #ifdef ANTI
     {},
 #endif
@@ -514,7 +514,7 @@ namespace {
   // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
   constexpr Score PassedRank[VARIANT_NB][RANK_NB] = {
     {
-    S(0, 0), S(4, 17), S(7, 20), S(14, 36), S(42, 62), S(165, 171), S(279, 252)
+    S(0, 0), S(5, 18), S(12, 23), S(10, 31), S(57, 62), S(163, 167), S(271, 250)
     },
 #ifdef ANTI
     { S(0, 0), S(5, 7), S(5, 14), S(31, 38), S(73, 73), S(166, 166), S(252, 252) },
@@ -553,20 +553,20 @@ namespace {
 
   // PassedFile[File] contains a bonus according to the file of a passed pawn
   constexpr Score PassedFile[FILE_NB] = {
-    S( 11, 14), S( 0, -5), S(-2, -8), S(-25,-13),
-    S(-25,-13), S(-2, -8), S( 0, -5), S( 11, 14)
+    S( -1,  7), S( 0,  9), S(-9, -8), S(-30,-14),
+    S(-30,-14), S(-9, -8), S( 0,  9), S( -1,  7)
   };
 
   // PassedDanger[Rank] contains a term to weight the passed score
-  constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 2, 7, 12, 19 };
+  constexpr int PassedDanger[RANK_NB] = { 0, 0, 0, 3, 7, 11, 20 };
 
   // KingProtector[knight/bishop] contains a penalty according to distance from king
-  constexpr Score KingProtector[] = { S(4, 6), S(6, 3) };
+  constexpr Score KingProtector[] = { S(5, 6), S(6, 5) };
 
   // Assorted bonuses and penalties
-  constexpr Score BishopPawns        = S(  3,  5);
+  constexpr Score BishopPawns        = S(  3,  7);
   constexpr Score CloseEnemies[VARIANT_NB] = {
-    S( 8,  0),
+    S(  6,  0),
 #ifdef ANTI
     S( 0,  0),
 #endif
@@ -604,7 +604,7 @@ namespace {
   constexpr Score Connectivity       = S(  3,  1);
   constexpr Score CorneredBishop     = S( 50, 50);
   constexpr Score Hanging            = S( 52, 30);
-  constexpr Score HinderPassedPawn   = S(  5, -1);
+  constexpr Score HinderPassedPawn   = S(  4,  0);
   constexpr Score KnightOnQueen      = S( 21, 11);
   constexpr Score LongDiagonalBishop = S( 22,  0);
   constexpr Score MinorBehindPawn    = S( 16,  0);
@@ -612,13 +612,13 @@ namespace {
   constexpr Score PawnlessFlank      = S( 20, 80);
   constexpr Score RookOnPawn         = S(  8, 24);
   constexpr Score SliderOnQueen      = S( 42, 21);
-  constexpr Score ThreatByKing       = S( 31, 75);
-  constexpr Score ThreatByPawnPush   = S( 49, 30);
+  constexpr Score ThreatByKing       = S( 23, 76);
+  constexpr Score ThreatByPawnPush   = S( 45, 40);
   constexpr Score ThreatByRank       = S( 16,  3);
-  constexpr Score ThreatBySafePawn   = S(165,133);
+  constexpr Score ThreatBySafePawn   = S(173,102);
   constexpr Score TrappedRook        = S( 92,  0);
   constexpr Score WeakQueen          = S( 50, 10);
-  constexpr Score WeakUnopposedPawn  = S(  5, 26);
+  constexpr Score WeakUnopposedPawn  = S(  5, 29);
 
 #undef S
 
@@ -840,9 +840,8 @@ namespace {
             else if (bb &= b & ~pos.pieces(Us))
                 score += Outpost[Pt == BISHOP][bool(attackedBy[Us][PAWN] & bb)];
 
-            // Bonus when behind a pawn
-            if (    relative_rank(Us, s) < RANK_5
-                && (pos.pieces(PAWN) & (s + pawn_push(Us))))
+            // Knight and Bishop bonus for being right behind a pawn
+            if (shift<Down>(pos.pieces(PAWN)) & s)
                 score += MinorBehindPawn;
 
             // Penalty if the piece is far from the king

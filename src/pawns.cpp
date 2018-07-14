@@ -33,7 +33,7 @@ namespace {
 
   // Pawn penalties
   constexpr Score Isolated[VARIANT_NB] = {
-    S( 4, 20),
+    S( 5, 15),
 #ifdef ANTI
     S(54, 69),
 #endif
@@ -69,7 +69,7 @@ namespace {
 #endif
   };
   constexpr Score Backward[VARIANT_NB] = {
-    S(21, 22),
+    S(9, 24),
 #ifdef ANTI
     S(26, 50),
 #endif
@@ -106,7 +106,7 @@ namespace {
   };
   // Doubled pawn penalty
   constexpr Score Doubled[VARIANT_NB] = {
-    S(12, 54),
+    S(11, 56),
 #ifdef ANTI
     S( 4, 51),
 #endif
@@ -149,10 +149,10 @@ namespace {
   // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
   constexpr Value ShelterStrength[VARIANT_NB][int(FILE_NB) / 2][RANK_NB] = {
   {
-    { V( 16), V(82), V( 83), V( 47), V( 19), V( 44), V(  4) },
-    { V(-51), V(56), V( 33), V(-58), V(-57), V(-50), V(-39) },
-    { V(-20), V(71), V( 16), V(-10), V( 13), V( 19), V(-30) },
-    { V(-29), V(12), V(-21), V(-40), V(-15), V(-77), V(-91) }
+    { V( -3), V(81), V( 93), V( 58), V( 39), V( 18), V(  25) },
+    { V(-40), V(61), V( 35), V(-49), V(-29), V(-11), V(-63) },
+    { V(-7), V(75), V( 23), V(-2), V( 32), V( 3), V(-45) },
+    { V(-36), V(-13), V(-29), V(-52), V(-48), V(-67), V(-166) }
   },
 #ifdef ANTI
   {},
@@ -233,15 +233,15 @@ namespace {
   // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn
   // is behind our king.
   constexpr Value UnblockedStorm[int(FILE_NB) / 2][RANK_NB] = {
-    { V(54), V( 48), V( 99), V(91), V(42), V( 32), V( 31) },
-    { V(34), V( 27), V(105), V(38), V(32), V(-19), V(  3) },
-    { V(-4), V( 28), V( 87), V(18), V(-3), V(-14), V(-11) },
-    { V(-5), V( 22), V( 75), V(14), V( 2), V( -5), V(-19) }
+    { V(89), V( 107), V( 123), V(93), V(57), V( 45), V( 51) },
+    { V(44), V( -18), V(123), V(46), V(39), V(-7), V(  23) },
+    { V(4), V( 52), V( 162), V(37), V(7), V(-14), V(-2) },
+    { V(-10), V( -14), V( 90), V(15), V( 2), V( -7), V(-16) }
   };
 
   // Danger of blocked enemy pawns storming our king, by rank
   constexpr Value BlockedStorm[RANK_NB] =
-    { V(0), V(0), V( 81), V(-9), V(-5), V(-1), V(26) };
+    { V(0), V(0), V( 66), V(6), V(5), V(1), V(15) };
 
 #ifdef HORDE
   constexpr Score ImbalancedHorde = S(49, 39);
