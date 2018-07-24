@@ -305,7 +305,8 @@ void Search::init() {
       for (int d = 1; d < 64; ++d)
           for (int mc = 1; mc < 64; ++mc)
           {
-              double r = log(d) * log(mc) / 1.95;
+              double slope = d > 2 ? 0.88 * d + 0.36 : d;
+              double r = log(slope) * log(mc) / 1.95;
 
               Reductions[NonPV][imp][d][mc] = int(std::round(r));
               Reductions[PV][imp][d][mc] = std::max(Reductions[NonPV][imp][d][mc] - 1, 0);
@@ -1324,11 +1325,9 @@ moves_loop: // When in check, search starts from here
 #endif
           if (captureOrPromotion) // (~5 Elo)
           {
-              // Increase reduction by comparing opponent's stat score
-              if ((ss-1)->statScore >= 0)
-                  r += ONE_PLY;
-
-              r -= r ? ONE_PLY : DEPTH_ZERO;
+              // Decrease reduction by comparing opponent's stat score
+              if ((ss-1)->statScore < 0)
+                  r -= ONE_PLY;
           }
           else
           {
@@ -1369,10 +1368,10 @@ moves_loop: // When in check, search starts from here
                   r += ONE_PLY;
 
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 20000) * ONE_PLY);
+              r -= ss->statScore / 20000 * ONE_PLY;
           }
 
-          Depth d = std::max(newDepth - r, ONE_PLY);
+          Depth d = std::max(newDepth - std::max(r, DEPTH_ZERO), ONE_PLY);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
