@@ -1,4 +1,4 @@
-os: Visual Studio 2013
+os: Visual Studio 2015
 
 clone_folder: C:\projects\Stockfish
 shallow_clone: true
@@ -10,8 +10,7 @@ cache:
   - x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z
 
 install:
-  - cinst wget
-  - wget --no-clobber "http://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/mingw-builds/4.9.2/threads-posix/seh/x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z"
+  - if not exist x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z appveyor DownloadFile "https://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/mingw-builds/4.9.2/threads-posix/seh/x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z" -FileName x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z
   - 7z x -oC:\MinGW\msys\1.0\ x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z > nul
 
 build_script:
