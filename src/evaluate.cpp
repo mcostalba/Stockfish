@@ -1252,6 +1252,9 @@ namespace {
             score += ThreatByMinor[type_of(pos.piece_on(s))];
             if (type_of(pos.piece_on(s)) != PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s);
+
+            else if (pos.blockers_for_king(Them) & s)
+                score += ThreatByRank * (int)relative_rank(Them, s) / 2;
         }
 
         b = weak & attackedBy[Us][ROOK];
@@ -1261,9 +1264,11 @@ namespace {
             score += ThreatByRook[type_of(pos.piece_on(s))];
             if (type_of(pos.piece_on(s)) != PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s);
+
+            else if (pos.blockers_for_king(Them) & s)
+                score += ThreatByRank * (int)relative_rank(Them, s) / 2;
         }
 
-        // Bonus for king attacks on pawns or pieces which are not pawn-defended
         if (weak & attackedBy[Us][KING])
             score += ThreatByKing;
 
@@ -1288,15 +1293,12 @@ namespace {
     b  = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
     b |= shift<Up>(b & TRank3BB) & ~pos.pieces();
 
-    // Keep only the squares which are not completely unsafe
+    // Keep only the squares which are relatively safe
     b &= ~attackedBy[Them][PAWN]
         & (attackedBy[Us][ALL_PIECES] | ~attackedBy[Them][ALL_PIECES]);
 
     // Bonus for safe pawn threats on the next move
-    b =   pawn_attacks_bb<Us>(b)
-       &  pos.pieces(Them)
-       & ~attackedBy[Us][PAWN];
-
+    b = pawn_attacks_bb<Us>(b) & pos.pieces(Them);
     score += ThreatByPawnPush * popcount(b);
 
     // Bonus for threats on the next moves against enemy queen
