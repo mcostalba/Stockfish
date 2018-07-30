@@ -162,40 +162,40 @@ namespace {
   };
 
   // Per-variant king danger malus factors
-  constexpr int KingDangerParams[VARIANT_NB][7] = {
-    {    69,  185,  129, -873,   -6,   -2,    0 },
+  constexpr int KingDangerParams[VARIANT_NB][8] = {
+    {    69,  185,  129,    4, -873,   -6,  -30,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   274,  166,  146, -654,  -12,   -7,   29 },
+    {   274,  166,  146,    4, -654,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   119,  439,  130, -613,   -6,   -1,  320 },
+    {   119,  439,  130,    4, -613,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   119,  211,  158, -722,   -9,   41,    0 },
+    {   119,  211,  158,    4, -722,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   101,  235,  134, -717,  -11,   -5,    0 },
+    {   101,  235,  134,    4, -717,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {    85,  229,  131, -658,   -9,   -5,    0 },
+    {    85,  229,  131,    4, -658,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   101,  235,  134, -717, -357,   -5,    0 },
+    {   101,  235,  134,    4, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {    85,  136,  106, -613,   -7,  -73,  181 },
+    {    85,  136,  106,    4, -613,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {    92,  155,  136, -967,   -8,   38,    0 },
+    {    92,  155,  136,    4, -967,   -8,   38,    0 },
 #endif
   };
 
@@ -933,10 +933,18 @@ namespace {
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard weak, b, b1, b2, safe, unsafeChecks;
+    Bitboard kingFlank, weak, b, b1, b2, safe, unsafeChecks;
 
     // King shelter and enemy pawns storm
     Score score = pe->king_safety<Us>(pos, ksq);
+
+    // Find the squares that opponent attacks in our king flank, and the squares
+    // which are attacked twice in that flank but not defended by our pawns.
+    kingFlank = KingFlank[file_of(ksq)];
+    b1 = attackedBy[Them][ALL_PIECES] & kingFlank & Camp;
+    b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
+
+    int tropism = popcount(b1) + popcount(b2);
 
     // Main king safety evaluation
     if (kingAttackersCount[Them] > 1 - pos.count<QUEEN>(Them))
@@ -1037,9 +1045,10 @@ namespace {
                      + KDP[0] * kingAttacksCount[Them]
                      + KDP[1] * popcount(kingRing[Us] & weak)
                      + KDP[2] * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                     + KDP[3] * !pos.count<QUEEN>(Them)
-                     + KDP[4] * mg_value(score) / 8
-                     + KDP[5];
+                     + KDP[3] * tropism
+                     + KDP[4] * !pos.count<QUEEN>(Them)
+                     + KDP[5] * mg_value(score) / 8
+                     + KDP[6];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
@@ -1088,23 +1097,16 @@ namespace {
             if (pos.is_three_check() && v > QueenValueMg)
                 v = QueenValueMg;
 #endif
-            score -= make_score(v, kingDanger / 16 + KDP[6] * v / 256);
+            score -= make_score(v, kingDanger / 16 + KDP[7] * v / 256);
         }
     }
 
-    Bitboard kf = KingFlank[file_of(ksq)];
-
     // Penalty when our king is on a pawnless flank
-    if (!(pos.pieces(PAWN) & kf))
+    if (!(pos.pieces(PAWN) & kingFlank))
         score -= PawnlessFlank;
 
-    // Find the squares that opponent attacks in our king flank, and the squares
-    // which are attacked twice in that flank but not defended by our pawns.
-    b1 = attackedBy[Them][ALL_PIECES] & kf & Camp;
-    b2 = b1 & attackedBy2[Them] & ~attackedBy[Us][PAWN];
-
-    // King tropism, to anticipate slow motion attacks on our king
-    score -= CloseEnemies[pos.variant()] * (popcount(b1) + popcount(b2));
+    // King tropism bonus, to anticipate slow motion attacks on our king
+    score -= CloseEnemies[pos.variant()] * tropism;
 
     if (T)
         Trace::add(KING, Us, score);
