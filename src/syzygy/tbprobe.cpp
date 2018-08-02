@@ -726,8 +726,6 @@ class TBTables {
     typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
 #if defined(ANTI)
-    static const int Size = 1 << 22; // 1024K table, indexed by key's 22 lsb
-#elif defined(ATOMIC)
     static const int Size = 1 << 18; // 256K table, indexed by key's 18 lsb
 #else
     static const int Size = 1 << 16; // 64K table, indexed by key's 16 lsb
@@ -2173,29 +2171,13 @@ void Tablebases::init(Variant variant, const std::string& paths) {
                         for (PieceType p5 = PAWN; p5 <= KING; ++p5) {
                             TBTables.add(variant, {p1, p2, p3, p4}, {p5});
 
-                            for (PieceType p6 = PAWN; p6 <= p5; ++p6) {
+                            for (PieceType p6 = PAWN; p6 <= p5; ++p6)
                                 TBTables.add(variant, {p1, p2, p3, p4}, {p5, p6});
-
-                                for (PieceType p7 = PAWN; p7 <= p6; ++p7)
-                                    TBTables.add(variant, {p1, p2, p3, p4}, {p5, p6, p7});
-                            }
                         }
 
-                        for (PieceType p5 = PAWN; p5 <= p4; ++p5) {
-                            for (PieceType p6 = PAWN; p6 <= KING; ++p6) {
+                        for (PieceType p5 = PAWN; p5 <= p4; ++p5)
+                            for (PieceType p6 = PAWN; p6 <= KING; ++p6)
                                 TBTables.add(variant, {p1, p2, p3, p4, p5}, {p6});
-
-                                for (PieceType p7 = PAWN; p7 <= p6; ++p7)
-                                    TBTables.add(variant, {p1, p2, p3, p4, p5}, {p6, p7});
-                            }
-                        }
-
-                        for (PieceType p5 = PAWN; p5 <= p4; ++p5) {
-                            for (PieceType p6 = PAWN; p6 <= p5; ++p6) {
-                                for (PieceType p7 = PAWN; p7 <= KING; ++p7)
-                                    TBTables.add(variant, {p1, p2, p3, p4, p5, p6}, {p7});
-                            }
-                        }
                     }
 
                     for (PieceType p4 = PAWN; p4 <= p1; ++p4)
