@@ -32,7 +32,43 @@ namespace {
 
   enum TimeType { OptimumTime, MaxTime };
 
-  constexpr int MoveHorizon   = 50;   // Plan time management at most this many moves ahead
+  constexpr int MoveHorizon[VARIANT_NB] = { // Plan time management at most this many moves ahead
+  50,
+#ifdef ANTI
+  29,
+#endif
+#ifdef ATOMIC
+  50,
+#endif
+#ifdef CRAZYHOUSE
+  50,
+#endif
+#ifdef EXTINCTION
+  50,
+#endif
+#ifdef GRID
+  50,
+#endif
+#ifdef HORDE
+  50,
+#endif
+#ifdef KOTH
+  50,
+#endif
+#ifdef LOSERS
+  50,
+#endif
+#ifdef RACE
+  50,
+#endif
+#ifdef THREECHECK
+  50,
+#endif
+#ifdef TWOKINGS
+  50,
+#endif
+};
+
   constexpr double MaxRatio   = 7.3;  // When in trouble, we can step over reserved time with this ratio
   constexpr double StealRatio = 0.34; // However we must not steal time from remaining moves over this ratio
 
@@ -81,7 +117,7 @@ namespace {
 ///  inc >  0 && movestogo == 0 means: x basetime + z increment
 ///  inc >  0 && movestogo != 0 means: x moves in y minutes + z increment
 
-void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
+void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int ply) {
 
   TimePoint minThinkingTime = Options["Minimum Thinking Time"];
   TimePoint moveOverhead    = Options["Move Overhead"];
@@ -107,7 +143,7 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
   startTime = limits.startTime;
   optimumTime = maximumTime = std::max(limits.time[us], minThinkingTime);
 
-  const int maxMTG = limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon;
+  const int maxMTG = limits.movestogo ? std::min(limits.movestogo, MoveHorizon[var]) : MoveHorizon[var];
 
   // We calculate optimum time usage for different hypothetical "moves to go" values
   // and choose the minimum of calculated search time values. Usually the greatest
