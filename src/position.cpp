@@ -1817,6 +1817,9 @@ void Position::do_null_move(StateInfo& newSt) {
 
   assert(!checkers());
   assert(&newSt != st);
+#ifdef ANTI
+  assert(!(is_anti() && can_capture()));
+#endif
 
   std::memcpy(&newSt, st, sizeof(StateInfo));
   newSt.previous = st;

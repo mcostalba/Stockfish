@@ -1181,8 +1181,7 @@ moves_loop: // When in check, search starts from here
 #ifdef ANTI
       else if (    pos.is_anti() // Capture extension (all moves are captures)
                && !moveCountPruning
-               &&  pos.capture(move)
-               &&  MoveList<CAPTURES>(pos).size() == 1)
+               &&  pos.capture_count(move) == 1)
           extension = ONE_PLY;
 #endif
 
