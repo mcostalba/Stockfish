@@ -59,7 +59,7 @@ namespace {
   50,
 #endif
 #ifdef RACE
-  50,
+  20,
 #endif
 #ifdef THREECHECK
   50,
