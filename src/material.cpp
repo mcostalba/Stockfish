@@ -35,11 +35,11 @@ namespace {
     {
     //            OUR PIECES
     // pair pawn knight bishop rook queen
-    {1667                               }, // Bishop pair
+    {1443                               }, // Bishop pair
     {  40,    0                         }, // Pawn
-    {  32,  255,  -3                    }, // Knight      OUR PIECES
+    {  32,  255, -67                    }, // Knight      OUR PIECES
     {   0,  104,   4,    0              }, // Bishop
-    { -26,   -2,  47,   105,  -149      }, // Rook
+    { -26,   -2,  47,   105,  -221      }, // Rook
     {-189,   24, 117,   133,  -134, -10 }  // Queen
     },
 #ifdef ANTI
@@ -351,6 +351,8 @@ namespace {
   };
 #endif
 
+  constexpr int PawnCount[] = { 0, 304,  144, -320, -560, -704, -672, -464, -320 };
+
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
   Endgame<CHESS_VARIANT, KXK>    EvaluateKXK[] = { Endgame<CHESS_VARIANT, KXK>(WHITE),    Endgame<CHESS_VARIANT, KXK>(BLACK) };
@@ -402,7 +404,7 @@ namespace {
 
     constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    int bonus = 0;
+    int bonus = PawnCount[pieceCount[Us][PAWN]];
 
     // Second-degree polynomial material imbalance, by Tord Romstad
     PieceType pt_max =

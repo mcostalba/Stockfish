@@ -69,40 +69,40 @@ namespace {
   constexpr int SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
   // Razor and futility margins
-  constexpr int RazorMargin[VARIANT_NB][3] = {
-  {0, 590, 604},
+  constexpr int RazorMargin[VARIANT_NB] = {
+  600,
 #ifdef ANTI
-  {0, 2234, 2234},
+  2234,
 #endif
 #ifdef ATOMIC
-  {0, 2501, 604},
+  600,
 #endif
 #ifdef CRAZYHOUSE
-  {0, 651, 604},
+  600,
 #endif
 #ifdef EXTINCTION
-  {0, 603, 604},
+  600,
 #endif
 #ifdef GRID
-  {0, 601, 604},
+  600,
 #endif
 #ifdef HORDE
-  {0, 625, 604},
+  600,
 #endif
 #ifdef KOTH
-  {0, 676, 604},
+  600,
 #endif
 #ifdef LOSERS
-  {0, 2351, 2351},
+  2351,
 #endif
 #ifdef RACE
-  {0, 1029, 604},
+  600,
 #endif
 #ifdef THREECHECK
-  {0, 2257, 604},
+  600,
 #endif
 #ifdef TWOKINGS
-  {0, 603, 604},
+  600,
 #endif
   };
   constexpr int FutilityMarginFactor[VARIANT_NB] = {
@@ -228,7 +228,7 @@ namespace {
   // History and stats update bonus, based on depth
   int stat_bonus(Depth depth) {
     int d = depth / ONE_PLY;
-    return d > 17 ? 0 : 33 * d * d + 66 * d - 66;
+    return d > 17 ? 0 : 29 * d * d + 138 * d - 134;
   }
 
   // Skill structure is used to implement strength limit
@@ -433,7 +433,7 @@ void MainThread::search() {
 
       // Vote according to score and depth
       for (Thread* th : Threads)
-          votes[th->rootMoves[0].pv[0]] +=  int(th->rootMoves[0].score - minScore)  
+          votes[th->rootMoves[0].pv[0]] +=  int(th->rootMoves[0].score - minScore)
                                           + int(th->completedDepth);
 
       // Select best thread
@@ -960,15 +960,9 @@ namespace {
 #endif
 
     // Step 7. Razoring (~2 Elo)
-    if (  !PvNode
-        && depth < 3 * ONE_PLY
-        && eval <= alpha - Value(RazorMargin[pos.variant()][depth / ONE_PLY]))
-    {
-        Value ralpha = alpha - (depth >= 2 * ONE_PLY) * RazorMargin[pos.variant()][depth / ONE_PLY];
-        Value v = qsearch<NonPV>(pos, ss, ralpha, ralpha+1);
-        if (depth < 2 * ONE_PLY || v <= ralpha)
-            return v;
-    }
+    if (   depth < 2 * ONE_PLY
+        && eval <= alpha - RazorMargin[pos.variant()])
+        return qsearch<NT>(pos, ss, alpha, beta);
 
     improving =   ss->staticEval >= (ss-2)->staticEval
                || (ss-2)->staticEval == VALUE_NONE;
@@ -992,7 +986,7 @@ namespace {
 #endif
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
-        && (ss-1)->statScore < 22500
+        && (ss-1)->statScore < 23200
         &&  eval >= beta
         &&  ss->staticEval >= beta - 36 * depth / ONE_PLY + 225
         && !excludedMove
