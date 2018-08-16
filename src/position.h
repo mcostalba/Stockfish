@@ -724,10 +724,10 @@ inline bool Position::can_capture() const {
 
 inline int Position::capture_count(Move m) const {
   Square from = from_sq(m), to = to_sq(m);
-  Bitboard occupied = type_of(m) == ENPASSANT ? ((pieces() ^ from) ^ to) ^ ep_square() : (pieces() ^ from) ^ to;
   Bitboard target = (pieces(sideToMove) ^ from) ^ to;
-  Bitboard b1 = pieces(~sideToMove, PAWN), b2 = (pieces(~sideToMove) ^ b1) - to;
-  int c = popcount((sideToMove == WHITE ? pawn_attacks_bb<BLACK>(b1) : pawn_attacks_bb<WHITE>(b1)) & target);
+  Bitboard occupied = type_of(m) == ENPASSANT ? ((pieces() ^ from) ^ to) ^ (ep_square() - pawn_push(sideToMove)) : (pieces() ^ from) ^ to;
+  Bitboard b1 = pieces(~sideToMove, PAWN) & occupied, b2 = (pieces(~sideToMove) ^ b1) & occupied;
+  int c = popcount(((sideToMove == WHITE ? pawn_attacks_bb<BLACK>(b1) : pawn_attacks_bb<WHITE>(b1))) & target);
   while (b2)
   {
       Square s = pop_lsb(&b2);
