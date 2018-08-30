@@ -910,15 +910,16 @@ namespace {
     // Step 6. Static evaluation of the position
     if (inCheck)
     {
-        ss->staticEval = pureStaticEval = eval = VALUE_NONE;
+        ss->staticEval = eval = pureStaticEval = VALUE_NONE;
         improving = false;
         goto moves_loop;  // Skip early pruning when in check
     }
     else if (ttHit)
     {
         // Never assume anything on values stored in TT
-        if ((ss->staticEval = pureStaticEval = eval = tte->eval()) == VALUE_NONE)
-            eval = ss->staticEval = (pureStaticEval = evaluate(pos)) - 10 * ((ss-1)->statScore > 0);
+        ss->staticEval = eval = pureStaticEval = tte->eval();
+        if (eval == VALUE_NONE)
+            ss->staticEval = eval = pureStaticEval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
         if (    ttValue != VALUE_NONE
@@ -927,12 +928,17 @@ namespace {
     }
     else
     {
-        int p = (ss-1)->statScore;
-        int malus = p > 0 ? (p + 5000) / 1024 :
-                    p < 0 ? (p - 5000) / 1024 : 0;
+        if ((ss-1)->currentMove != MOVE_NULL)
+        {
+            int p = (ss-1)->statScore;
+            int bonus = p > 0 ? (-p - 2500) / 512 :
+                        p < 0 ? (-p + 2500) / 512 : 0;
 
-        ss->staticEval = eval = (ss-1)->currentMove != MOVE_NULL ? (pureStaticEval = evaluate(pos)) - malus
-                                                                 : (pureStaticEval = -(ss-1)->staticEval + 2 * Eval::Tempo[pos.variant()]);
+            pureStaticEval = evaluate(pos);
+            ss->staticEval = eval = pureStaticEval + bonus;
+        }
+        else
+            ss->staticEval = eval = pureStaticEval = -(ss-1)->staticEval + 2 * Eval::Tempo[pos.variant()];
 
         tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, pureStaticEval);
     }
@@ -1056,7 +1062,7 @@ namespace {
 
         while (  (move = mp.next_move()) != MOVE_NONE
                && probCutCount < 3)
-            if (pos.legal(move))
+            if (move != excludedMove && pos.legal(move))
             {
                 probCutCount++;
 
