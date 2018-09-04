@@ -32,42 +32,6 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Pawn penalties
-  constexpr Score Isolated[VARIANT_NB] = {
-    S( 5, 15),
-#ifdef ANTI
-    S(54, 69),
-#endif
-#ifdef ATOMIC
-    S(24, 14),
-#endif
-#ifdef CRAZYHOUSE
-    S(30, 27),
-#endif
-#ifdef EXTINCTION
-    S(13, 16),
-#endif
-#ifdef GRID
-    S(13, 16),
-#endif
-#ifdef HORDE
-    S(16, 38),
-#endif
-#ifdef KOTH
-    S(30, 27),
-#endif
-#ifdef LOSERS
-    S(53, 69),
-#endif
-#ifdef RACE
-    S(0, 0),
-#endif
-#ifdef THREECHECK
-    S(30, 27),
-#endif
-#ifdef TWOKINGS
-    S(13, 16),
-#endif
-  };
   constexpr Score Backward[VARIANT_NB] = {
     S( 9, 24),
 #ifdef ANTI
@@ -139,6 +103,42 @@ namespace {
 #endif
 #ifdef TWOKINGS
     S(13, 40),
+#endif
+  };
+  constexpr Score Isolated[VARIANT_NB] = {
+    S( 5, 15),
+#ifdef ANTI
+    S(54, 69),
+#endif
+#ifdef ATOMIC
+    S(24, 14),
+#endif
+#ifdef CRAZYHOUSE
+    S(30, 27),
+#endif
+#ifdef EXTINCTION
+    S(13, 16),
+#endif
+#ifdef GRID
+    S(13, 16),
+#endif
+#ifdef HORDE
+    S(16, 38),
+#endif
+#ifdef KOTH
+    S(30, 27),
+#endif
+#ifdef LOSERS
+    S(53, 69),
+#endif
+#ifdef RACE
+    S(0, 0),
+#endif
+#ifdef THREECHECK
+    S(30, 27),
+#endif
+#ifdef TWOKINGS
+    S(13, 16),
 #endif
   };
 

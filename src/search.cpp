@@ -1005,14 +1005,14 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
+        Depth R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min(int(eval - beta) / 200, 3)) * ONE_PLY;
 #ifdef ANTI
         if (pos.is_anti())
-            R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min((eval - beta) / (2 * PawnValueMg), 3)) * ONE_PLY;
+            R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min(int(eval - beta) / 400, 3)) * ONE_PLY;
 #endif
 #ifdef ATOMIC
         if (pos.is_atomic())
-            R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min((eval - beta) / (2 * PawnValueMg), 3)) * ONE_PLY;
+            R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min(int(eval - beta) / 400, 3)) * ONE_PLY;
 #endif
 
         ss->currentMove = MOVE_NULL;
