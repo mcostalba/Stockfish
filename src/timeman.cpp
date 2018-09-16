@@ -38,7 +38,7 @@ namespace {
   29,
 #endif
 #ifdef ATOMIC
-  50,
+  29,
 #endif
 #ifdef CRAZYHOUSE
   50,
