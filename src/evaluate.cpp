@@ -600,7 +600,6 @@ namespace {
   };
   constexpr Score CorneredBishop     = S( 50, 50);
   constexpr Score Hanging            = S( 57, 32);
-  constexpr Score HinderPassedPawn   = S(  8,  0);
   constexpr Score KingProtector      = S(  6,  6);
   constexpr Score KnightOnQueen      = S( 21, 11);
   constexpr Score LongDiagonalBishop = S( 46,  0);
@@ -1355,9 +1354,6 @@ namespace {
 
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
-        if (forward_file_bb(Us, s) & pos.pieces(Them))
-            score -= HinderPassedPawn;
-
         int r = relative_rank(Us, s);
         int w = PassedDanger[r];
 
@@ -1427,8 +1423,6 @@ namespace {
 
                 bonus += make_score(k * w, k * w);
             }
-            else if (pos.pieces(Us) & blockSq)
-                bonus += make_score(w + r * 2, w + r * 2);
         } // w != 0
 
         // Scale down bonus for candidate passers which need more than one
