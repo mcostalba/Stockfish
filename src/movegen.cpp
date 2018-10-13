@@ -860,7 +860,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   if (pos.is_grid()) validate = true;
 #endif
 #ifdef PLACEMENT
-  if (pos.is_placement()) validate = true;
+  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move())) validate = true;
 #endif
 #ifdef RACE
   if (pos.is_race()) validate = true;

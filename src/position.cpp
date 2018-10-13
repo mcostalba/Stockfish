@@ -939,8 +939,6 @@ bool Position::legal(Move m) const {
 #ifdef PLACEMENT
   if (is_placement())
   {
-      if (pieceCountInHand[us][ALL_PIECES] && type_of(m) != DROP)
-          return false;
       if (type_of(m) == DROP)
       {
           Bitboard b = ~pieces() & (us == WHITE ? Rank1BB : Rank8BB);
@@ -962,6 +960,8 @@ bool Position::legal(Move m) const {
           if (to_sq(m) & ~b)
               return false;
       }
+      else if (pieceCountInHand[us][ALL_PIECES])
+          return false;
   }
 #endif
 #ifdef ATOMIC

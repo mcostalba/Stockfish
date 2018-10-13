@@ -754,9 +754,6 @@ namespace {
 #ifdef HORDE
         !(pos.is_horde() && pos.is_horde_color(Us)) &&
 #endif
-#ifdef PLACEMENT
-        !(pos.is_placement() && pos.count_in_hand<KING>(Us)) &&
-#endif
         (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
 #ifdef CRAZYHOUSE
         || pos.is_house()
