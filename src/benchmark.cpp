@@ -342,6 +342,11 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "2R5/3Q2pk/2p1p3/1pP1P1Qp/1P3P1P/p1P1B3/P7/1R2K3[RRBBBNNNNPPP] b - - 98 55",
   },
 #endif
+#ifdef PLACEMENT
+  {
+    "8/pppppppp/8/8/8/8/PPPPPPPP/8[KQRRBBNNkqrrbbnn] w - -",
+  },
+#endif
 #ifdef SLIPPEDGRID
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

@@ -205,6 +205,9 @@ public:
 #ifdef LOOP
   bool is_loop() const;
 #endif
+#ifdef PLACEMENT
+  bool is_placement() const;
+#endif
 #ifdef EXTINCTION
   bool is_extinction() const;
   bool is_extinction_win() const;
@@ -406,6 +409,10 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 #ifdef TWOKINGS
   if (is_two_kings() && Pt == KING && pieceCount[make_piece(c, Pt)] > 1)
       return royal_king(c);
+#endif
+#ifdef PLACEMENT
+  if (is_placement() && pieceCount[make_piece(c, Pt)] == 0)
+      return SQ_NONE;
 #endif
 #ifdef ANTI
   // There may be zero, one, or multiple kings
@@ -813,7 +820,7 @@ inline bool Position::can_capture_losers() const {
 
 #ifdef SUICIDE
 inline bool Position::is_suicide() const {
-    return subvar == SUICIDE_VARIANT;
+  return subvar == SUICIDE_VARIANT;
 }
 #endif
 
@@ -836,13 +843,13 @@ inline Value Position::material_in_hand(Color c) const {
 inline void Position::add_to_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]++;
   pieceCountInHand[c][ALL_PIECES]++;
-  psq += PSQT::psq[var][make_piece(c, pt)][SQ_NONE];
+  psq += PSQT::psq[CRAZYHOUSE_VARIANT][make_piece(c, pt)][SQ_NONE];
 }
 
 inline void Position::remove_from_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]--;
   pieceCountInHand[c][ALL_PIECES]--;
-  psq -= PSQT::psq[var][make_piece(c, pt)][SQ_NONE];
+  psq -= PSQT::psq[CRAZYHOUSE_VARIANT][make_piece(c, pt)][SQ_NONE];
 }
 
 inline bool Position::is_promoted(Square s) const {
@@ -852,13 +859,19 @@ inline bool Position::is_promoted(Square s) const {
 
 #ifdef BUGHOUSE
 inline bool Position::is_bughouse() const {
-  return subvar == BUGHOUSE_VARIANT;
+  return var == CRAZYHOUSE_VARIANT && subvar == BUGHOUSE_VARIANT;
 }
 #endif
 
 #ifdef LOOP
 inline bool Position::is_loop() const {
-  return subvar == LOOP_VARIANT;
+  return var == CRAZYHOUSE_VARIANT && subvar == LOOP_VARIANT;
+}
+#endif
+
+#ifdef PLACEMENT
+inline bool Position::is_placement() const {
+  return var == CRAZYHOUSE_VARIANT && subvar == PLACEMENT_VARIANT;
 }
 #endif
 
@@ -923,7 +936,7 @@ inline Variant Position::variant() const {
 }
 
 inline Variant Position::subvariant() const {
-    return subvar;
+  return subvar;
 }
 
 inline bool Position::is_variant_end() const {

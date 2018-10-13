@@ -167,6 +167,25 @@ namespace {
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard b) {
     if (pos.count_in_hand<Pt>(Us))
     {
+#ifdef PLACEMENT
+        if (pos.is_placement() && pos.count_in_hand<BISHOP>(Us))
+        {
+            if (Pt == BISHOP)
+            {
+                if (pos.pieces(Us, BISHOP) & DarkSquares)
+                    b &= ~DarkSquares;
+                if (pos.pieces(Us, BISHOP) & ~DarkSquares)
+                    b &= DarkSquares;
+            }
+            else
+            {
+                if (!(pos.pieces(Us, BISHOP) & DarkSquares) && popcount((b & DarkSquares)) <= 1)
+                    b &= ~DarkSquares;
+                if (!(pos.pieces(Us, BISHOP) & ~DarkSquares) && popcount((b & ~DarkSquares)) <= 1)
+                    b &= DarkSquares;
+            }
+        }
+#endif
         if (Checks)
             b &= pos.check_squares(Pt);
         while (b)
@@ -404,11 +423,18 @@ namespace {
     {
         Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
                      Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
+#ifdef PLACEMENT
+        if (pos.is_placement())
+            b &= (Us == WHITE ? Rank1BB : Rank8BB);
+#endif
         moveList = generate_drops<Us,   PAWN, Checks>(pos, moveList, b & ~(Rank1BB | Rank8BB));
         moveList = generate_drops<Us, KNIGHT, Checks>(pos, moveList, b);
         moveList = generate_drops<Us, BISHOP, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,   ROOK, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
+#ifdef PLACEMENT
+        moveList = generate_drops<Us,   KING, Checks>(pos, moveList, b);
+#endif
     }
 #endif
 
@@ -608,6 +634,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_losers() && pos.can_capture_losers())
       return moveList;
 #endif
+#ifdef PLACEMENT
+  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move()))
+      return moveList;
+#endif
 #ifdef RACE
   if (pos.is_race())
       return moveList;
@@ -680,6 +710,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 #endif
 #ifdef EXTINCTION
   if (pos.is_extinction())
+      return moveList;
+#endif
+#ifdef PLACEMENT
+  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move()))
       return moveList;
 #endif
 #ifdef RACE
@@ -824,6 +858,9 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   bool validate = pinned;
 #ifdef GRID
   if (pos.is_grid()) validate = true;
+#endif
+#ifdef PLACEMENT
+  if (pos.is_placement()) validate = true;
 #endif
 #ifdef RACE
   if (pos.is_race()) validate = true;

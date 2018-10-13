@@ -341,6 +341,10 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       if (is_horde() && is_horde_color(c))
           continue;
 #endif
+#ifdef PLACEMENT
+      if (is_placement() && pieceCountInHand[c][KING])
+          continue;
+#endif
       Rank rank = relative_rank(c, RANK_1);
       Square ksq = square<KING>(c);
 #ifdef ANTI
@@ -536,6 +540,21 @@ void Position::set_check_info(StateInfo* si) const {
   }
   else
 #endif
+#ifdef PLACEMENT
+  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
+  {
+      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
+      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
+      si->checkSquares[PAWN]   = 0;
+      si->checkSquares[KNIGHT] = 0;
+      si->checkSquares[BISHOP] = 0;
+      si->checkSquares[ROOK]   = 0;
+      si->checkSquares[QUEEN]  = 0;
+      si->checkSquares[KING]   = 0;
+      return;
+  }
+  else
+#endif
   {
   si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
@@ -640,6 +659,11 @@ void Position::set_state(StateInfo* si) const {
 #endif
 #ifdef ATOMIC
   if (is_atomic() && (is_atomic_loss() || kings_adjacent()))
+      si->checkersBB = 0;
+  else
+#endif
+#ifdef PLACEMENT
+  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
       si->checkersBB = 0;
   else
 #endif
@@ -753,7 +777,11 @@ const string Position::fen() const {
   {
       ss << '[';
       for (Color c = WHITE; c <= BLACK; ++c)
+#ifdef PLACEMENT
+          for (PieceType pt = (is_placement() ? KING : QUEEN); pt >= PAWN; --pt)
+#else
           for (PieceType pt = QUEEN; pt >= PAWN; --pt)
+#endif
               ss << std::string(pieceCountInHand[c][pt], PieceToChar[make_piece(c, pt)]);
       ss << ']';
   }
@@ -882,9 +910,17 @@ bool Position::legal(Move m) const {
       return false;
 #endif
 #ifdef HORDE
+#ifdef PLACEMENT
+  assert((is_horde() && is_horde_color(us)) || (is_placement() && pieceCountInHand[us][KING]) || piece_on(square<KING>(us)) == make_piece(us, KING));
+#else
   assert((is_horde() && is_horde_color(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
+#endif
+#else
+#ifdef PLACEMENT
+  assert((is_placement() && pieceCountInHand[us][KING]) || piece_on(square<KING>(us)) == make_piece(us, KING));
 #else
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
+#endif
 #endif
 #ifdef LOSERS
   assert(!(is_losers() && !capture(m) && can_capture_losers()));
@@ -899,6 +935,34 @@ bool Position::legal(Move m) const {
   // All pseudo-legal moves by the horde are legal
   if (is_horde() && is_horde_color(us))
       return true;
+#endif
+#ifdef PLACEMENT
+  if (is_placement())
+  {
+      if (pieceCountInHand[us][ALL_PIECES] && type_of(m) != DROP)
+          return false;
+      if (type_of(m) == DROP)
+      {
+          Bitboard b = ~pieces() & (us == WHITE ? Rank1BB : Rank8BB);
+
+          if (type_of(dropped_piece(m)) == BISHOP)
+          {
+              if (pieces(us, BISHOP) & DarkSquares)
+                  b &= ~DarkSquares;
+              if (pieces(us, BISHOP) & ~DarkSquares)
+                  b &= DarkSquares;
+          }
+          else if (pieceCountInHand[us][BISHOP])
+          {
+              if (!(pieces(us, BISHOP) & DarkSquares) && !((b - to_sq(m)) & DarkSquares))
+                  b &= ~DarkSquares;
+              if (!(pieces(us, BISHOP) & ~DarkSquares) && !((b - to_sq(m)) & ~DarkSquares))
+                  b &= DarkSquares;
+          }
+          if (to_sq(m) & ~b)
+              return false;
+      }
+  }
 #endif
 #ifdef ATOMIC
   if (is_atomic())
@@ -1395,6 +1459,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef BUGHOUSE
               if (! is_bughouse())
 #endif
+#ifdef PLACEMENT
+              if (! is_placement())
+#endif
               {
                   st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][captured];
               }
@@ -1410,6 +1477,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->capturedpromoted = is_promoted(to);
 #ifdef BUGHOUSE
           if (! is_bughouse())
+#endif
+#ifdef PLACEMENT
+          if (! is_placement())
 #endif
           {
               Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
@@ -1532,6 +1602,21 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       drop_piece(pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
+#ifdef PLACEMENT
+      if (is_placement() && !pieceCountInHand[us][ALL_PIECES])
+      {
+          Square rsq, ksq = square<KING>(us);
+          if (ksq == relative_square(us, SQ_E1))
+          {
+              Piece rook = make_piece(us, ROOK);
+              if (piece_on(rsq = relative_square(us, SQ_H1)) == rook)
+                  set_castling_right(us, ksq, rsq);
+              if (piece_on(rsq = relative_square(us, SQ_A1)) == rook)
+                  set_castling_right(us, ksq, rsq);
+              k ^= Zobrist::castling[st->castlingRights & castlingRightsMask[ksq]];
+          }
+      }
+#endif
   }
   else
 #endif
@@ -1729,7 +1814,13 @@ void Position::undo_move(Move m) {
 #endif
 #ifdef CRAZYHOUSE
       if (is_house() && type_of(m) == DROP)
+      {
           undrop_piece(pc, to); // Remove the dropped piece
+#ifdef PLACEMENT
+          if (is_placement())
+              castlingRightsMask[relative_square(us, SQ_E1)] = 0;
+#endif
+      }
       else
 #endif
       move_piece(pc, to, from); // Put the piece back at the source square
@@ -1774,6 +1865,9 @@ void Position::undo_move(Move m) {
           {
 #ifdef BUGHOUSE
               if (! is_bughouse())
+#endif
+#ifdef PLACEMENT
+              if (! is_placement())
 #endif
               remove_from_hand(~color_of(st->capturedPiece), st->capturedpromoted ? PAWN : type_of(st->capturedPiece));
               if (st->capturedpromoted)
@@ -2376,6 +2470,14 @@ bool Position::pos_is_ok() const {
           || (is_horde_color(WHITE) ? wksq != SQ_NONE : piece_on(wksq) != W_KING)
           || (is_horde_color(BLACK) ? bksq != SQ_NONE : piece_on(bksq) != B_KING)
           || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) < RANK_6))
+          assert(0 && "pos_is_ok: Default");
+  }
+  else
+#endif
+#ifdef PLACEMENT
+  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
+  {
+      if ((sideToMove != WHITE && sideToMove != BLACK))
           assert(0 && "pos_is_ok: Default");
   }
   else

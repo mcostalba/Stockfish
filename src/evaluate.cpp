@@ -733,6 +733,11 @@ namespace {
         attackedBy[Us][KING] = 0;
     else
 #endif
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<KING>(Us))
+        attackedBy[Us][KING] = 0;
+    else
+#endif
     attackedBy[Us][KING] = pos.attacks_from<KING>(pos.square<KING>(Us));
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
@@ -748,6 +753,9 @@ namespace {
 #endif
 #ifdef HORDE
         !(pos.is_horde() && pos.is_horde_color(Us)) &&
+#endif
+#ifdef PLACEMENT
+        !(pos.is_placement() && pos.count_in_hand<KING>(Us)) &&
 #endif
         (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
 #ifdef CRAZYHOUSE
@@ -823,6 +831,10 @@ namespace {
 #endif
 #ifdef HORDE
         if (pos.is_horde() && pos.is_horde_color(Us))
+            continue;
+#endif
+#ifdef PLACEMENT
+        if (pos.is_placement() && pos.count_in_hand<KING>(Us))
             continue;
 #endif
 
@@ -920,6 +932,10 @@ namespace {
 #endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
+        return SCORE_ZERO;
+#endif
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<KING>(Us))
         return SCORE_ZERO;
 #endif
 #ifdef RACE
@@ -1376,6 +1392,11 @@ namespace {
             }
             else
 #endif
+#ifdef PLACEMENT
+            if (pos.is_placement() && pos.count_in_hand<KING>(Us))
+                bonus += make_score(0, 15 * w);
+            else
+#endif
 #ifdef ANTI
             if (pos.is_anti()) {} else
 #endif
@@ -1570,6 +1591,10 @@ namespace {
 #endif
 #ifdef HORDE
     if (pos.is_horde())
+        return SCORE_ZERO;
+#endif
+#ifdef PLACEMENT
+    if (pos.is_placement() && (pos.count_in_hand<KING>(WHITE) || pos.count_in_hand<KING>(BLACK)))
         return SCORE_ZERO;
 #endif
 

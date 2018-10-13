@@ -160,6 +160,9 @@ enum Variant {
 #ifdef LOOP
   LOOP_VARIANT,
 #endif
+#ifdef PLACEMENT
+  PLACEMENT_VARIANT,
+#endif
 #ifdef SLIPPEDGRID
   SLIPPEDGRID_VARIANT,
 #endif
@@ -218,6 +221,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef LOOP
 "loop",
+#endif
+#ifdef PLACEMENT
+"placement",
 #endif
 #ifdef SLIPPEDGRID
 "slippedgrid",
@@ -737,7 +743,7 @@ constexpr Move make_drop(Square to, Piece pc) {
 }
 
 constexpr Piece dropped_piece(Move m) {
-  return Piece((m >> 6) & 15);
+  return Piece((m >> 6) & 0x0F);
 }
 #endif
 
@@ -764,6 +770,10 @@ inline Variant main_variant(Variant v) {
 #endif
 #ifdef LOOP
   case LOOP_VARIANT:
+      return CRAZYHOUSE_VARIANT;
+#endif
+#ifdef PLACEMENT
+  case PLACEMENT_VARIANT:
       return CRAZYHOUSE_VARIANT;
 #endif
 #ifdef SLIPPEDGRID
