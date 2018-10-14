@@ -413,11 +413,18 @@ namespace {
 
     constexpr bool Checks = Type == QUIET_CHECKS;
 
+#ifdef PLACEMENT
+    if (V == CRAZYHOUSE_VARIANT && pos.is_placement() && pos.count_in_hand<ALL_PIECES>(Us)) {} else
+    {
+#endif
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
     moveList = generate_moves<V, KNIGHT, Checks>(pos, moveList, Us, target);
     moveList = generate_moves<V, BISHOP, Checks>(pos, moveList, Us, target);
     moveList = generate_moves<V,   ROOK, Checks>(pos, moveList, Us, target);
     moveList = generate_moves<V,  QUEEN, Checks>(pos, moveList, Us, target);
+#ifdef PLACEMENT
+    }
+#endif
 #ifdef CRAZYHOUSE
     if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES && pos.count_in_hand<ALL_PIECES>(Us))
     {
@@ -433,7 +440,8 @@ namespace {
         moveList = generate_drops<Us,   ROOK, Checks>(pos, moveList, b);
         moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
 #ifdef PLACEMENT
-        moveList = generate_drops<Us,   KING, Checks>(pos, moveList, b);
+        if (pos.is_placement())
+            moveList = generate_drops<Us, KING, Checks>(pos, moveList, b);
 #endif
     }
 #endif
@@ -635,7 +643,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
       return moveList;
 #endif
 #ifdef PLACEMENT
-  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move()))
+  if (pos.is_placement() && pos.count_in_hand<KING>(~pos.side_to_move()))
       return moveList;
 #endif
 #ifdef RACE
@@ -713,7 +721,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return moveList;
 #endif
 #ifdef PLACEMENT
-  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move()))
+  if (pos.is_placement() && pos.count_in_hand<KING>(pos.side_to_move()))
       return moveList;
 #endif
 #ifdef RACE
@@ -858,9 +866,6 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   bool validate = pinned;
 #ifdef GRID
   if (pos.is_grid()) validate = true;
-#endif
-#ifdef PLACEMENT
-  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(pos.side_to_move())) validate = true;
 #endif
 #ifdef RACE
   if (pos.is_race()) validate = true;
