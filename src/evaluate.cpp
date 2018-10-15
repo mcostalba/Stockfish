@@ -163,7 +163,7 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][8] = {
-    {    69,  185,  129,    4, -873,   -6,  -30,    0 },
+    {    69,  185,  150,    4, -873,   -6,  -30,    0 },
 #ifdef ANTI
     {},
 #endif
@@ -440,11 +440,11 @@ namespace {
   // which piece type attacks which one. Attacks on lesser pieces which are
   // pawn-defended are not considered.
   constexpr Score ThreatByMinor[PIECE_TYPE_NB] = {
-    S(0, 0), S(0, 31), S(39, 42), S(57, 44), S(68, 112), S(47, 120)
+    S(0, 0), S(0, 31), S(39, 42), S(57, 44), S(68, 112), S(62, 120)
   };
 
   constexpr Score ThreatByRook[PIECE_TYPE_NB] = {
-    S(0, 0), S(0, 24), S(38, 71), S(38, 61), S(0, 38), S(36, 38)
+    S(0, 0), S(0, 24), S(38, 71), S(38, 61), S(0, 38), S(51, 38)
   };
 
 #ifdef ATOMIC
@@ -1269,9 +1269,6 @@ namespace {
             score += ThreatByMinor[type_of(pos.piece_on(s))];
             if (type_of(pos.piece_on(s)) != PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s);
-
-            else if (pos.blockers_for_king(Them) & s)
-                score += ThreatByRank * (int)relative_rank(Them, s) / 2;
         }
 
         b = weak & attackedBy[Us][ROOK];
@@ -1281,9 +1278,6 @@ namespace {
             score += ThreatByRook[type_of(pos.piece_on(s))];
             if (type_of(pos.piece_on(s)) != PAWN)
                 score += ThreatByRank * (int)relative_rank(Them, s);
-
-            else if (pos.blockers_for_king(Them) & s)
-                score += ThreatByRank * (int)relative_rank(Them, s) / 2;
         }
 
         if (weak & attackedBy[Us][KING])
