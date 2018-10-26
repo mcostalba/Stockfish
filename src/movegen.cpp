@@ -25,9 +25,10 @@
 
 namespace {
 
-  template<Variant V, CastlingRight Cr, bool Checks, bool Chess960>
-  ExtMove* generate_castling(const Position& pos, ExtMove* moveList, Color us) {
+  template<Variant V, Color Us, CastlingSide Cs, bool Checks, bool Chess960>
+  ExtMove* generate_castling(const Position& pos, ExtMove* moveList) {
 
+    constexpr CastlingRight Cr = Us | Cs;
     constexpr bool KingSide = (Cr == WHITE_OO || Cr == BLACK_OO);
 
     if (pos.castling_impeded(Cr) || !pos.can_castle(Cr))
@@ -35,7 +36,7 @@ namespace {
 
     // After castling, the rook and king final positions are the same in Chess960
     // as they would be in standard chess.
-    Square kfrom = pos.square<KING>(us);
+    Square kfrom = pos.square<KING>(Us);
 #ifdef ANTI
     if (V == ANTI_VARIANT)
         kfrom = pos.castling_king_square(Cr);
@@ -49,8 +50,8 @@ namespace {
         kfrom = pos.castling_king_square(Cr);
 #endif
     Square rfrom = pos.castling_rook_square(Cr);
-    Square kto = relative_square(us, KingSide ? SQ_G1 : SQ_C1);
-    Bitboard enemies = pos.pieces(~us);
+    Square kto = relative_square(Us, KingSide ? SQ_G1 : SQ_C1);
+    Bitboard enemies = pos.pieces(~Us);
 
     assert(!pos.checkers());
 
@@ -69,7 +70,7 @@ namespace {
 #ifdef ATOMIC
         if (V == ATOMIC_VARIANT)
         {
-            if (   !(pos.attacks_from<KING>(pos.square<KING>(~us)) & s)
+            if (   !(pos.attacks_from<KING>(pos.square<KING>(~Us)) & s)
                 &&  (pos.attackers_to(s, pos.pieces() ^ kfrom) & enemies))
                 return moveList;
         }
@@ -81,10 +82,10 @@ namespace {
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~us, ROOK, QUEEN)))
+    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~Us, ROOK, QUEEN)))
     {
 #ifdef ATOMIC
-        if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(~us)) & kto)) {} else
+        if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(~Us)) & kto)) {} else
 #endif
         return moveList;
     }
@@ -518,13 +519,13 @@ namespace {
     {
         if (pos.is_chess960())
         {
-            moveList = generate_castling<V, MakeCastling<Us,  KING_SIDE>::right, Checks, true>(pos, moveList, Us);
-            moveList = generate_castling<V, MakeCastling<Us, QUEEN_SIDE>::right, Checks, true>(pos, moveList, Us);
+            moveList = generate_castling<V, Us, KING_SIDE, Checks, true>(pos, moveList);
+            moveList = generate_castling<V, Us, QUEEN_SIDE, Checks, true>(pos, moveList);
         }
         else
         {
-            moveList = generate_castling<V, MakeCastling<Us,  KING_SIDE>::right, Checks, false>(pos, moveList, Us);
-            moveList = generate_castling<V, MakeCastling<Us, QUEEN_SIDE>::right, Checks, false>(pos, moveList, Us);
+            moveList = generate_castling<V, Us, KING_SIDE, Checks, false>(pos, moveList);
+            moveList = generate_castling<V, Us, QUEEN_SIDE, Checks, false>(pos, moveList);
         }
     }
 

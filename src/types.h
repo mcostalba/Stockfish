@@ -285,12 +285,6 @@ enum CastlingRight {
   CASTLING_RIGHT_NB = 16
 };
 
-template<Color C, CastlingSide S> struct MakeCastling {
-  static constexpr CastlingRight
-  right = C == WHITE ? S == QUEEN_SIDE ? WHITE_OOO : WHITE_OO
-                     : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
-};
-
 #ifdef GRID
 enum GridLayout {
   NORMAL_GRID,

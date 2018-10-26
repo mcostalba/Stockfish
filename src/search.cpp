@@ -549,6 +549,7 @@ void Thread::search() {
 
       size_t pvFirst = 0;
       pvLast = 0;
+      Depth adjustedDepth = rootDepth;
 
       // MultiPV loop. We perform a full root search for each PV line
       for (pvIdx = 0; pvIdx < multiPV && !Threads.stop; ++pvIdx)
@@ -582,9 +583,11 @@ void Thread::search() {
           // Start with a small aspiration window and, in the case of a fail
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
+          int failedHighCnt = 0;
           while (true)
           {
-              bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false);
+        	  adjustedDepth = std::max(ONE_PLY, rootDepth - failedHighCnt * ONE_PLY);
+              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -606,7 +609,7 @@ void Thread::search() {
                   && multiPV == 1
                   && (bestValue <= alpha || bestValue >= beta)
                   && Time.elapsed() > PV_MIN_ELAPSED)
-                  sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+                  sync_cout << UCI::pv(rootPos, adjustedDepth, alpha, beta) << sync_endl;
 
               // In case of failing low/high increase aspiration window and
               // re-search, otherwise exit the loop.
@@ -617,12 +620,17 @@ void Thread::search() {
 
                   if (mainThread)
                   {
+                      failedHighCnt = 0;
                       failedLow = true;
                       Threads.stopOnPonderhit = false;
                   }
               }
               else if (bestValue >= beta)
+              {
                   beta = std::min(bestValue + delta, VALUE_INFINITE);
+                  if (mainThread)
+                	  ++failedHighCnt;
+              }
               else
                   break;
 
@@ -636,15 +644,15 @@ void Thread::search() {
 
           if (    mainThread
               && (Threads.stop || pvIdx + 1 == multiPV || Time.elapsed() > PV_MIN_ELAPSED))
-              sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+              sync_cout << UCI::pv(rootPos, adjustedDepth, alpha, beta) << sync_endl;
       }
 
       if (!Threads.stop)
-          completedDepth = rootDepth;
+          completedDepth = adjustedDepth;
 
       if (rootMoves[0].pv[0] != lastBestMove) {
          lastBestMove = rootMoves[0].pv[0];
-         lastBestMoveDepth = rootDepth;
+         lastBestMoveDepth = adjustedDepth;
       }
 
       // Have we found a "mate in x"?
@@ -1419,8 +1427,6 @@ moves_loop: // When in check, search starts from here
                   break;
               }
           }
-          else if (PvNode && !rootNode && value == alpha)
-              update_pv(ss->pv, move, (ss+1)->pv);
       }
 
       if (move != bestMove)
