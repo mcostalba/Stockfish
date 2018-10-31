@@ -324,15 +324,6 @@ void Search::init() {
 
   for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
   {
-#ifdef CRAZYHOUSE
-  if (var == CRAZYHOUSE_VARIANT)
-      for (int d = 0; d < 16; ++d)
-      {
-          FutilityMoveCounts[var][0][d] = int(10.0 + 0.5 * exp(0.8 * d));
-          FutilityMoveCounts[var][1][d] = int(20.0 + 0.5 * exp(0.9 * d));
-      }
-  else
-#endif
 #ifdef RACE
   if (var == RACE_VARIANT)
       for (int d = 0; d < 16; ++d)
@@ -1165,7 +1156,11 @@ moves_loop: // When in check, search starts from here
       movedPiece = pos.moved_piece(move);
       givesCheck = gives_check(pos, move);
 
+#ifdef CRAZYHOUSE
+      moveCountPruning =   depth < (pos.is_house() ? 8 : 16) * ONE_PLY
+#else
       moveCountPruning =   depth < 16 * ONE_PLY
+#endif
                         && moveCount >= FutilityMoveCounts[pos.variant()][improving][depth / ONE_PLY];
 
       // Step 13. Extensions (~70 Elo)
