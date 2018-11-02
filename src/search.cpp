@@ -335,6 +335,13 @@ void Search::init() {
 #endif
   for (int d = 0; d < 16; ++d)
   {
+#ifdef CRAZYHOUSE
+      if (var == CRAZYHOUSE_VARIANT && d >= 8)
+      {
+          FutilityMoveCounts[var][0][d] = FutilityMoveCounts[var][1][d] = INT_MAX;
+          continue;
+      }
+#endif
       FutilityMoveCounts[var][0][d] = int(2.4 + 0.74 * pow(d, 1.78));
       FutilityMoveCounts[var][1][d] = int(5.0 + 1.00 * pow(d, 2.00));
   }
@@ -1156,11 +1163,7 @@ moves_loop: // When in check, search starts from here
       movedPiece = pos.moved_piece(move);
       givesCheck = gives_check(pos, move);
 
-#ifdef CRAZYHOUSE
-      moveCountPruning =   depth < (pos.is_house() ? 8 : 16) * ONE_PLY
-#else
       moveCountPruning =   depth < 16 * ONE_PLY
-#endif
                         && moveCount >= FutilityMoveCounts[pos.variant()][improving][depth / ONE_PLY];
 
       // Step 13. Extensions (~70 Elo)
