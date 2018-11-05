@@ -1060,6 +1060,7 @@ namespace {
                      + KDP[3] * tropism
                      + KDP[4] * !pos.count<QUEEN>(Them)
                      + KDP[5] * mg_value(score) / 8
+                     +          mg_value(mobility[Them] - mobility[Us])
                      + KDP[6];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
@@ -1084,12 +1085,6 @@ namespace {
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
         if (kingDanger > 0)
         {
-            int mobilityDanger = mg_value(mobility[Them] - mobility[Us]);
-#ifdef CRAZYHOUSE
-            if (pos.is_house())
-                mobilityDanger = 0;
-#endif
-            kingDanger = std::max(0, kingDanger + mobilityDanger);
 #ifdef THREECHECK
             if (pos.is_three_check())
                 kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
