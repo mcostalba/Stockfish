@@ -755,9 +755,6 @@ namespace {
         !(pos.is_horde() && pos.is_horde_color(Us)) &&
 #endif
         (pos.non_pawn_material(Them) >= RookValueMg + KnightValueMg))
-#ifdef CRAZYHOUSE
-        || pos.is_house()
-#endif
     )
     {
         kingRing[Us] = attackedBy[Us][KING];
