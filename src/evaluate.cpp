@@ -163,39 +163,39 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][8] = {
-    {    69,  185,  150,    4, -873,   -6,  -30,    0 },
+    {    69,  185,  150,    1, -873,   -6,  -30,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   274,  166,  146,    4, -654,  -12,   -7,   29 },
+    {   274,  166,  146,    1, -654,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   119,  439,  130,    4, -613,   -6,   -1,  320 },
+    {   119,  439,  130,    1, -613,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   119,  211,  158,    4, -722,   -9,   41,    0 },
+    {   119,  211,  158,    1, -722,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   101,  235,  134,    4, -717,  -11,   -5,    0 },
+    {   101,  235,  134,    1, -717,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {    85,  229,  131,    4, -658,   -9,   -5,    0 },
+    {    85,  229,  131,    1, -658,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   101,  235,  134,    4, -717, -357,   -5,    0 },
+    {   101,  235,  134,    1, -717, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {    85,  136,  106,    4, -613,   -7,  -73,  181 },
+    {    85,  136,  106,    1, -613,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {    92,  155,  136,    4, -967,   -8,   38,    0 },
+    {    92,  155,  136,    1, -967,   -8,   38,    0 },
 #endif
   };
 
@@ -1052,7 +1052,7 @@ namespace {
                      + KDP[0] * kingAttacksCount[Them]
                      + KDP[1] * popcount(kingRing[Us] & weak)
                      + KDP[2] * popcount(pos.blockers_for_king(Us) | unsafeChecks)
-                     + KDP[3] * tropism
+                     + KDP[3] * tropism * tropism / 4
                      + KDP[4] * !pos.count<QUEEN>(Them)
                      + KDP[5] * mg_value(score) / 8
                      +          mg_value(mobility[Them] - mobility[Us])
