@@ -1204,8 +1204,8 @@ moves_loop: // When in check, search starts from here
           extension = ONE_PLY;
 #endif
 
-      else if (   pos.can_castle(us) // Extension for king moves that change castling rights
-               && type_of(movedPiece) == KING)
+      // Extension if castling
+      else if (type_of(move) == CASTLING)
           extension = ONE_PLY;
 
       // Calculate new depth for this move
