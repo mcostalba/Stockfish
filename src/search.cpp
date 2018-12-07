@@ -671,10 +671,8 @@ void Thread::search() {
           && !Threads.stop
           && !Threads.stopOnPonderhit)
           {
-              const int F[] = { failedLow,
-                                bestValue - mainThread->previousScore };
-
-              int improvingFactor = std::max(246, std::min(832, 306 + 119 * F[0] - 6 * F[1]));
+              double fallingEval = (306 + 119 * failedLow + 6 * (mainThread->previousScore - bestValue)) / 581.0;
+              fallingEval        = std::max(0.5, std::min(1.5, fallingEval));
 
               // If the bestMove is stable over several iterations, reduce time accordingly
               timeReduction = 1.0;
@@ -688,7 +686,7 @@ void Thread::search() {
 
               // Stop the search if we have only one legal move, or if available time elapsed
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * bestMoveInstability * improvingFactor / 581)
+                  || Time.elapsed() > Time.optimum() * bestMoveInstability * fallingEval)
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -1476,15 +1474,12 @@ moves_loop: // When in check, search starts from here
 
         update_capture_stats(pos, bestMove, capturesSearched, captureCount, stat_bonus(depth + ONE_PLY));
 
-        // Extra penalty for a quiet TT move in previous ply when it gets refuted
-        if ((ss-1)->moveCount == 1 && !pos.captured_piece())
-            update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, -stat_bonus(depth + ONE_PLY));
+        // Extra penalty for a quiet TT or main killer move in previous ply when it gets refuted
+		if (   (ss-1)->moveCount == 1
+		    || ((ss-1)->currentMove == (ss-1)->killers[0] && (ss-1)->killers[0]))
+		    if (!pos.captured_piece())
+                update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, -stat_bonus(depth + ONE_PLY));
 
-        // Extra penalty for killer move in previous ply when it gets refuted
-        else if (  (ss-1)->killers[0]
-                && (ss-1)->currentMove == (ss-1)->killers[0]
-                && !pos.captured_piece())
-            update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, -stat_bonus(depth));
     }
     // Bonus for prior countermove that caused the fail low
     else if (   (depth >= 3 * ONE_PLY || PvNode)
