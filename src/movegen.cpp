@@ -515,7 +515,7 @@ namespace {
     if (V == LOSERS_VARIANT && pos.can_capture_losers())
         return moveList;
 #endif
-    if (Type != CAPTURES && Type != EVASIONS && pos.can_castle(Us))
+    if (Type != CAPTURES && Type != EVASIONS && pos.castling_rights(Us))
     {
         if (pos.is_chess960())
         {
