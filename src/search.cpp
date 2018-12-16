@@ -482,6 +482,7 @@ void MainThread::search() {
 void Thread::search() {
 
   Stack stack[MAX_PLY+7], *ss = stack+4; // To reference from (ss-4) to (ss+2)
+  Move  pv[MAX_PLY+1];
   Value bestValue, alpha, beta, delta;
   Move  lastBestMove = MOVE_NONE;
   Depth lastBestMoveDepth = DEPTH_ZERO;
@@ -493,6 +494,7 @@ void Thread::search() {
   std::memset(ss-4, 0, 7 * sizeof(Stack));
   for (int i = 4; i > 0; i--)
      (ss-i)->continuationHistory = &this->continuationHistory[NO_PIECE][0]; // Use as sentinel
+  ss->pv = pv;
 
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
@@ -984,8 +986,9 @@ namespace {
 #endif
 
     // Step 7. Razoring (~2 Elo)
-    if (   depth < 2 * ONE_PLY
-        && eval <= alpha - RazorMargin[pos.variant()])
+    if (   !rootNode // The required rootNode PV handling is not available in qsearch
+        &&  depth < 2 * ONE_PLY
+        &&  eval <= alpha - RazorMargin[pos.variant()])
         return qsearch<NT>(pos, ss, alpha, beta);
 
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -1226,12 +1229,7 @@ moves_loop: // When in check, search starts from here
 #ifdef LOSERS
               && (!pos.is_losers() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
 #endif
-#ifdef HORDE
-              && (pos.is_horde() || !pos.advanced_pawn_push(move) || pos.non_pawn_material() >= Value(5000))
-#else
-              && (!pos.advanced_pawn_push(move) || pos.non_pawn_material() >= Value(5000))
-#endif
-          )
+              && !pos.advanced_pawn_push(move))
           {
               // Move count based pruning (~30 Elo)
               if (moveCountPruning)
