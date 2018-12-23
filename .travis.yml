@@ -1,6 +1,6 @@
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 
 matrix:
   include:
@@ -9,7 +9,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'g++-7-multilib', 'g++-multilib', 'valgrind', 'expect', 'curl']
+          packages: ['g++-8', 'g++-8-multilib', 'g++-multilib', 'valgrind', 'expect', 'curl']
         artifacts:
           bucket: variant-stockfish
           s3_region: us-west-2
@@ -25,7 +25,7 @@ matrix:
           secret:
             secure: OWJPxKbGK4xyIkHMqUE100hfXLd4QHAQXLaYj5PemcJxT9vbWurrWHCtkIqhikKMgw6ii12JrdGvOd/wT31ZMR3g1xxc5cu0/cRx1zyBNZkGEScVZE6R3Y1Y5Y812xFY98mdq84mGILsS+mlL0HUqv68331kxTnWHLc8h+59wSOviPUzDCmyAarMd+AfHLqEi4QqR5g377TXImKFhSzOvpQtSlK3LH1Kfyl1LlPlVhBGf7jNlECr7GTGy1y89ahMF4ZEYDQED4qD2IbA988FaaN7GYQWQZ9esZ9mVMco+CIfjk/0+3+6K99tqQYFU7MW4w7AVwCnQqMLZZHz7JlCAInRv99fx3G4QHwjaZbTbfNashHKC7qu1Wvvqsim2RSLb+RkEH/cUXT6PcUHL1K/muHypHDYHxyY7dj8M35rTXaDjYypl0hmGxWPLLoqH7jJRXQpW3Z6ho+4ThTAlQZ3qoBMW+Ses53v93clq6Hr9RaVWNHZ2mCnq/6LAHWz19TPVu3QyrP6nhO1XM1/t/zFsvjTe83/Rp/kRxOjUksUjQRpvlHW4OoxjerQQ8Gu+K+fW6hdryPFyO1hpkJpQ0vPOBRuK81HAIN9BRf9CREhdJ4rj1PvYocKk0FqZVaJIHUtW2jwcwtxAIPephLJJvLyhwa6yx0veeSXSQW0domzxnA=
       env:
-        - COMPILER=g++-7
+        - COMPILER=g++-8
         - COMP=gcc
         - DEPLOY=stockfish
       sudo: required
@@ -36,12 +36,12 @@ matrix:
       compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-          packages: ['clang-5.0', 'llvm-5.0-dev', 'g++-multilib', 'valgrind', 'expect', 'curl']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-xenial-6.0']
+          packages: ['clang-6.0', 'llvm-6.0-dev', 'g++-multilib', 'valgrind', 'expect', 'curl']
       env:
-        - COMPILER=clang++-5.0
+        - COMPILER=clang++-6.0
         - COMP=clang
-        - LDFLAGS=-fuse-ld=gold
+        - LDFLAGS=-fuse-ld=lld
 
     - os: osx
       compiler: gcc
@@ -52,7 +52,7 @@ matrix:
     - os: osx
       compiler: clang
       env:
-        - COMPILER=clang++ V='Apple LLVM 6.0' # Apple LLVM version 6.0 (clang-600.0.54) (based on LLVM 3.5svn)
+        - COMPILER=clang++ V='Apple LLVM 9.4.1' # Apple LLVM version 9.1.0 (clang-902.0.39.2)
         - COMP=clang
         - DEPLOY=stockfish-osx
       addons:
@@ -97,9 +97,9 @@ script:
   #
   # Sanitizer
   #
-  # Use g++-7 as a proxy for having sanitizers, might need revision as they become available for more recent versions of clang/gcc
-  - if [[ "$COMPILER" == "g++-7" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=undefined optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-undefined; fi
-  - if [[ "$COMPILER" == "g++-7" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=thread    optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-thread; fi
+  # Use g++-8 as a proxy for having sanitizers, might need revision as they become available for more recent versions of clang/gcc
+  - if [[ "$COMPILER" == "g++-8" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=undefined optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-undefined; fi
+  - if [[ "$COMPILER" == "g++-8" ]]; then make clean && make -j2 ARCH=x86-64 sanitize=thread    optimize=no debug=yes build > /dev/null && ../tests/instrumented.sh --sanitizer-thread; fi
 
   #
   # Build snapshot
