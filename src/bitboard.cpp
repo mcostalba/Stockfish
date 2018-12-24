@@ -208,7 +208,6 @@ namespace {
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
         m.mask  = sliding_attack(directions, s, 0) & ~edges;
-        m.shift = (Is64Bit ? 64 : 32) - popcount(m.mask);
 
         // Set the offset for the attacks table of the square. We have individual
         // table sizes for each square with "Fancy Magic Bitboards".
@@ -232,6 +231,8 @@ namespace {
             continue;
 
         PRNG rng(seeds[Is64Bit][rank_of(s)]);
+        Bitboard SMask = ~((Is64Bit ? 63ULL : 31ULL) << Magic::Shift);
+        Bitboard SBits =  ((Is64Bit ? 64ULL : 32ULL) - popcount(m.mask)) << Magic::Shift;
 
         // Find a magic for square 's' picking up an (almost) random number
         // until we find the one that passes the verification test.
@@ -239,6 +240,9 @@ namespace {
         {
             for (m.magic = 0; popcount((m.magic * m.mask) >> 56) < 6; )
                 m.magic = rng.sparse_rand<Bitboard>();
+
+            // Use the upper 5/6 MSB bits to store the shift value
+            m.magic = (m.magic & SMask) | SBits;
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.

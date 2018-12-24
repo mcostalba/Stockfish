@@ -79,10 +79,12 @@ extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
 /// Magic holds all magic bitboards relevant data for a single square
 struct Magic {
+
+  static const unsigned Shift = (Is64Bit ? 64 - 6 : 32 - 5);
+
   Bitboard  mask;
   Bitboard  magic;
   Bitboard* attacks;
-  unsigned  shift;
 
   // Compute the attack's index using the 'magic bitboards' approach
   unsigned index(Bitboard occupied) const {
@@ -91,11 +93,11 @@ struct Magic {
         return unsigned(pext(occupied, mask));
 
     if (Is64Bit)
-        return unsigned(((occupied & mask) * magic) >> shift);
+        return unsigned(((occupied & mask) * magic) >> (magic >> Shift));
 
     unsigned lo = unsigned(occupied) & unsigned(mask);
     unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
-    return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> shift;
+    return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> (magic >> Shift);
   }
 };
 
