@@ -28,6 +28,7 @@ namespace {
   template<Variant V, Color Us, CastlingSide Cs, bool Checks, bool Chess960>
   ExtMove* generate_castling(const Position& pos, ExtMove* moveList) {
 
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
     constexpr CastlingRight Cr = Us | Cs;
     constexpr bool KingSide = (Cs == KING_SIDE);
 
@@ -51,7 +52,7 @@ namespace {
 #endif
     Square rfrom = pos.castling_rook_square(Cr);
     Square kto = relative_square(Us, KingSide ? SQ_G1 : SQ_C1);
-    Bitboard enemies = pos.pieces(~Us);
+    Bitboard enemies = pos.pieces(Them);
 
     assert(!pos.checkers());
 
@@ -59,18 +60,17 @@ namespace {
                                     : KingSide    ? WEST : EAST;
 
 #ifdef ANTI
-    if (V != ANTI_VARIANT)
-    {
+    if (V == ANTI_VARIANT) {} else
 #endif
 #ifdef EXTINCTION
-    if (V != EXTINCTION_VARIANT)
-    {
+    if (V == EXTINCTION_VARIANT) {} else
 #endif
+    {
     for (Square s = kto; s != kfrom; s += step)
 #ifdef ATOMIC
         if (V == ATOMIC_VARIANT)
         {
-            if (   !(pos.attacks_from<KING>(pos.square<KING>(~Us)) & s)
+            if (   !(pos.attacks_from<KING>(pos.square<KING>(Them)) & s)
                 &&  (pos.attackers_to(s, pos.pieces() ^ kfrom) & enemies))
                 return moveList;
         }
@@ -82,19 +82,12 @@ namespace {
     // Because we generate only legal castling moves we need to verify that
     // when moving the castling rook we do not discover some hidden checker.
     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(~Us, ROOK, QUEEN)))
-    {
 #ifdef ATOMIC
-        if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(~Us)) & kto)) {} else
+    if (V == ATOMIC_VARIANT && (pos.attacks_from<KING>(pos.square<KING>(Them)) & kto)) {} else
 #endif
+    if (Chess960 && (attacks_bb<ROOK>(kto, pos.pieces() ^ rfrom) & pos.pieces(Them, ROOK, QUEEN)))
         return moveList;
     }
-#ifdef EXTINCTION
-    }
-#endif
-#ifdef ANTI
-    }
-#endif
 
     Move m = make<CASTLING>(kfrom, rfrom);
 
@@ -200,10 +193,8 @@ namespace {
   template<Variant V, Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    // Compute our parametrized parameters at compile time, named according to
-    // the point of view of white side.
+    // Compute some compile time parameters relative to the white side
     constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
-    constexpr Bitboard  TRank8BB = (Us == WHITE ? Rank8BB    : Rank1BB);
     constexpr Bitboard  TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
 #ifdef HORDE
     constexpr Bitboard  TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
@@ -290,7 +281,7 @@ namespace {
     }
 
     // Promotions and underpromotions
-    if (pawnsOn7 && (Type != EVASIONS || (target & TRank8BB)))
+    if (pawnsOn7)
     {
         if (Type == CAPTURES)
         {

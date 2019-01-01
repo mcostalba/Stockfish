@@ -85,7 +85,7 @@ enum StatsParams { NOT_USED = 0 };
 /// ButterflyHistory records how often quiet moves have been successful or
 /// unsuccessful during the current search, and is used for reduction and move
 /// ordering decisions. It uses 2 tables (one for each color) indexed by
-/// the move's from and to squares, see chessprogramming.wikispaces.com/Butterfly+Boards
+/// the move's from and to squares, see www.chessprogramming.org/Butterfly_Boards
 #ifdef CRAZYHOUSE
 typedef Stats<int16_t, 10692, COLOR_NB, int(SQUARE_NB + 1) * int(SQUARE_NB)> ButterflyHistory;
 #else
@@ -93,7 +93,7 @@ typedef Stats<int16_t, 10692, COLOR_NB, int(SQUARE_NB) * int(SQUARE_NB)> Butterf
 #endif
 
 /// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous
-/// move, see chessprogramming.wikispaces.com/Countermove+Heuristic
+/// move, see www.chessprogramming.org/Countermove_Heuristic
 typedef Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB> CounterMoveHistory;
 
 /// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]

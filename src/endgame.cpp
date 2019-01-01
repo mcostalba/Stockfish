@@ -133,7 +133,7 @@ Value Endgame<CHESS_VARIANT, KBNK>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
   Square bishopSq = pos.square<BISHOP>(strongSide);
 
-  // If our Bishop does not attack A1/H8, we flip the enemy king square 
+  // If our Bishop does not attack A1/H8, we flip the enemy king square
   // to drive to opposite corners (A8/H1).
 
   Value result =  VALUE_KNOWN_WIN
@@ -743,6 +743,9 @@ template<>
 ScaleFactor Endgame<CHESS_VARIANT, KNPKB>::operator()(const Position& pos) const {
 
   assert(pos.variant() == CHESS_VARIANT);
+  assert(verify_material(pos, strongSide, KnightValueMg, 1));
+  assert(verify_material(pos, weakSide, BishopValueMg, 0));
+
   Square pawnSq = pos.square<PAWN>(strongSide);
   Square bishopSq = pos.square<BISHOP>(weakSide);
   Square weakKingSq = pos.square<KING>(weakSide);
