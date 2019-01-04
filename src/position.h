@@ -109,7 +109,7 @@ public:
   bool can_castle(CastlingRight cr) const;
   bool castling_impeded(CastlingRight cr) const;
 #if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
-  Square castling_king_square(CastlingRight cr) const;
+  Square castling_king_square(Color c) const;
 #endif
   Square castling_rook_square(CastlingRight cr) const;
 
@@ -311,7 +311,7 @@ private:
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
 #if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
-  Square castlingKingSquare[CASTLING_RIGHT_NB];
+  Square castlingKingSquare[COLOR_NB];
 #endif
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
@@ -488,7 +488,7 @@ inline bool Position::can_castle(CastlingRight cr) const {
 }
 
 inline int Position::castling_rights(Color c) const {
-  return st->castlingRights & ((WHITE_OO | WHITE_OOO) << (2 * c));
+  return st->castlingRights & (c == WHITE ? WHITE_CASTLING : BLACK_CASTLING);
 }
 
 inline bool Position::castling_impeded(CastlingRight cr) const {
@@ -496,8 +496,8 @@ inline bool Position::castling_impeded(CastlingRight cr) const {
 }
 
 #if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
-inline Square Position::castling_king_square(CastlingRight cr) const {
-  return castlingKingSquare[cr];
+inline Square Position::castling_king_square(Color c) const {
+  return castlingKingSquare[c];
 }
 #endif
 
