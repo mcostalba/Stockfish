@@ -756,8 +756,8 @@ namespace {
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, pureStaticEval;
-    bool ttHit, inCheck, givesCheck, improving;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, ttCapture, pvExact;
+    bool ttHit, pvHit, inCheck, givesCheck, improving;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount;
 
@@ -825,6 +825,7 @@ namespace {
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ttHit    ? tte->move() : MOVE_NONE;
+    pvHit = ttHit && tte->pv_hit();
 
     // At non-PV nodes we check for an early TT cutoff
     if (  !PvNode
@@ -857,6 +858,11 @@ namespace {
         }
         return ttValue;
     }
+
+    if (   depth > 4 * ONE_PLY
+        && !excludedMove
+        && PvNode)
+        pvHit = true;
 
     // Step 5. Tablebases probe
 #ifdef EXTINCTION
@@ -912,7 +918,7 @@ namespace {
                 if (    b == BOUND_EXACT
                     || (b == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    tte->save(posKey, value_to_tt(value, ss->ply), b,
+                    tte->save(posKey, value_to_tt(value, ss->ply), pvHit, b,
                               std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
                               MOVE_NONE, VALUE_NONE);
 
@@ -963,7 +969,7 @@ namespace {
         else
             ss->staticEval = eval = pureStaticEval = -(ss-1)->staticEval + 2 * Eval::Tempo[pos.variant()];
 
-        tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, pureStaticEval);
+        tte->save(posKey, VALUE_NONE, pvHit, BOUND_NONE, DEPTH_NONE, MOVE_NONE, pureStaticEval);
     }
 
 #ifdef ANTI
@@ -1124,6 +1130,7 @@ namespace {
         tte = TT.probe(posKey, ttHit);
         ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
         ttMove = ttHit ? tte->move() : MOVE_NONE;
+        pvHit = ttHit && tte->pv_hit();
     }
 
 moves_loop: // When in check, search starts from here
@@ -1140,7 +1147,6 @@ moves_loop: // When in check, search starts from here
 
     skipQuiets = false;
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
-    pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
 
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1310,21 +1316,21 @@ moves_loop: // When in check, search starts from here
       {
           Depth r = reduction<PvNode>(improving, depth, moveCount);
 
+          // Decrease reduction if position is or has been on the PV
+          if (pvHit)
+              r -= ONE_PLY;
+
+          // Decrease reduction if opponent's move count is high (~10 Elo)
 #ifdef ANTI
           if (pos.is_anti() && pos.can_capture())
               r -= r ? ONE_PLY : DEPTH_ZERO;
           else
 #endif
-          // Decrease reduction if opponent's move count is high (~10 Elo)
           if ((ss-1)->moveCount > 15)
               r -= ONE_PLY;
 
           if (!captureOrPromotion)
           {
-              // Decrease reduction for exact PV nodes (~0 Elo)
-              if (pvExact)
-                  r -= ONE_PLY;
-
               // Increase reduction if ttMove is a capture (~0 Elo)
               if (ttCapture)
                   r += ONE_PLY;
@@ -1501,7 +1507,7 @@ moves_loop: // When in check, search starts from here
         bestValue = std::min(bestValue, maxValue);
 
     if (!excludedMove)
-        tte->save(posKey, value_to_tt(bestValue, ss->ply),
+        tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
                   bestValue >= beta ? BOUND_LOWER :
                   PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
                   depth, bestMove, pureStaticEval);
@@ -1531,7 +1537,7 @@ moves_loop: // When in check, search starts from here
     Move ttMove, move, bestMove;
     Depth ttDepth;
     Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
-    bool ttHit, inCheck, givesCheck, evasionPrunable;
+    bool ttHit, pvHit, inCheck, givesCheck, evasionPrunable;
     int moveCount;
 
     if (PvNode)
@@ -1568,6 +1574,7 @@ moves_loop: // When in check, search starts from here
     tte = TT.probe(posKey, ttHit);
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
     ttMove = ttHit ? tte->move() : MOVE_NONE;
+    pvHit = ttHit && tte->pv_hit();
 
     if (  !PvNode
         && ttHit
@@ -1605,7 +1612,7 @@ moves_loop: // When in check, search starts from here
         if (bestValue >= beta)
         {
             if (!ttHit)
-                tte->save(posKey, value_to_tt(bestValue, ss->ply), BOUND_LOWER,
+                tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit, BOUND_LOWER,
                           DEPTH_NONE, MOVE_NONE, ss->staticEval);
 
             return bestValue;
@@ -1732,7 +1739,7 @@ moves_loop: // When in check, search starts from here
     if (inCheck && bestValue == -VALUE_INFINITE)
         return pos.checkmate_value(ss->ply); // Plies to mate from the root
 
-    tte->save(posKey, value_to_tt(bestValue, ss->ply),
+    tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
               bestValue >= beta ? BOUND_LOWER :
               PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
               ttDepth, bestMove, ss->staticEval);
