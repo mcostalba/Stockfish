@@ -65,7 +65,7 @@ const Bitboard Rank1234BB = Rank1BB | Rank2BB | Rank3BB | Rank4BB;
 const Bitboard Rank5678BB = Rank5BB | Rank6BB | Rank7BB | Rank8BB;
 #endif
 
-extern int SquareDistance[SQUARE_NB][SQUARE_NB];
+extern int8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard FileBB[FILE_NB];
