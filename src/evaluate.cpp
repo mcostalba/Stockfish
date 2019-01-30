@@ -937,8 +937,8 @@ namespace {
     // Attacked squares defended at most once by our queen or king
 #ifdef ATOMIC
     if (pos.is_atomic())
-        weak =  (attackedBy[Them][ALL_PIECES] | (pos.pieces(Them) ^ pos.pieces(Them, KING)))
-              & (~attackedBy[Us][ALL_PIECES] | attackedBy[Us][KING] | (attackedBy[Us][QUEEN] & ~attackedBy2[Us]));
+        weak =  (attackedBy[Them][ALL_PIECES] ^ attackedBy[Them][KING])
+              & ~(attackedBy[Us][ALL_PIECES] ^ attackedBy[Us][KING]);
     else
 #endif
     weak =  attackedBy[Them][ALL_PIECES]
@@ -953,11 +953,12 @@ namespace {
 
     // Analyse the safe enemy's checks which are possible on next move
     safe  = ~pos.pieces(Them);
-    safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 #ifdef ATOMIC
     if (pos.is_atomic())
-        safe |= attackedBy[Us][KING];
+        safe &= ~pos.pieces(Us) | attackedBy2[Them];
+    else
 #endif
+    safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
 
     b1 = attacks_bb<ROOK  >(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
     b2 = attacks_bb<BISHOP>(ksq, pos.pieces() ^ pos.pieces(Us, QUEEN));
