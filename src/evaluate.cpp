@@ -201,8 +201,8 @@ namespace {
 
   // Penalties for enemy's safe checks
   constexpr int QueenSafeCheck  = 780;
-  constexpr int RookSafeCheck   = 880;
-  constexpr int BishopSafeCheck = 435;
+  constexpr int RookSafeCheck   = 1080;
+  constexpr int BishopSafeCheck = 635;
   constexpr int KnightSafeCheck = 790;
 #ifdef CRAZYHOUSE
   constexpr int PawnSafeCheck   = 435;
@@ -986,42 +986,60 @@ namespace {
     Bitboard dqko = ~attackedBy2[Us] & (attackedBy[Us][QUEEN] | attackedBy[Us][KING]);
     Bitboard dropSafe = (safe | (attackedBy[Them][ALL_PIECES] & dqko)) & ~pos.pieces(Us);
 
-    // Enemy queen safe checks
-    if ((b1 | b2) & (h | attackedBy[Them][QUEEN]) & safe & ~attackedBy[Us][QUEEN])
-        kingDanger += QueenSafeCheck;
-
 #ifdef THREECHECK
     if (pos.is_three_check() && pos.checks_given(Them))
         safe = ~pos.pieces(Them);
 #endif
 
-    b1 &= attackedBy[Them][ROOK];
-    b2 &= attackedBy[Them][BISHOP];
-
+    // Enemy rooks checks
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
 #endif
-    // Enemy rooks checks
-    if (b1 & ((attackedBy[Them][ROOK] & safe) | (h & dropSafe)))
+    Bitboard RookCheck =  b1
+                        & safe
+                        & (attackedBy[Them][ROOK] | (h & dropSafe));
+
+    if (RookCheck)
         kingDanger += RookSafeCheck;
     else
         unsafeChecks |= b1 & (attackedBy[Them][ROOK] | h);
 
-    // Enemy bishops checks
+    // Enemy queen safe checks: we count them only if they are from squares from
+    // which we can't give a rook check, because rook checks are more valuable.
+#ifdef CRAZYHOUSE
+    h = pos.is_house() && pos.count_in_hand<QUEEN>(Them) ? ~pos.pieces() : 0;
+#endif
+    Bitboard QueenCheck =  (b1 | b2)
+                         & (attackedBy[Them][QUEEN] | (h & dropSafe))
+                         & safe
+                         & ~attackedBy[Us][QUEEN]
+                         & ~RookCheck;
+
+    if (QueenCheck)
+        kingDanger += QueenSafeCheck;
+
+    // Enemy bishops checks: we count them only if they are from squares from
+    // which we can't give a queen check, because queen checks are more valuable.
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<BISHOP>(Them) ? ~pos.pieces() : 0;
 #endif
-    if (b2 & ((attackedBy[Them][BISHOP] & safe) | (h & dropSafe)))
+    Bitboard BishopCheck =  b2 
+                          & (attackedBy[Them][BISHOP] | (h & dropSafe))
+                          & safe
+                          & ~QueenCheck;
+
+    if (BishopCheck)
         kingDanger += BishopSafeCheck;
     else
-        unsafeChecks |= b2 & (attackedBy[Them][BISHOP] | h);
+        unsafeChecks |= b2 & (attackedBy[Them][BISHOP] | (h & dropSafe));
 
     // Enemy knights checks
     b = pos.attacks_from<KNIGHT>(ksq) & attackedBy[Them][KNIGHT];
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<KNIGHT>(Them) ? ~pos.pieces() : 0;
 #endif
-    if (b & ((attackedBy[Them][KNIGHT] & safe) | (h & dropSafe)))
+
+    if (b & (safe | (h & dropSafe)))
         kingDanger += KnightSafeCheck;
     else
         unsafeChecks |= b & (attackedBy[Them][KNIGHT] | h);
