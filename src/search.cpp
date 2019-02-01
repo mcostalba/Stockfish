@@ -1203,8 +1203,17 @@ moves_loop: // When in check, search starts from here
           else if (cutNode && singularBeta > beta)
               return beta;
       }
-      else if (    givesCheck // Check extension (~2 Elo)
-               &&  pos.see_ge(move))
+
+      // Check extension (~2 Elo)
+#ifdef CRAZYHOUSE
+      else if (type_of(move) == DROP)
+      {
+          if (givesCheck && pos.see_ge(move))
+              extension = ONE_PLY;
+      }
+#endif
+      else if (    givesCheck
+               && (pos.blockers_for_king(~us) & from_sq(move) || pos.see_ge(move)))
           extension = ONE_PLY;
 #ifdef ANTI
       else if (    pos.is_anti() // Capture extension (all moves are captures)
@@ -1213,7 +1222,7 @@ moves_loop: // When in check, search starts from here
           extension = ONE_PLY;
 #endif
 
-      // Extension if castling
+      // Castling extension
       else if (type_of(move) == CASTLING)
           extension = ONE_PLY;
 
