@@ -163,7 +163,7 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][8] = {
-    {    69,  185,  150,    5, -873,   -6,  -30,    0 },
+    {    69,  185,  150,    5, -873,   -6,  -25,    0 },
 #ifdef ANTI
     {},
 #endif
@@ -1067,6 +1067,7 @@ namespace {
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
                  + KDP[0] * kingAttacksCount[Them]
                  + KDP[1] * popcount(kingRing[Us] & weak)
+                 - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
                  + KDP[2] * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                  + KDP[3] * tropism * tropism / 16
                  + KDP[4] * !pos.count<QUEEN>(Them)
