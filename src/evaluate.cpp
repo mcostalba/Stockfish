@@ -1532,8 +1532,8 @@ namespace {
                 for (File f = FILE_A; f <= FILE_H; ++f)
                 {
                     int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
-                    int pawnsl = f > FILE_A ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f - 1]), pawns) : 0;
-                    int pawnsr = f < FILE_H ? std::min(popcount(pos.pieces(Them, PAWN) & FileBB[f + 1]), pawns) : 0;
+                    int pawnsl = std::min(popcount(pos.pieces(Them, PAWN) & shift<WEST>(file_bb(f))), pawns);
+                    int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
                     dist = std::min(dist, pawnsl + pawnsr);
                 }
             }

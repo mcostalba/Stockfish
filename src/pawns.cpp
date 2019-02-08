@@ -276,10 +276,10 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
     {
-        int l = 0, m = 0, r = popcount(ourPawns & FileBB[FILE_A]);
+        int l = 0, m = 0, r = popcount(ourPawns & file_bb(FILE_A));
         for (File f1 = FILE_A; f1 <= FILE_H; ++f1)
         {
-            l = m; m = r; r = f1 < FILE_H ? popcount(ourPawns & FileBB[f1 + 1]) : 0;
+            l = m; m = r; r = popcount(ourPawns & shift<EAST>(file_bb(f1)));
             score -= ImbalancedHorde * m / (1 + l * r);
         }
     }
