@@ -214,6 +214,13 @@ inline Bitboard adjacent_files_bb(File f) {
   return shift<EAST>(file_bb(f)) | shift<WEST>(file_bb(f));
 }
 
+#ifdef ATOMIC
+inline Bitboard adjacent_squares_bb(Bitboard b) {
+  Bitboard b2 = shift<NORTH>(b) | shift<SOUTH>(b);
+  return b2 | shift<WEST>(b | b2) | shift<EAST>(b | b2);
+}
+#endif
+
 /// between_bb() returns a bitboard representing all the squares between the two
 /// given ones. For instance, between_bb(SQ_C4, SQ_F7) returns a bitboard with
 /// the bits for square d5 and e6 set. If s1 and s2 are not on the same rank, file

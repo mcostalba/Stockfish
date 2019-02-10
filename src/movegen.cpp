@@ -499,7 +499,7 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   if (pos.is_atomic())
   {
       if (Type == CAPTURES || Type == NON_EVASIONS)
-          target &= ~(pos.pieces(~us) & pos.attacks_from<KING>(pos.square<KING>(us)));
+          target &= ~(pos.pieces(~us) & DistanceRingBB[pos.square<KING>(us)][1]);
       return us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<ATOMIC_VARIANT, BLACK, Type>(pos, moveList, target);
   }
@@ -667,7 +667,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard sliderAttacks = 0;
   Bitboard sliders = pos.checkers() & ~pos.pieces(KNIGHT, PAWN);
 #ifdef ATOMIC
-  Bitboard kingAttacks = pos.is_atomic() ? pos.attacks_from<KING>(pos.square<KING>(~us)) : 0;
+  Bitboard kingRing = pos.is_atomic() ? DistanceRingBB[pos.square<KING>(~us)][1] : 0;
 #endif
 
 #ifdef ATOMIC
@@ -675,13 +675,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   {
       // Blasts that explode the opposing king or explode all checkers
       // are counted among evasive moves.
-      Bitboard target = pos.pieces(~us), b = pos.checkers();
-      while (b)
-      {
-          Square s = pop_lsb(&b);
-          target &= pos.attacks_from<KING>(s) | s;
-      }
-      target |= kingAttacks;
+      Bitboard target = pos.pieces(~us) & (pos.checkers() | adjacent_squares_bb(pos.checkers()));
+      target |= kingRing;
       target &= pos.pieces(~us) & ~pos.attacks_from<KING>(ksq);
       moveList = (us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, CAPTURES>(pos, moveList, target)
                               : generate_all<ATOMIC_VARIANT, BLACK, CAPTURES>(pos, moveList, target));
@@ -706,7 +701,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard b;
 #ifdef ATOMIC
   if (pos.is_atomic()) // Generate evasions for king, non capture moves
-      b = pos.attacks_from<KING>(ksq) & ~pos.pieces() & ~(sliderAttacks & ~kingAttacks);
+      b = DistanceRingBB[ksq][1] & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
   else
 #endif
   b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
