@@ -139,7 +139,7 @@ namespace {
                         Type == CAPTURES ? target : pos.pieces(Them));
 #ifdef ATOMIC
     if (V == ATOMIC_VARIANT)
-        enemies &= (Type == CAPTURES || Type == NON_EVASIONS) ? target : ~pos.attacks_from<KING>(pos.square<KING>(Us));
+        enemies &= (Type == CAPTURES || Type == NON_EVASIONS) ? target : ~DistanceRingBB[pos.square<KING>(Us)][1];
 #endif
 
     // Single and double pawn pushes, no promotions
@@ -677,7 +677,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       // are counted among evasive moves.
       Bitboard target = pos.pieces(~us) & (pos.checkers() | adjacent_squares_bb(pos.checkers()));
       target |= kingRing;
-      target &= pos.pieces(~us) & ~pos.attacks_from<KING>(ksq);
+      target &= pos.pieces(~us) & ~DistanceRingBB[ksq][1];
       moveList = (us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, CAPTURES>(pos, moveList, target)
                               : generate_all<ATOMIC_VARIANT, BLACK, CAPTURES>(pos, moveList, target));
   }
@@ -701,7 +701,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard b;
 #ifdef ATOMIC
   if (pos.is_atomic()) // Generate evasions for king, non capture moves
-      b = DistanceRingBB[ksq][1] & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
+      b = pos.attacks_from<KING>(ksq) & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
   else
 #endif
   b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
