@@ -532,7 +532,7 @@ inline Bitboard Position::slider_attackers_to(Square s) const {
 }
 
 inline bool Position::kings_adjacent() const {
-  return attacks_from<KING>(square<KING>(~sideToMove)) & pieces(sideToMove, KING);
+  return adjacent_squares_bb(byTypeBB[KING]) & byTypeBB[KING];
 }
 #endif
 
