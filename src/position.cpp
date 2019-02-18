@@ -2045,14 +2045,16 @@ Value Position::see<ATOMIC_VARIANT>(Move m, PieceType nextVictim, Square s) cons
   if (s != to_sq(m) && (blast & pieces(us,KING)))
       return -VALUE_MATE;
 
-  Value blastEval = PieceValue[var][MG][type_of(piece_on(s))] - PieceValue[var][MG][nextVictim];
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-          if (c == us)
-              blastEval -= popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-          else
-              blastEval += popcount(blast & pieces(c,pt)) * PieceValue[var][MG][pt];
-  return blastEval;
+  Value blastEval = mg_value(PSQT::psq[ATOMIC_VARIANT][piece_on(from)][from]);
+  if (s == to_sq(m))
+      blastEval += mg_value(PSQT::psq[ATOMIC_VARIANT][piece_on(s)][s]);
+  while (blast)
+  {
+      s = pop_lsb(&blast);
+      blastEval += mg_value(PSQT::psq[ATOMIC_VARIANT][piece_on(s)][s]);
+  }
+
+  return (us == WHITE) ? -blastEval : blastEval;
 }
 #endif
 
