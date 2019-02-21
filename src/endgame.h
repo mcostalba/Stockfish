@@ -48,6 +48,7 @@ enum EndgameCode {
   KNK,
 #endif
   KNNK,  // KNN vs K
+  KNNKP, // KNN vs KP
   KXK,   // Generic "mate lone king" eval
   KBNK,  // KBN vs K
   KPK,   // KP vs K
@@ -136,6 +137,7 @@ public:
     add<CHESS_VARIANT, KRKN>("KRvKN");
     add<CHESS_VARIANT, KQKP>("KQvKP");
     add<CHESS_VARIANT, KQKR>("KQvKR");
+    add<CHESS_VARIANT, KNNKP>("KNNvKP");
 
     add<CHESS_VARIANT, KNPK>("KNPvK");
     add<CHESS_VARIANT, KNPKB>("KNPvKB");

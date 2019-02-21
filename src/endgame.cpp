@@ -294,6 +294,21 @@ Value Endgame<CHESS_VARIANT, KQKR>::operator()(const Position& pos) const {
 }
 
 
+/// KNN vs KP. Simply push the opposing king to the corner.
+template<>
+Value Endgame<CHESS_VARIANT, KNNKP>::operator()(const Position& pos) const {
+
+    assert(verify_material(pos, strongSide, 2 * KnightValueMg, 0));
+    assert(verify_material(pos, weakSide, VALUE_ZERO, 1));
+
+    Value result =  2 * KnightValueEg
+                  - PawnValueEg
+                  + PushToEdges[pos.square<KING>(weakSide)];
+
+    return strongSide == pos.side_to_move() ? result : -result;
+}
+
+
 /// Some cases of trivial draws
 template<> Value Endgame<CHESS_VARIANT, KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
 
