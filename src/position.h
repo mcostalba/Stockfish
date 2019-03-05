@@ -553,7 +553,7 @@ inline bool Position::pawn_passed(Color c, Square s) const {
   if (is_horde() && is_horde_color(c))
       return !(pieces(~c, PAWN) & forward_file_bb(c, s));
 #endif
-  return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
+  return !(pieces(~c, PAWN) & passed_pawn_span(c, s));
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {

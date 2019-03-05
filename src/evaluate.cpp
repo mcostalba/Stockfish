@@ -73,17 +73,6 @@ using namespace Trace;
 
 namespace {
 
-  constexpr Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
-  constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
-  constexpr Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
-  constexpr Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
-
-  constexpr Bitboard KingFlank[FILE_NB] = {
-    QueenSide ^ FileDBB, QueenSide, QueenSide,
-    CenterFiles, CenterFiles,
-    KingSide, KingSide, KingSide ^ FileEBB
-  };
-
   // Threshold for lazy and space evaluation
   constexpr Value LazyThreshold  = Value(1500);
   constexpr Value SpaceThreshold[VARIANT_NB] = {
@@ -593,6 +582,7 @@ namespace {
   constexpr Score KnightOnQueen      = S( 16, 12);
   constexpr Score LongDiagonalBishop = S( 45,  0);
   constexpr Score MinorBehindPawn    = S( 18,  3);
+  constexpr Score Outpost            = S(  9,  3);
   constexpr Score PawnlessFlank      = S( 17, 95);
   constexpr Score RestrictedPiece    = S(  7,  7);
   constexpr Score RookOnPawn         = S( 10, 32);
@@ -604,7 +594,6 @@ namespace {
   constexpr Score TrappedRook        = S( 47,  4);
   constexpr Score WeakQueen          = S( 49, 15);
   constexpr Score WeakUnopposedPawn  = S( 12, 23);
-  constexpr Score Outpost            = S(  9,  3);
 
 #undef S
 
@@ -939,7 +928,8 @@ namespace {
     constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
-    Bitboard weak, b, b1, b2, safe, unsafeChecks = 0;
+    Bitboard weak, b1, b2, safe, unsafeChecks = 0;
+    Bitboard rookChecks, queenChecks, bishopChecks, knightChecks;
     int kingDanger = 0;
     const Square ksq = pos.square<KING>(Us);
 
@@ -986,11 +976,9 @@ namespace {
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
 #endif
-    Bitboard RookCheck =  b1
-                        & safe
-                        & (attackedBy[Them][ROOK] | (h & dropSafe));
+    rookChecks = b1 & safe & (attackedBy[Them][ROOK] | (h & dropSafe));
 
-    if (RookCheck)
+    if (rookChecks)
         kingDanger += RookSafeCheck;
     else
         unsafeChecks |= b1 & (attackedBy[Them][ROOK] | h);
@@ -1000,13 +988,13 @@ namespace {
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<QUEEN>(Them) ? ~pos.pieces() : 0;
 #endif
-    Bitboard QueenCheck =  (b1 | b2)
-                         & (attackedBy[Them][QUEEN] | (h & dropSafe))
-                         & safe
-                         & ~attackedBy[Us][QUEEN]
-                         & ~RookCheck;
+    queenChecks =  (b1 | b2)
+                 & (attackedBy[Them][QUEEN] | (h & dropSafe))
+                 & safe
+                 & ~attackedBy[Us][QUEEN]
+                 & ~rookChecks;
 
-    if (QueenCheck)
+    if (queenChecks)
         kingDanger += QueenSafeCheck;
 
     // Enemy bishops checks: we count them only if they are from squares from
@@ -1014,39 +1002,39 @@ namespace {
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<BISHOP>(Them) ? ~pos.pieces() : 0;
 #endif
-    Bitboard BishopCheck =  b2 
-                          & (attackedBy[Them][BISHOP] | (h & dropSafe))
-                          & safe
-                          & ~QueenCheck;
+    bishopChecks =  b2
+                  & (attackedBy[Them][BISHOP] | (h & dropSafe))
+                  & safe
+                  & ~queenChecks;
 
-    if (BishopCheck)
+    if (bishopChecks)
         kingDanger += BishopSafeCheck;
     else
         unsafeChecks |= b2 & (attackedBy[Them][BISHOP] | (h & dropSafe));
 
     // Enemy knights checks
-    b = pos.attacks_from<KNIGHT>(ksq) & attackedBy[Them][KNIGHT];
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<KNIGHT>(Them) ? ~pos.pieces() : 0;
 #endif
+    knightChecks = pos.attacks_from<KNIGHT>(ksq) & (attackedBy[Them][KNIGHT] | (h & dropSafe));
 
-    if (b & (safe | (h & dropSafe)))
+    if (knightChecks & (safe | (h & dropSafe)))
         kingDanger += KnightSafeCheck;
     else
-        unsafeChecks |= b & (attackedBy[Them][KNIGHT] | h);
+        unsafeChecks |= knightChecks & (attackedBy[Them][KNIGHT] | h);
 
 #ifdef CRAZYHOUSE
     // Enemy pawn checks
     if (pos.is_house())
     {
-        constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
-        b = pos.attacks_from<PAWN>(ksq, Us);
+        constexpr Direction Down = pawn_push(Them);
+        Bitboard pawnChecks = pos.attacks_from<PAWN>(ksq, Us);
         h = pos.count_in_hand<PAWN>(Them) ? ~pos.pieces() : 0;
-        Bitboard pawn_moves = (attackedBy[Them][PAWN] & pos.pieces(Us)) | (shift<Down>(pos.pieces(Them, PAWN)) & ~pos.pieces());
-        if (b & ((pawn_moves & safe) | (h & dropSafe)))
+        Bitboard pawnMoves = (attackedBy[Them][PAWN] & pos.pieces(Us)) | (shift<Down>(pos.pieces(Them, PAWN)) & ~pos.pieces());
+        if (pawnChecks & ((pawnMoves & safe) | (h & dropSafe)))
             kingDanger += PawnSafeCheck;
         else
-            unsafeChecks |=  b & (pawn_moves | h);
+            unsafeChecks |= pawnChecks & (pawnMoves | h);
     }
 #endif
 
@@ -1140,7 +1128,7 @@ namespace {
     constexpr Direction Up       = (Us == WHITE ? NORTH   : SOUTH);
     constexpr Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
-    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe, restricted;
+    Bitboard b, weak, defended, nonPawnEnemies, stronglyProtected, safe;
     Score score = SCORE_ZERO;
 #ifdef ANTI
     if (pos.is_anti())
@@ -1293,10 +1281,11 @@ namespace {
     }
 
     // Bonus for restricting their piece moves
-    restricted =   attackedBy[Them][ALL_PIECES]
-                & ~stronglyProtected
-                &  attackedBy[Us][ALL_PIECES];
-    score += RestrictedPiece * popcount(restricted);
+    b =   attackedBy[Them][ALL_PIECES]
+       & ~stronglyProtected
+       &  attackedBy[Us][ALL_PIECES];
+
+    score += RestrictedPiece * popcount(b);
 
     // Bonus for enemy unopposed weak pawns
     if (pos.pieces(Us, ROOK, QUEEN))
@@ -1787,7 +1776,6 @@ std::string Eval::trace(const Position& pos) {
      << " ------------+-------------+-------------+------------\n"
      << "    Material | " << Term(MATERIAL)
      << "   Imbalance | " << Term(IMBALANCE)
-     << "  Initiative | " << Term(INITIATIVE)
      << "       Pawns | " << Term(PAWN)
      << "     Knights | " << Term(KNIGHT)
      << "     Bishops | " << Term(BISHOP)
@@ -1798,6 +1786,7 @@ std::string Eval::trace(const Position& pos) {
      << "     Threats | " << Term(THREAT)
      << "      Passed | " << Term(PASSED)
      << "       Space | " << Term(SPACE)
+     << "  Initiative | " << Term(INITIATIVE)
      << "     Variant | " << Term(VARIANT)
      << " ------------+-------------+-------------+------------\n"
      << "       Total | " << Term(TOTAL);
