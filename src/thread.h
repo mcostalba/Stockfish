@@ -36,7 +36,7 @@
 #include "pawns.h"
 #include "position.h"
 #include "search.h"
-#include "thread_win32.h"
+#include "thread_win32_osx.h"
 
 
 /// Thread class keeps together all the thread-related stuff. We use
@@ -51,7 +51,7 @@ class Thread {
   size_t idx;
   bool exit = false, searching = true; // Set before starting std::thread
 #ifdef _WIN32
-  std::thread stdThread;
+  NativeThread stdThread;
 #else
   pthread_t nativeThread;
 #endif
