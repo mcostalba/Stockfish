@@ -168,7 +168,7 @@ namespace {
   { 299, 281 },
 #endif
 #ifdef RACE
-  { 304, 315 },
+  { VALUE_INFINITE, VALUE_INFINITE },
 #endif
 #ifdef THREECHECK
   { 420, 332 },
@@ -1228,9 +1228,6 @@ moves_loop: // When in check, search starts from here
               // Futility pruning: parent node (~2 Elo)
 #ifdef LOSERS
               if (pos.is_losers()) {} else
-#endif
-#ifdef RACE
-              if (pos.is_race()) {} else
 #endif
               if (   lmrDepth < 7
                   && !inCheck

@@ -1403,6 +1403,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef EXTINCTION
   assert(!is_extinction() || !givesCheck);
 #endif
+#ifdef RACE
+  assert(!is_race() || !givesCheck);
+#endif
 
   thisThread->nodes.fetch_add(1, std::memory_order_relaxed);
   Key k = st->key ^ Zobrist::side;
