@@ -1068,11 +1068,7 @@ namespace {
     }
 
     // Step 11. Internal iterative deepening (~2 Elo)
-#ifdef CRAZYHOUSE
-    if (    depth >= (pos.is_house() ? 6 : 8) * ONE_PLY
-#else
     if (    depth >= 8 * ONE_PLY
-#endif
         && !ttMove)
     {
         search<NT>(pos, ss, alpha, beta, depth - 7 * ONE_PLY, cutNode);
