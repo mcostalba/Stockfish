@@ -64,10 +64,6 @@ namespace {
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV };
 
-  // Sizes and phases of the skip-blocks, used for distributing search depths across the threads
-  constexpr int SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-  constexpr int SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
-
   // Razor and futility margins
   constexpr int RazorMargin[VARIANT_NB] = {
   600,
@@ -497,14 +493,6 @@ void Thread::search() {
          && !Threads.stop
          && !(Limits.depth && mainThread && rootDepth / ONE_PLY > Limits.depth))
   {
-      // Distribute search depths across the helper threads
-      if (idx > 0)
-      {
-          int i = (idx - 1) % 20;
-          if (((rootDepth / ONE_PLY + SkipPhase[i]) / SkipSize[i]) % 2)
-              continue;  // Retry with an incremented rootDepth
-      }
-
       // Age out PV variability metric
       if (mainThread)
           mainThread->bestMoveChanges *= 0.517;
@@ -1237,8 +1225,7 @@ moves_loop: // When in check, search starts from here
               if (!pos.see_ge(move, Value(-29 * lmrDepth * lmrDepth)))
                   continue;
           }
-          else if (   !extension // (~20 Elo)
-                   && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY)))
+          else if (!pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY))) // (~20 Elo)
                   continue;
       }
 
