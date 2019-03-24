@@ -325,7 +325,7 @@ namespace {
         // which could become passed after one or two pawn pushes when are
         // not attacked more times than defended.
         if (   !(stoppers ^ lever ^ leverPush)
-            && popcount(support) >= popcount(lever) - 1
+            && (support || !more_than_one(lever))
             && popcount(phalanx) >= popcount(leverPush))
             e->passedPawns[Us] |= s;
 
@@ -444,8 +444,7 @@ Entry* probe(const Position& pos) {
   e->key = key;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
-  e->asymmetry = popcount(  (e->passedPawns[WHITE]   | e->passedPawns[BLACK])
-                          | (e->semiopenFiles[WHITE] ^ e->semiopenFiles[BLACK]));
+  e->passedCount= popcount(e->passedPawns[WHITE] | e->passedPawns[BLACK]);
 
   return e;
 }
