@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm> // For std::min
 #include <cassert>
 #include <cstring>   // For std::memset
 
@@ -471,7 +470,7 @@ Entry* probe(const Position& pos) {
 
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
-  Value npm = std::max(EndgameLimit, std::min(npm_w + npm_b, MidgameLimit));
+  Value npm   = clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
 #ifdef ANTI
   if (pos.is_anti())
       npm = 2 * std::min(npm_w, npm_b);
@@ -513,9 +512,9 @@ Entry* probe(const Position& pos) {
 
   // OK, we didn't find any special evaluation function for the current material
   // configuration. Is there a suitable specialized scaling function?
-  const EndgameBase<ScaleFactor>* sf;
+  const auto* sf = pos.this_thread()->endgames.probe<ScaleFactor>(key);
 
-  if ((sf = pos.this_thread()->endgames.probe<ScaleFactor>(key)) != nullptr)
+  if (sf)
   {
       e->scalingFunction[sf->strongSide] = sf; // Only strong color assigned
       return e;

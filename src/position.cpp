@@ -18,7 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef> // For offsetof()
 #include <cstring> // For std::memset, std::memcmp
@@ -954,9 +953,9 @@ bool Position::legal(Move m) const {
           }
           else if (pieceCountInHand[us][BISHOP])
           {
-              if (!(pieces(us, BISHOP) & DarkSquares) && !((b - to_sq(m)) & DarkSquares))
+              if (!(pieces(us, BISHOP) & DarkSquares) && !more_than_one(b & DarkSquares))
                   b &= ~DarkSquares;
-              if (!(pieces(us, BISHOP) & ~DarkSquares) && !((b - to_sq(m)) & ~DarkSquares))
+              if (!(pieces(us, BISHOP) & ~DarkSquares) && !more_than_one(b & ~DarkSquares))
                   b &= DarkSquares;
           }
           if (to_sq(m) & ~b)
@@ -1206,7 +1205,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 8th/1st rank.
-      if (rank_of(to) == relative_rank(us, RANK_8))
+      if ((Rank8BB | Rank1BB) & to)
           return false;
 
       if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
@@ -1489,7 +1488,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       {
           st->nonPawnMaterial[them] -= PieceValue[CHESS_VARIANT][MG][captured];
 #ifdef CRAZYHOUSE
-          if (is_house() && !is_promoted(to))
+          if (is_house() && !is_promoted(capsq))
           {
 #ifdef BUGHOUSE
               if (! is_bughouse())
@@ -1509,7 +1508,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef CRAZYHOUSE
       if (is_house())
       {
-          st->capturedpromoted = is_promoted(to);
+          st->capturedpromoted = is_promoted(capsq);
 #ifdef BUGHOUSE
           if (! is_bughouse())
 #endif
@@ -1517,12 +1516,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           if (! is_placement())
 #endif
           {
-              Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
+              Piece add = is_promoted(capsq) ? make_piece(~color_of(captured), PAWN) : ~captured;
               add_to_hand(color_of(add), type_of(add));
               k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
                   ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
           }
-          promotedPieces -= to;
+          promotedPieces -= capsq;
       }
 #endif
 
@@ -1706,7 +1705,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #else
           if (is_house())
 #endif
-              promotedPieces = promotedPieces | to;
+              promotedPieces |= to;
 #endif
 
           // Update hash keys
@@ -1751,8 +1750,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
 #ifdef CRAZYHOUSE
-  if ((!is_house() || type_of(m) != DROP) && is_promoted(from))
-      promotedPieces = (promotedPieces - from) | to;
+  if (is_house() && type_of(m) != DROP && is_promoted(from))
+      promotedPieces = (promotedPieces ^ from) | to;
 #endif
 
   sideToMove = ~sideToMove;
@@ -1861,7 +1860,7 @@ void Position::undo_move(Move m) {
       move_piece(pc, to, from); // Put the piece back at the source square
 #ifdef CRAZYHOUSE
       if (is_house() && is_promoted(to))
-          promotedPieces = (promotedPieces - to) | from;
+          promotedPieces = (promotedPieces ^ to) | from;
 #endif
 
       if (st->capturedPiece)
