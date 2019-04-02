@@ -669,6 +669,14 @@ void Position::set_state(StateInfo* si) const {
   {
       si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
   }
+#ifdef ATOMIC
+  if (is_atomic())
+  {
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          st->blastByTypeBB[pt] = 0;
+      st->blastByColorBB[WHITE] = st->blastByColorBB[BLACK] = 0;
+  }
+#endif
 
   for (Bitboard b = pieces(); b; )
   {
@@ -1532,14 +1540,18 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (is_atomic()) // Remove the blast piece(s)
       {
           Bitboard blast = DistanceRingBB[to][1] - from;
+          st->blastByTypeBB[PAWN] = 0;
+          for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+              st->blastByTypeBB[pt] = byTypeBB[pt] & blast;
+          for (Color c = WHITE; c <= BLACK; ++c)
+              st->blastByColorBB[c] = byColorBB[c] & blast;
           while (blast)
           {
               Square bsq = pop_lsb(&blast);
               Piece bpc = piece_on(bsq);
-              st->blast[bsq] = bpc;
               if (bpc != NO_PIECE && type_of(bpc) != PAWN)
               {
-                  Color bc = color_of(st->blast[bsq]);
+                  Color bc = color_of(bpc);
                   st->nonPawnMaterial[bc] -= PieceValue[CHESS_VARIANT][MG][type_of(bpc)];
 
                   // Update board and piece lists
@@ -1621,7 +1633,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic() && captured) // Remove the blast piece(s)
   {
-      st->blast[from] = piece_on(from);
+      st->blastByTypeBB[type_of(pc)] |= from;
+      st->blastByColorBB[color_of(pc)] |= from;
       remove_piece(pc, from);
       // Update material (hash key already updated)
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
@@ -1778,7 +1791,14 @@ void Position::undo_move(Move m) {
   Piece pc = piece_on(to);
 #ifdef ATOMIC
   if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
-      pc = st->blast[from];
+  {
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          if (st->blastByTypeBB[pt] & from)
+          {
+              pc = make_piece(us, pt);
+              break;
+          }
+  }
 #endif
 
   assert(empty(to) || color_of(piece_on(to)) == us);
@@ -1881,15 +1901,14 @@ void Position::undo_move(Move m) {
 #ifdef ATOMIC
           if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
           {
-              Bitboard blast = DistanceRingBB[to][1]; // squares in blast radius
+              Bitboard blast = DistanceRingBB[to][1] - from; // squares in blast radius
               while (blast)
               {
                   Square bsq = pop_lsb(&blast);
-                  if (bsq == from)
-                      continue;
-                  Piece bpc = st->blast[bsq];
-                  if (bpc != NO_PIECE && type_of(bpc) != PAWN)
-                      put_piece(bpc, bsq);
+                  for (Color c = WHITE; c <= BLACK; ++c)
+                      for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+                          if (st->blastByColorBB[c] & st->blastByTypeBB[pt] & bsq)
+                              put_piece(make_piece(c, pt), bsq);
               }
           }
 #endif
