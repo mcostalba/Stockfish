@@ -151,7 +151,7 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][9] = {
-    {    69,  185, -100,  150, -873,   -6,    5,  -25,    0 },
+    {    69,  185, -100,  150, -873,   -6,    5,  -15,    0 },
 #ifdef ANTI
     {},
 #endif
@@ -1083,7 +1083,7 @@ namespace {
     }
 #endif
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
-    if (kingDanger > 0)
+    if (kingDanger > 100)
     {
 #ifdef THREECHECK
         if (pos.is_three_check())
