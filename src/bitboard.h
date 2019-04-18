@@ -285,6 +285,7 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied) {
 
   assert(pt != PAWN);
+  assert(s >= SQ_A1 && s <= SQ_H8);
 
   switch (pt)
   {

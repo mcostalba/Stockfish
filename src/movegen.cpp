@@ -139,7 +139,7 @@ namespace {
                         Type == CAPTURES ? target : pos.pieces(Them));
 #ifdef ATOMIC
     if (V == ATOMIC_VARIANT)
-        enemies &= (Type == CAPTURES || Type == NON_EVASIONS) ? target : ~DistanceRingBB[pos.square<KING>(Us)][1];
+        enemies &= (Type == CAPTURES || Type == NON_EVASIONS) ? target : ~attacks_bb(KING, pos.square<KING>(Us), 0);
 #endif
 
     // Single and double pawn pushes, no promotions
@@ -496,7 +496,7 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   if (pos.is_atomic())
   {
       if (Type == CAPTURES || Type == NON_EVASIONS)
-          target &= ~(pos.pieces(~us) & DistanceRingBB[pos.square<KING>(us)][1]);
+          target &= ~(pos.pieces(~us) & attacks_bb(KING, pos.square<KING>(us), 0));
       return us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<ATOMIC_VARIANT, BLACK, Type>(pos, moveList, target);
   }
@@ -664,7 +664,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   Bitboard sliderAttacks = 0;
   Bitboard sliders = pos.checkers() & ~pos.pieces(KNIGHT, PAWN);
 #ifdef ATOMIC
-  Bitboard kingRing = pos.is_atomic() ? DistanceRingBB[pos.square<KING>(~us)][1] : 0;
+  Bitboard kingRing = pos.is_atomic() ? attacks_bb(KING, pos.square<KING>(~us), 0) : 0;
 #endif
 
 #ifdef ATOMIC
@@ -674,7 +674,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       // are counted among evasive moves.
       Bitboard target = pos.pieces(~us) & (pos.checkers() | adjacent_squares_bb(pos.checkers()));
       target |= kingRing;
-      target &= pos.pieces(~us) & ~DistanceRingBB[ksq][1];
+      target &= pos.pieces(~us) & ~attacks_bb(KING, ksq, 0);
       moveList = (us == WHITE ? generate_all<ATOMIC_VARIANT, WHITE, CAPTURES>(pos, moveList, target)
                               : generate_all<ATOMIC_VARIANT, BLACK, CAPTURES>(pos, moveList, target));
   }
