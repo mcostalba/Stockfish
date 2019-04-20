@@ -1553,9 +1553,13 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         int s = relative_rank(BLACK, ksq);
+        Bitboard b = file_bb(ksq);
         for (Rank kr = rank_of(ksq), r = Rank(kr + 1); r <= RANK_8; ++r)
-            if (!(rank_bb(r) & ~attackedBy[Them][ALL_PIECES]))
+        {
+            b |= shift<EAST>(b) | shift<WEST>(b);
+            if (!(rank_bb(r) & b & ~attackedBy[Them][ALL_PIECES]))
                 s++;
+        }
         score += KingRaceBonus[std::min(s, 7)];
     }
 #endif
