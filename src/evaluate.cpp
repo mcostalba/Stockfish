@@ -1632,6 +1632,11 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic()) {} else
 #endif
+#ifdef CRAZYHOUSE
+    if (pos.is_house())
+        sf = SCALE_FACTOR_MAX;
+    else
+#endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(~strongSide))
     {
