@@ -934,6 +934,32 @@ moves_loop: // When in check, search starts from here
                && pos.pawn_passed(us, to_sq(move)))
           extension = ONE_PLY;
 
+      // Shuffle extension. If a reduced search returns the same score of
+      // current position then extend one ply.
+      else if (   PvNode
+               && depth >= 8 * ONE_PLY
+               && pos.rule50_count() > 8
+               && ttHit
+               && move == ttMove // Only once per node
+               && tte->depth() > depth
+               && abs(ttValue) < VALUE_KNOWN_WIN
+       /*
+        *  Next condition includes both the shuffle detection and the stop
+        *  condition. It stops when rule50_count() becomes so high that ttValue
+        *  can no more stay above it.
+        */
+              && abs(ttValue) > PawnValueMg * pos.rule50_count() / 16)
+      {
+          Value shufflerAlpha = ttValue - 2 * depth / ONE_PLY;
+          Value shufflerBeta = ttValue + 2 * depth / ONE_PLY;
+          Depth halfDepth = depth / (2 * ONE_PLY) * ONE_PLY; // ONE_PLY invariant
+
+          value = search<PV>(pos, ss, shufflerAlpha, shufflerBeta, halfDepth, false);
+
+          if (value > shufflerAlpha && value < shufflerBeta)
+              extension = ONE_PLY;
+      }
+
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
 
