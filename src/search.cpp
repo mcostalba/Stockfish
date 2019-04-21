@@ -941,7 +941,7 @@ moves_loop: // When in check, search starts from here
                && pos.rule50_count() > 8
                && ttHit
                && move == ttMove // Only once per node
-               && tte->depth() > depth
+               && tte->depth() >= depth - 3 * ONE_PLY
                && abs(ttValue) < VALUE_KNOWN_WIN
        /*
         *  Next condition includes both the shuffle detection and the stop
