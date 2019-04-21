@@ -941,7 +941,7 @@ moves_loop: // When in check, search starts from here
                && pos.rule50_count() > 8
                && ttHit
                && move == ttMove // Only once per node
-               && tte->depth() >= depth - 3 * ONE_PLY
+               && tte->depth() > depth
                && abs(ttValue) < VALUE_KNOWN_WIN
        /*
         *  Next condition includes both the shuffle detection and the stop
@@ -950,8 +950,8 @@ moves_loop: // When in check, search starts from here
         */
               && abs(ttValue) > PawnValueMg * pos.rule50_count() / 16)
       {
-          Value shufflerAlpha = ttValue - 2 * depth / ONE_PLY;
-          Value shufflerBeta = ttValue + 2 * depth / ONE_PLY;
+          Value shufflerAlpha = ttValue - depth / ONE_PLY;
+          Value shufflerBeta = ttValue + depth / ONE_PLY;
           Depth halfDepth = depth / (2 * ONE_PLY) * ONE_PLY; // ONE_PLY invariant
 
           value = search<PV>(pos, ss, shufflerAlpha, shufflerBeta, halfDepth, false);
