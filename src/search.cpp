@@ -948,7 +948,7 @@ moves_loop: // When in check, search starts from here
         *  condition. It stops when rule50_count() becomes so high that ttValue
         *  can no more stay above it.
         */
-              && abs(ttValue) < PawnValueMg * pos.rule50_count() / 8)
+              && abs(ttValue) > PawnValueMg / pos.rule50_count())
       {
           Value shufflerAlpha = ttValue - 2 * depth / ONE_PLY;
           Value shufflerBeta = ttValue + 2 * depth / ONE_PLY;
