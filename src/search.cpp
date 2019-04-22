@@ -948,16 +948,9 @@ moves_loop: // When in check, search starts from here
         *  condition. It stops when rule50_count() becomes so high that ttValue
         *  can no more stay above it.
         */
-              && abs(ttValue) > PawnValueMg * pos.rule50_count() / 8)
+              && abs(ttValue) > PawnValueMg * pos.rule50_count() / 16)
       {
-          Value shufflerAlpha = ttValue - 2 * depth / ONE_PLY;
-          Value shufflerBeta = ttValue + 2 * depth / ONE_PLY;
-          Depth halfDepth = depth / (2 * ONE_PLY) * ONE_PLY; // ONE_PLY invariant
-
-          value = search<PV>(pos, ss, shufflerAlpha, shufflerBeta, halfDepth, false);
-
-          if (value > shufflerAlpha && value < shufflerBeta)
-              extension = ONE_PLY;
+          extension = ONE_PLY;
       }
 
       // Calculate new depth for this move
