@@ -1630,7 +1630,14 @@ namespace {
     int sf = me->scale_factor(pos, strongSide);
 
 #ifdef ATOMIC
-    if (pos.is_atomic()) {} else
+    if (pos.is_atomic())
+    {
+        if (   ! pe->passed_count()
+            && pos.non_pawn_material(strongSide) <= RookValueMg
+            && pos.count<ALL_PIECES>(WHITE) == pos.count<ALL_PIECES>(BLACK))
+            sf = 10;
+    }
+    else
 #endif
 #ifdef CRAZYHOUSE
     if (pos.is_house())
@@ -1641,7 +1648,7 @@ namespace {
     if (pos.is_horde() && pos.is_horde_color(~strongSide))
     {
         if (pos.non_pawn_material(~strongSide) >= QueenValueMg)
-            sf = ScaleFactor(10);
+            sf = 10;
     }
     else
 #endif
