@@ -942,7 +942,13 @@ moves_loop: // When in check, search starts from here
                && ttHit
                && move == ttMove // Only once per node
                && tte->depth() > depth
-               && abs(ttValue) < VALUE_KNOWN_WIN)
+               && abs(ttValue) < VALUE_KNOWN_WIN
+       /*
+        *  Next condition includes both the shuffle detection and the stop
+        *  condition. It stops when rule50_count() becomes so high that ttValue
+        *  can no more stay above it.
+        */
+              && abs(ttValue) < PawnValueMg * pos.rule50_count() / 8)
       {
           Value shufflerAlpha = ttValue - 2 * depth / ONE_PLY;
           Value shufflerBeta = ttValue + 2 * depth / ONE_PLY;
