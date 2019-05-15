@@ -48,6 +48,7 @@ struct StateInfo {
   Square epSquare;
 
   // Not copied when making a move (will be recomputed anyhow)
+  int repetition;
   Key        key;
   Bitboard   checkersBB;
   Piece      capturedPiece;

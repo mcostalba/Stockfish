@@ -107,7 +107,7 @@ constexpr int MAX_MOVES = 512;
 #else
 constexpr int MAX_MOVES = 256;
 #endif
-constexpr int MAX_PLY   = 128;
+constexpr int MAX_PLY   = 246;
 
 enum Variant {
   //main variants
