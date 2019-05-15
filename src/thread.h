@@ -67,7 +67,6 @@ public:
 
   Pawns::Table pawnsTable;
   Material::Table materialTable;
-  Endgames endgames;
   size_t pvIdx, pvLast;
   int selDepth, nmpMinPly;
   Color nmpColor;
@@ -75,7 +74,7 @@ public:
 
   Position rootPos;
   Search::RootMoves rootMoves;
-  Depth rootDepth, completedDepth;
+  Depth completedDepth;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;

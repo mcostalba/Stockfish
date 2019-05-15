@@ -82,6 +82,47 @@ namespace {
 } // namespace
 
 
+namespace Endgames {
+
+  std::pair<Map<Value>, Map<ScaleFactor>> maps;
+
+  void init() {
+
+      add<CHESS_VARIANT, KPK>("KPvK");
+      add<CHESS_VARIANT, KNNK>("KNNvK");
+      add<CHESS_VARIANT, KBNK>("KBNvK");
+      add<CHESS_VARIANT, KRKP>("KRvKP");
+      add<CHESS_VARIANT, KRKB>("KRvKB");
+      add<CHESS_VARIANT, KRKN>("KRvKN");
+      add<CHESS_VARIANT, KQKP>("KQvKP");
+      add<CHESS_VARIANT, KQKR>("KQvKR");
+      add<CHESS_VARIANT, KNNKP>("KNNvKP");
+
+      add<CHESS_VARIANT, KNPK>("KNPvK");
+      add<CHESS_VARIANT, KNPKB>("KNPvKB");
+      add<CHESS_VARIANT, KRPKR>("KRPvKR");
+      add<CHESS_VARIANT, KRPKB>("KRPvKB");
+      add<CHESS_VARIANT, KBPKB>("KBPvKB");
+      add<CHESS_VARIANT, KBPKN>("KBPvKN");
+      add<CHESS_VARIANT, KBPPKB>("KBPPvKB");
+      add<CHESS_VARIANT, KRPPKRP>("KRPPvKRP");
+
+#ifdef ANTI
+      add<ANTI_VARIANT, RK>("RvK");
+      add<ANTI_VARIANT, KN>("KvN");
+      add<ANTI_VARIANT, NN>("NvN");
+#endif
+#ifdef ATOMIC
+      add<ATOMIC_VARIANT, KPK>("KPvK");
+      add<ATOMIC_VARIANT, KNK>("KNvK");
+      add<ATOMIC_VARIANT, KBK>("KBvK");
+      add<ATOMIC_VARIANT, KRK>("KRvK");
+      add<ATOMIC_VARIANT, KQK>("KQvK");
+      add<ATOMIC_VARIANT, KNNK>("KNNvK");
+#endif
+  }
+}
+
 /// Mate with KX vs K. This function is used to evaluate positions with
 /// king and plenty of material vs a lone king. It simply gives the
 /// attacking side a bonus for driving the defending king towards the edge
