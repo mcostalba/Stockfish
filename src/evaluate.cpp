@@ -196,9 +196,6 @@ namespace {
 #ifdef CRAZYHOUSE
   constexpr int PawnSafeCheck   = 435;
 #endif
-#ifdef ATOMIC
-  constexpr int IndirectKingAttack = 883;
-#endif
 #ifdef THREECHECK
   // In Q8 fixed point
   constexpr int ThreeCheckKSFactors[CHECKS_NB] = { 571, 619, 858, 0 };
@@ -1077,10 +1074,7 @@ namespace {
 
 #ifdef ATOMIC
     if (pos.is_atomic())
-    {
-        kingDanger += IndirectKingAttack * popcount(pos.attacks_from<KING>(pos.square<KING>(Us)) & pos.pieces(Us) & attackedBy[Them][ALL_PIECES]);
         score -= make_score(100, 100) * popcount(attackedBy[Us][KING] & pos.pieces());
-    }
 #endif
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 100)
@@ -1182,7 +1176,7 @@ namespace {
             Square s = pop_lsb(&attacks);
             Bitboard blast = (pos.attacks_from<KING>(s) & (pos.pieces() ^ pos.pieces(PAWN))) | s;
             int count = popcount(blast & pos.pieces(Them)) - popcount(blast & pos.pieces(Us)) - 1;
-            if (blast & pos.pieces(Them, QUEEN))
+            if (blast & pos.pieces(Them, KING, QUEEN))
                 count++;
             if ((blast & pos.pieces(Us, QUEEN)) || ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us]))
                 count--;
