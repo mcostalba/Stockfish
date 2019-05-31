@@ -74,7 +74,7 @@ using namespace Trace;
 namespace {
 
   // Threshold for lazy and space evaluation
-  constexpr Value LazyThreshold  = Value(1500);
+  constexpr Value LazyThreshold  = Value(1400);
   constexpr Value SpaceThreshold[VARIANT_NB] = {
     Value(12222),
 #ifdef ANTI
@@ -1698,7 +1698,7 @@ namespace {
     Value v = (mg_value(score) + eg_value(score)) / 2;
     if (pos.variant() == CHESS_VARIANT)
     {
-    if (abs(v) > LazyThreshold)
+    if (abs(v) > (LazyThreshold + pos.non_pawn_material() / 64))
        return pos.side_to_move() == WHITE ? v : -v;
     }
 
