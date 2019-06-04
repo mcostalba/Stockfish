@@ -1768,7 +1768,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // occurrence of the same position, negative in the 3-fold case, or zero
   // if the position was not repeated.
   st->repetition = 0;
+#ifdef CRAZYHOUSE
+  int end = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
+#else
   int end = std::min(st->rule50, st->pliesFromNull);
+#endif
   if (end >= 4)
   {
       StateInfo* stp = st->previous->previous;
