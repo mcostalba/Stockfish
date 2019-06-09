@@ -1229,10 +1229,7 @@ moves_loop: // When in check, search starts from here
               if (!pos.see_ge(move, Value(-29 * lmrDepth * lmrDepth)))
                   continue;
           }
-#ifdef CRAZYHOUSE
-          else if (pos.is_house()) {}
-#endif
-          else if ((!givesCheck || !(pos.blockers_for_king(~us) & from_sq(move)))
+          else if ((!givesCheck || !pos.gives_discovered_check(move))
                   && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY))) // (~20 Elo)
                   continue;
       }
@@ -1643,6 +1640,7 @@ moves_loop: // When in check, search starts from here
 
       // Don't search moves with negative SEE values
       if (  (!inCheck || evasionPrunable)
+          && (!givesCheck || !pos.gives_discovered_check(move))
           && !pos.see_ge(move))
           continue;
 

@@ -142,6 +142,7 @@ public:
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
   bool gives_check(Move m) const;
+  bool gives_discovered_check(Move m) const;
   bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
@@ -550,6 +551,14 @@ inline Bitboard Position::checkers() const {
 
 inline Bitboard Position::blockers_for_king(Color c) const {
   return st->blockersForKing[c];
+}
+
+inline bool Position::gives_discovered_check(Move m) const {
+#ifdef CRAZYHOUSE
+  if (is_house() && type_of(m) == DROP)
+      return false;
+#endif
+  return blockers_for_king(~sideToMove) & from_sq(m);
 }
 
 inline Bitboard Position::check_squares(PieceType pt) const {
