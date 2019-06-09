@@ -1,4 +1,4 @@
-FROM debian:wheezy
+FROM debian:oldstable-slim
 RUN apt-get update && apt-get install -y make g++
 VOLUME /home/builder/Stockfish
 WORKDIR /home/builder/Stockfish
