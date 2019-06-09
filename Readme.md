@@ -1,7 +1,7 @@
 ## Overview
 
 [![Build Status](https://travis-ci.org/ddugovic/Stockfish.svg?branch=master)](https://travis-ci.org/ddugovic/Stockfish)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/ddugovic/Stockfish?svg=true)](https://ci.appveyor.com/project/ddugovic/Stockfish)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/ddugovic/Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/ddugovic/Stockfish/branch/master)
 
 Multi Variant Stockfish is a [Stockfish](https://github.com/official-stockfish/Stockfish) fork specialized to play chess and some chess [variants](https://lichess.org/variant):
 - [Crazyhouse](https://lichess.org/variant/crazyhouse)
@@ -73,11 +73,11 @@ Currently, Stockfish has the following UCI options:
     A positive value for contempt favors middle game positions and avoids draws.
 
   * #### Analysis Contempt
-    By default, contempt is set to prefer the side to move. Set this option to "White" 
+    By default, contempt is set to prefer the side to move. Set this option to "White"
     or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
 
   * #### Threads
-    The number of CPU threads used for searching a position. For best performance, set 
+    The number of CPU threads used for searching a position. For best performance, set
     this equal to the number of CPU cores available.
 
   * #### Hash
@@ -97,18 +97,18 @@ Currently, Stockfish has the following UCI options:
     Lower the Skill Level in order to make Stockfish play weaker.
 
   * #### Move Overhead
-    Assume a time delay of x ms due to network and GUI overheads. This is useful to 
+    Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
 
   * #### Minimum Thinking Time
-    Search for at least x ms per move. 
+    Search for at least x ms per move.
 
   * #### Slow Mover
-    Lower values will make Stockfish take less time in games, higher values will 
+    Lower values will make Stockfish take less time in games, higher values will
     make it think longer.
 
   * #### nodestime
-    Tells the engine to use nodes searched instead of wall time to account for 
+    Tells the engine to use nodes searched instead of wall time to account for
     elapsed time. Useful for engine testing.
 
   * #### UCI_Chess960
@@ -118,13 +118,13 @@ Currently, Stockfish has the following UCI options:
     An option handled by your GUI.
 
   * #### SyzygyPath
-    Path to the folders/directories storing the Syzygy tablebase files. Multiple 
-    directories are to be separated by ";" on Windows and by ":" on Unix-based 
+    Path to the folders/directories storing the Syzygy tablebase files. Multiple
+    directories are to be separated by ";" on Windows and by ":" on Unix-based
     operating systems. Do not use spaces around the ";" or ":".
-    
+
     Example: `C:\tablebases\wdl345;C:\tablebases\wdl6;D:\tablebases\dtz345;D:\tablebases\dtz6`
-    
-    It is recommended to store .rtbw files on an SSD. There is no loss in storing 
+
+    It is recommended to store .rtbw files on an SSD. There is no loss in storing
     the .rtbz files on a regular HD. It is recommended to verify all md5 checksums
     of the downloaded tablebase files (`md5sum -c checksum.md5`) as corruption will
     lead to engine crashes.
@@ -192,7 +192,7 @@ community effort. There are a few ways to help contribute to its growth.
 ### Donating hardware
 
 Improving Stockfish requires a massive amount of testing. You can donate
-your hardware resources by installing the [Fishtest Worker](https://github.com/glinscott/fishtest/wiki/Running-the-worker) 
+your hardware resources by installing the [Fishtest Worker](https://github.com/glinscott/fishtest/wiki/Running-the-worker)
 and view the current tests on [Fishtest](http://tests.stockfishchess.org/tests).
 
 ### Improving the code
@@ -208,7 +208,7 @@ generic rather than being focused on Stockfish's precise implementation.
 Nevertheless, a helpful resource.
 
 * The latest source can always be found on [GitHub](https://github.com/official-stockfish/Stockfish).
-Discussions about Stockfish take place in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking) 
+Discussions about Stockfish take place in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking)
 group and engine testing is done on [Fishtest](http://tests.stockfishchess.org/tests).
 If you want to help improve Stockfish, please read this [guideline](https://github.com/glinscott/fishtest/wiki/Creating-my-first-test)
 first, where the basics of Stockfish development are explained.

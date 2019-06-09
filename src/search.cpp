@@ -295,7 +295,7 @@ namespace {
 void Search::init() {
 
   for (int i = 1; i < MAX_MOVES; ++i)
-     Reductions[i] = int(22.9 * std::log(i));
+      Reductions[i] = int(22.9 * std::log(i));
 }
 
 
@@ -387,17 +387,13 @@ void MainThread::search() {
           minScore = std::min(minScore, th->rootMoves[0].score);
 
       // Vote according to score and depth, and select the best thread
-      int64_t bestVote = 0;
       for (Thread* th : Threads)
       {
           votes[th->rootMoves[0].pv[0]] +=
-               (th->rootMoves[0].score - minScore + 14) * int(th->completedDepth);
+              (th->rootMoves[0].score - minScore + 14) * int(th->completedDepth);
 
-          if (votes[th->rootMoves[0].pv[0]] > bestVote)
-          {
-              bestVote = votes[th->rootMoves[0].pv[0]];
+          if (votes[th->rootMoves[0].pv[0]] > votes[bestThread->rootMoves[0].pv[0]])
               bestThread = th;
-          }
       }
   }
 
@@ -691,13 +687,13 @@ namespace {
     bool ttHit, ttPv, inCheck, givesCheck, improving;
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount;
+    int moveCount, captureCount, quietCount, singularLMR;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     inCheck = pos.checkers();
     Color us = pos.side_to_move();
-    moveCount = captureCount = quietCount = ss->moveCount = 0;
+    moveCount = captureCount = quietCount = singularLMR = ss->moveCount = 0;
     bestValue = -VALUE_INFINITE;
     maxValue = VALUE_INFINITE;
 
@@ -745,10 +741,10 @@ namespace {
     // starts with statScore = 0. Later grandchildren start with the last calculated
     // statScore of the previous grandchild. This influences the reduction rules in
     // LMR which are based on the statScore of parent position.
-	if (rootNode)
-		(ss + 4)->statScore = 0;
-	else
-		(ss + 2)->statScore = 0;
+    if (rootNode)
+        (ss + 4)->statScore = 0;
+    else
+        (ss + 2)->statScore = 0;
 
     // Step 4. Transposition table lookup. We don't want the score of a partial
     // search to overwrite a previous full search TT value, so we use a different
@@ -1069,7 +1065,6 @@ moves_loop: // When in check, search starts from here
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     moveCountPruning = false;
     ttCapture = ttMove && pos.capture_or_promotion(ttMove);
-    int singularExtensionLMRmultiplier = 0;
 
     // Step 12. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1127,12 +1122,13 @@ moves_loop: // When in check, search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
-              {
+          {
               extension = ONE_PLY;
-              singularExtensionLMRmultiplier++;
+              singularLMR++;
+
               if (value < singularBeta - std::min(3 * depth / ONE_PLY, 39))
-              	  singularExtensionLMRmultiplier++;
-              }
+                  singularLMR++;
+          }
 
           // Multi-cut pruning
           // Our ttMove is assumed to fail high, and now we failed high also on a reduced
@@ -1280,8 +1276,9 @@ moves_loop: // When in check, search starts from here
 #endif
           if ((ss-1)->moveCount > 15)
               r -= ONE_PLY;
+
           // Decrease reduction if move has been singularly extended
-          r -= singularExtensionLMRmultiplier * ONE_PLY;
+          r -= singularLMR * ONE_PLY;
 
           if (!captureOrPromotion)
           {
@@ -1317,7 +1314,7 @@ moves_loop: // When in check, search starts from here
               r -= ss->statScore / 20000 * ONE_PLY;
           }
 
-          Depth d = std::max(newDepth - std::max(r, DEPTH_ZERO), ONE_PLY);
+          Depth d = clamp(newDepth - r, ONE_PLY, newDepth);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
@@ -1756,7 +1753,7 @@ moves_loop: // When in check, search starts from here
   void update_capture_stats(const Position& pos, Move move,
                             Move* captures, int captureCount, int bonus) {
 
-      CapturePieceToHistory& captureHistory =  pos.this_thread()->captureHistory;
+      CapturePieceToHistory& captureHistory = pos.this_thread()->captureHistory;
       Piece moved_piece = pos.moved_piece(move);
       PieceType captured = type_of(pos.piece_on(to_sq(move)));
 
@@ -1996,11 +1993,5 @@ void Tablebases::rank_root_moves(Position& pos, Search::RootMoves& rootMoves) {
         // Probe during search only if DTZ is not available and we are winning
         if (dtz_available || rootMoves[0].tbScore <= VALUE_DRAW)
             Cardinality = 0;
-    }
-    else
-    {
-        // Assign the same rank to all moves
-        for (auto& m : rootMoves)
-            m.tbRank = 0;
     }
 }
