@@ -668,9 +668,8 @@ void Position::set_state(StateInfo* si) const {
 #ifdef ATOMIC
   if (is_atomic())
   {
-      for (PieceType pt = PAWN; pt <= KING; ++pt)
-          st->blastByTypeBB[pt] = 0;
-      st->blastByColorBB[WHITE] = st->blastByColorBB[BLACK] = 0;
+      std::memset(st->blastByTypeBB, 0, sizeof(st->blastByTypeBB));
+      std::memset(st->blastByColorBB, 0, sizeof(st->blastByColorBB));
   }
 #endif
 
@@ -1465,6 +1464,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (captured)
   {
       Square capsq = to;
+#ifdef ATOMIC
+      if (is_atomic())
+      {
+          std::memcpy(st->blastByTypeBB, byTypeBB, sizeof(st->blastByTypeBB));
+          std::memcpy(st->blastByColorBB, byColorBB, sizeof(st->blastByColorBB));
+      }
+#endif
 
       // If the captured piece is a pawn, update pawn hash key, otherwise
       // update non-pawn material.
@@ -1533,11 +1539,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       if (is_atomic()) // Remove the blast piece(s)
       {
           Bitboard blast = attacks_bb(KING, to, 0) - from;
-          st->blastByTypeBB[PAWN] = 0;
-          for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-              st->blastByTypeBB[pt] = byTypeBB[pt] & blast;
-          for (Color c = WHITE; c <= BLACK; ++c)
-              st->blastByColorBB[c] = byColorBB[c] & blast;
           while (blast)
           {
               Square bsq = pop_lsb(&blast);
@@ -1626,8 +1627,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic() && captured) // Remove the blast piece(s)
   {
-      st->blastByTypeBB[type_of(pc)] |= from;
-      st->blastByColorBB[color_of(pc)] |= from;
       remove_piece(pc, from);
       // Update material (hash key already updated)
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
