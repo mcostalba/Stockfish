@@ -1133,10 +1133,11 @@ moves_loop: // When in check, search starts from here
           // Multi-cut pruning
           // Our ttMove is assumed to fail high, and now we failed high also on a reduced
           // search without the ttMove. So we assume this expected Cut-node is not singular,
-          // that is multiple moves fail high, and we can prune the whole subtree by returning
-          // the hard beta bound.
-          else if (cutNode && singularBeta > beta)
-              return beta;
+          // that multiple moves fail high, and we can prune the whole subtree by returning
+          // a soft bound.
+          else if (   eval >= beta
+                   && singularBeta >= beta)
+              return singularBeta;
       }
 
       // Check extension (~2 Elo)
@@ -1165,7 +1166,7 @@ moves_loop: // When in check, search starts from here
       else if (   PvNode
                && pos.rule50_count() > 18
                && depth < 3 * ONE_PLY
-               && ss->ply < 3 * thisThread->rootDepth / ONE_PLY) // To avoid too deep searches
+               && ++thisThread->shuffleExts < thisThread->nodes.load(std::memory_order_relaxed) / 4)  // To avoid too many extensions
           extension = ONE_PLY;
 
       // Passed pawn extension
@@ -1991,5 +1992,11 @@ void Tablebases::rank_root_moves(Position& pos, Search::RootMoves& rootMoves) {
         // Probe during search only if DTZ is not available and we are winning
         if (dtz_available || rootMoves[0].tbScore <= VALUE_DRAW)
             Cardinality = 0;
+    }
+    else
+    {
+        // Clean up if root_probe() and root_probe_wdl() have failed
+        for (auto& m : rootMoves)
+            m.tbRank = 0;
     }
 }
