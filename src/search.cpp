@@ -445,7 +445,7 @@ void Thread::search() {
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
 
-  size_t multiPV = Options["MultiPV"];
+  multiPV = Options["MultiPV"];
   Skill skill(Options["Skill Level"]);
 
   // When playing with strength handicap enable MultiPV search that we will
