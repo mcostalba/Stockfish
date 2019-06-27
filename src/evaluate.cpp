@@ -536,6 +536,7 @@ namespace {
   };
 
   // Assorted bonuses and penalties
+  constexpr Score AttacksOnSpaceArea = S(  4,  0);
   constexpr Score BishopPawns        = S(  3,  7);
   constexpr Score CorneredBishop     = S( 50, 50);
   constexpr Score FlankAttacks[VARIANT_NB] = {
@@ -1474,6 +1475,8 @@ namespace {
     if (pos.is_koth())
         score += KothSafeCenter * popcount(behind & safe & Center);
 #endif
+
+    score -= AttacksOnSpaceArea * popcount(attackedBy[Them][ALL_PIECES] & behind & safe);
 
     if (T)
         Trace::add(SPACE, Us, score);

@@ -142,6 +142,7 @@ namespace {
 #endif
   };
   constexpr Score WeakUnopposed = S( 13, 27);
+  constexpr Score Attacked2Unsupported = S( 0, 20);
 
   // Connected pawn bonus
   constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
@@ -263,8 +264,13 @@ namespace {
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
     e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
-    e->kingSquares[Us]   = SQ_NONE;
-    e->pawnAttacks[Us]   = pawn_attacks_bb<Us>(ourPawns);
+    e->kingSquares[Us] = SQ_NONE;
+    e->pawnAttacks[Us] = pawn_attacks_bb<Us>(ourPawns);
+
+    // Unsupported enemy pawns attacked twice by us
+    score += Attacked2Unsupported * popcount(  theirPawns
+                                             & pawn_double_attacks_bb<Us>(ourPawns)
+                                             & ~pawn_attacks_bb<Them>(theirPawns));
 
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
