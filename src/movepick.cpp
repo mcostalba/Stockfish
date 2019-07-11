@@ -110,18 +110,19 @@ void MovePicker::score() {
       {
 #ifdef ATOMIC
           if (pos.is_atomic())
-              m.value = pos.see<ATOMIC_VARIANT>(m);
+              m.value = pos.see<ATOMIC_VARIANT>(m) * 6;
           else
 #endif
 #ifdef RACE
           if (pos.is_race())
-              m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                       - Value(200 * relative_rank(BLACK, to_sq(m)))
-                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] / 8;
+              m.value =  int(PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]) * 6
+                       - Value(1200 * relative_rank(BLACK, to_sq(m)))
+                       + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
           else
 #endif
-          m.value =  PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]
-                   + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] / 8;
+          m.value =  int(PieceValue[pos.variant()][MG][pos.piece_on(to_sq(m))]) * 6
+                   + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+
       }
       else if (Type == QUIETS)
       {
