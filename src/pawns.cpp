@@ -330,9 +330,6 @@ namespace {
         }
 
         // Score this pawn
-#ifdef HORDE
-        if (pos.is_horde() && relative_rank(Us, s) == RANK_1) {} else
-#endif
         if (support | phalanx)
         {
             int v =  Connected[r] * (phalanx ? 3 : 2) / (opposed ? 2 : 1)
