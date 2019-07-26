@@ -698,13 +698,13 @@ TBTable<WDL>::TBTable(Variant v, const std::string& code) : TBTable() {
     hasPawns = pos.pieces(PAWN);
 
     numUniquePieces = 0;
-    for (Color c = WHITE; c <= BLACK; ++c)
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt = PAWN; pt < KING; ++pt)
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
     minLikeMan = 0;
-    for (Color c = WHITE; c <= BLACK; ++c)
+    for (Color c : { WHITE, BLACK })
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
             int count = popcount(pos.pieces(c, pt));
             if (2 <= count && (count < minLikeMan || !minLikeMan))

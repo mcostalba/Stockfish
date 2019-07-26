@@ -188,7 +188,7 @@ void Position::init() {
       Zobrist::variant[var] = var == CHESS_VARIANT ? 0 : rng.rand<Key>();
 
 #ifdef THREECHECK
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
       for (int n = 0; n < CHECKS_NB; ++n)
           Zobrist::checks[c][n] = rng.rand<Key>();
 #endif
@@ -711,7 +711,7 @@ void Position::set_state(StateInfo* si) const {
 
 #ifdef THREECHECK
   if (is_three_check())
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : { WHITE, BLACK })
           si->key ^= Zobrist::checks[c][si->checksGiven[c]];
 #endif
 }
@@ -775,7 +775,7 @@ const string Position::fen() const {
   if (is_house())
   {
       ss << '[';
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : { WHITE, BLACK })
 #ifdef PLACEMENT
           for (PieceType pt = (is_placement() ? KING : QUEEN); pt >= PAWN; --pt)
 #else
@@ -1919,7 +1919,7 @@ void Position::undo_move(Move m) {
               while (blast)
               {
                   Square bsq = pop_lsb(&blast);
-                  for (Color c = WHITE; c <= BLACK; ++c)
+                  for (Color c : { WHITE, BLACK })
                       for (PieceType pt = KNIGHT; pt <= KING; ++pt)
                           if (st->blastByColorBB[c] & st->blastByTypeBB[pt] & bsq)
                               put_piece(make_piece(c, pt), bsq);
@@ -2668,8 +2668,8 @@ bool Position::pos_is_ok() const {
               assert(0 && "pos_is_ok: Index");
   }
 
-  for (Color c = WHITE; c <= BLACK; ++c)
-      for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))
+  for (Color c : { WHITE, BLACK })
+      for (CastlingSide s : {KING_SIDE, QUEEN_SIDE})
       {
           if (!can_castle(c | s))
               continue;

@@ -491,7 +491,7 @@ Entry* probe(const Position& pos) {
 
   if (pos.variant() == CHESS_VARIANT)
   {
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
       if (is_KXK(pos, c))
       {
           e->evaluationFunction = &EvaluateKXK[c];
@@ -501,7 +501,7 @@ Entry* probe(const Position& pos) {
 #ifdef ATOMIC
   else if (pos.is_atomic())
   {
-      for (Color c = WHITE; c <= BLACK; ++c)
+      for (Color c : { WHITE, BLACK })
           if (is_KXK_atomic(pos, c))
           {
               e->evaluationFunction = &EvaluateAtomicKXK[c];
@@ -525,7 +525,7 @@ Entry* probe(const Position& pos) {
   // We didn't find any specialized scaling function, so fall back on generic
   // ones that refer to more than one material distribution. Note that in this
   // case we don't return after setting the function.
-  for (Color c = WHITE; c <= BLACK; ++c)
+  for (Color c : { WHITE, BLACK })
   {
     if (is_KBPsK(pos, c))
         e->scalingFunction[c] = &ScaleKBPsK[c];
