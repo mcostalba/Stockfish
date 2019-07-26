@@ -699,7 +699,7 @@ TBTable<WDL>::TBTable(Variant v, const std::string& code) : TBTable() {
 
     numUniquePieces = 0;
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt = PAWN; pt < KING; ++pt)
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
             if (popcount(pos.pieces(c, pt)) == 1)
                 numUniquePieces++;
 
