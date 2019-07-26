@@ -172,7 +172,8 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1",
     "pppppppp/pppppppp/pppppppp/pppppppp/1pp2pp1/8/PPPPPPPP/RNBQKBNR w KQ - 0 1",
     "rnb3r1/1p1p1k2/pPpP1P2/P1PPPPP1/1PP1PP2/PPP5/PPPP1P1P/PPP3qP w - - 0 1",
-    "rn2qk2/1b1p1pbr/3P2n1/pPP1P1Pp/P1PPPP1P/PPPPPPPP/PPP1PPPP/PP4PP w - - 1 22"
+    "rn2qk2/1b1p1pbr/3P2n1/pPP1P1Pp/P1PPPP1P/PPPPPPPP/PPP1PPPP/PP4PP w - - 1 22",
+    "2b1k2r/2P1n1p1/1P2P1Pp/2PP3P/3PP1PP/4PPPP/5PPP/1q4P1 b k - 0 34"
   },
 #endif
 #ifdef KOTH
