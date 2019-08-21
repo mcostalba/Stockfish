@@ -102,7 +102,7 @@ namespace {
 #endif
   };
   constexpr int FutilityMarginFactor[VARIANT_NB] = {
-  168,
+  198,
 #ifdef ANTI
   611,
 #endif
@@ -210,7 +210,7 @@ namespace {
 #endif
   };
   Value futility_margin(Variant var, Depth d, bool improving) {
-    return Value((FutilityMarginFactor[var] - 51 * improving) * d / ONE_PLY);
+    return Value(FutilityMarginFactor[var] * (d / ONE_PLY) - 178 * improving);
   }
 
   // Reductions lookup table, initialized at startup
