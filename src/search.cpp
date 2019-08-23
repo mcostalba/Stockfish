@@ -210,7 +210,7 @@ namespace {
 #endif
   };
   Value futility_margin(Variant var, Depth d, bool improving) {
-    return Value(FutilityMarginFactor[var] * (d / ONE_PLY) - 178 * improving);
+    return Value(FutilityMarginFactor[var] * (d / ONE_PLY - improving));
   }
 
   // Reductions lookup table, initialized at startup
