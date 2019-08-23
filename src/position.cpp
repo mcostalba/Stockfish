@@ -478,8 +478,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 
 void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 
-  CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
-  CastlingRight cr = (c | cs);
+  CastlingRights cr = c & (kfrom < rfrom ? KING_SIDE: QUEEN_SIDE);
 
   st->castlingRights |= cr;
   castlingRightsMask[kfrom] |= cr;
@@ -489,8 +488,8 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 #endif
   castlingRookSquare[cr] = rfrom;
 
-  Square kto = relative_square(c, cs == KING_SIDE ? SQ_G1 : SQ_C1);
-  Square rto = relative_square(c, cs == KING_SIDE ? SQ_F1 : SQ_D1);
+  Square kto = relative_square(c, cr & KING_SIDE ? SQ_G1 : SQ_C1);
+  Square rto = relative_square(c, cr & KING_SIDE ? SQ_F1 : SQ_D1);
 
   castlingPath[cr] =   (between_bb(rfrom, rto) | between_bb(kfrom, kto) | rto | kto)
                     & ~(square_bb(kfrom) | rfrom);
@@ -2674,20 +2673,20 @@ bool Position::pos_is_ok() const {
   }
 
   for (Color c : { WHITE, BLACK })
-      for (CastlingSide s : {KING_SIDE, QUEEN_SIDE})
+      for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
       {
-          if (!can_castle(c | s))
+          if (!can_castle(cr))
               continue;
 
 #if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
-          if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
+          if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
               || piece_on(castlingKingSquare[c]) != make_piece(c, KING)
-              || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
-              || (castlingRightsMask[castlingKingSquare[c]] & (c | s)) != (c | s))
+              || castlingRightsMask[castlingRookSquare[cr]] != (cr)
+              || (castlingRightsMask[castlingKingSquare[c]] & (cr)) != (cr))
 #else
-          if (   piece_on(castlingRookSquare[c | s]) != make_piece(c, ROOK)
-              || castlingRightsMask[castlingRookSquare[c | s]] != (c | s)
-              || (castlingRightsMask[square<KING>(c)] & (c | s)) != (c | s))
+          if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
+              || castlingRightsMask[castlingRookSquare[cr]] != (cr)
+              || (castlingRightsMask[square<KING>(c)] & (cr)) != (cr))
 #endif
               assert(0 && "pos_is_ok: Castling");
       }

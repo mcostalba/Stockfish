@@ -329,8 +329,8 @@ namespace {
   template<Variant V, Color Us, GenType Type>
   ExtMove* generate_all(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    constexpr CastlingRight OO  = Us | KING_SIDE;
-    constexpr CastlingRight OOO = Us | QUEEN_SIDE;
+    constexpr CastlingRights OO  = Us & KING_SIDE;
+    constexpr CastlingRights OOO = Us & QUEEN_SIDE;
     constexpr bool Checks = Type == QUIET_CHECKS; // Reduce template instantations
 
 #ifdef PLACEMENT
@@ -449,7 +449,7 @@ namespace {
 #ifdef LOSERS
         if (V == LOSERS_VARIANT && pos.can_capture_losers()) {} else
 #endif
-        if (Type != CAPTURES && pos.can_castle(CastlingRight(OO | OOO)))
+        if (Type != CAPTURES && pos.can_castle(CastlingRights(OO | OOO)))
         {
             if (!pos.castling_impeded(OO) && pos.can_castle(OO))
                 *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(OO));
