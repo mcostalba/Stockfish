@@ -746,7 +746,7 @@ class TBTables {
     typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
 #if defined(ANTI)
-    static constexpr int Size = 1 << 14; // 16K table, indexed by key's 14 lsb
+    static constexpr int Size = 1 << 15; // 32K table, indexed by key's 15 lsb
 #else
     static constexpr int Size = 1 << 12; // 4K table, indexed by key's 12 lsb
 #endif
