@@ -198,7 +198,7 @@ namespace {
 #endif
 #ifdef THREECHECK
   // In Q8 fixed point
-  constexpr int ThreeCheckKSFactors[CHECKS_NB] = { 571, 619, 858, 0 };
+  constexpr int ThreeCheckKSFactors[CHECKS_NB] = { 573, 581, 856, 0 };
 #endif
 
 #define S(mg, eg) make_score(mg, eg)
