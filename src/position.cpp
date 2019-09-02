@@ -965,7 +965,8 @@ bool Position::legal(Move m) const {
   }
 #endif
 #ifdef ATOMIC
-  if (is_atomic())
+  // Atomic and atomic960 normal (non-castling), en passant, and promotion moves
+  if (is_atomic() && type_of(m) != CASTLING)
   {
       Square ksq = square<KING>(us);
 
@@ -991,6 +992,7 @@ bool Position::legal(Move m) const {
               return true;
           }
       }
+      // Non-castling king move (non-capture) which puts kings adjacent is legal
       else if (attacks_bb(KING, square<KING>(~us), 0) & to)
           return true;
   }
