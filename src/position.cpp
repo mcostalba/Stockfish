@@ -1040,8 +1040,11 @@ bool Position::legal(Move m) const {
           if (is_atomic())
           {
               // Atomic king cannot castle through check or discovered check
+              // Allow FICS-style atomic castling whereby the castling rook
+              // is moved before the king is moved and thereby blocks a check
+              Bitboard occupied = (s == to) ? pieces() : (pieces() ^ from);
               if (   !(attacks_bb(KING, square<KING>(~us), 0) & s)
-                  &&  (attackers_to(s, pieces() ^ from) & pieces(~us)))
+                  &&  (attackers_to(s, occupied) & pieces(~us)))
                   return false;
           }
           else
