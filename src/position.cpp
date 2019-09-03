@@ -1301,11 +1301,13 @@ bool Position::gives_check(Move m) const {
       switch (type_of(m))
       {
       case CASTLING:
-          if (!(kingRing & square<KING>(sideToMove)) || relative_rank(sideToMove, ksq) == RANK_1)
+          // Standard rules apply unless kings will be connected after castling
+          if (relative_rank(sideToMove, ksq) != RANK_2)
               break;
           if (kingRing & relative_square(sideToMove, to > from ? SQ_G1 : SQ_C1))
               return false;
-          return attackers_to(ksq) & (pieces(sideToMove) ^ from ^ to);
+          // If kings are not adjacent, attackers_to(ksq) is empty (and slow)
+          return kings_adjacent() && (attackers_to(ksq) & (pieces(sideToMove) ^ from ^ to));
 
       default:
           if (kingRing & (type_of(piece_on(from)) == KING ? to : square<KING>(sideToMove)))
@@ -2657,6 +2659,10 @@ bool Position::pos_is_ok() const {
 #ifdef ANTI
   if (is_anti() && st->checkersBB)
       assert(0 && "pos_is_ok: Checkers (antichess)");
+#endif
+#ifdef ATOMIC
+  if (is_atomic() && kings_adjacent() && st->checkersBB)
+      assert(0 && "pos_is_ok: Checkers (atomic)");
 #endif
 #ifdef EXTINCTION
   if (is_extinction() && st->checkersBB)
