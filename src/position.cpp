@@ -2594,6 +2594,9 @@ bool Position::pos_is_ok() const {
   }
   else
 #endif
+#ifdef PLACEMENT
+  if (is_placement()) {} else
+#endif
   if (   pieceCount[W_KING] != 1
       || pieceCount[B_KING] != 1
       || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
