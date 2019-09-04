@@ -111,7 +111,7 @@ public:
   int castling_rights(Color c) const;
   bool can_castle(CastlingRights cr) const;
   bool castling_impeded(CastlingRights cr) const;
-#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+#if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
   Square castling_king_square(Color c) const;
 #endif
   Square castling_rook_square(CastlingRights cr) const;
@@ -271,6 +271,9 @@ public:
   bool can_capture() const;
   int capture_count(Move m) const;
 #endif
+#ifdef GIVEAWAY
+  bool is_giveaway() const;
+#endif
 #ifdef SUICIDE
   bool is_suicide() const;
 #endif
@@ -316,7 +319,7 @@ private:
 #endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
-#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+#if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
   Square castlingKingSquare[COLOR_NB];
 #endif
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -505,7 +508,7 @@ inline bool Position::castling_impeded(CastlingRights cr) const {
   return byTypeBB[ALL_PIECES] & castlingPath[cr];
 }
 
-#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+#if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
 inline Square Position::castling_king_square(Color c) const {
   return castlingKingSquare[c];
 }
@@ -841,6 +844,12 @@ inline bool Position::can_capture_losers() const {
           return true;
   }
   return false;
+}
+#endif
+
+#ifdef GIVEAWAY
+inline bool Position::is_giveaway() const {
+  return subvar == GIVEAWAY_VARIANT;
 }
 #endif
 

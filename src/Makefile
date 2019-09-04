@@ -268,7 +268,7 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
-CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DDISPLACEDGRID -DEXTINCTION -DGRID -DHORDE -DKOTH -DLOOP -DLOSERS -DPLACEMENT -DRACE -DSLIPPEDGRID -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC
+CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DDISPLACEDGRID -DEXTINCTION -DGIVEAWAY -DGRID -DHORDE -DKOTH -DLOOP -DLOSERS -DPLACEMENT -DRACE -DSLIPPEDGRID -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC
 ifneq (,$(filter -DBUGHOUSE,$(CXXFLAGS)))
 ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant bughouse chess)
@@ -294,9 +294,14 @@ ifeq (,$(filter -DGRID,$(CXXFLAGS)))
 $(error Grid (-GRID) is required for subvariant slipped grid)
 endif
 endif
+ifneq (,$(filter -DGIVEAWAY,$(CXXFLAGS)))
+ifeq (,$(filter -DANTI,$(CXXFLAGS)))
+$(error Antichess (-DANTI) is required for subvariant giveaway chess)
+endif
+endif
 ifneq (,$(filter -DSUICIDE,$(CXXFLAGS)))
 ifeq (,$(filter -DANTI,$(CXXFLAGS)))
-$(error Giveaway (-DANTI) is required for subvariant suicide chess)
+$(error Antichess (-DANTI) is required for subvariant suicide chess)
 endif
 endif
 ifneq (,$(filter -DTWOKINGSSYMMETRIC,$(CXXFLAGS)))

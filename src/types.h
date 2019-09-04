@@ -148,6 +148,9 @@ enum Variant {
   VARIANT_NB,
   LAST_VARIANT = VARIANT_NB - 1,
   //subvariants
+#ifdef GIVEAWAY
+  GIVEAWAY_VARIANT,
+#endif
 #ifdef SUICIDE
   SUICIDE_VARIANT,
 #endif
@@ -177,7 +180,7 @@ static std::vector<std::string> variants = {
 //main variants
 "chess",
 #ifdef ANTI
-"giveaway",
+"antichess",
 #endif
 #ifdef ATOMIC
 "atomic",
@@ -210,6 +213,9 @@ static std::vector<std::string> variants = {
 "twokings",
 #endif
 //subvariants
+#ifdef GIVEAWAY
+"giveaway",
+#endif
 #ifdef SUICIDE
 "suicide",
 #endif
@@ -746,6 +752,10 @@ inline Variant main_variant(Variant v) {
       return v;
   switch(v)
   {
+#ifdef GIVEAWAY
+  case GIVEAWAY_VARIANT:
+      return ANTI_VARIANT;
+#endif
 #ifdef SUICIDE
   case SUICIDE_VARIANT:
       return ANTI_VARIANT;

@@ -347,13 +347,9 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 #endif
       Rank rank = relative_rank(c, RANK_1);
       Square ksq = square<KING>(c);
-#ifdef ANTI
-      if (is_anti())
+#ifdef GIVEAWAY
+      if (is_giveaway())
       {
-#ifdef SUICIDE
-          if (is_suicide())
-              continue;
-#endif
           // X-FEN is ambiguous if there are multiple kings
           // Assume the first king on the rank has castling rights
           const Square* kl = squares<KING>(c);
@@ -483,7 +479,7 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
   st->castlingRights |= cr;
   castlingRightsMask[kfrom] |= cr;
   castlingRightsMask[rfrom] |= cr;
-#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+#if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
   castlingKingSquare[c] = kfrom;
 #endif
   castlingRookSquare[cr] = rfrom;
@@ -2692,7 +2688,7 @@ bool Position::pos_is_ok() const {
           if (!can_castle(cr))
               continue;
 
-#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+#if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
           if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
               || piece_on(castlingKingSquare[c]) != make_piece(c, KING)
               || castlingRightsMask[castlingRookSquare[cr]] != (cr)

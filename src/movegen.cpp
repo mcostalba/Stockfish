@@ -433,8 +433,8 @@ namespace {
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
-#ifdef ANTI
-        if (V == ANTI_VARIANT)
+#ifdef GIVEAWAY
+        if (V == ANTI_VARIANT && pos.is_giveaway())
             ksq = pos.castling_king_square(Us);
 #endif
 #ifdef EXTINCTION

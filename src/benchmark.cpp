@@ -93,7 +93,7 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
   },
 #ifdef ANTI
   {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
     "rn1qkbnr/p1pBpppp/8/8/8/4P3/PPPP1PbP/RNBQK1NR w - - 0 4",
     "rnbqkbnr/p2p1ppp/8/2p1p3/2pP4/2N3P1/PP2PP1P/R1BQKBNR b - d3 0 5",
     "rnb1kbn1/p4ppr/8/3q4/1p6/6PB/P3PP1P/R1B1K1NR b - - 1 11",
@@ -266,6 +266,11 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
     "r1b1kk1r/pp1ppppp/2N2n2/8/4P3/2N5/PPP2qPP/R1BQKK1R w KQkq - 0 7",
     "rnbqk2r/ppppkppp/5n2/4p3/4P3/5N2/PPPPKPPP/RNBQK2R w KQ - 4 4"
+  },
+#endif
+#ifdef GIVEAWAY
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   },
 #endif
 #ifdef SUICIDE
