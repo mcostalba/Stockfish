@@ -660,13 +660,6 @@ void Position::set_state(StateInfo* si) const {
   {
       si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
   }
-#ifdef ATOMIC
-  if (is_atomic())
-  {
-      std::memset(st->blastByTypeBB, 0, sizeof(st->blastByTypeBB));
-      std::memset(st->blastByColorBB, 0, sizeof(st->blastByColorBB));
-  }
-#endif
 
   for (Bitboard b = pieces(); b; )
   {
@@ -1420,6 +1413,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // ones which are going to be recalculated from scratch anyway and then switch
   // our state pointer to point to the new (ready to be updated) state.
   std::memcpy(&newSt, st, offsetof(StateInfo, key));
+#ifdef ATOMIC
+  if (is_atomic())
+  {
+      std::memcpy(newSt.blastByTypeBB, byTypeBB, sizeof(newSt.blastByTypeBB));
+      std::memcpy(newSt.blastByColorBB, byColorBB, sizeof(newSt.blastByColorBB));
+  }
+#endif
   newSt.previous = st;
   st = &newSt;
 
@@ -1471,13 +1471,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (captured)
   {
       Square capsq = to;
-#ifdef ATOMIC
-      if (is_atomic())
-      {
-          std::memcpy(st->blastByTypeBB, byTypeBB, sizeof(st->blastByTypeBB));
-          std::memcpy(st->blastByColorBB, byColorBB, sizeof(st->blastByColorBB));
-      }
-#endif
 
       // If the captured piece is a pawn, update pawn hash key, otherwise
       // update non-pawn material.
@@ -1816,7 +1809,8 @@ void Position::undo_move(Move m) {
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           if (st->blastByTypeBB[pt] & from)
           {
-              pc = make_piece(us, pt);
+              pc = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : pt);
+              put_piece(pc, to);
               break;
           }
   }
@@ -1844,10 +1838,6 @@ void Position::undo_move(Move m) {
   if (type_of(m) == PROMOTION)
   {
       assert(relative_rank(us, to) == RANK_8);
-#ifdef ATOMIC
-      if (!is_atomic() || !st->capturedPiece)
-      {
-#endif
       assert(type_of(pc) == promotion_type(m));
 #ifdef ANTI
 #ifdef EXTINCTION
@@ -1870,9 +1860,6 @@ void Position::undo_move(Move m) {
       if (is_house())
           promotedPieces -= to;
 #endif
-#ifdef ATOMIC
-      }
-#endif
   }
 
   if (type_of(m) == CASTLING)
@@ -1882,11 +1869,6 @@ void Position::undo_move(Move m) {
   }
   else
   {
-#ifdef ATOMIC
-      if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
-          put_piece(pc, from);
-      else
-#endif
 #ifdef CRAZYHOUSE
       if (is_house() && type_of(m) == DROP)
       {
