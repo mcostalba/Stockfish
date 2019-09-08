@@ -1416,8 +1416,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic())
   {
-      std::memcpy(newSt.blastByTypeBB, byTypeBB, sizeof(newSt.blastByTypeBB));
-      std::memcpy(newSt.blastByColorBB, byColorBB, sizeof(newSt.blastByColorBB));
+      std::memset(newSt.blastByTypeBB, 0, sizeof(newSt.blastByTypeBB));
+      std::memset(newSt.blastByColorBB, 0, sizeof(newSt.blastByColorBB));
   }
 #endif
   newSt.previous = st;
@@ -1471,6 +1471,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (captured)
   {
       Square capsq = to;
+#ifdef ATOMIC
+      if (is_atomic())
+      {
+          std::memcpy(st->blastByTypeBB, byTypeBB, sizeof(st->blastByTypeBB));
+          std::memcpy(st->blastByColorBB, byColorBB, sizeof(st->blastByColorBB));
+      }
+#endif
 
       // If the captured piece is a pawn, update pawn hash key, otherwise
       // update non-pawn material.
