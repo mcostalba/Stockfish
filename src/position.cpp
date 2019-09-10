@@ -1816,8 +1816,7 @@ void Position::undo_move(Move m) {
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           if (st->blastByTypeBB[pt] & from)
           {
-              pc = make_piece(us, type_of(m) == PROMOTION ? promotion_type(m) : pt);
-              put_piece(pc, to);
+              pc = make_piece(us, pt);
               break;
           }
   }
@@ -1845,6 +1844,10 @@ void Position::undo_move(Move m) {
   if (type_of(m) == PROMOTION)
   {
       assert(relative_rank(us, to) == RANK_8);
+#ifdef ATOMIC
+      if (!is_atomic() || !st->capturedPiece)
+      {
+#endif
       assert(type_of(pc) == promotion_type(m));
 #ifdef ANTI
 #ifdef EXTINCTION
@@ -1867,6 +1870,9 @@ void Position::undo_move(Move m) {
       if (is_house())
           promotedPieces -= to;
 #endif
+#ifdef ATOMIC
+      }
+#endif
   }
 
   if (type_of(m) == CASTLING)
@@ -1876,6 +1882,11 @@ void Position::undo_move(Move m) {
   }
   else
   {
+#ifdef ATOMIC
+      if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
+          put_piece(pc, from);
+      else
+#endif
 #ifdef CRAZYHOUSE
       if (is_house() && type_of(m) == DROP)
       {
