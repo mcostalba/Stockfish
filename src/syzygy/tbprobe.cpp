@@ -90,6 +90,9 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 #ifdef TWOKINGS
     ".rtbw",
 #endif
+#ifdef GIVEAWAY
+    ".gtbw",
+#endif
 #ifdef SUICIDE
     ".stbw",
 #endif
@@ -113,7 +116,7 @@ const char* WdlSuffixes[SUBVARIANT_NB] = {
 const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
-    ".stbw",
+    ".gtbw",
 #endif
 #ifdef ATOMIC
     nullptr,
@@ -145,8 +148,11 @@ const char* PawnlessWdlSuffixes[SUBVARIANT_NB] = {
 #ifdef TWOKINGS
     nullptr,
 #endif
-#ifdef SUICIDE
+#ifdef GIVEAWAY
     ".gtbw",
+#endif
+#ifdef SUICIDE
+    ".stbw",
 #endif
 #ifdef BUGHOUSE
     nullptr,
@@ -200,6 +206,9 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 #ifdef TWOKINGS
     ".rtbz",
 #endif
+#ifdef GIVEAWAY
+    ".gtbz",
+#endif
 #ifdef SUICIDE
     ".stbz",
 #endif
@@ -223,7 +232,7 @@ const char* DtzSuffixes[SUBVARIANT_NB] = {
 const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
     nullptr,
 #ifdef ANTI
-    ".stbz",
+    ".gtbz",
 #endif
 #ifdef ATOMIC
     nullptr,
@@ -255,8 +264,11 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
 #ifdef TWOKINGS
     nullptr,
 #endif
-#ifdef SUICIDE
+#ifdef GIVEAWAY
     ".gtbz",
+#endif
+#ifdef SUICIDE
+    ".stbz",
 #endif
 #ifdef BUGHOUSE
     nullptr,
