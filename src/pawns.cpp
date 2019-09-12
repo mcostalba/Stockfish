@@ -254,10 +254,10 @@ namespace {
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
 
-    Bitboard neighbours, stoppers, doubled, support, phalanx;
+    Bitboard neighbours, stoppers, support, phalanx;
     Bitboard lever, leverPush;
     Square s;
-    bool opposed, backward, passed;
+    bool opposed, backward, passed, doubled;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -341,23 +341,19 @@ namespace {
         }
 
         else if (!neighbours)
-            score -= Isolated[pos.variant()] + WeakUnopposed * int(!opposed);
+            score -= Isolated[pos.variant()] + WeakUnopposed * !opposed;
 
         else if (backward)
-            score -= Backward[pos.variant()] + WeakUnopposed * int(!opposed);
+            score -= Backward[pos.variant()] + WeakUnopposed * !opposed;
 
 #ifdef HORDE
-        if (doubled && (!support || pos.is_horde()))
+        if (!support || pos.is_horde())
 #else
-        if (doubled && !support)
+        if (!support)
 #endif
-            score -= Doubled[pos.variant()];
+            score -= Doubled[pos.variant()] * doubled
+                     + WeakLever * more_than_one(lever);
     }
-
-    // Penalize our unsupported pawns attacked twice by enemy pawns
-    score -= WeakLever * popcount(  ourPawns
-                                  & doubleAttackThem
-                                  & ~e->pawnAttacks[Us]);
 
     return score;
   }
