@@ -2691,12 +2691,12 @@ bool Position::pos_is_ok() const {
 #if defined(GIVEAWAY) || defined(EXTINCTION) || defined(TWOKINGS)
           if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
               || piece_on(castlingKingSquare[c]) != make_piece(c, KING)
-              || castlingRightsMask[castlingRookSquare[cr]] != (cr)
-              || (castlingRightsMask[castlingKingSquare[c]] & (cr)) != (cr))
+              || castlingRightsMask[castlingRookSquare[cr]] != cr
+              || (castlingRightsMask[castlingKingSquare[c]] & cr) != cr)
 #else
           if (   piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
-              || castlingRightsMask[castlingRookSquare[cr]] != (cr)
-              || (castlingRightsMask[square<KING>(c)] & (cr)) != (cr))
+              || castlingRightsMask[castlingRookSquare[cr]] != cr
+              || (castlingRightsMask[square<KING>(c)] & cr) != cr)
 #endif
               assert(0 && "pos_is_ok: Castling");
       }
