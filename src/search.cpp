@@ -1230,10 +1230,6 @@ moves_loop: // When in check, search starts from here
           extension = ONE_PLY;
 #endif
 
-      // Castling extension
-      else if (type_of(move) == CASTLING)
-          extension = ONE_PLY;
-
       // Shuffle extension
       else if (   PvNode
                && pos.rule50_count() > 18
@@ -1245,6 +1241,10 @@ moves_loop: // When in check, search starts from here
       else if (   move == ss->killers[0]
                && pos.advanced_pawn_push(move)
                && pos.pawn_passed(us, to_sq(move)))
+          extension = ONE_PLY;
+          
+      // Castling extension
+      if (type_of(move) == CASTLING)
           extension = ONE_PLY;
 
       // Calculate new depth for this move
