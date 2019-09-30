@@ -45,7 +45,7 @@ namespace {
 #ifdef LOSERS
     if (V == LOSERS_VARIANT)
     {
-        if (Type == QUIETS || Type == CAPTURES || Type == NON_EVASIONS)
+        if (Type == QUIETS || Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         {
             *moveList++ = make<PROMOTION>(to - D, to, QUEEN);
             *moveList++ = make<PROMOTION>(to - D, to, ROOK);
