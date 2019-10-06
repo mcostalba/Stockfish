@@ -127,11 +127,11 @@ void MovePicker::score() {
       }
       else if (Type == QUIETS)
       {
-          m.value =  (*mainHistory)[pos.side_to_move()][from_to(m)]
-                   + (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                   + (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
-                   + (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
-                   + (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)] / 2;
+          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
+                   + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                   + 2 * (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
+                   + 2 * (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
+                   +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)];
 #ifdef ANTI
           if (pos.is_anti() && pos.attackers_to(to_sq(m), pos.pieces() ^ from_sq(m)) & pos.pieces(~pos.side_to_move()))
           {
@@ -231,7 +231,7 @@ top:
           endMoves = generate<QUIETS>(pos, cur);
 
           score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -4000 * depth);
+          partial_insertion_sort(cur, endMoves, -3000 * depth);
       }
 
       ++stage;

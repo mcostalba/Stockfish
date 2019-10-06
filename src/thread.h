@@ -79,7 +79,7 @@ public:
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
-  ContinuationHistory continuationHistory;
+  ContinuationHistory continuationHistory[2];
   Score contempt;
 };
 
