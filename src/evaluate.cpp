@@ -152,39 +152,39 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][11] = {
-    {    69,  185, -100,  -35,  148,   98, -873,   -6,    5,   -7,    0 },
+    {    69,  185, -100,  -35,  148,   98, -873,   -6,    3,   -7,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   274,  166, -100,  -35,  146,   98, -654,  -12,    5,   -7,   29 },
+    {   274,  166, -100,  -35,  146,   98, -654,  -12,    3,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   119,  439, -100,  -35,  130,   98, -613,   -6,    5,   -1,  320 },
+    {   119,  439, -100,  -35,  130,   98, -613,   -6,    3,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   119,  211, -100,  -35,  158,   98, -722,   -9,    5,   41,    0 },
+    {   119,  211, -100,  -35,  158,   98, -722,   -9,    3,   41,    0 },
 #endif
 #ifdef HORDE
-    {   101,  235, -100,  -35,  134,   98, -717,  -11,    5,   -5,    0 },
+    {   101,  235, -100,  -35,  134,   98, -717,  -11,    3,   -5,    0 },
 #endif
 #ifdef KOTH
-    {    85,  229, -100,  -35,  131,   98, -658,   -9,    5,   -5,    0 },
+    {    85,  229, -100,  -35,  131,   98, -658,   -9,    3,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   101,  235, -100,  -35,  134,   98, -717, -357,    5,   -5,    0 },
+    {   101,  235, -100,  -35,  134,   98, -717, -357,    3,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {    85,  136, -100,  -35,  106,   98, -613,   -7,    5,  -73,  181 },
+    {    85,  136, -100,  -35,  106,   98, -613,   -7,    3,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {    92,  155, -100,  -35,  136,   98, -967,   -8,    5,   38,    0 },
+    {    92,  155, -100,  -35,  136,   98, -967,   -8,    3,   38,    0 },
 #endif
   };
 
@@ -1044,7 +1044,7 @@ namespace {
                  + KDP[6] * !pos.count<QUEEN>(Them)
                  + KDP[7] * mg_value(score) / 8
                  +          mg_value(mobility[Them] - mobility[Us])
-                 + KDP[8] * kingFlankAttacks * kingFlankAttacks / 16
+                 + KDP[8] * kingFlankAttacks * kingFlankAttacks / 8
                  + KDP[9];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
