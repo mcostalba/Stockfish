@@ -41,11 +41,13 @@ ThreadPool Threads; // Global object
 /// Thread constructor launches the thread and waits until it goes to sleep
 /// in idle_loop(). Note that 'searching' and 'exit' should be already set.
 
-Thread::Thread(size_t n) : idx(n) {
-
 #ifdef _WIN32
-  stdThread = std::thread(&Thread::idle_loop, this);
+Thread::Thread(size_t n) : idx(n), stdThread(&Thread::idle_loop, this) {
 #else
+Thread::Thread(size_t n) : idx(n) {
+#endif
+
+#ifndef _WIN32
   // With increased MAX_MOVES (for variants) the stack can grow larger than the
   // system default. Explicitly set a sufficient stack size.
   pthread_attr_t attr;
