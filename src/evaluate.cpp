@@ -1035,16 +1035,16 @@ namespace {
 
     const auto KDP = KingDangerParams[pos.variant()];
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                 + KDP[0] * kingAttacksCount[Them]
                  + KDP[1] * popcount(kingRing[Us] & weak)
-                 + KDP[2] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
-                 + KDP[3] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
                  + KDP[4] * popcount(unsafeChecks)
                  + KDP[5] * popcount(pos.blockers_for_king(Us))
-                 + KDP[6] * !pos.count<QUEEN>(Them)
-                 + KDP[7] * mg_value(score) / 8
-                 +          mg_value(mobility[Them] - mobility[Us])
+                 + KDP[0] * kingAttacksCount[Them]
                  + KDP[8] * kingFlankAttacks * kingFlankAttacks / 8
+                 +          mg_value(mobility[Them] - mobility[Us])
+                 + KDP[6] * !pos.count<QUEEN>(Them)
+                 + KDP[2] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
+                 + KDP[3] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
+                 + KDP[7] * mg_value(score) / 8
                  + KDP[9];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
@@ -1328,7 +1328,6 @@ namespace {
         assert(!(pos.pieces(Them, PAWN) & forward_file_bb(Us, s + Up)));
 
         int r = relative_rank(Us, s);
-        File f = file_of(s);
 
         Score bonus = PassedRank[pos.variant()][r];
 
@@ -1406,7 +1405,7 @@ namespace {
             || (pos.pieces(PAWN) & (s + Up)))
             bonus = bonus / 2;
 
-        score += bonus - PassedFile * map_to_queenside(f);
+        score += bonus - PassedFile * map_to_queenside(file_of(s));
     }
 
     if (T)
@@ -1636,7 +1635,7 @@ namespace {
         else
             sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide));
 
-        sf = std::max(0, sf - (pos.rule50_count() - 12) / 4  );
+        sf = std::max(0, sf - (pos.rule50_count() - 12) / 4);
     }
 
     return ScaleFactor(sf);

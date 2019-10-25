@@ -143,7 +143,6 @@ public:
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
   bool gives_check(Move m) const;
-  bool gives_discovered_check(Move m) const;
   bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
@@ -520,7 +519,8 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s) const {
-  assert(Pt != PAWN);
+  static_assert(Pt != PAWN, "Pawn attacks need color");
+
   return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, byTypeBB[ALL_PIECES])
         : Pt == QUEEN  ? attacks_from<ROOK>(s) | attacks_from<BISHOP>(s)
         : PseudoAttacks[Pt][s];
@@ -557,19 +557,15 @@ inline Bitboard Position::blockers_for_king(Color c) const {
   return st->blockersForKing[c];
 }
 
-inline bool Position::gives_discovered_check(Move m) const {
-#ifdef CRAZYHOUSE
-  if (is_house() && type_of(m) == DROP)
-      return false;
-#endif
-  return blockers_for_king(~sideToMove) & from_sq(m);
-}
-
 inline Bitboard Position::check_squares(PieceType pt) const {
   return st->checkSquares[pt];
 }
 
 inline bool Position::is_discovery_check_on_king(Color c, Move m) const {
+#ifdef CRAZYHOUSE
+  if (is_house() && type_of(m) == DROP)
+      return false;
+#endif
   return st->blockersForKing[c] & from_sq(m);
 }
 
