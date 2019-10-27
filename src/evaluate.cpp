@@ -152,39 +152,39 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][11] = {
-    {    69,  185, -100,  -35,  148,   98, -873,   -6,    3,   -7,    0 },
+    {   185,  148,   98,   69,    3, -873, -100,  -35,   -6,   -7,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   274,  166, -100,  -35,  146,   98, -654,  -12,    3,   -7,   29 },
+    {   166,  146,   98,  274,    3, -654, -100,  -35,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   119,  439, -100,  -35,  130,   98, -613,   -6,    3,   -1,  320 },
+    {   439,  130,   98,  119,    3, -613, -100,  -35,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   119,  211, -100,  -35,  158,   98, -722,   -9,    3,   41,    0 },
+    {   211,  158,   98,  119,    3, -722, -100,  -35,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   101,  235, -100,  -35,  134,   98, -717,  -11,    3,   -5,    0 },
+    {   235,  134,   98,  101,    3, -717, -100,  -35,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {    85,  229, -100,  -35,  131,   98, -658,   -9,    3,   -5,    0 },
+    {   229,  131,   98,   85,    3, -658, -100,  -35,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   101,  235, -100,  -35,  134,   98, -717, -357,    3,   -5,    0 },
+    {   235,  134,   98,  101,    3, -717, -100,  -35, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {    85,  136, -100,  -35,  106,   98, -613,   -7,    3,  -73,  181 },
+    {   136,  106,   98,   85,    3, -613, -100,  -35,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {    92,  155, -100,  -35,  136,   98, -967,   -8,    3,   38,    0 },
+    {   155,  136,   98,   92,    3, -967, -100,  -35,   -8,   38,    0 },
 #endif
   };
 
@@ -1035,16 +1035,16 @@ namespace {
 
     const auto KDP = KingDangerParams[pos.variant()];
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                 + KDP[1] * popcount(kingRing[Us] & weak)
-                 + KDP[4] * popcount(unsafeChecks)
-                 + KDP[5] * popcount(pos.blockers_for_king(Us))
-                 + KDP[0] * kingAttacksCount[Them]
-                 + KDP[8] * kingFlankAttacks * kingFlankAttacks / 8
+                 + KDP[0] * popcount(kingRing[Us] & weak)
+                 + KDP[1] * popcount(unsafeChecks)
+                 + KDP[2] * popcount(pos.blockers_for_king(Us))
+                 + KDP[3] * kingAttacksCount[Them]
+                 + KDP[4] * kingFlankAttacks * kingFlankAttacks / 8
                  +          mg_value(mobility[Them] - mobility[Us])
-                 + KDP[6] * !pos.count<QUEEN>(Them)
-                 + KDP[2] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
-                 + KDP[3] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
-                 + KDP[7] * mg_value(score) / 8
+                 + KDP[5] * !pos.count<QUEEN>(Them)
+                 + KDP[6] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
+                 + KDP[7] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
+                 + KDP[8] * mg_value(score) / 8
                  + KDP[9];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
