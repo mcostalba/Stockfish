@@ -718,7 +718,6 @@ namespace {
     attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
 
     // Init our king safety tables
-    kingRing[Us] = attackedBy[Us][KING];
 #ifdef ANTI
     if (pos.is_anti()) {} else
 #endif
@@ -732,14 +731,9 @@ namespace {
     if (pos.is_placement() && pos.count_in_hand<KING>(Us)) {} else
 #endif
     {
-    if (relative_rank(Us, ksq) == RANK_1)
-        kingRing[Us] |= shift<Up>(kingRing[Us]);
-
-    if (file_of(ksq) == FILE_H)
-        kingRing[Us] |= shift<WEST>(kingRing[Us]);
-
-    else if (file_of(ksq) == FILE_A)
-        kingRing[Us] |= shift<EAST>(kingRing[Us]);
+    Square s = make_square(clamp(file_of(ksq), FILE_B, FILE_G),
+                           clamp(rank_of(ksq), RANK_2, RANK_7));
+    kingRing[Us] = PseudoAttacks[KING][s] | s;
     }
 
     kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
