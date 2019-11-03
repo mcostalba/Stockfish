@@ -428,7 +428,9 @@ namespace {
 #ifdef ATOMIC
   constexpr Score ThreatByBlast = S(80, 80);
 #endif
-
+#ifdef HORDE
+  constexpr Score HordeShelter = S(71, 61);
+#endif
 #ifdef THREECHECK
   constexpr Score ChecksGivenBonus[CHECKS_NB] = {
       S(0, 0),
@@ -1470,17 +1472,14 @@ namespace {
             int dist = 8;
             if ((attackedBy[Us][QUEEN] | attackedBy[Us][ROOK]) & rank_bb(relative_rank(Us, RANK_8)))
                 dist = 0;
-            else
+            else for (File f = FILE_A; f <= FILE_H; ++f)
             {
-                for (File f = FILE_A; f <= FILE_H; ++f)
-                {
-                    int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
-                    int pawnsl = std::min(popcount(pos.pieces(Them, PAWN) & shift<WEST>(file_bb(f))), pawns);
-                    int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
-                    dist = std::min(dist, pawnsl + pawnsr);
-                }
+                int pawns = popcount(pos.pieces(Them, PAWN) & file_bb(f));
+                int pawnsl = std::min(popcount(pos.pieces(Them, PAWN) & shift<WEST>(file_bb(f))), pawns);
+                int pawnsr = std::min(popcount(pos.pieces(Them, PAWN) & shift<EAST>(file_bb(f))), pawns);
+                dist = std::min(dist, pawnsl + pawnsr);
             }
-            score += make_score(71, 61) * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
+            score += HordeShelter * pos.count<PAWN>(Them) / (1 + dist) / (pos.pieces(Us, QUEEN) ? 2 : 4);
         }
     }
 #endif
