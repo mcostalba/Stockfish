@@ -520,8 +520,9 @@ Entry* probe(const Position& pos) {
       return e;
   }
 
-  if (pos.variant() == CHESS_VARIANT)
+  switch (pos.variant())
   {
+  case CHESS_VARIANT:
   // We didn't find any specialized scaling function, so fall back on generic
   // ones that refer to more than one material distribution. Note that in this
   // case we don't return after setting the function.
@@ -567,6 +568,19 @@ Entry* probe(const Position& pos) {
   if (!pos.count<PAWN>(BLACK) && npm_b - npm_w <= BishopValueMg)
       e->factor[BLACK] = uint8_t(npm_b <  RookValueMg   ? SCALE_FACTOR_DRAW :
                                  npm_w <= BishopValueMg ? 4 : 14);
+  break;
+#ifdef CRAZYHOUSE
+  case CRAZYHOUSE_VARIANT:
+      e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_MAX;
+  break;
+#endif
+#ifdef GRID
+  case GRID_VARIANT:
+      if (npm_w <= RookValueMg && npm_b <= RookValueMg)
+          e->factor[WHITE] = e->factor[BLACK] = 10;
+  break;
+#endif
+  default: break;
   }
 
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder

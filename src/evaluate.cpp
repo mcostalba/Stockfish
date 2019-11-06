@@ -1601,22 +1601,12 @@ namespace {
     }
     else
 #endif
-#ifdef CRAZYHOUSE
-    if (pos.is_house())
-        sf = SCALE_FACTOR_MAX;
-    else
-#endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(~strongSide))
     {
         if (pos.non_pawn_material(~strongSide) >= QueenValueMg)
             sf = 10;
     }
-    else
-#endif
-#ifdef GRID
-    if (pos.is_grid() && pos.non_pawn_material(strongSide) <= RookValueMg)
-        sf = 10;
     else
 #endif
     // If scale is not already specific, scale down the endgame via general heuristics
