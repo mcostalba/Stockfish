@@ -569,11 +569,6 @@ Entry* probe(const Position& pos) {
       e->factor[BLACK] = uint8_t(npm_b <  RookValueMg   ? SCALE_FACTOR_DRAW :
                                  npm_w <= BishopValueMg ? 4 : 14);
   break;
-#ifdef CRAZYHOUSE
-  case CRAZYHOUSE_VARIANT:
-      e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_MAX;
-  break;
-#endif
 #ifdef GRID
   case GRID_VARIANT:
       if (npm_w <= RookValueMg && npm_b <= RookValueMg)
