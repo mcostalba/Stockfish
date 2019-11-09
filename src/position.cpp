@@ -1242,11 +1242,13 @@ bool Position::pseudo_legal(const Move m) const {
           if (!((between_bb(lsb(checkers()), square<KING>(us)) | checkers()) & to))
               return false;
       }
-      // In case of king moves under check we have to remove king so as to catch
-      // invalid moves like b1a1 when opposite queen is on c1.
 #ifdef GRID
-      else if (is_grid() && (attackers_to(to, pieces() ^ from) & pieces(~us) & grid_bb(to)))
-          return false;
+      else if (is_grid())
+      {
+          // Allows the king to approach an opposing piece in a different cell
+          if (attackers_to(to, pieces() ^ from) & pieces(~us) & ~grid_bb(to))
+              return false;
+      }
 #endif
       else if (attackers_to(to, pieces() ^ from) & pieces(~us))
           return false;
