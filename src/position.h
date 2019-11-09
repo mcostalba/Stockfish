@@ -687,7 +687,7 @@ inline GridLayout Position::grid_layout() const {
 }
 
 inline Bitboard Position::grid_bb(Square s) const {
-  return grid_layout_bb(grid_layout(), s);
+  return GridBB[grid_layout()][s];
 }
 #endif
 

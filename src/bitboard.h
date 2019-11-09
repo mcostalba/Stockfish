@@ -163,12 +163,6 @@ inline Bitboard file_bb(Square s) {
   return file_bb(file_of(s));
 }
 
-#ifdef GRID
-inline Bitboard grid_layout_bb(GridLayout l, Square s) {
-  return GridBB[l][s];
-}
-#endif
-
 
 /// shift() moves a bitboard one step along direction D
 
