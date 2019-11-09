@@ -670,7 +670,7 @@ constexpr Direction pawn_push(Color c) {
 
 #ifdef RACE
 constexpr Square horizontal_flip(Square s) {
-  return Square(s ^ SQ_H1); // Horizontal flip SQ_A1 -> SQ_H1
+  return Square(s ^ (FILE_NB - 1)); // Horizontal flip SQ_A1 -> SQ_H1
 }
 #endif
 

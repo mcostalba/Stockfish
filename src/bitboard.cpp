@@ -123,18 +123,18 @@ void Bitboards::init() {
 #ifdef DISPLACEDGRID
       GridBB[DISPLACED_GRID][s] = SquareBB[s];
       if (!((FileABB | FileHBB) & s))
-           GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 1) ^ 1) - 1];
+          GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 1) ^ 1) - 1];
       if (!((Rank1BB | Rank8BB) & s))
-           GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 8) ^ 8) - 8];
+          GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 8) ^ 8) - 8];
       if (!((Rank1BB | Rank8BB | FileABB | FileHBB) & s))
-           GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 9) ^ 9) - 9];
+          GridBB[DISPLACED_GRID][s] |= SquareBB[((s + 9) ^ 9) - 9];
 #endif
 #ifdef SLIPPEDGRID
       GridBB[SLIPPED_GRID][s] = SquareBB[s] | SquareBB[int(s) ^ 8];
       if (!((FileABB | FileHBB) & s))
       {
-           GridBB[SLIPPED_GRID][s] |= SquareBB[((s + 1) ^ 1) - 1];
-           GridBB[SLIPPED_GRID][s] |= SquareBB[(((s + 1) ^ 1) - 1) ^ 8];
+          GridBB[SLIPPED_GRID][s] |= SquareBB[((s + 1) ^ 1) - 1];
+          GridBB[SLIPPED_GRID][s] |= SquareBB[(((s + 1) ^ 1) - 1) ^ 8];
       }
 #endif
   }
