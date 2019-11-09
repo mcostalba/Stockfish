@@ -520,6 +520,14 @@ void Position::set_check_info(StateInfo* si) const {
   }
   else
 #endif
+#ifdef GRID
+  if (is_grid())
+  {
+      si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK) & ~grid_bb(square<KING>(WHITE)), square<KING>(WHITE), si->pinners[BLACK]);
+      si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE) & ~grid_bb(square<KING>(BLACK)), square<KING>(BLACK), si->pinners[WHITE]);
+  }
+  else
+#endif
 #ifdef HORDE
   if (is_horde())
   {
