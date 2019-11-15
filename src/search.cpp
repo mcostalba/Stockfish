@@ -1175,7 +1175,61 @@ moves_loop: // When in check, search starts from here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
-      // Step 13. Extensions (~70 Elo)
+      // Calculate new depth for this move
+      newDepth = depth - 1;
+
+      // Step 13. Pruning at shallow depth (~170 Elo)
+      if (  !rootNode
+#ifdef HORDE
+          && (pos.is_horde() || pos.non_pawn_material(us))
+#else
+          && pos.non_pawn_material(us)
+#endif
+          && bestValue > VALUE_MATED_IN_MAX_PLY)
+      {
+          // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
+          moveCountPruning = moveCount >= futility_move_count(improving, depth);
+
+          if (   !captureOrPromotion
+              && !givesCheck
+#ifdef ANTI
+              && (!pos.is_anti() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
+#endif
+#ifdef LOSERS
+              && (!pos.is_losers() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
+#endif
+              && (!PvNode || !pos.advanced_pawn_push(move) || pos.non_pawn_material(~us) > BishopValueMg))
+          {
+              // Reduced depth of the next LMR search
+              int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount), 0);
+
+              // Countermoves based pruning (~20 Elo)
+              if (   lmrDepth < 4 + ((ss-1)->statScore > 0 || (ss-1)->moveCount == 1)
+                  && (*contHist[0])[movedPiece][to_sq(move)] < CounterMovePruneThreshold
+                  && (*contHist[1])[movedPiece][to_sq(move)] < CounterMovePruneThreshold)
+                  continue;
+
+              // Futility pruning: parent node (~2 Elo)
+#ifdef LOSERS
+              if (pos.is_losers()) {} else
+#endif
+              if (   lmrDepth < 6
+                  && !inCheck
+                  && ss->staticEval + 250 + 211 * lmrDepth <= alpha)
+                  continue;
+
+              // Prune moves with negative SEE (~10 Elo)
+#ifdef ANTI
+              if (pos.is_anti()) {} else
+#endif
+              if (!pos.see_ge(move, Value(-(31 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
+                  continue;
+          }
+          else if (!pos.see_ge(move, Value(-199) * depth)) // (~20 Elo)
+                  continue;
+      }
+
+      // Step 14. Extensions (~70 Elo)
 
       // Singular extension search (~60 Elo). If all moves but one fail low on a
       // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -1242,60 +1296,8 @@ moves_loop: // When in check, search starts from here
       if (type_of(move) == CASTLING)
           extension = 1;
 
-      // Calculate new depth for this move
-      newDepth = depth - 1 + extension;
-
-      // Step 14. Pruning at shallow depth (~170 Elo)
-      if (  !rootNode
-#ifdef HORDE
-          && (pos.is_horde() || pos.non_pawn_material(us))
-#else
-          && pos.non_pawn_material(us)
-#endif
-          && bestValue > VALUE_MATED_IN_MAX_PLY)
-      {
-          // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold
-          moveCountPruning = moveCount >= futility_move_count(improving, depth);
-
-          if (   !captureOrPromotion
-              && !givesCheck
-#ifdef ANTI
-              && (!pos.is_anti() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
-#endif
-#ifdef LOSERS
-              && (!pos.is_losers() || !(pos.attackers_to(to_sq(move)) & pos.pieces(~pos.side_to_move())))
-#endif
-              && (!PvNode || !pos.advanced_pawn_push(move) || pos.non_pawn_material(~us) > BishopValueMg))
-          {
-              // Reduced depth of the next LMR search
-              int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount), 0);
-
-              // Countermoves based pruning (~20 Elo)
-              if (   lmrDepth < 4 + ((ss-1)->statScore > 0 || (ss-1)->moveCount == 1)
-                  && (*contHist[0])[movedPiece][to_sq(move)] < CounterMovePruneThreshold
-                  && (*contHist[1])[movedPiece][to_sq(move)] < CounterMovePruneThreshold)
-                  continue;
-
-              // Futility pruning: parent node (~2 Elo)
-#ifdef LOSERS
-              if (pos.is_losers()) {} else
-#endif
-              if (   lmrDepth < 6
-                  && !inCheck
-                  && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha)
-                  continue;
-
-              // Prune moves with negative SEE (~10 Elo)
-#ifdef ANTI
-              if (pos.is_anti()) {} else
-#endif
-              if (!pos.see_ge(move, Value(-(31 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
-                  continue;
-          }
-          else if (  !(givesCheck && extension)
-                   && !pos.see_ge(move, Value(-199) * depth)) // (~20 Elo)
-                  continue;
-      }
+      // Add extension to new depth
+      newDepth += extension;
 
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));
