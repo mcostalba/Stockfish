@@ -1215,7 +1215,7 @@ moves_loop: // When in check, search starts from here
 #endif
               if (   lmrDepth < 6
                   && !inCheck
-                  && ss->staticEval + 250 + 211 * lmrDepth <= alpha)
+                  && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha)
                   continue;
 
               // Prune moves with negative SEE (~10 Elo)
