@@ -151,40 +151,40 @@ namespace {
   };
 
   // Per-variant king danger malus factors
-  constexpr int KingDangerParams[VARIANT_NB][11] = {
-    {   185,  148,   98,   69,    3, -873, -100,  -35,   -6,   -7,    0 },
+  constexpr int KingDangerParams[VARIANT_NB][12] = {
+    {   185,  148,   98,   69,    4,    3, -873, -100,  -35,   -6,   -7,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   166,  146,   98,  274,    3, -654, -100,  -35,  -12,   -7,   29 },
+    {   166,  146,   98,  274,    4,    3, -654, -100,  -35,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   439,  130,   98,  119,    3, -613, -100,  -35,   -6,   -1,  320 },
+    {   439,  130,   98,  119,    4,    3, -613, -100,  -35,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   211,  158,   98,  119,    3, -722, -100,  -35,   -9,   41,    0 },
+    {   211,  158,   98,  119,    4,    3, -722, -100,  -35,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   235,  134,   98,  101,    3, -717, -100,  -35,  -11,   -5,    0 },
+    {   235,  134,   98,  101,    4,    3, -717, -100,  -35,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   229,  131,   98,   85,    3, -658, -100,  -35,   -9,   -5,    0 },
+    {   229,  131,   98,   85,    4,    3, -658, -100,  -35,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   235,  134,   98,  101,    3, -717, -100,  -35, -357,   -5,    0 },
+    {   235,  134,   98,  101,    4,    3, -717, -100,  -35, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {   136,  106,   98,   85,    3, -613, -100,  -35,   -7,  -73,  181 },
+    {   136,  106,   98,   85,    4,    3, -613, -100,  -35,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {   155,  136,   98,   92,    3, -967, -100,  -35,   -8,   38,    0 },
+    {   155,  136,   98,   92,    4,    3, -967, -100,  -35,   -8,   38,    0 },
 #endif
   };
 
@@ -916,7 +916,7 @@ namespace {
     constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
-    Bitboard weak, b1, b2, safe, unsafeChecks = 0;
+    Bitboard weak, b1, b2, b3, safe, unsafeChecks = 0;
     Bitboard rookChecks, queenChecks, bishopChecks, knightChecks;
     int kingDanger = 0;
     const Square ksq = pos.square<KING>(Us);
@@ -1027,12 +1027,14 @@ namespace {
     }
 #endif
 
-    // Find the squares that opponent attacks in our king flank, and the squares
-    // which are attacked twice in that flank.
+    // Find the squares that opponent attacks in our king flank, the squares
+    // which they attack twice in that flank, and the squares that we defend.
     b1 = attackedBy[Them][ALL_PIECES] & KingFlank[file_of(ksq)] & Camp;
     b2 = b1 & attackedBy2[Them];
+    b3 = attackedBy[Us][ALL_PIECES] & KingFlank[file_of(ksq)] & Camp;
 
-    int kingFlankAttacks = popcount(b1) + popcount(b2);
+    int kingFlankAttack = popcount(b1) + popcount(b2);
+    int kingFlankDefense = popcount(b3);
 
     const auto KDP = KingDangerParams[pos.variant()];
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
@@ -1040,13 +1042,14 @@ namespace {
                  + KDP[1] * popcount(unsafeChecks)
                  + KDP[2] * popcount(pos.blockers_for_king(Us))
                  + KDP[3] * kingAttacksCount[Them]
-                 + KDP[4] * kingFlankAttacks * kingFlankAttacks / 8
+                 + KDP[4] * (kingFlankAttack - kingFlankDefense)
+                 + KDP[5] * kingFlankAttack * kingFlankAttack / 8
                  +          mg_value(mobility[Them] - mobility[Us])
-                 + KDP[5] * !pos.count<QUEEN>(Them)
-                 + KDP[6] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
-                 + KDP[7] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
-                 + KDP[8] * mg_value(score) / 8
-                 + KDP[9];
+                 + KDP[6] * !pos.count<QUEEN>(Them)
+                 + KDP[7] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
+                 + KDP[8] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
+                 + KDP[9] * mg_value(score) / 8
+                 + KDP[10];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
@@ -1086,7 +1089,7 @@ namespace {
         if (pos.is_three_check())
             v = std::min(v, (int)QueenValueMg);
 #endif
-        score -= make_score(v, kingDanger / 16 + KDP[10] * v / 256);
+        score -= make_score(v, kingDanger / 16 + KDP[11] * v / 256);
     }
 
     // Penalty when our king is on a pawnless flank
@@ -1094,7 +1097,7 @@ namespace {
         score -= PawnlessFlank;
 
     // Penalty if king flank is under attack, potentially moving toward the king
-    score -= FlankAttacks[pos.variant()] * kingFlankAttacks;
+    score -= FlankAttacks[pos.variant()] * kingFlankAttack;
 
     if (T)
         Trace::add(KING, Us, score);
