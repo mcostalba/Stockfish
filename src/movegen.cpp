@@ -116,6 +116,21 @@ namespace {
   }
 #endif
 
+#if defined(ANTI) || defined(EXTINCTION) || defined(TWOKINGS)
+  template<Variant V, Color Us, GenType Type>
+  ExtMove* generate_king_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
+    Bitboard kings = pos.pieces(Us, KING);
+    while (kings)
+    {
+        Square ksq = pop_lsb(&kings);
+        Bitboard b = pos.attacks_from<KING>(ksq) & target;
+        while (b)
+            *moveList++ = make_move(ksq, pop_lsb(&b));
+    }
+    return moveList;
+  }
+#endif
+
   template<Variant V, Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
@@ -367,50 +382,27 @@ namespace {
     if (pos.is_horde() && pos.is_horde_color(Us))
         return moveList;
 #endif
-#ifdef ANTI
-    if (V == ANTI_VARIANT)
+    switch (V)
     {
-        Bitboard kings = pos.pieces(Us, KING);
-        while (kings)
-        {
-            Square ksq = pop_lsb(&kings);
-            Bitboard b = pos.attacks_from<KING>(ksq) & target;
-            while (b)
-                *moveList++ = make_move(ksq, pop_lsb(&b));
-        }
+#ifdef ANTI
+    case ANTI_VARIANT:
+        moveList = generate_king_moves<V, Us, Type>(pos, moveList, target);
         if (pos.can_capture())
             return moveList;
-    }
-    else
+    break;
 #endif
 #ifdef EXTINCTION
-    if (V == EXTINCTION_VARIANT)
-    {
-        Bitboard kings = pos.pieces(Us, KING);
-        while (kings)
-        {
-            Square ksq = pop_lsb(&kings);
-            Bitboard b = pos.attacks_from<KING>(ksq) & target;
-            while (b)
-                *moveList++ = make_move(ksq, pop_lsb(&b));
-        }
-    }
-    else
+    case EXTINCTION_VARIANT:
+        moveList = generate_king_moves<V, Us, Type>(pos, moveList, target);
+    break;
 #endif
 #ifdef TWOKINGS
-    if (V == TWOKINGS_VARIANT && Type != EVASIONS)
-    {
-        Bitboard kings = pos.pieces(Us, KING);
-        while (kings)
-        {
-            Square ksq = pop_lsb(&kings);
-            Bitboard b = pos.attacks_from<KING>(ksq) & target;
-            while (b)
-                *moveList++ = make_move(ksq, pop_lsb(&b));
-        }
-    }
-    else
+    case TWOKINGS_VARIANT:
+        if (Type != EVASIONS)
+            moveList = generate_king_moves<V, Us, Type>(pos, moveList, target);
+    break;
 #endif
+    default:
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
@@ -418,6 +410,7 @@ namespace {
 #ifdef RACE
         if (V == RACE_VARIANT)
         {
+            // Early generate king advance moves
             if (Type == CAPTURES)
                 b |= pos.attacks_from<KING>(ksq) & passed_pawn_span(WHITE, ksq) & ~pos.pieces();
             if (Type == QUIETS)
@@ -426,6 +419,7 @@ namespace {
 #endif
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
+    }
     }
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
