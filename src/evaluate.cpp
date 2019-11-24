@@ -151,40 +151,40 @@ namespace {
   };
 
   // Per-variant king danger malus factors
-  constexpr int KingDangerParams[VARIANT_NB][12] = {
-    {   185,  148,   98,   69,    4,    3, -873, -100,  -35,   -6,   -7,    0 },
+  constexpr int KingDangerParams[VARIANT_NB][11] = {
+    {   185,  148,   98,   69,    4,    3, -873, -100,   -6,   -7,    0 },
 #ifdef ANTI
     {},
 #endif
 #ifdef ATOMIC
-    {   166,  146,   98,  274,    4,    3, -654, -100,  -35,  -12,   -7,   29 },
+    {   166,  146,   98,  274,    4,    3, -654, -100,  -12,   -7,   29 },
 #endif
 #ifdef CRAZYHOUSE
-    {   439,  130,   98,  119,    4,    3, -613, -100,  -35,   -6,   -1,  320 },
+    {   439,  130,   98,  119,    4,    3, -613, -100,   -6,   -1,  320 },
 #endif
 #ifdef EXTINCTION
     {},
 #endif
 #ifdef GRID
-    {   211,  158,   98,  119,    4,    3, -722, -100,  -35,   -9,   41,    0 },
+    {   211,  158,   98,  119,    4,    3, -722, -100,   -9,   41,    0 },
 #endif
 #ifdef HORDE
-    {   235,  134,   98,  101,    4,    3, -717, -100,  -35,  -11,   -5,    0 },
+    {   235,  134,   98,  101,    4,    3, -717, -100,  -11,   -5,    0 },
 #endif
 #ifdef KOTH
-    {   229,  131,   98,   85,    4,    3, -658, -100,  -35,   -9,   -5,    0 },
+    {   229,  131,   98,   85,    4,    3, -658, -100,   -9,   -5,    0 },
 #endif
 #ifdef LOSERS
-    {   235,  134,   98,  101,    4,    3, -717, -100,  -35, -357,   -5,    0 },
+    {   235,  134,   98,  101,    4,    3, -717, -100, -357,   -5,    0 },
 #endif
 #ifdef RACE
     {},
 #endif
 #ifdef THREECHECK
-    {   136,  106,   98,   85,    4,    3, -613, -100,  -35,   -7,  -73,  181 },
+    {   136,  106,   98,   85,    4,    3, -613, -100,   -7,  -73,  181 },
 #endif
 #ifdef TWOKINGS
-    {   155,  136,   98,   92,    4,    3, -967, -100,  -35,   -8,   38,    0 },
+    {   155,  136,   98,   92,    4,    3, -967, -100,   -8,   38,    0 },
 #endif
   };
 
@@ -1043,9 +1043,8 @@ namespace {
                  +          mg_value(mobility[Them] - mobility[Us])
                  + KDP[6] * !pos.count<QUEEN>(Them)
                  + KDP[7] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
-                 + KDP[8] * bool(attackedBy[Us][BISHOP] & attackedBy[Us][KING])
-                 + KDP[9] * mg_value(score) / 8
-                 + KDP[10];
+                 + KDP[8] * mg_value(score) / 8
+                 + KDP[9];
 #ifdef CRAZYHOUSE
         if (pos.is_house())
         {
@@ -1085,7 +1084,7 @@ namespace {
         if (pos.is_three_check())
             v = std::min(v, (int)QueenValueMg);
 #endif
-        score -= make_score(v, kingDanger / 16 + KDP[11] * v / 256);
+        score -= make_score(v, kingDanger / 16 + KDP[10] * v / 256);
     }
 
     // Penalty when our king is on a pawnless flank
@@ -1618,7 +1617,7 @@ namespace {
     {
         if (   pos.opposite_bishops()
             && pos.non_pawn_material() == 2 * BishopValueMg)
-            sf = 16 + 4 * pe->passed_count();
+            sf = 22 ;
         else
             sf = std::min(sf, 36 + (pos.opposite_bishops() ? 2 : 7) * pos.count<PAWN>(strongSide));
 
