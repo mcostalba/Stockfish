@@ -353,7 +353,7 @@ void Search::clear() {
   Time.availableNodes = 0;
   TT.clear();
   Threads.clear();
-  Tablebases::init(CHESS_VARIANT, Options["SyzygyPath"]); // Free mapped files
+  Tablebases::init(UCI::variant_from_name(Options["UCI_Variant"]), Options["SyzygyPath"]); // Free mapped files
 }
 
 
