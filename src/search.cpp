@@ -69,7 +69,7 @@ namespace {
 
   // Razor and futility margins
   constexpr int RazorMargin[VARIANT_NB] = {
-  661,
+  594,
 #ifdef ANTI
   2234,
 #endif
@@ -105,7 +105,7 @@ namespace {
 #endif
   };
   constexpr int FutilityMarginFactor[VARIANT_NB] = {
-  198,
+  232,
 #ifdef ANTI
   611,
 #endif
@@ -1014,8 +1014,8 @@ namespace {
         &&  eval <= alpha - RazorMargin[pos.variant()])
         return qsearch<NT>(pos, ss, alpha, beta);
 
-    improving =   ss->staticEval >= (ss-2)->staticEval
-               || (ss-2)->staticEval == VALUE_NONE;
+    improving =  (ss-2)->staticEval == VALUE_NONE ? (ss->staticEval >= (ss-4)->staticEval
+              || (ss-4)->staticEval == VALUE_NONE) : ss->staticEval >= (ss-2)->staticEval;
 
     // Step 8. Futility pruning: child node (~30 Elo)
 #ifdef EXTINCTION
