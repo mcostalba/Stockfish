@@ -398,23 +398,13 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   }
 
   // 4. En passant square. Ignore if no pawn capture is possible
-  if (((ss >> col) && (col >= 'a' && col <= 'h'))
-        && ((ss >> row) && (sideToMove ? row == '3' : row == '6')))
+  if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
+      && ((ss >> row) && (sideToMove ? row == '3' : row == '6')))
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
       if (   !(attackers_to(st->epSquare) & pieces(sideToMove, PAWN))
           || !(pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove))))
-          st->epSquare = SQ_NONE;
-      else if (SquareBB[st->epSquare] & pieces())
-          st->epSquare = SQ_NONE;
-      else if (sideToMove == WHITE && (shift<NORTH>(SquareBB[st->epSquare]) & pieces()))
-          st->epSquare = SQ_NONE;
-      else if (sideToMove == BLACK && (shift<SOUTH>(SquareBB[st->epSquare]) & pieces()))
-          st->epSquare = SQ_NONE;
-      else if (sideToMove == WHITE && !(shift<SOUTH>(SquareBB[st->epSquare]) & pieces(BLACK, PAWN)))
-          st->epSquare = SQ_NONE;
-      else if (sideToMove == BLACK && !(shift<NORTH>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
 #ifdef ATOMIC
       else if (is_atomic() && (attacks_bb(KING, st->epSquare, 0) & square<KING>(sideToMove)))

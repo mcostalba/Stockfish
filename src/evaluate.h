@@ -29,42 +29,7 @@ class Position;
 
 namespace Eval {
 
-constexpr Value Tempo[VARIANT_NB] = { // Must be visible to search
-  Value(28),
-#ifdef ANTI
-  Value(20),
-#endif
-#ifdef ATOMIC
-  Value(20),
-#endif
-#ifdef CRAZYHOUSE
-  Value(100),
-#endif
-#ifdef EXTINCTION
-  Value(20),
-#endif
-#ifdef GRID
-  Value(20),
-#endif
-#ifdef HORDE
-  Value(20),
-#endif
-#ifdef KOTH
-  Value(20),
-#endif
-#ifdef LOSERS
-  Value(20),
-#endif
-#ifdef RACE
-  Value(100),
-#endif
-#ifdef THREECHECK
-  Value(20),
-#endif
-#ifdef TWOKINGS
-  Value(20),
-#endif
-};
+constexpr Value Tempo = Value(28); // Must be visible to search
 
 std::string trace(const Position& pos);
 

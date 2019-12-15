@@ -268,7 +268,6 @@ public:
 #endif
 #if defined(ANTI) || defined(LOSERS)
   bool can_capture() const;
-  int capture_count(Move m) const;
 #endif
 #ifdef GIVEAWAY
   bool is_giveaway() const;
@@ -750,22 +749,6 @@ inline bool Position::can_capture() const {
           return true;
   }
   return false;
-}
-
-// Position::capture_count estimates the count of captures after this move
-
-inline int Position::capture_count(Move m) const {
-  Square from = from_sq(m), to = to_sq(m);
-  Bitboard target = (pieces(sideToMove) ^ from) ^ to;
-  Bitboard occupied = type_of(m) == ENPASSANT ? ((pieces() ^ from) ^ to) ^ (ep_square() - pawn_push(sideToMove)) : (pieces() ^ from) ^ to;
-  Bitboard b1 = pieces(~sideToMove, PAWN) & occupied, b2 = (pieces(~sideToMove) ^ b1) & occupied;
-  int c = popcount(((sideToMove == WHITE ? pawn_attacks_bb<BLACK>(b1) : pawn_attacks_bb<WHITE>(b1))) & target);
-  while (b2)
-  {
-      Square s = pop_lsb(&b2);
-      c += popcount(attacks_bb(type_of(piece_on(s)), s, occupied) & target);
-  }
-  return c;
 }
 #endif
 

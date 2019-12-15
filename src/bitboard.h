@@ -60,11 +60,6 @@ constexpr Bitboard Rank6BB = Rank1BB << (8 * 5);
 constexpr Bitboard Rank7BB = Rank1BB << (8 * 6);
 constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
 
-#ifdef CRAZYHOUSE
-const Bitboard Rank1234BB = Rank1BB | Rank2BB | Rank3BB | Rank4BB;
-const Bitboard Rank5678BB = Rank5BB | Rank6BB | Rank7BB | Rank8BB;
-#endif
-
 constexpr Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
 constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
 constexpr Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
