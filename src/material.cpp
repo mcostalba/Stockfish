@@ -564,9 +564,9 @@ Entry* probe(const Position& pos) {
           e->scalingFunction[WHITE] = &ScaleKPKP[WHITE];
           e->scalingFunction[BLACK] = &ScaleKPKP[BLACK];
       }
-  break;
-  default: break;
   }
+  /* fall-through */
+  default:
 
   // Zero or just one pawn makes it difficult to win, even with a small material
   // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
