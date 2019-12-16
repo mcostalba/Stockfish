@@ -547,13 +547,13 @@ Entry* probe(const Position& pos) {
   {
       if (!pos.count<PAWN>(BLACK))
       {
-          assert(pos.variant() != CHESS_VARIANT || pos.count<PAWN>(WHITE) >= 2);
+          assert(pos.count<PAWN>(WHITE) >= 2);
 
           e->scalingFunction[WHITE] = &ScaleKPsK[WHITE];
       }
       else if (!pos.count<PAWN>(WHITE))
       {
-          assert(pos.variant() != CHESS_VARIANT || pos.count<PAWN>(BLACK) >= 2);
+          assert(pos.count<PAWN>(BLACK) >= 2);
 
           e->scalingFunction[BLACK] = &ScaleKPsK[BLACK];
       }
