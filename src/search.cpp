@@ -417,6 +417,11 @@ void MainThread::search() {
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
 
   Thread* bestThread = this;
+#ifdef USELONGESTPV
+  size_t longestPlies = 0;
+  Thread* longestPVThread = this;
+  const size_t minPlies = 6;
+#endif
 
   // Check if there are threads with a better score than main thread
   if (    Options["MultiPV"] == 1
@@ -446,7 +451,35 @@ void MainThread::search() {
           else if (   th->rootMoves[0].score >= VALUE_MATE_IN_MAX_PLY
                    || votes[th->rootMoves[0].pv[0]] > votes[bestThread->rootMoves[0].pv[0]])
               bestThread = th;
+#ifdef USELONGESTPV
+          longestPlies = std::max(th->rootMoves[0].pv.size(), longestPlies);
+#endif
       }
+
+#ifdef USELONGESTPV
+      longestPVThread = bestThread;
+      if (bestThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies))
+      {
+          const int64_t maxVoteDiff = (int)longestPlies * Eval::Tempo;
+          for (Thread* th : Threads)
+          {
+              if (   votes[th->rootMoves[0].pv[0]] + maxVoteDiff < votes[bestThread->rootMoves[0].pv[0]]
+                  || th->rootMoves[0].pv.size() < std::min(minPlies, longestPVThread->rootMoves[0].pv.size()))
+                  continue;
+              auto begin = bestThread->rootMoves[0].pv.begin(),
+                     end = bestThread->rootMoves[0].pv.end();
+              if (std::mismatch(begin, end, th->rootMoves[0].pv.begin()).first != end)
+                  continue;
+
+              // Select among highly-voted PVs of length minPlies or longer
+              // If our current longest is short, allow a weakening of votes
+              if (   votes[th->rootMoves[0].pv[0]] > votes[longestPVThread->rootMoves[0].pv[0]]
+                  || (   longestPVThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies)
+                      && th->rootMoves[0].pv.size() > longestPVThread->rootMoves[0].pv.size()))
+                  longestPVThread = th;
+          }
+      }
+#endif
   }
 
   previousScore = bestThread->rootMoves[0].score;
