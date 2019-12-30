@@ -1489,11 +1489,13 @@ namespace {
 #ifdef KOTH
     if (pos.is_koth())
     {
-        constexpr Direction Up = (Us == WHITE ? NORTH : SOUTH);
+        // Pinned piece (not pawn) attacks are not included in attackedBy
+        constexpr Direction Up = pawn_push(Us);
         Bitboard pinned = pos.blockers_for_king(Them) & pos.pieces(Them);
         Bitboard center = Center;
         while (center)
         {
+            // Skip costly attackers_to if the center is not attacked by them
             Square s = pop_lsb(&center);
             int dist = distance(pos.square<KING>(Us), s)
                       + ((pinned || (attackedBy[Them][ALL_PIECES] & s)) ? popcount(pos.attackers_to(s) & pos.pieces(Them)) : 0)
