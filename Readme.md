@@ -9,10 +9,11 @@ Multi Variant Stockfish is a [Stockfish](https://github.com/official-stockfish/S
 - [Horde](https://lichess.org/variant/horde)
 - [King of the Hill](https://lichess.org/variant/kingOfTheHill)
 - [Racing Kings](https://lichess.org/variant/racingKings)
-- [Giveaway](https://lichess.org/variant/antichess)
+- [Antichess](https://lichess.org/variant/antichess)
 - [Three-Check](https://lichess.org/variant/threeCheck)
-- [Chess960](https://lichess.org/variant/chess960) (played natively by Official Stockfish)
+- [Chess960](https://lichess.org/variant/chess960) (played natively by official Stockfish)
 - Losers
+- Giveaway
 - Suicide
 - Loop
 - Extinction
