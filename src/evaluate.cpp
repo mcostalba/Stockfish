@@ -1148,28 +1148,6 @@ namespace {
             score += ThreatsAnti[0] * popcount(attackedBy[Them][ALL_PIECES] & (pawnPushes | pieceMoves));
             score += ThreatsAnti[1] * popcount(attackedBy[Them][ALL_PIECES] & (unprotectedPawnPushes | unprotectedPieceMoves));
         }
-        nonPawnEnemies = 0;
-        stronglyProtected = 0;
-    }
-    else
-#endif
-#ifdef ATOMIC
-    if (pos.is_atomic())
-    {
-        Bitboard attacks = pos.pieces(Them) & attackedBy[Us][ALL_PIECES] & ~attackedBy[Us][KING];
-        while (attacks)
-        {
-            Square s = pop_lsb(&attacks);
-            Bitboard blast = (pos.attacks_from<KING>(s) & (pos.pieces() ^ pos.pieces(PAWN))) | s;
-            int count = popcount(blast & pos.pieces(Them)) - popcount(blast & pos.pieces(Us)) - 1;
-            if (blast & pos.pieces(Them, KING, QUEEN))
-                count++;
-            if ((blast & pos.pieces(Us, QUEEN)) || ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us]))
-                count--;
-            score += std::max(SCORE_ZERO, ThreatByBlast * count);
-        }
-        nonPawnEnemies = 0;
-        stronglyProtected = 0;
     }
     else
 #endif
@@ -1209,12 +1187,28 @@ namespace {
             score += ThreatsLosers[0] * popcount(attackedBy[Them][ALL_PIECES] & (pawnPushes | pieceMoves));
             score += ThreatsLosers[1] * popcount(attackedBy[Them][ALL_PIECES] & (unprotectedPawnPushes | unprotectedPieceMoves));
         }
-        nonPawnEnemies = 0;
-        stronglyProtected = 0;
     }
     else
 #endif
+    switch (pos.variant())
     {
+#ifdef ATOMIC
+    case ATOMIC_VARIANT:
+        b = pos.pieces(Them) & attackedBy[Us][ALL_PIECES] & ~attackedBy[Us][KING];
+        while (b)
+        {
+            Square s = pop_lsb(&b);
+            Bitboard blast = (pos.attacks_from<KING>(s) & (pos.pieces() ^ pos.pieces(PAWN))) | s;
+            int count = popcount(blast & pos.pieces(Them)) - popcount(blast & pos.pieces(Us)) - 1;
+            if (blast & pos.pieces(Them, KING, QUEEN))
+                count++;
+            if ((blast & pos.pieces(Us, QUEEN)) || ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us]))
+                count--;
+            score += std::max(SCORE_ZERO, ThreatByBlast * count);
+        }
+    break;
+#endif
+    default:
 
     // Non-pawn enemies
     nonPawnEnemies = pos.pieces(Them) & ~pos.pieces(PAWN);
