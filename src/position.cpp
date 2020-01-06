@@ -2080,7 +2080,7 @@ Value Position::see<ATOMIC_VARIANT>(Move m, PieceType nextVictim, Square s) cons
 
   Square from = from_sq(m);
   Color us = color_of(piece_on(from));
-  Bitboard blast = attacks_bb(KING, to_sq(m), 0) & (pieces() ^ pieces(PAWN)) - from;
+  Bitboard blast = (attacks_bb(KING, to_sq(m), 0) & (pieces() ^ pieces(PAWN))) - from;
   if (s != to_sq(m))
       blast &= ~SquareBB[s];
 
