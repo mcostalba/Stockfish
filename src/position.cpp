@@ -1685,7 +1685,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][promotion];
       }
 
-      // Update pawn hash key and prefetch access to pawnsTable
+      // Update pawn hash key
 #ifdef ATOMIC
       if (is_atomic() && captured)
           st->pawnKey ^= Zobrist::psq[make_piece(us, PAWN)][from];
@@ -1726,7 +1726,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   set_check_info(st);
 
   // Calculate the repetition info. It is the ply distance from the previous
-  // occurrence of the same position, negative in the 3-fold case, or zero
+  // occupiedurrence of the same position, negative in the 3-fold case, or zero
   // if the position was not repeated.
   st->repetition = 0;
 #ifdef CRAZYHOUSE
@@ -1933,7 +1933,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
 }
 
 
-/// Position::do(undo)_null_move() is used to do(undo) a "null move": It flips
+/// Position::do(undo)_null_move() is used to do(undo) a "null move": it flips
 /// the side to move without executing any move on the board.
 
 void Position::do_null_move(StateInfo& newSt) {
@@ -2091,8 +2091,8 @@ bool Position::see_ge(Move m, Value threshold) const {
       if (threshold > VALUE_ZERO)
           return false;
 
-      Bitboard occ = pieces() ^ from;
-      Bitboard stmAttackers = attackers_to(to, occ) & occ & pieces(stm) & ~pieces(KING);
+      Bitboard occupied = pieces() ^ from;
+      Bitboard stmAttackers = attackers_to(to, occupied) & occupied & pieces(stm) & ~pieces(KING);
 
       // Loop over attacking pieces
       while (stmAttackers)
@@ -2119,10 +2119,10 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (is_extinction() && ! more_than_one(pieces(color_of(piece_on(from)), type_of(piece_on(from)))))
   {
       // Toggles to square occupancy in case of stm != sideToMove
-      Bitboard occ = pieces() ^ from ^ to;
+      Bitboard occupied = pieces() ^ from ^ to;
       if (type_of(m) == ENPASSANT)
-          occ ^= make_square(file_of(to), rank_of(from));
-      if (attackers_to(to, occ) & occ & pieces(color_of(piece_on(from))))
+          occupied ^= make_square(file_of(to), rank_of(from));
+      if (attackers_to(to, occupied) & occupied & pieces(color_of(piece_on(from))))
           return false;
   }
 #endif
@@ -2135,26 +2135,26 @@ bool Position::see_ge(Move m, Value threshold) const {
   if (swap <= 0)
       return true;
 
-  Bitboard occ;
+  Bitboard occupied;
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
-      occ = pieces() ^ to;
+      occupied = pieces() ^ to;
   else
 #endif
-  occ = pieces() ^ from ^ to;
+  occupied = pieces() ^ from ^ to;
 #ifdef CRAZYHOUSE
   Color stm = color_of(is_house() && type_of(m) == DROP ? dropped_piece(m) : piece_on(from));
 #else
   Color stm = color_of(piece_on(from));
 #endif
-  Bitboard attackers = attackers_to(to, occ);
+  Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
 
   while (true)
   {
       stm = ~stm;
-      attackers &= occ;
+      attackers &= occupied;
 
       // If stm has no more attackers then give up: stm loses
       if (!(stmAttackers = attackers & pieces(stm)))
@@ -2162,7 +2162,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
       // Don't allow pinned pieces to attack (except the king) as long as
       // there are pinners on their original square.
-      if (st->pinners[~stm] & occ)
+      if (st->pinners[~stm] & occupied)
           stmAttackers &= ~st->blockersForKing[stm];
 #ifdef RACE
       // Exclude checks in racing kings
@@ -2174,7 +2174,7 @@ bool Position::see_ge(Move m, Value threshold) const {
                   stmAttackers &= ~pieces(stm, pt);
 
           // Discovered checks
-          if (!(st->pinners[stm] & ~occ))
+          if (!(st->pinners[stm] & ~occupied))
               stmAttackers &= ~st->blockersForKing[~stm];
       }
 #endif
@@ -2191,8 +2191,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = PawnValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(KNIGHT)))
@@ -2200,7 +2200,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = KnightValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
+          occupied ^= lsb(bb);
       }
 
       else if ((bb = stmAttackers & pieces(BISHOP)))
@@ -2208,8 +2208,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = BishopValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(ROOK)))
@@ -2217,8 +2217,8 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = RookValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |= attacks_bb<ROOK>(to, occ) & pieces(ROOK, QUEEN);
+          occupied ^= lsb(bb);
+          attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
       }
 
       else if ((bb = stmAttackers & pieces(QUEEN)))
@@ -2226,9 +2226,9 @@ bool Position::see_ge(Move m, Value threshold) const {
           if ((swap = QueenValueMg - swap) < res)
               break;
 
-          occ ^= lsb(bb);
-          attackers |=  (attacks_bb<BISHOP>(to, occ) & pieces(BISHOP, QUEEN))
-                      | (attacks_bb<ROOK  >(to, occ) & pieces(ROOK  , QUEEN));
+          occupied ^= lsb(bb);
+          attackers |=  (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
+                      | (attacks_bb<ROOK  >(to, occupied) & pieces(ROOK  , QUEEN));
       }
 
       else // KING
@@ -2237,7 +2237,7 @@ bool Position::see_ge(Move m, Value threshold) const {
           return (attackers & ~pieces(stm)) ? res ^ 1 : res;
   }
 
-  return res;
+  return bool(res);
 }
 
 /// Position::is_draw() tests whether the position is drawn by 50-move rule
