@@ -141,7 +141,7 @@ namespace {
 #endif
   };
   constexpr int FutilityMarginParent[VARIANT_NB][2] = {
-  { 255, 182 },
+  { 235, 172 },
 #ifdef ANTI
   { 331, 372 },
 #endif
@@ -750,6 +750,7 @@ void Thread::search() {
                   Threads.stop = true;
           }
           else if (   Threads.increaseDepth
+                   && !mainThread->ponder
                    && Time.elapsed() > Time.optimum() * fallingEval * reduction * bestMoveInstability * 0.6)
                    Threads.increaseDepth = false;
           else
@@ -1278,7 +1279,7 @@ moves_loop: // When in check, search starts from here
                   &&  thisThread->mainHistory[us][from_to(move)]
                     + (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
-                    + (*contHist[3])[movedPiece][to_sq(move)] < 30000)
+                    + (*contHist[3])[movedPiece][to_sq(move)] < 25000)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
@@ -1453,6 +1454,10 @@ moves_loop: // When in check, search starts from here
               // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
               r -= ss->statScore / 16384;
           }
+
+          // Increase reduction for captures/promotions if late move and at low depth
+          else if (depth < 8 && moveCount > 2)
+              r++;
 
           Depth d = clamp(newDepth - r, 1, newDepth);
 
