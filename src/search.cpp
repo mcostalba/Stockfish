@@ -1059,8 +1059,8 @@ namespace {
         &&  eval <= alpha - RazorMargin[pos.variant()])
         return qsearch<NT>(pos, ss, alpha, beta);
 
-    improving =  (ss-2)->staticEval == VALUE_NONE ? (ss->staticEval >= (ss-4)->staticEval
-              || (ss-4)->staticEval == VALUE_NONE) : ss->staticEval >= (ss-2)->staticEval;
+    improving =  (ss-2)->staticEval == VALUE_NONE ? (ss->staticEval > (ss-4)->staticEval
+              || (ss-4)->staticEval == VALUE_NONE) : ss->staticEval > (ss-2)->staticEval;
 
     // Step 8. Futility pruning: child node (~50 Elo)
 #ifdef EXTINCTION
@@ -1290,7 +1290,11 @@ moves_loop: // When in check, search starts from here
                   continue;
           }
           else if (!pos.see_ge(move, Value(-194) * depth)) // (~25 Elo)
-                  continue;
+          {
+              if (captureOrPromotion && captureCount < 32)
+                  capturesSearched[captureCount++] = move;
+              continue;
+          }
       }
 
       // Step 14. Extensions (~75 Elo)
@@ -1429,7 +1433,7 @@ moves_loop: // When in check, search starts from here
               // hence break make_move(). (~2 Elo)
               else if (    type_of(move) == NORMAL
                        && !pos.see_ge(reverse_move(move)))
-                  r -= 2;
+                  r -= 2 + ttPv;
 
               ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                              + (*contHist[0])[movedPiece][to_sq(move)]
