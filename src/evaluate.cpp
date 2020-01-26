@@ -426,6 +426,7 @@ namespace {
   };
 
 #ifdef ATOMIC
+  constexpr Score AtomicConfinedKing = S(100, 100);
   constexpr Score ThreatByBlast = S(80, 80);
 #endif
 #ifdef HORDE
@@ -1057,10 +1058,6 @@ namespace {
         }
 #endif
 
-#ifdef ATOMIC
-    if (pos.is_atomic())
-        score -= make_score(100, 100) * popcount(attackedBy[Us][KING] & pos.pieces());
-#endif
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 100)
     {
@@ -1459,6 +1456,10 @@ namespace {
 
     Score score = SCORE_ZERO;
 
+#ifdef ATOMIC
+    if (pos.is_atomic())
+        score -= AtomicConfinedKing * popcount(attackedBy[Us][KING] & pos.pieces());
+#endif
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Them))
     {
