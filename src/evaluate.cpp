@@ -610,7 +610,7 @@ namespace {
     template<Color Us> Score space() const;
     template<Color Us> Score variant() const;
     ScaleFactor scale_factor(Value eg) const;
-    Score initiative(Score score) const;
+    Score initiative(Score score, Score materialScore) const;
 
     const Position& pos;
     Material::Entry* me;
@@ -801,6 +801,10 @@ namespace {
 #endif
 #ifdef PLACEMENT
         if (pos.is_placement() && pos.count_in_hand<KING>(Us))
+            continue;
+#endif
+#ifdef LOSERS
+        if (pos.is_losers())
             continue;
 #endif
 
@@ -1532,10 +1536,7 @@ namespace {
   // known attacking/defending status of the players.
 
   template<Tracing T>
-  Score Evaluation<T>::initiative(Score score) const {
-
-    Value mg = mg_value(score);
-    Value eg = eg_value(score);
+  Score Evaluation<T>::initiative(Score score, Score materialScore) const {
 
 #ifdef ANTI
     if (pos.is_anti())
@@ -1547,6 +1548,10 @@ namespace {
 #endif
 #ifdef PLACEMENT
     if (pos.is_placement() && (pos.count_in_hand<KING>(WHITE) || pos.count_in_hand<KING>(BLACK)))
+        return SCORE_ZERO;
+#endif
+#ifdef LOSERS
+    if (pos.is_losers())
         return SCORE_ZERO;
 #endif
 
@@ -1572,6 +1577,11 @@ namespace {
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
                     - 100 ;
+
+    // Give more importance to non-material score
+    score = (score * 2 - materialScore) / 2;
+    Value mg = mg_value(score);
+    Value eg = eg_value(score);
 
     // Now apply the bonus: note that we find the attacking side by extracting the
     // sign of the midgame or endgame values, and that we carefully cap the bonus
@@ -1665,6 +1675,9 @@ namespace {
        return pos.side_to_move() == WHITE ? v : -v;
     }
 
+    // Remember this score
+    Score materialScore = score;
+
     // Main evaluation begins here
 
     initialize<WHITE>();
@@ -1694,7 +1707,7 @@ namespace {
     if (pos.variant() != CHESS_VARIANT)
         score += variant<WHITE>() - variant<BLACK>();
 
-    score += initiative(score);
+    score += initiative(score, materialScore);
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     ScaleFactor sf = scale_factor(eg_value(score));
