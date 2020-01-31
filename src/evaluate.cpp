@@ -1022,6 +1022,10 @@ namespace {
             unsafeChecks |= pawnChecks & (pawnMoves | h);
     }
 #endif
+#ifdef RACE
+    if (pos.is_race())
+        kingDanger = -kingDanger;
+#endif
 
     // Find the squares that opponent attacks in our king flank, the squares
     // which they attack twice in that flank, and the squares that we defend.
@@ -1056,10 +1060,6 @@ namespace {
         kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
         h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
     }
-#endif
-#ifdef RACE
-    if (pos.is_race())
-        kingDanger = -kingDanger;
 #endif
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
