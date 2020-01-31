@@ -178,7 +178,7 @@ namespace {
     {   235,  134,   98,  101,    3, -717, -100, -357,   -4,   37,    0 },
 #endif
 #ifdef RACE
-    {},
+    {     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0 },
 #endif
 #ifdef THREECHECK
     {   136,  106,   98,   85,    3, -613, -100,   -7,   -4,   37,  181 },
@@ -907,10 +907,6 @@ namespace {
     if (pos.is_placement() && pos.count_in_hand<KING>(Us))
         return SCORE_ZERO;
 #endif
-#ifdef RACE
-    if (pos.is_race())
-        return SCORE_ZERO;
-#endif
 
     constexpr Color    Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
@@ -1050,16 +1046,20 @@ namespace {
                  + KDP[8] * kingFlankDefense
                  + KDP[9];
 #ifdef CRAZYHOUSE
-        if (pos.is_house())
-        {
-            kingDanger += KingDangerInHand[ALL_PIECES] * pos.count_in_hand<ALL_PIECES>(Them);
-            kingDanger += KingDangerInHand[PAWN] * pos.count_in_hand<PAWN>(Them);
-            kingDanger += KingDangerInHand[KNIGHT] * pos.count_in_hand<KNIGHT>(Them);
-            kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
-            kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
-            kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
-            h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
-        }
+    if (pos.is_house())
+    {
+        kingDanger += KingDangerInHand[ALL_PIECES] * pos.count_in_hand<ALL_PIECES>(Them);
+        kingDanger += KingDangerInHand[PAWN] * pos.count_in_hand<PAWN>(Them);
+        kingDanger += KingDangerInHand[KNIGHT] * pos.count_in_hand<KNIGHT>(Them);
+        kingDanger += KingDangerInHand[BISHOP] * pos.count_in_hand<BISHOP>(Them);
+        kingDanger += KingDangerInHand[ROOK] * pos.count_in_hand<ROOK>(Them);
+        kingDanger += KingDangerInHand[QUEEN] * pos.count_in_hand<QUEEN>(Them);
+        h = pos.count_in_hand<QUEEN>(Them) ? weak & ~pos.pieces() : 0;
+    }
+#endif
+#ifdef RACE
+    if (pos.is_race())
+        kingDanger = -kingDanger;
 #endif
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation

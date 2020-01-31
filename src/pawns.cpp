@@ -211,7 +211,7 @@ namespace {
   },
 #endif
 #ifdef RACE
-  {},
+  {}, // There are no pawns in Racing Kings
 #endif
 #ifdef THREECHECK
   {
