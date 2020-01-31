@@ -586,7 +586,7 @@ namespace {
   constexpr Score ThreatByKing       = S( 24, 89);
   constexpr Score ThreatByPawnPush   = S( 48, 39);
   constexpr Score ThreatBySafePawn   = S(173, 94);
-  constexpr Score TrappedRook        = S( 52, 30);
+  constexpr Score TrappedRook        = S( 52, 10);
   constexpr Score WeakQueen          = S( 49, 15);
 
 #undef S
@@ -1248,7 +1248,7 @@ namespace {
     b =   attackedBy[Them][ALL_PIECES]
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
-    score += RestrictedPiece * (popcount(b) + popcount(b & pos.pieces()));
+    score += RestrictedPiece * popcount(b);
 
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
@@ -1579,7 +1579,6 @@ namespace {
                     - 100 ;
 
     // Give more importance to non-material score
-    score = score - pos.psq_score() / 2;
     Value mg = mg_value(score);
     Value eg = eg_value(score);
 
