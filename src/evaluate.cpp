@@ -675,7 +675,7 @@ namespace {
     // or controlled by enemy pawns are excluded from the mobility area.
 #ifdef ANTI
     if (pos.is_anti())
-        mobilityArea[Us] = ~0;
+        mobilityArea[Us] = ~b;
     else
 #endif
 #ifdef HORDE
