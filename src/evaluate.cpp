@@ -1244,7 +1244,6 @@ namespace {
     }
 
     // Bonus for restricting their piece moves
-    // Greater bonus when landing square is occupied
     b =   attackedBy[Them][ALL_PIECES]
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
@@ -1565,16 +1564,19 @@ namespace {
                            &&  outflanking < 0
                            && !pawnsOnBothFlanks;
 
+    bool infiltration = rank_of(pos.square<KING>(WHITE)) > RANK_4
+                     || rank_of(pos.square<KING>(BLACK)) < RANK_5;
+
     // Compute the initiative bonus for the attacking side
     int complexity =   9 * pe->passed_count()
                     + 11 * pos.count<PAWN>()
                     +  9 * outflanking
                     + 21 * pawnsOnBothFlanks
+                    + 24 * infiltration
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
-                    - 95 ;
+                    -110 ;
 
-    // Give more importance to non-material score
     Value mg = mg_value(score);
     Value eg = eg_value(score);
 

@@ -1276,11 +1276,11 @@ bool Position::gives_check(Move m) const {
 #endif
 
   // Is there a direct check?
-  if (st->checkSquares[type_of(piece_on(from))] & to)
+  if (check_squares(type_of(piece_on(from))) & to)
       return true;
 
   // Is there a discovered check?
-  if (   (st->blockersForKing[~sideToMove] & from)
+  if (   (blockers_for_king(~sideToMove) & from)
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
 #ifdef GRID
