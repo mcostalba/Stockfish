@@ -1870,6 +1870,14 @@ moves_loop: // When in check, search starts from here
 
   Value value_from_tt(Value v, int ply, int r50c) {
 
+#ifdef USETTMATE
+    // In analysis mode prevent infinite re-search
+    if (Limits.infinite || Options["UCI_AnalyseMode"]) {
+        return  v == VALUE_NONE             ? VALUE_NONE
+              : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
+              : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+    }
+#endif
     return  v == VALUE_NONE             ? VALUE_NONE
           : v >= VALUE_MATE_IN_MAX_PLY  ? VALUE_MATE - v > 99 - r50c ? VALUE_MATE_IN_MAX_PLY  : v - ply
           : v <= VALUE_MATED_IN_MAX_PLY ? VALUE_MATE + v > 99 - r50c ? VALUE_MATED_IN_MAX_PLY : v + ply : v;
