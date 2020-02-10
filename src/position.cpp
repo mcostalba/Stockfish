@@ -664,10 +664,26 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, Variant v, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 9);
+  string sides[COLOR_NB];
+  switch (v)
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      assert(code.length() > 0 && code.length() < 9);
 
-  string sides[] = { code.substr(code.find('v') + 1),  // Weak
-                     code.substr(0, code.find('v')) }; // Strong
+      sides[0] = code.substr(code.find('v') + 1);  // Weak
+      sides[1] = code.substr(0, code.find('v')); // Strong
+  break;
+#endif
+  default:
+      assert(code[0] == 'K');
+
+      sides[0] = code.substr(code.find('K', 1));      // Weak
+      sides[1] = code.substr(0, std::min(code.find('v'), code.find('K', 1))); // Strong
+  }
+
+  assert(sides[0].length() > 0 && sides[0].length() < 8);
+  assert(sides[1].length() > 0 && sides[1].length() < 8);
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
