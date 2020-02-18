@@ -1604,10 +1604,9 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic())
     {
-        if (   ! pe->passed_count()
-            && pos.non_pawn_material(strongSide) <= RookValueMg
-            && pos.count<ALL_PIECES>(WHITE) == pos.count<ALL_PIECES>(BLACK))
-            sf = 10;
+        if (   pos.non_pawn_material(~strongSide) <= RookValueMg
+            && pos.count<PAWN>(WHITE) == pos.count<PAWN>(BLACK))
+            sf = std::max(0, sf - pos.rule50_count() / 2);
     }
     else
 #endif
