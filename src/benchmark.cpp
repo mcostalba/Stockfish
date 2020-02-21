@@ -134,6 +134,7 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "r2qk2r/ppQ1p2p/2p1bn2/2np4/8/2N1PP2/PPPP2PP/R1B1K2R b KQkq - 2 12",
     "7r/1p3k1p/4p3/5pp1/3P1P2/1Pn1P3/2P3PP/R5K1 w - - 3 16",
     "2k2r2/p3p2p/5r2/1p1p1n2/8/3PP3/PPPB2PP/R3KR2 w Q - 5 17",
+    "3k2n1/r5br/pppppppp/8/PPPPPPPP/8/3NQ3/R1B1KB1R b KQ - 0 16",
     "2k5/p6p/8/1p2p3/PP1p4/4P3/2P2rPP/K3R3 b - - 0 1",
     "5r2/p6k/6p1/1p1p2Bp/8/7P/PPP3P1/5R1K w - - 1 1",
     "6k1/1pp3pp/5p2/8/8/2P1P3/5PPP/6K1 w - - 0 1",
