@@ -821,15 +821,14 @@ for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
           File f = map_to_queenside(file_of(s));
-
-          psq[var][ pc][ s] = score + (var == CHESS_VARIANT && type_of(pc) == PAWN ? PBonus[rank_of(s)][file_of(s)]
-                                                                                   : Bonus[var][pc][rank_of(s)][f]);
+          psq[var][ pc][ s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
+                                                                                     : Bonus[var][pc][rank_of(s)][f]);
 #ifdef RACE
           if (var == RACE_VARIANT)
               psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
           else
 #endif
-          psq[var][~pc][~s] = -psq[var][pc][s];
+          psq[var][~pc][flip_rank(s)] = -psq[var][pc][s];
       }
 #ifdef CRAZYHOUSE
       if (var == CRAZYHOUSE_VARIANT)

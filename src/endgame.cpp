@@ -54,9 +54,9 @@ namespace {
      4160, 4480, 4800, 5120, 5440, 5760, 6080, 6400
   };
 
-  // Tables used to drive a piece towards or away from another piece
-  constexpr int PushClose[8] = { 0, 0, 100, 80, 60, 40, 20, 10 };
-  constexpr int PushAway [8] = { 0, 5, 20, 40, 60, 80, 90, 100 };
+  // Drive a piece close to or away from another piece
+  inline int push_close(Square s1, Square s2) { return 140 - 20 * distance(s1, s2); }
+  inline int push_away(Square s1, Square s2) { return 120 - push_close(s1, s2); }
 
   // Pawn Rank based scaling factors used in KRPPKRP endgame
   constexpr int KRPPKRPScaleFactors[RANK_NB] = { 0, 9, 10, 14, 21, 44, 0, 0 };
@@ -74,9 +74,9 @@ namespace {
     assert(pos.count<PAWN>(strongSide) == 1);
 
     if (file_of(pos.square<PAWN>(strongSide)) >= FILE_E)
-        sq = Square(int(sq) ^ 7); // Mirror SQ_H1 -> SQ_A1
+        sq = flip_file(sq);
 
-    return strongSide == WHITE ? sq : ~sq;
+    return strongSide == WHITE ? sq : flip_rank(sq);
   }
 
 } // namespace
@@ -145,7 +145,7 @@ Value Endgame<CHESS_VARIANT, KXK>::operator()(const Position& pos) const {
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   if (   pos.count<QUEEN>(strongSide)
       || pos.count<ROOK>(strongSide)
@@ -175,7 +175,7 @@ Value Endgame<CHESS_VARIANT, KBNK>::operator()(const Position& pos) const {
   // to drive to opposite corners (A8/H1).
 
   Value result =  VALUE_KNOWN_WIN
-                + PushClose[distance(winnerKSq, loserKSq)]
+                + push_close(winnerKSq, loserKSq)
                 + PushToCorners[opposite_colors(bishopSq, SQ_A1) ? ~loserKSq : loserKSq];
 
   assert(abs(result) < VALUE_TB_WIN_IN_MAX_PLY);
@@ -278,7 +278,7 @@ Value Endgame<CHESS_VARIANT, KRKN>::operator()(const Position& pos) const {
 
   Square bksq = pos.square<KING>(weakSide);
   Square bnsq = pos.square<KNIGHT>(weakSide);
-  Value result = Value(PushToEdges[bksq] + PushAway[distance(bksq, bnsq)]);
+  Value result = Value(PushToEdges[bksq] + push_away(bksq, bnsq));
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
@@ -298,7 +298,7 @@ Value Endgame<CHESS_VARIANT, KQKP>::operator()(const Position& pos) const {
   Square loserKSq = pos.square<KING>(weakSide);
   Square pawnSq = pos.square<PAWN>(weakSide);
 
-  Value result = Value(PushClose[distance(winnerKSq, loserKSq)]);
+  Value result = Value(push_close(winnerKSq, loserKSq));
 
   if (   relative_rank(weakSide, pawnSq) != RANK_7
       || distance(loserKSq, pawnSq) != 1
@@ -326,7 +326,7 @@ Value Endgame<CHESS_VARIANT, KQKR>::operator()(const Position& pos) const {
   Value result =  QueenValueEg
                 - RookValueEg
                 + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                + push_close(winnerKSq, loserKSq);
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -850,7 +850,7 @@ Value Endgame<ANTI_VARIANT, RK>::operator()(const Position& pos) const {
   Square RSq = pos.square<ROOK>(strongSide);
   Square KSq = pos.square<KING>(weakSide);
 
-  Value result = Value(PushToEdges[KSq]) + PushClose[distance(RSq, KSq)];
+  Value result = Value(PushToEdges[KSq]) + push_close(RSq, KSq);
 
   int dist_min = std::min(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
   int dist_max = std::max(distance<Rank>(RSq, KSq), distance<File>(RSq, KSq));
@@ -895,7 +895,7 @@ Value Endgame<ANTI_VARIANT, NN>::operator()(const Position& pos) const {
   Square N1Sq = pos.square<KNIGHT>(pos.side_to_move());
   Square N2Sq = pos.square<KNIGHT>(~pos.side_to_move());
 
-  Value result = VALUE_KNOWN_WIN + PushClose[distance(N1Sq, N2Sq)];
+  Value result = VALUE_KNOWN_WIN + push_close(N1Sq, N2Sq);
 
   return !opposite_colors(N1Sq, N2Sq) ? result : -result;
 }
@@ -919,7 +919,7 @@ Value Endgame<ATOMIC_VARIANT, KXK>::operator()(const Position& pos) const {
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToCorners[loserKSq]
-                + PushAway[distance(winnerKSq, loserKSq)];
+                + push_away(winnerKSq, loserKSq);
 
   // We need at least a major and a minor, or three minors to force checkmate
   if (  ((pos.count<QUEEN>(strongSide) || pos.count<ROOK>(strongSide)) && pos.count<ALL_PIECES>(strongSide) >= 3)
@@ -947,8 +947,8 @@ Value Endgame<ATOMIC_VARIANT, KPK>::operator()(const Position& pos) const {
       return VALUE_DRAW;
 
   Value result = PawnValueEgAtomic
-                + PushAway[relative_rank(strongSide, pos.square<PAWN>(strongSide))]
-                + PushAway[dist];
+                + 20 * relative_rank(strongSide, pos.square<PAWN>(strongSide)) - 20
+                + push_away(winnerKSq, loserKSq);
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
@@ -982,7 +982,7 @@ Value Endgame<ATOMIC_VARIANT, KQK>::operator()(const Position& pos) const {
 
   Value result =  pos.non_pawn_material(strongSide)
                 + PushToEdges[loserKSq]
-                + PushAway[dist];
+                + push_away(winnerKSq, loserKSq);
 
   if (dist >= (strongSide == pos.side_to_move() ? 3 : 4))
       result += VALUE_KNOWN_WIN;

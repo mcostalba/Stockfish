@@ -298,7 +298,6 @@ enum TBType { KEY, WDL, DTZ }; // Used as template parameter
 enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, Wide = 16, SingleValue = 128 };
 
 inline WDLScore operator-(WDLScore d) { return WDLScore(-int(d)); }
-inline Square operator^=(Square& s, int i) { return s = Square(int(s) ^ i); }
 inline Square operator^(Square s, int i) { return Square(int(s) ^ i); }
 
 const std::string PieceToChar = " PNBRQK  pnbrqk";
@@ -425,7 +424,7 @@ int MultFactor[5];
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square i, Square j) { return MapPawns[i] < MapPawns[j]; }
 int off_A1H8(Square sq) { return int(rank_of(sq)) - file_of(sq); }
-Square flipdiag(Square sq) { return Square(((sq >> 3) | (sq << 3)) & 63); }
+Square flip_diag(Square sq) { return Square(((sq >> 3) | (sq << 3)) & 63); }
 
 constexpr Value WDL_to_value[] = {
    -VALUE_MATE + MAX_PLY + 1,
@@ -1114,7 +1113,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
         for (int i = 0; i < size; ++i)
-            squares[i] ^= 7; // Horizontal flip: SQ_H1 -> SQ_A1
+            squares[i] = flip_file(squares[i]);
 
     // Encode leading pawns starting with the one with minimum MapPawns[] and
     // proceeding in ascending order.
@@ -1133,7 +1132,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
         for (int i = 0; i < size; ++i)
-            squares[i] ^= SQ_A8; // Vertical flip: SQ_A8 -> SQ_A1
+            squares[i] = flip_rank(squares[i]);
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
@@ -1143,7 +1142,7 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         if (off_A1H8(squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
             for (int j = i; j < size; ++j)
-                squares[j] = flipdiag(squares[j]);
+                squares[j] = flip_diag(squares[j]);
         break;
     }
 
@@ -1246,20 +1245,20 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         if (file_of(squares[0]) > FILE_D)
             for (int i = 0; i < size; ++i)
-                squares[i] ^= 7;
+                squares[i] = flip_file(squares[i]);
 
         if (rank_of(squares[0]) > RANK_4)
             for (int i = 0; i < size; ++i)
-                squares[i] ^= 070;
+                squares[i] = flip_rank(squares[i]);
 
         if (off_A1H8(squares[0]) > 0 || (off_A1H8(squares[0]) == 0 && off_A1H8(squares[1]) > 0))
             for (int i = 0; i < size; ++i)
-                squares[i] = flipdiag(squares[i]);
+                squares[i] = flip_diag(squares[i]);
 
         if ((Test45 & squares[1]) && Triangle[squares[0]] == Triangle[squares[1]]) {
             std::swap(squares[0], squares[1]);
             for (int i = 0; i < size; ++i)
-                squares[i] = flipdiag(squares[i] ^ 070);
+                squares[i] = flip_file(squares[i]);
         }
 
         idx = MapPP[Triangle[squares[0]]][squares[1]];
@@ -1270,15 +1269,15 @@ Ret do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* resu
 
         if (file_of(squares[0]) > FILE_D)
             for (int i = 0; i < size; ++i)
-                squares[i] ^= 7;
+                squares[i] = flip_file(squares[i]);
 
         if (rank_of(squares[0]) > RANK_4)
             for (int i = 0; i < size; ++i)
-                squares[i] ^= 070;
+                squares[i] = flip_rank(squares[i]);
 
         if (off_A1H8(squares[0]) > 0)
             for (int i = 0; i < size; ++i)
-                squares[i] = flipdiag(squares[i]);
+                squares[i] = flip_diag(squares[i]);
 
         for (int i = 1; i < d->groupLen[0]; i++)
             for (int j = i + 1; j < d->groupLen[0]; j++)
@@ -2185,7 +2184,7 @@ void Tablebases::init(Variant variant, const std::string& paths) {
                 if (leadPawnsCnt == 1)
                 {
                     MapPawns[sq] = availableSquares--;
-                    MapPawns[sq ^ 7] = availableSquares--; // Horizontal flip
+                    MapPawns[flip_file(sq)] = availableSquares--;
                 }
                 LeadPawnIdx[leadPawnsCnt][sq] = idx;
                 idx += Binomial[leadPawnsCnt - 1][MapPawns[sq]];
