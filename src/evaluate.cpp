@@ -1400,7 +1400,7 @@ namespace {
             || (pos.pieces(PAWN) & (s + Up)))
             bonus = bonus / 2;
 
-        score += bonus - PassedFile * map_to_queenside(file_of(s));
+        score += bonus - PassedFile * edge_distance(file_of(s));
     }
 
     if (T)
