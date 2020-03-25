@@ -80,7 +80,6 @@ namespace Endgames {
     add<CHESS_VARIANT, KNNKP>("KNNvKP");
 
     add<CHESS_VARIANT, KNPK>("KNPvK");
-    add<CHESS_VARIANT, KNPKB>("KNPvKB");
     add<CHESS_VARIANT, KRPKR>("KRPvKR");
     add<CHESS_VARIANT, KRPKB>("KRPvKB");
     add<CHESS_VARIANT, KBPKB>("KBPvKB");
@@ -760,28 +759,6 @@ ScaleFactor Endgame<CHESS_VARIANT, KNPK>::operator()(const Position& pos) const 
 
   if (pawnSq == SQ_A7 && distance(SQ_A8, weakKingSq) <= 1)
       return SCALE_FACTOR_DRAW;
-
-  return SCALE_FACTOR_NONE;
-}
-
-
-/// KNP vs KB. If knight can block bishop from taking pawn, it's a win.
-/// Otherwise the position is drawn.
-template<>
-ScaleFactor Endgame<CHESS_VARIANT, KNPKB>::operator()(const Position& pos) const {
-
-  assert(pos.variant() == CHESS_VARIANT);
-  assert(verify_material(pos, strongSide, KnightValueMg, 1));
-  assert(verify_material(pos, weakSide, BishopValueMg, 0));
-
-  Square pawnSq = pos.square<PAWN>(strongSide);
-  Square bishopSq = pos.square<BISHOP>(weakSide);
-  Square weakKingSq = pos.square<KING>(weakSide);
-
-  // King needs to get close to promoting pawn to prevent knight from blocking.
-  // Rules for this are very tricky, so just approximate.
-  if (forward_file_bb(strongSide, pawnSq) & pos.attacks_from<BISHOP>(bishopSq))
-      return ScaleFactor(distance(weakKingSq, pawnSq));
 
   return SCALE_FACTOR_NONE;
 }
