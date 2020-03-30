@@ -397,7 +397,7 @@ namespace {
   int imbalance(const Position& pos, const int pieceCount[][PIECE_TYPE_NB]) {
 #endif
 
-    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Color Them = ~Us;
 
     int bonus = 0;
 

@@ -134,7 +134,7 @@ namespace {
   template<Variant V, Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
-    constexpr Color     Them     = (Us == WHITE ? BLACK      : WHITE);
+    constexpr Color     Them     = ~Us;
     constexpr Bitboard  TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
 #ifdef HORDE
     constexpr Bitboard  TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
@@ -671,10 +671,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       Square checksq = pop_lsb(&sliders);
 #ifdef GRID
       if (pos.is_grid())
-          sliderAttacks |= (LineBB[checksq][ksq] ^ checksq) & ~pos.grid_bb(checksq);
+          sliderAttacks |= (LineBB[ksq][checksq] ^ checksq) & ~pos.grid_bb(checksq);
       else
 #endif
-      sliderAttacks |= LineBB[checksq][ksq] ^ checksq;
+      sliderAttacks |= LineBB[ksq][checksq] ^ checksq;
   }
 
   // Generate evasions for king, capture and non capture moves
