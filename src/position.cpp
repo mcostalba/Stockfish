@@ -2123,7 +2123,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 #endif
 #ifdef EXTINCTION
   // Test if this move is a winning capture
-  if (is_extinction() && (color_of(piece_on(from)) == sideToMove ? is_extinction_loss()
+  if (is_extinction() && (color_of(piece_on(from)) == ~sideToMove ? is_extinction_loss()
           : ! more_than_one(pieces(color_of(piece_on(from)), type_of(m) == ENPASSANT ? PAWN : type_of(piece_on(to))))))
       return true;
 #endif
