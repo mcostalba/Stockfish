@@ -1189,18 +1189,26 @@ bool Position::pseudo_legal(const Move m) const {
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
   // kind of moves are filtered out here.
-#ifdef ATOMIC
-  // In case of adjacent kings or moves that capture the king, we can ignore attacks on our king
-  if (is_atomic())
-  {
-      if (attacks_bb(KING, square<KING>(~us), 0) & (type_of(pc) == KING ? to : square<KING>(us)))
-          return true;
-      if (capture(m) && (attacks_bb(KING, square<KING>(~us), 0) & to))
-          return true;
-  }
-#endif
   if (checkers())
   {
+#ifdef ATOMIC
+      if (is_atomic())
+      {
+          // In case of adjacent kings, we can ignore attacks on our king.
+          if (attacks_bb(KING, square<KING>(~us), 0) & (type_of(pc) == KING ? to : square<KING>(us)))
+              return true;
+          if (capture(m))
+          {
+              // Capturing the opposing king or all checking pieces suffices.
+              Bitboard blast = attacks_bb(KING, to, 0) & (pieces() ^ pieces(PAWN));
+              if ((blast & square<KING>(~us)) || ~(checkers() & blast))
+                  return true;
+          }
+      }
+#endif
+#ifdef TWOKINGS
+      if (is_two_kings() && count<KING>(us) > 1) {} else
+#endif
       if (type_of(pc) != KING)
       {
           // Double check? In this case a king move is required

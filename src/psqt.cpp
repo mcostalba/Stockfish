@@ -821,7 +821,7 @@ for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-          File f = edge_distance(file_of(s));
+          File f = File(edge_distance(file_of(s)));
           psq[var][ pc][ s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
                                                                                      : Bonus[var][pc][rank_of(s)][f]);
 #ifdef RACE
