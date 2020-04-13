@@ -269,6 +269,7 @@ namespace {
     e->passedPawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
     e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks_bb<Us>(ourPawns);
+    e->blockedCount[Us] = 0;
 
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
@@ -309,6 +310,8 @@ namespace {
 #endif
         support    = neighbours & rank_bb(s - Up);
 
+        e->blockedCount[Us] += bool(blocked);
+
         // A pawn is backward when it is behind all pawns of the same color on
         // the adjacent files and cannot safely advance.
         backward =  !(neighbours & forward_ranks_bb(Them, s + Up))
@@ -322,6 +325,7 @@ namespace {
         // (a) there is no stoppers except some levers
         // (b) the only stoppers are the leverPush, but we outnumber them
         // (c) there is only one front stopper which can be levered.
+        //     (Refined in Evaluation::passed)
         passed =   !(stoppers ^ lever)
                 || (   !(stoppers ^ leverPush)
                     && popcount(phalanx) >= popcount(leverPush))

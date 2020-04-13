@@ -1307,15 +1307,32 @@ namespace {
 
     constexpr Color     Them = ~Us;
     constexpr Direction Up   = pawn_push(Us);
+    constexpr Direction Down = -Up;
 
     auto king_proximity = [&](Color c, Square s) {
       return std::min(distance(pos.square<KING>(c), s), 5);
     };
 
-    Bitboard b, bb, squaresToQueen, unsafeSquares;
+    Bitboard b, bb, squaresToQueen, unsafeSquares, candidatePassers, leverable;
     Score score = SCORE_ZERO;
 
     b = pe->passed_pawns(Us);
+
+    candidatePassers = b & shift<Down>(pos.pieces(Them, PAWN));
+    if (candidatePassers)
+    {
+        // Can we lever the blocker of a candidate passer?
+        leverable =  shift<Up>(pos.pieces(Us, PAWN))
+                   & ~pos.pieces(Them)
+                   & (~attackedBy2[Them] | attackedBy[Us][ALL_PIECES])
+                   & (~(attackedBy[Them][KNIGHT] | attackedBy[Them][BISHOP])
+                     | (attackedBy[Us  ][KNIGHT] | attackedBy[Us  ][BISHOP]));
+
+        // Remove candidate otherwise
+        b &= ~candidatePassers
+            | shift<WEST>(leverable)
+            | shift<EAST>(leverable);
+    }
 
     while (b)
     {
@@ -1435,7 +1452,7 @@ namespace {
     behind |= shift<Down+Down>(behind);
 
     int bonus = popcount(safe) + popcount(behind & safe & ~attackedBy[Them][ALL_PIECES]);
-    int weight = pos.count<ALL_PIECES>(Us) - 1;
+    int weight = pos.count<ALL_PIECES>(Us) - 2 + pe->blocked_count() / 2;
     Score score = make_score(bonus * weight * weight / 16, 0);
 #ifdef KOTH
     if (pos.is_koth())
