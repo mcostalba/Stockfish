@@ -926,33 +926,27 @@ bool Position::legal(Move m) const {
   // Atomic and atomic960 normal (non-castling), en passant, and promotion moves
   if (is_atomic() && type_of(m) != CASTLING)
   {
-      Square ksq = square<KING>(us);
-
-      assert(!capture(m) || !(attacks_bb(KING, to, 0) & ksq));
-      if (type_of(piece_on(from)) != KING)
-      {
-          if (kings_adjacent())
-              return true;
-          if (capture(m))
-          {
-              Square capsq = type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
-              Bitboard blast = attacks_bb(KING, to, 0) & (pieces() ^ pieces(PAWN));
-
-              if (blast & square<KING>(~us))
-                  return true;
-              Bitboard b = pieces() ^ ((blast | capsq) | from);
-
-              if (checkers() & b)
-                  return false;
-              if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
-                  (attacks_bb<BISHOP>(ksq, b) & pieces(~us, QUEEN, BISHOP) & b))
-                  return false;
-              return true;
-          }
-      }
-      // Non-castling king move (non-capture) which puts kings adjacent is legal
-      else if (attacks_bb(KING, square<KING>(~us), 0) & to)
+      if (kings_adjacent(m))
           return true;
+      if (capture(m))
+      {
+          assert(type_of(piece_on(from)) != KING);
+          Square capsq = type_of(m) == ENPASSANT ? make_square(file_of(to), rank_of(from)) : to;
+          Bitboard blast = attacks_bb(KING, to, 0) & (pieces() ^ pieces(PAWN));
+
+          assert(!(blast & square<KING>(us)));
+          if (blast & square<KING>(~us))
+              return true;
+          Bitboard b = pieces() ^ ((blast | capsq) | from);
+          Square ksq = square<KING>(us);
+
+          if (checkers() & b)
+              return false;
+          if ((attacks_bb<  ROOK>(ksq, b) & pieces(~us, QUEEN, ROOK) & b) ||
+              (attacks_bb<BISHOP>(ksq, b) & pieces(~us, QUEEN, BISHOP) & b))
+              return false;
+          return true;
+      }
   }
 #endif
 
@@ -1023,7 +1017,7 @@ bool Position::legal(Move m) const {
       // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
       return   !chess960
 #ifdef ATOMIC
-            ||  (is_atomic() && (attacks_bb(KING, square<KING>(~us), 0) & to))
+            ||  (is_atomic() && kings_adjacent(m))
 #endif
             || !(attacks_bb<ROOK>(to, pieces() ^ to_sq(m)) & pieces(~us, ROOK, QUEEN));
   }
@@ -1033,7 +1027,7 @@ bool Position::legal(Move m) const {
   if (type_of(piece_on(from)) == KING)
   {
 #ifdef ATOMIC
-      if (is_atomic() && kings_adjacent() && !(attacks_bb(KING, square<KING>(~us), 0) & to))
+      if (is_atomic() && kings_adjacent() && !kings_adjacent(m))
       {
           if (attackers_to(to) & pieces(~us, KNIGHT, PAWN))
               return false;
@@ -1195,7 +1189,7 @@ bool Position::pseudo_legal(const Move m) const {
       if (is_atomic())
       {
           // In case of adjacent kings, we can ignore attacks on our king.
-          if (attacks_bb(KING, square<KING>(~us), 0) & (type_of(pc) == KING ? to : square<KING>(us)))
+          if (kings_adjacent(m))
               return true;
           if (capture(m))
           {
@@ -1267,7 +1261,6 @@ bool Position::gives_check(Move m) const {
       // Separating adjacent kings exposes direct checks (minus castle rook)
       // For simplicity, resolves castling discovered checks by fall-through
       Square ksq = square<KING>(~sideToMove);
-      Bitboard kingRing = attacks_bb(KING, ksq, 0);
 
       switch (type_of(m))
       {
@@ -1275,19 +1268,19 @@ bool Position::gives_check(Move m) const {
           // Standard rules apply unless kings will be connected after castling
           if (relative_rank(sideToMove, ksq) != RANK_2)
               break;
-          if (kingRing & relative_square(sideToMove, to > from ? SQ_G1 : SQ_C1))
+          if (kings_adjacent(m))
               return false;
           // If kings are not adjacent, attackers_to(ksq) is empty (and slow)
           return kings_adjacent() && (attackers_to(ksq) & (pieces(sideToMove) ^ from ^ to));
 
       default:
-          if (kingRing & (type_of(piece_on(from)) == KING ? to : square<KING>(sideToMove)))
+          if (kings_adjacent(m))
               return false;
           if (type_of(piece_on(from)) == KING && kings_adjacent())
               return attackers_to(ksq, pieces() ^ from ^ to) & (pieces(sideToMove) ^ from);
           if (capture(m))
           {
-              if (kingRing & to) // Variant ending
+              if (attacks_bb(KING, ksq, 0) & to) // Variant ending
                   return false;
               // Blasted pieces may discover checks
               Bitboard blast = attacks_bb(KING, to, 0) & (pieces() ^ pieces(PAWN));

@@ -118,6 +118,7 @@ public:
   // Checking
 #ifdef ATOMIC
   bool kings_adjacent() const;
+  bool kings_adjacent(Move m) const;
 #endif
   Bitboard checkers() const;
   Bitboard blockers_for_king(Color c) const;
@@ -544,6 +545,16 @@ inline Bitboard Position::slider_attackers_to(Square s) const {
 
 inline bool Position::kings_adjacent() const {
   return adjacent_squares_bb(byTypeBB[KING]) & byTypeBB[KING];
+}
+
+inline bool Position::kings_adjacent(Move m) const {
+  if (type_of(moved_piece(m)) != KING)
+      return kings_adjacent();
+  Square to = to_sq(m);
+  if (type_of(m) == CASTLING)
+      to = relative_square(sideToMove, to > from_sq(m) ? SQ_G1 : SQ_C1);
+
+  return adjacent_squares_bb(pieces(~sideToMove, KING)) & to;
 }
 #endif
 
