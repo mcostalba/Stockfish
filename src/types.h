@@ -167,6 +167,9 @@ enum Variant {
 #ifdef PLACEMENT
   PLACEMENT_VARIANT,
 #endif
+#ifdef KNIGHTRELAY
+  KNIGHTRELAY_VARIANT,
+#endif
 #ifdef RELAY
   RELAY_VARIANT,
 #endif
@@ -234,6 +237,9 @@ static std::vector<std::string> variants = {
 #endif
 #ifdef PLACEMENT
 "placement",
+#endif
+#ifdef KNIGHTRELAY
+"knightrelay",
 #endif
 #ifdef RELAY
 "relay",
@@ -862,6 +868,10 @@ inline Variant main_variant(Variant v) {
 #ifdef PLACEMENT
   case PLACEMENT_VARIANT:
       return CRAZYHOUSE_VARIANT;
+#endif
+#ifdef KNIGHTRELAY
+  case KNIGHTRELAY_VARIANT:
+      return CHESS_VARIANT;
 #endif
 #ifdef RELAY
   case RELAY_VARIANT:

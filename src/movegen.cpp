@@ -325,6 +325,11 @@ namespace {
         }
 
         Bitboard b = pos.attacks_from<Pt>(from) & target;
+#ifdef KNIGHTRELAY
+        if (V == KNIGHTRELAY_VARIANT)
+            if (pos.attacks_from(KNIGHT, from) & pos.pieces(us, KNIGHT))
+                b |= pos.attacks_from(KNIGHT, from) & target;
+#endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
             for (PieceType pt = KNIGHT; pt <= KING; ++pt)
@@ -418,6 +423,11 @@ namespace {
             if (Type == QUIETS)
                 b &= ~passed_pawn_span(WHITE, ksq);
         }
+#endif
+#ifdef KNIGHTRELAY
+        if (V == KNIGHTRELAY_VARIANT)
+            if (pos.attacks_from(KNIGHT, ksq) & pos.pieces(Us, KNIGHT))
+                b |= pos.attacks_from(KNIGHT, ksq) & target;
 #endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
@@ -530,6 +540,11 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<RACE_VARIANT, WHITE, Type>(pos, moveList, target)
                          : generate_all<RACE_VARIANT, BLACK, Type>(pos, moveList, target);
 #endif
+#ifdef KNIGHTRELAY
+  if (pos.is_knight_relay())
+      return us == WHITE ? generate_all<KNIGHTRELAY_VARIANT, WHITE, Type>(pos, moveList, target)
+                         : generate_all<KNIGHTRELAY_VARIANT, BLACK, Type>(pos, moveList, target);
+#endif
 #ifdef RELAY
   if (pos.is_relay())
       return us == WHITE ? generate_all<RELAY_VARIANT, WHITE, Type>(pos, moveList, target)
@@ -622,6 +637,11 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_losers())
       return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
                          : generate_all<LOSERS_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
+#endif
+#ifdef KNIGHTRELAY
+  if (pos.is_knight_relay())
+      return us == WHITE ? generate_all<KNIGHTRELAY_VARIANT, WHITE, QUIET_CHECKS>(pos, moveList, ~pos.pieces())
+                         : generate_all<KNIGHTRELAY_VARIANT, BLACK, QUIET_CHECKS>(pos, moveList, ~pos.pieces());
 #endif
 #ifdef RELAY
   if (pos.is_relay())
@@ -773,6 +793,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       return us == WHITE ? generate_all<LOSERS_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
                          : generate_all<LOSERS_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
   }
+#endif
+#ifdef KNIGHTRELAY
+  if (pos.is_knight_relay())
+      return us == WHITE ? generate_all<KNIGHTRELAY_VARIANT, WHITE, EVASIONS>(pos, moveList, target)
+                         : generate_all<KNIGHTRELAY_VARIANT, BLACK, EVASIONS>(pos, moveList, target);
 #endif
 #ifdef RELAY
   if (pos.is_relay())

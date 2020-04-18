@@ -268,7 +268,7 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
-CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DDISPLACEDGRID -DEXTINCTION -DGIVEAWAY -DGRID -DHORDE -DKOTH -DLOOP -DLOSERS -DPLACEMENT -DRACE -DRELAY -DSLIPPEDGRID -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC -DUSELONGESTPV
+CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DDISPLACEDGRID -DEXTINCTION -DGIVEAWAY -DGRID -DHORDE -DKNIGHTRELAY -DKOTH -DLOOP -DLOSERS -DPLACEMENT -DRACE -DRELAY -DSLIPPEDGRID -DSUICIDE -DTHREECHECK -DTWOKINGS -DTWOKINGSSYMMETRIC -DUSELONGESTPV
 ifneq (,$(filter -DBUGHOUSE,$(CXXFLAGS)))
 ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
 $(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant bughouse chess)
@@ -304,9 +304,14 @@ ifeq (,$(filter -DANTI,$(CXXFLAGS)))
 $(error Antichess (-DANTI) is required for subvariant suicide chess)
 endif
 endif
+ifneq (,$(filter -DKNIGHTRELAY,$(CXXFLAGS)))
+ifeq (,$(filter -DRELAY,$(CXXFLAGS)))
+$(error Relay (-DRELAY) is required for subvariant knight-relay)
+endif
+endif
 ifneq (,$(filter -DTWOKINGSSYMMETRIC,$(CXXFLAGS)))
 ifeq (,$(filter -DTWOKINGS,$(CXXFLAGS)))
-$(error Twokings (-TWOKINGS) is required for subvariant twokingssymmetric)
+$(error Twokings (-DTWOKINGS) is required for subvariant twokingssymmetric)
 endif
 endif
 ifeq ($(debug),no)
