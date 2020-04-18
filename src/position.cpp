@@ -570,6 +570,12 @@ void Position::set_check_info(StateInfo* si) const {
   else
 #endif
   si->checkSquares[KING]   = 0;
+#ifdef RELAY
+  if (is_relay())
+      for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+          for (Bitboard b = si->checkSquares[pt] & (pieces(sideToMove) ^ pieces(sideToMove, PAWN)); b; )
+              si->checkSquares[pt] |= attacks_from(pt, pop_lsb(&b));
+#endif
 }
 
 
@@ -610,9 +616,7 @@ void Position::set_state(StateInfo* si) const {
       si->checkersBB = 0;
   else
 #endif
-  {
-      si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
-  }
+  si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
 
   for (Bitboard b = pieces(); b; )
   {
@@ -787,6 +791,10 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = (  (PseudoAttacks[  ROOK][s] & pieces(QUEEN, ROOK))
                       | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
+#ifdef RELAY
+  if (is_relay())
+      snipers |= PseudoAttacks[QUEEN][s] & relayed_attackers_to(s, ~color_of(piece_on(s))) & (pieces() ^ pieces(PAWN)) & sliders;
+#endif
   Bitboard occupancy = pieces() ^ snipers;
 
   while (snipers)
@@ -804,7 +812,6 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   return blockers;
 }
 
-
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
 /// given square. Slider attacks use the occupied bitboard to indicate occupancy.
 
@@ -820,6 +827,20 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
                | (attacks_from<KING>(s)           & pieces(KING)))
              & ~grid_bb(s);
 #endif
+#ifdef RELAY
+  if (is_relay())
+  {
+      Bitboard b =  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
+                  | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
+                  | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+                  | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
+                  | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
+                  | (attacks_from<KING>(s)           & pieces(KING));
+      for (Color c : { WHITE, BLACK })
+          b |= relayed_attackers_to(s, c, occupied);
+      return b;
+  }
+#endif
   return  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
         | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
         | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
@@ -827,6 +848,21 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
         | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
         | (attacks_from<KING>(s)           & pieces(KING));
 }
+
+#ifdef RELAY
+Bitboard Position::relayed_attackers_to(Square s, Color c, Bitboard occupied) const {
+  Bitboard b = 0;
+  for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+  {
+      Bitboard attackers = pieces(c, pt);
+      Bitboard relays = attacks_bb(pt, s, occupied) & (pieces(c) ^ pieces(c, PAWN));
+
+      while (attackers && relays)
+          b |= attacks_bb(pt, pop_lsb(&attackers), occupied) & relays;
+  }
+  return b;
+}
+#endif
 
 #ifdef ATOMIC
 Bitboard Position::slider_attackers_to(Square s, Bitboard occupied) const {
@@ -969,6 +1005,10 @@ bool Position::legal(Move m) const {
           return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK) & ~grid_bb(ksq))
                 && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP) & ~grid_bb(ksq));
 #endif
+#ifdef RELAY
+      if (is_relay() && relayed_attackers_to(ksq, ~us, occupied))
+          return false;
+#endif
       return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
             && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
   }
@@ -1046,11 +1086,20 @@ bool Position::legal(Move m) const {
       if (is_grid())
           return !(attackers_to(to_sq(m), pieces() ^ from) & pieces(~us));
 #endif
+#ifdef RELAY
+      // Validate evasions where the king blocks the to square.
+      if (is_relay() && checkers() && relayed_attackers_to(to, ~us, pieces() ^ from))
+          return false;
+#endif
       return !(attackers_to(to) & pieces(~us));
   }
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
+#ifdef RELAY
+  if (is_relay() && relayed_attackers_to(square<KING>(us), ~us, pieces() ^ from))
+      return false;
+#endif
   return   !(blockers_for_king(us) & from)
         ||  aligned(from, to, square<KING>(us));
 }
@@ -1178,7 +1227,21 @@ bool Position::pseudo_legal(const Move m) const {
           return false;
   }
   else if (!(attacks_from(type_of(pc), from) & to))
+  {
+#ifdef RELAY
+      if (is_relay())
+      {
+          Bitboard b = 0;
+          for (PieceType pt = KNIGHT; pt <= KING; ++pt)
+              if (attacks_from(pt, from) & pieces(us, pt))
+                  b |= attacks_from(pt, from);
+          if (!(b & to))
+              return false;
+      }
+      else
+#endif
       return false;
+  }
 
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and legal() relies on this. We therefore have to take care that the same
@@ -1424,9 +1487,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef TWOKINGS
   if (is_two_kings()) {} else
 #endif
-  {
   assert(type_of(captured) != KING);
-  }
 
   if (type_of(m) == CASTLING)
   {
@@ -1731,6 +1792,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
+#ifdef RELAY
+  if (is_relay())
+      givesCheck = true;
+#endif
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
 #ifdef CRAZYHOUSE

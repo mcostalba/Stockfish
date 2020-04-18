@@ -128,6 +128,10 @@ public:
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
   Bitboard attackers_to(Square s, Bitboard occupied) const;
+#ifdef RELAY
+  Bitboard relayed_attackers_to(Square s, Color c) const;
+  Bitboard relayed_attackers_to(Square s, Color c, Bitboard occupied) const;
+#endif
 #ifdef ATOMIC
   Bitboard slider_attackers_to(Square s) const;
   Bitboard slider_attackers_to(Square s, Bitboard occupied) const;
@@ -211,6 +215,9 @@ public:
 #endif
 #ifdef PLACEMENT
   bool is_placement() const;
+#endif
+#ifdef RELAY
+  bool is_relay() const;
 #endif
 #ifdef EXTINCTION
   bool is_extinction() const;
@@ -538,9 +545,14 @@ inline Bitboard Position::attackers_to(Square s) const {
   return attackers_to(s, pieces());
 }
 
+#ifdef RELAY
+inline Bitboard Position::relayed_attackers_to(Square s, Color c) const {
+  return relayed_attackers_to(s, c, pieces());
+}
+#endif
 #ifdef ATOMIC
 inline Bitboard Position::slider_attackers_to(Square s) const {
-  return slider_attackers_to(s, byTypeBB[ALL_PIECES]);
+  return slider_attackers_to(s, pieces());
 }
 
 inline bool Position::kings_adjacent() const {
@@ -889,6 +901,12 @@ inline bool Position::is_loop() const {
 #ifdef PLACEMENT
 inline bool Position::is_placement() const {
   return var == CRAZYHOUSE_VARIANT && subvar == PLACEMENT_VARIANT;
+}
+#endif
+
+#ifdef RELAY
+inline bool Position::is_relay() const {
+  return subvar == RELAY_VARIANT;
 }
 #endif
 
