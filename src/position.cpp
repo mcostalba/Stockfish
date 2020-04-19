@@ -837,13 +837,13 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
   {
       Bitboard b =  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
                   | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-                  | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+                  | (empty(s) ? (attacks_from<KNIGHT>(s) & pieces(KNIGHT)) : 0)
                   | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
                   | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
                   | (attacks_from<KING>(s)           & pieces(KING));
       for (Color c : { WHITE, BLACK })
           b |= relayed_attackers_to<KNIGHT, KNIGHT>(s, c, occupied);
-      return b;
+      return b & ~pieces(KNIGHT);
   }
 #endif
 #ifdef RELAY
@@ -875,7 +875,7 @@ Bitboard Position::relayed_attackers_to(Square s, Color c, Bitboard occupied) co
   for (PieceType pt = PtMin; pt <= PtMax; ++pt)
   {
       Bitboard attackers = pieces(c, pt);
-      Bitboard relays = attacks_bb(pt, s, occupied) & (pieces(c) ^ pieces(c, PAWN));
+      Bitboard relays = attacks_bb(pt, s, occupied) & (pieces(c) ^ pieces(c, is_relay() ? PAWN : pt));
 
       while (attackers && relays)
           b |= attacks_bb(pt, pop_lsb(&attackers), occupied) & relays;
@@ -1024,6 +1024,10 @@ bool Position::legal(Move m) const {
       if (is_grid())
           return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK) & ~grid_bb(ksq))
                 && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP) & ~grid_bb(ksq));
+#endif
+#ifdef KNIGHTRELAY
+      if (is_knight_relay())
+          return false;
 #endif
 #ifdef RELAY
       if (is_relay() && relayed_attackers_to<BISHOP, QUEEN>(ksq, ~us, occupied))
@@ -1217,7 +1221,10 @@ bool Position::pseudo_legal(const Move m) const {
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP && (!pieceCountInHand[us][type_of(pc)] || !empty(to)))
       return false;
-  else
+#endif
+#ifdef KNIGHTRELAY
+  if (is_knight_relay() && capture(m) && (type_of(m) == ENPASSANT || type_of(pc) == KNIGHT || (pieces(KNIGHT) & to)))
+      return false;
 #endif
   if (pieces(us) & to)
       return false;
@@ -1225,6 +1232,16 @@ bool Position::pseudo_legal(const Move m) const {
   // Handle the special case of a pawn move
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP) {} else
+#endif
+#ifdef KNIGHTRELAY
+  if (is_knight_relay() && type_of(pc) != KNIGHT && type_of(pc) != KING && (attacks_from<KNIGHT>(from) & to))
+  {
+      if (type_of(pc) == PAWN && (Rank8BB | Rank1BB) & to)
+          return false;
+      if (!(attacks_from<KNIGHT>(from) & pieces(us, KNIGHT)))
+          return false;
+  }
+  else
 #endif
   if (type_of(pc) == PAWN)
   {
@@ -1248,17 +1265,6 @@ bool Position::pseudo_legal(const Move m) const {
   }
   else if (!(attacks_from(type_of(pc), from) & to))
   {
-#ifdef KNIGHTRELAY
-      if (is_knight_relay())
-      {
-          Bitboard b = 0;
-          if (attacks_from(KNIGHT, from) & pieces(us, KNIGHT))
-              b |= attacks_from(KNIGHT, from);
-          if (!(b & to))
-              return false;
-      }
-      else
-#endif
 #ifdef RELAY
       if (is_relay())
       {
@@ -1824,11 +1830,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Calculate checkers bitboard (if move gives check)
 #ifdef KNIGHTRELAY
-  if (is_knight_relay())
+  if (is_knight_relay() && pieces(KNIGHT))
       givesCheck = true;
 #endif
 #ifdef RELAY
-  if (is_relay())
+  if (is_relay() && (pieces() ^ pieces(PAWN, KING)))
       givesCheck = true;
 #endif
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;

@@ -281,6 +281,17 @@ namespace {
             *moveList++ = make_move(to - UpLeft, to);
         }
 
+#ifdef KNIGHTRELAY
+        if (V == KNIGHTRELAY_VARIANT)
+            for (b1 = pos.pieces(Us, PAWN); b1; )
+            {
+                Square from = pop_lsb(&b1);
+                if ((b2 = pos.attacks_from<KNIGHT>(from)) & pos.pieces(Us, KNIGHT))
+                    for (b2 &= target & ~(Rank1BB | Rank8BB); b2; )
+                        *moveList++ = make_move(from, pop_lsb(&b2));
+            }
+        else
+#endif
         if (pos.ep_square() != SQ_NONE)
         {
             assert(rank_of(pos.ep_square()) == relative_rank(Us, RANK_6));
@@ -327,8 +338,12 @@ namespace {
         Bitboard b = pos.attacks_from<Pt>(from) & target;
 #ifdef KNIGHTRELAY
         if (V == KNIGHTRELAY_VARIANT)
-            if (pos.attacks_from(KNIGHT, from) & pos.pieces(us, KNIGHT))
+        {
+            if (Pt == KNIGHT)
+                b &= ~pos.pieces();
+            else if (pos.attacks_from(KNIGHT, from) & pos.pieces(us, KNIGHT))
                 b |= pos.attacks_from(KNIGHT, from) & target;
+        }
 #endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
@@ -423,11 +438,6 @@ namespace {
             if (Type == QUIETS)
                 b &= ~passed_pawn_span(WHITE, ksq);
         }
-#endif
-#ifdef KNIGHTRELAY
-        if (V == KNIGHTRELAY_VARIANT)
-            if (pos.attacks_from(KNIGHT, ksq) & pos.pieces(Us, KNIGHT))
-                b |= pos.attacks_from(KNIGHT, ksq) & target;
 #endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
@@ -833,6 +843,9 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #endif
 #ifdef TWOKINGS
   if (pos.is_two_kings()) validate = true;
+#endif
+#ifdef KNIGHTRELAY
+  if (pos.is_knight_relay()) validate = pos.pieces(KNIGHT);
 #endif
 #ifdef RELAY
   if (pos.is_relay()) validate = pos.pieces(~us) ^ pos.pieces(~us, PAWN, KING);
