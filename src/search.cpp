@@ -639,6 +639,9 @@ void Thread::search() {
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
+#ifdef HELPMATE
+              if (rootPos.is_helpmate()) bestValue = -bestValue;
+#endif
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -688,6 +691,9 @@ void Thread::search() {
 
               assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
           }
+#ifdef HELPMATE
+          if (rootPos.is_helpmate()) bestValue = -bestValue;
+#endif
 
           // Sort the PV lines searched so far and update the GUI
           std::stable_sort(rootMoves.begin() + pvFirst, rootMoves.begin() + pvIdx + 1);
@@ -949,6 +955,9 @@ namespace {
 #ifdef HORDE
     if (pos.is_horde()) {} else
 #endif
+#ifdef HELPMATE
+    if (pos.is_helpmate()) {} else
+#endif
     if (!rootNode && TB::Cardinality)
     {
         int piecesCount = pos.count<ALL_PIECES>();
@@ -1037,6 +1046,10 @@ namespace {
 
         tte->save(posKey, VALUE_NONE, ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
     }
+#ifdef HELPMATE
+    if (pos.is_helpmate())
+        eval = -eval;
+#endif
 
     // Step 7. Razoring (~1 Elo)
 #ifdef ANTI
@@ -1049,6 +1062,14 @@ namespace {
 #endif
 #ifdef LOSERS
     if (pos.is_losers() && pos.can_capture_losers())
+    {
+        improving =   ss->staticEval >= (ss-2)->staticEval
+                   || (ss-2)->staticEval == VALUE_NONE;
+        goto moves_loop;
+    }
+#endif
+#ifdef HELPMATE
+    if (pos.is_helpmate())
     {
         improving =   ss->staticEval >= (ss-2)->staticEval
                    || (ss-2)->staticEval == VALUE_NONE;
@@ -1074,6 +1095,9 @@ namespace {
     // Step 8. Futility pruning: child node (~50 Elo)
 #ifdef EXTINCTION
     if (pos.is_extinction()) {} else
+#endif
+#ifdef HELPMATE
+    if (pos.is_helpmate()) {} else
 #endif
     if (   !PvNode
         &&  depth < 6
@@ -1253,6 +1277,10 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv = nullptr;
 
       extension = 0;
+#ifdef HELPMATE
+      if (pos.is_helpmate())
+          captureOrPromotion = (type_of(move) == PROMOTION);
+#endif
       captureOrPromotion = pos.capture_or_promotion(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
@@ -1300,6 +1328,9 @@ moves_loop: // When in check, search starts from here
 #ifdef ANTI
               if (pos.is_anti()) {} else
 #endif
+#ifdef HELPMATE
+              if (pos.is_helpmate()) {} else
+#endif
               if (!pos.see_ge(move, Value(-(32 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth)))
                   continue;
           }
@@ -1338,6 +1369,9 @@ moves_loop: // When in check, search starts from here
           Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
           ss->excludedMove = move;
           value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+#ifdef HELPMATE
+          if (pos.is_helpmate()) value = -value;
+#endif
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
@@ -1507,6 +1541,10 @@ moves_loop: // When in check, search starts from here
           Depth d = Utility::clamp(newDepth - r, 1, newDepth);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+#ifdef HELPMATE
+          if (pos.is_helpmate())
+              value = -value;
+#endif
 
           doFullDepthSearch = value > alpha && d != newDepth;
 
@@ -1523,6 +1561,10 @@ moves_loop: // When in check, search starts from here
       if (doFullDepthSearch)
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+#ifdef HELPMATE
+          if (pos.is_helpmate())
+              value = -value;
+#endif
 
           if (didLMR && !captureOrPromotion)
           {
@@ -1545,6 +1587,10 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
+#ifdef HELPMATE
+          if (pos.is_helpmate())
+              value = -value;
+#endif
       }
 
       // Step 18. Undo move
@@ -1803,6 +1849,9 @@ moves_loop: // When in check, search starts from here
 #ifdef RACE
           && !(pos.is_race() && type_of(pos.piece_on(from_sq(move))) == KING && rank_of(to_sq(move)) == RANK_8)
 #endif
+#ifdef HELPMATE
+          && !pos.is_helpmate()
+#endif
           &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
@@ -1856,6 +1905,10 @@ moves_loop: // When in check, search starts from here
       // Make and search the move
       pos.do_move(move, st, givesCheck);
       value = -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
+#ifdef HELPMATE
+      if (pos.is_helpmate())
+          value = -value;
+#endif
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);

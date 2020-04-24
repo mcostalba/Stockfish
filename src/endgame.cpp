@@ -833,6 +833,46 @@ Value Endgame<ANTI_VARIANT, NN>::operator()(const Position& pos) const {
 }
 #endif
 
+#ifdef HELPMATE
+template<>
+Value Endgame<HELPMATE_VARIANT, KXK>::operator()(const Position& pos) const {
+
+  assert(pos.variant() == HELPMATE_VARIANT);
+#ifdef ANTIHELPMATE
+  assert(strongSide == pos.is_antihelpmate() ? BLACK : WHITE);
+#else
+  assert(strongSide == WHITE);
+#endif
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  // Alias variables because helpmates have a winner and a loser
+  Color winnerSide = strongSide, loserSide = weakSide;
+
+  // Stalemate detection with lone king (and pawns)
+  if (pos.side_to_move() == loserSide && !pos.non_pawn_material(loserSide) && !MoveList<LEGAL>(pos).size())
+      return VALUE_DRAW;
+
+  Square winnerKSq = pos.square<KING>(winnerSide);
+  Square loserKSq = pos.square<KING>(loserSide);
+
+  Value result =  pos.non_pawn_material()
+                + pos.count<PAWN>() * PawnValueEg
+                + (pos.non_pawn_material(winnerSide) >= RookValueMg ? push_to_edge(loserKSq) : push_to_corner(loserKSq))
+                + push_close(winnerKSq, loserKSq);
+
+  if (   pos.count<QUEEN>(winnerSide)
+      || pos.count<ROOK>(winnerSide)
+      || (    pos.count<BISHOP>(winnerSide)
+          && (pos.count<PAWN>(loserSide) || pos.count<KNIGHT>(loserSide)
+              || ((pos.pieces(BISHOP) & ~DarkSquares) && (pos.pieces(BISHOP) & DarkSquares))))
+      || (    pos.count<KNIGHT>(winnerSide)
+          && (pos.count<ALL_PIECES>() - pos.count<QUEEN>(loserSide) > 3)))
+      result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+
+  return winnerSide == pos.side_to_move() ? result : -result;
+}
+#endif
+
 #ifdef ATOMIC
 template<>
 Value Endgame<ATOMIC_VARIANT, KXK>::operator()(const Position& pos) const {

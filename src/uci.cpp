@@ -67,6 +67,9 @@ namespace {
 #ifdef LOSERS
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
+#ifdef HELPMATE
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+#endif
 #ifdef RACE
   "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1",
 #endif
@@ -75,6 +78,9 @@ namespace {
 #endif
 #ifdef TWOKINGS
   "rnbqkknr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKKNR w KQkq - 0 1",
+#endif
+#ifdef ANTIHELPMATE
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 #endif
 #ifdef GIVEAWAY
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

@@ -356,6 +356,9 @@ namespace {
 #ifdef ATOMIC
   Endgame<ATOMIC_VARIANT, KXK> EvaluateAtomicKXK[] = { Endgame<ATOMIC_VARIANT, KXK>(WHITE), Endgame<ATOMIC_VARIANT, KXK>(BLACK) };
 #endif
+#ifdef HELPMATE
+  Endgame<HELPMATE_VARIANT, KXK> EvaluateHelpmateKXK[] = { Endgame<HELPMATE_VARIANT, KXK>(WHITE), Endgame<HELPMATE_VARIANT, KXK>(BLACK) };
+#endif
 
   Endgame<CHESS_VARIANT, KBPsK>  ScaleKBPsK[]  = { Endgame<CHESS_VARIANT, KBPsK>(WHITE),  Endgame<CHESS_VARIANT, KBPsK>(BLACK) };
   Endgame<CHESS_VARIANT, KQKRPs> ScaleKQKRPs[] = { Endgame<CHESS_VARIANT, KQKRPs>(WHITE), Endgame<CHESS_VARIANT, KQKRPs>(BLACK) };
@@ -372,6 +375,13 @@ namespace {
   bool is_KXK_atomic(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
           && pos.non_pawn_material(us) >= RookValueMg + KnightValueMg;
+  }
+#endif
+
+#ifdef HELPMATE
+  bool is_KXK_helpmate(const Position& pos, Color us) {
+    return   more_than_one(pos.pieces(us))
+          && pos.non_pawn_material() >= RookValueMg;
   }
 #endif
 
@@ -499,6 +509,22 @@ Entry* probe(const Position& pos) {
               e->evaluationFunction = &EvaluateAtomicKXK[c];
               return e;
           }
+  break;
+#endif
+#ifdef HELPMATE
+  case HELPMATE_VARIANT:
+  {
+#ifdef ANTIHELPMATE
+      Color c = pos.is_antihelpmate() ? BLACK : WHITE;
+#else
+      Color c = WHITE;
+#endif
+      if (is_KXK_helpmate(pos, c))
+      {
+          e->evaluationFunction = &EvaluateHelpmateKXK[c];
+          return e;
+      }
+  }
   break;
 #endif
   case CHESS_VARIANT:
