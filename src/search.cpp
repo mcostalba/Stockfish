@@ -1115,9 +1115,6 @@ namespace {
 #ifdef GRID
     if (pos.is_grid()) {} else
 #endif
-#ifdef HORDE
-    if (pos.is_horde()) {} else
-#endif
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
         && (ss-1)->statScore < 23397
