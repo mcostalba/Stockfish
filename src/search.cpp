@@ -958,6 +958,12 @@ namespace {
 #ifdef HELPMATE
     if (pos.is_helpmate()) {} else
 #endif
+#ifdef KNIGHTRELAY
+    if (pos.is_knight_relay() && pos.pieces(PAWN, KNIGHT)) {} else
+#endif
+#ifdef RELAY
+    if (pos.is_relay()) {} else
+#endif
     if (!rootNode && TB::Cardinality)
     {
         int piecesCount = pos.count<ALL_PIECES>();
