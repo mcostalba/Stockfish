@@ -269,7 +269,6 @@ namespace {
     e->passedPawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
     e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks_bb<Us>(ourPawns);
-    e->blockedCount[Us] = 0;
 
 #ifdef HORDE
     if (pos.is_horde() && pos.is_horde_color(Us))
@@ -310,7 +309,7 @@ namespace {
 #endif
         support    = neighbours & rank_bb(s - Up);
 
-        e->blockedCount[Us] += blocked || more_than_one(leverPush);
+        e->blockedCount += blocked || more_than_one(leverPush);
 
         // A pawn is backward when it is behind all pawns of the same color on
         // the adjacent files and cannot safely advance.
@@ -386,6 +385,7 @@ Entry* probe(const Position& pos) {
       return e;
 
   e->key = key;
+  e->blockedCount = 0;
   e->scores[WHITE] = evaluate<WHITE>(pos, e);
   e->scores[BLACK] = evaluate<BLACK>(pos, e);
 
