@@ -482,74 +482,98 @@ constexpr Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
 },
 #ifdef ANTI
 {
-  { VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti },
-  { VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti },
+  { VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti, VALUE_ZERO }
 },
 #endif
 #ifdef ATOMIC
 {
-  { VALUE_ZERO, PawnValueMgAtomic, KnightValueMgAtomic, BishopValueMgAtomic, RookValueMgAtomic, QueenValueMgAtomic },
-  { VALUE_ZERO, PawnValueEgAtomic, KnightValueEgAtomic, BishopValueEgAtomic, RookValueEgAtomic, QueenValueEgAtomic },
+  { VALUE_ZERO, PawnValueMgAtomic, KnightValueMgAtomic, BishopValueMgAtomic, RookValueMgAtomic, QueenValueMgAtomic, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgAtomic, KnightValueEgAtomic, BishopValueEgAtomic, RookValueEgAtomic, QueenValueEgAtomic, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgAtomic, KnightValueMgAtomic, BishopValueMgAtomic, RookValueMgAtomic, QueenValueMgAtomic, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgAtomic, KnightValueEgAtomic, BishopValueEgAtomic, RookValueEgAtomic, QueenValueEgAtomic, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef CRAZYHOUSE
 {
-  { VALUE_ZERO, PawnValueMgHouse, KnightValueMgHouse, BishopValueMgHouse, RookValueMgHouse, QueenValueMgHouse },
-  { VALUE_ZERO, PawnValueEgHouse, KnightValueEgHouse, BishopValueEgHouse, RookValueEgHouse, QueenValueEgHouse },
+  { VALUE_ZERO, PawnValueMgHouse, KnightValueMgHouse, BishopValueMgHouse, RookValueMgHouse, QueenValueMgHouse, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHouse, KnightValueEgHouse, BishopValueEgHouse, RookValueEgHouse, QueenValueEgHouse, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgHouse, KnightValueMgHouse, BishopValueMgHouse, RookValueMgHouse, QueenValueMgHouse, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHouse, KnightValueEgHouse, BishopValueEgHouse, RookValueEgHouse, QueenValueEgHouse, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef EXTINCTION
 {
-  { VALUE_ZERO, PawnValueMgExtinction, KnightValueMgExtinction, BishopValueMgExtinction, RookValueMgExtinction, QueenValueMgExtinction, KingValueMgExtinction },
-  { VALUE_ZERO, PawnValueEgExtinction, KnightValueEgExtinction, BishopValueEgExtinction, RookValueEgExtinction, QueenValueEgExtinction, KingValueEgExtinction },
+  { VALUE_ZERO, PawnValueMgExtinction, KnightValueMgExtinction, BishopValueMgExtinction, RookValueMgExtinction, QueenValueMgExtinction, KingValueMgExtinction, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgExtinction, KnightValueEgExtinction, BishopValueEgExtinction, RookValueEgExtinction, QueenValueEgExtinction, KingValueEgExtinction, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgExtinction, KnightValueMgExtinction, BishopValueMgExtinction, RookValueMgExtinction, QueenValueMgExtinction, KingValueMgExtinction, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgExtinction, KnightValueEgExtinction, BishopValueEgExtinction, RookValueEgExtinction, QueenValueEgExtinction, KingValueEgExtinction, VALUE_ZERO }
 },
 #endif
 #ifdef GRID
 {
-  { VALUE_ZERO, PawnValueMgGrid, KnightValueMgGrid, BishopValueMgGrid, RookValueMgGrid, QueenValueMgGrid },
-  { VALUE_ZERO, PawnValueEgGrid, KnightValueEgGrid, BishopValueEgGrid, RookValueEgGrid, QueenValueEgGrid },
+  { VALUE_ZERO, PawnValueMgGrid, KnightValueMgGrid, BishopValueMgGrid, RookValueMgGrid, QueenValueMgGrid, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgGrid, KnightValueEgGrid, BishopValueEgGrid, RookValueEgGrid, QueenValueEgGrid, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgGrid, KnightValueMgGrid, BishopValueMgGrid, RookValueMgGrid, QueenValueMgGrid, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgGrid, KnightValueEgGrid, BishopValueEgGrid, RookValueEgGrid, QueenValueEgGrid, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef HORDE
 {
-  { VALUE_ZERO, PawnValueMgHorde, KnightValueMgHorde, BishopValueMgHorde, RookValueMgHorde, QueenValueMgHorde, KingValueMgHorde },
-  { VALUE_ZERO, PawnValueEgHorde, KnightValueEgHorde, BishopValueEgHorde, RookValueEgHorde, QueenValueEgHorde, KingValueEgHorde },
+  { VALUE_ZERO, PawnValueMgHorde, KnightValueMgHorde, BishopValueMgHorde, RookValueMgHorde, QueenValueMgHorde, KingValueMgHorde, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHorde, KnightValueEgHorde, BishopValueEgHorde, RookValueEgHorde, QueenValueEgHorde, KingValueEgHorde, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgHorde, KnightValueMgHorde, BishopValueMgHorde, RookValueMgHorde, QueenValueMgHorde, KingValueMgHorde, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHorde, KnightValueEgHorde, BishopValueEgHorde, RookValueEgHorde, QueenValueEgHorde, KingValueEgHorde, VALUE_ZERO }
 },
 #endif
 #ifdef KOTH
 {
-  { VALUE_ZERO, PawnValueMgHill, KnightValueMgHill, BishopValueMgHill, RookValueMgHill, QueenValueMgHill },
-  { VALUE_ZERO, PawnValueEgHill, KnightValueEgHill, BishopValueEgHill, RookValueEgHill, QueenValueEgHill },
+  { VALUE_ZERO, PawnValueMgHill, KnightValueMgHill, BishopValueMgHill, RookValueMgHill, QueenValueMgHill, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHill, KnightValueEgHill, BishopValueEgHill, RookValueEgHill, QueenValueEgHill, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgHill, KnightValueMgHill, BishopValueMgHill, RookValueMgHill, QueenValueMgHill, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgHill, KnightValueEgHill, BishopValueEgHill, RookValueEgHill, QueenValueEgHill, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef LOSERS
 {
-  { VALUE_ZERO, PawnValueMgLosers, KnightValueMgLosers, BishopValueMgLosers, RookValueMgLosers, QueenValueMgLosers },
-  { VALUE_ZERO, PawnValueEgLosers, KnightValueEgLosers, BishopValueEgLosers, RookValueEgLosers, QueenValueEgLosers },
+  { VALUE_ZERO, PawnValueMgLosers, KnightValueMgLosers, BishopValueMgLosers, RookValueMgLosers, QueenValueMgLosers, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgLosers, KnightValueEgLosers, BishopValueEgLosers, RookValueEgLosers, QueenValueEgLosers, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgLosers, KnightValueMgLosers, BishopValueMgLosers, RookValueMgLosers, QueenValueMgLosers, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgLosers, KnightValueEgLosers, BishopValueEgLosers, RookValueEgLosers, QueenValueEgLosers, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef HELPMATE
 {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef RACE
 {
-  { VALUE_ZERO, VALUE_ZERO, KnightValueMgRace, BishopValueMgRace, RookValueMgRace, QueenValueMgRace },
-  { VALUE_ZERO, VALUE_ZERO, KnightValueEgRace, BishopValueEgRace, RookValueEgRace, QueenValueEgRace },
+  { VALUE_ZERO, VALUE_ZERO, KnightValueMgRace, BishopValueMgRace, RookValueMgRace, QueenValueMgRace, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, KnightValueEgRace, BishopValueEgRace, RookValueEgRace, QueenValueEgRace, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, VALUE_ZERO, KnightValueMgRace, BishopValueMgRace, RookValueMgRace, QueenValueMgRace, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, VALUE_ZERO, KnightValueEgRace, BishopValueEgRace, RookValueEgRace, QueenValueEgRace, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef THREECHECK
 {
-  { VALUE_ZERO, PawnValueMgThreeCheck, KnightValueMgThreeCheck, BishopValueMgThreeCheck, RookValueMgThreeCheck, QueenValueMgThreeCheck },
-  { VALUE_ZERO, PawnValueEgThreeCheck, KnightValueEgThreeCheck, BishopValueEgThreeCheck, RookValueEgThreeCheck, QueenValueEgThreeCheck },
+  { VALUE_ZERO, PawnValueMgThreeCheck, KnightValueMgThreeCheck, BishopValueMgThreeCheck, RookValueMgThreeCheck, QueenValueMgThreeCheck, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgThreeCheck, KnightValueEgThreeCheck, BishopValueEgThreeCheck, RookValueEgThreeCheck, QueenValueEgThreeCheck, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgThreeCheck, KnightValueMgThreeCheck, BishopValueMgThreeCheck, RookValueMgThreeCheck, QueenValueMgThreeCheck, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgThreeCheck, KnightValueEgThreeCheck, BishopValueEgThreeCheck, RookValueEgThreeCheck, QueenValueEgThreeCheck, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef TWOKINGS
 {
-  { VALUE_ZERO, PawnValueMgTwoKings, KnightValueMgTwoKings, BishopValueMgTwoKings, RookValueMgTwoKings, QueenValueMgTwoKings, KingValueMgTwoKings },
-  { VALUE_ZERO, PawnValueEgTwoKings, KnightValueEgTwoKings, BishopValueEgTwoKings, RookValueEgTwoKings, QueenValueEgTwoKings, KingValueEgTwoKings },
+  { VALUE_ZERO, PawnValueMgTwoKings, KnightValueMgTwoKings, BishopValueMgTwoKings, RookValueMgTwoKings, QueenValueMgTwoKings, KingValueMgTwoKings, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgTwoKings, KnightValueEgTwoKings, BishopValueEgTwoKings, RookValueEgTwoKings, QueenValueEgTwoKings, KingValueEgTwoKings, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueMgTwoKings, KnightValueMgTwoKings, BishopValueMgTwoKings, RookValueMgTwoKings, QueenValueMgTwoKings, KingValueMgTwoKings, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEgTwoKings, KnightValueEgTwoKings, BishopValueEgTwoKings, RookValueEgTwoKings, QueenValueEgTwoKings, KingValueEgTwoKings, VALUE_ZERO }
 },
 #endif
 };
