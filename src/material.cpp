@@ -499,7 +499,7 @@ Entry* probe(const Position& pos) {
   if ((e->evaluationFunction = Endgames::probe<Value>(key)) != nullptr)
       return e;
 
-  switch (pos.variant())
+  switch (pos.subvariant())
   {
 #ifdef ATOMIC
   case ATOMIC_VARIANT:
@@ -511,13 +511,16 @@ Entry* probe(const Position& pos) {
           }
   break;
 #endif
+#ifdef ANTIHELPMATE
+  case ANTIHELPMATE_VARIANT:
+  /* fall-through */
+#endif
 #ifdef HELPMATE
   case HELPMATE_VARIANT:
   {
-#ifdef ANTIHELPMATE
-      Color c = pos.is_antihelpmate() ? BLACK : WHITE;
-#else
       Color c = WHITE;
+#ifdef ANTIHELPMATE
+      c = pos.is_antihelpmate() ? BLACK : WHITE;
 #endif
       if (is_KXK_helpmate(pos, c))
       {

@@ -837,10 +837,11 @@ Value Endgame<ANTI_VARIANT, NN>::operator()(const Position& pos) const {
 template<>
 Value Endgame<HELPMATE_VARIANT, KXK>::operator()(const Position& pos) const {
 
-  assert(pos.variant() == HELPMATE_VARIANT);
 #ifdef ANTIHELPMATE
+  assert(pos.subvariant() == ANTIHELPMATE_VARIANT || pos.subvariant() == HELPMATE_VARIANT);
   assert(strongSide == pos.is_antihelpmate() ? BLACK : WHITE);
 #else
+  assert(pos.subvariant() == HELPMATE_VARIANT);
   assert(strongSide == WHITE);
 #endif
   assert(!pos.checkers()); // Eval is never called when in check

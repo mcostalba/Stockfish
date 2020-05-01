@@ -137,9 +137,6 @@ enum Variant {
 #ifdef LOSERS
   LOSERS_VARIANT,
 #endif
-#ifdef HELPMATE
-  HELPMATE_VARIANT,
-#endif
 #ifdef RACE
   RACE_VARIANT,
 #endif
@@ -154,6 +151,9 @@ enum Variant {
   //subvariants
 #ifdef ANTIHELPMATE
   ANTIHELPMATE_VARIANT,
+#endif
+#ifdef HELPMATE
+  HELPMATE_VARIANT,
 #endif
 #ifdef GIVEAWAY
   GIVEAWAY_VARIANT,
@@ -216,9 +216,6 @@ static std::vector<std::string> variants = {
 #ifdef LOSERS
 "losers",
 #endif
-#ifdef HELPMATE
-"helpmate",
-#endif
 #ifdef RACE
 "racingkings",
 #endif
@@ -231,6 +228,9 @@ static std::vector<std::string> variants = {
 //subvariants
 #ifdef ANTIHELPMATE
 "antihelpmate",
+#endif
+#ifdef HELPMATE
+"helpmate",
 #endif
 #ifdef GIVEAWAY
 "giveaway",
@@ -542,14 +542,6 @@ constexpr Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
     VALUE_ZERO, PawnValueEgLosers, KnightValueEgLosers, BishopValueEgLosers, RookValueEgLosers, QueenValueEgLosers, VALUE_ZERO, VALUE_ZERO },
   { VALUE_ZERO, PawnValueMgLosers, KnightValueMgLosers, BishopValueMgLosers, RookValueMgLosers, QueenValueMgLosers, VALUE_ZERO, VALUE_ZERO,
     VALUE_ZERO, PawnValueEgLosers, KnightValueEgLosers, BishopValueEgLosers, RookValueEgLosers, QueenValueEgLosers, VALUE_ZERO, VALUE_ZERO }
-},
-#endif
-#ifdef HELPMATE
-{
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
-    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO },
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
-    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO }
 },
 #endif
 #ifdef RACE
@@ -889,7 +881,11 @@ inline Variant main_variant(Variant v) {
   {
 #ifdef ANTIHELPMATE
   case ANTIHELPMATE_VARIANT:
-      return HELPMATE_VARIANT;
+      return CHESS_VARIANT;
+#endif
+#ifdef HELPMATE
+  case HELPMATE_VARIANT:
+      return CHESS_VARIANT;
 #endif
 #ifdef GIVEAWAY
   case GIVEAWAY_VARIANT:

@@ -253,13 +253,6 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
     "1nbq1bnr/1ppkpppp/3p4/1r3P1K/p7/2P5/PP1PP1PP/RNBQ1BNR w - - 0 1"
   },
 #endif
-#ifdef HELPMATE
-  {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    "R7/8/8/8/8/8/7k/5K2 b - - 0 1",
-    "8/8/8/8/k7/2R5/p5N1/7K b - - 0 1"
-  },
-#endif
 #ifdef RACE
   {
     "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1",
@@ -285,6 +278,13 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #ifdef ANTIHELPMATE
   {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  },
+#endif
+#ifdef HELPMATE
+  {
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "R7/8/8/8/8/8/7k/5K2 b - - 0 1",
+    "8/8/8/8/k7/2R5/p5N1/7K b - - 0 1"
   },
 #endif
 #ifdef GIVEAWAY
@@ -420,9 +420,6 @@ const int defaultDepth[VARIANT_NB] = {
   13,
 #endif
 #ifdef LOSERS
-  13,
-#endif
-#ifdef HELPMATE
   13,
 #endif
 #ifdef RACE
