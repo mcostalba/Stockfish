@@ -189,10 +189,10 @@ namespace {
   };
 
   // Penalties for enemy's safe checks
-  constexpr int QueenSafeCheck  = 780;
-  constexpr int RookSafeCheck   = 1078;
-  constexpr int BishopSafeCheck = 635;
-  constexpr int KnightSafeCheck = 790;
+  constexpr int QueenSafeCheck  = 772;
+  constexpr int RookSafeCheck   = 1084;
+  constexpr int BishopSafeCheck = 645;
+  constexpr int KnightSafeCheck = 792;
 #ifdef CRAZYHOUSE
   constexpr int PawnSafeCheck   = 435;
 #endif
@@ -572,11 +572,14 @@ namespace {
 #endif
   };
   constexpr Score Hanging             = S( 69, 36);
-  constexpr Score KingProtector       = S(  7,  8);
+  constexpr Score BishopKingProtector = S(  6,  9);
+  constexpr Score KnightKingProtector = S(  8,  9);
   constexpr Score KnightOnQueen       = S( 16, 11);
   constexpr Score LongDiagonalBishop  = S( 45,  0);
   constexpr Score MinorBehindPawn     = S( 18,  3);
-  constexpr Score Outpost             = S( 30, 21);
+  constexpr Score KnightOutpost       = S( 56, 36);
+  constexpr Score BishopOutpost       = S( 30, 23);
+  constexpr Score ReachableOutpost    = S( 31, 22);
   constexpr Score PassedFile          = S( 11,  8);
   constexpr Score PawnlessFlank       = S( 17, 95);
   constexpr Score RestrictedPiece     = S(  7,  7);
@@ -813,17 +816,17 @@ namespace {
             // Bonus if piece is on an outpost square or can reach one
             bb = OutpostRanks & attackedBy[Us][PAWN] & ~pe->pawn_attacks_span(Them);
             if (bb & s)
-                score += Outpost * (Pt == KNIGHT ? 2 : 1);
-
+                score += (Pt == KNIGHT) ? KnightOutpost : BishopOutpost;
             else if (Pt == KNIGHT && bb & b & ~pos.pieces(Us))
-                score += Outpost;
+                score += ReachableOutpost;
 
             // Bonus for a knight or bishop shielded by pawn
             if (shift<Down>(pos.pieces(PAWN)) & s)
                 score += MinorBehindPawn;
 
             // Penalty if the piece is far from the king
-            score -= KingProtector * distance(pos.square<KING>(Us), s);
+            score -= (Pt == KNIGHT ? KnightKingProtector
+                                   : BishopKingProtector) * distance(pos.square<KING>(Us), s);
 
             if (Pt == BISHOP)
             {
@@ -964,7 +967,7 @@ namespace {
 #endif
     rookChecks = b1 & safe & (attackedBy[Them][ROOK] | (h & dropSafe));
     if (rookChecks)
-        kingDanger += more_than_one(rookChecks) ? RookSafeCheck * 3/2
+        kingDanger += more_than_one(rookChecks) ? RookSafeCheck * 175/100
                                                 : RookSafeCheck;
     else
         unsafeChecks |= b1 & (attackedBy[Them][ROOK] | h);
@@ -980,7 +983,7 @@ namespace {
                  & ~attackedBy[Us][QUEEN]
                  & ~rookChecks;
     if (queenChecks)
-        kingDanger += more_than_one(queenChecks) ? QueenSafeCheck * 3/2
+        kingDanger += more_than_one(queenChecks) ? QueenSafeCheck * 145/100
                                                  : QueenSafeCheck;
 
     // Enemy bishops checks: we count them only if they are from squares from
@@ -1004,7 +1007,7 @@ namespace {
 #endif
     knightChecks = pos.attacks_from<KNIGHT>(ksq) & (attackedBy[Them][KNIGHT] | (h & dropSafe));
     if (knightChecks & (safe | (h & dropSafe)))
-        kingDanger += more_than_one(knightChecks & (safe | (h & dropSafe))) ? KnightSafeCheck * 3/2
+        kingDanger += more_than_one(knightChecks & (safe | (h & dropSafe))) ? KnightSafeCheck * 162/100
                                                          : KnightSafeCheck;
     else
         unsafeChecks |= knightChecks & (attackedBy[Them][KNIGHT] | h);
@@ -1639,7 +1642,7 @@ namespace {
         {
             if (   pos.non_pawn_material(WHITE) == BishopValueMg
                 && pos.non_pawn_material(BLACK) == BishopValueMg)
-                sf = 22;
+                sf = 18 + 4 * popcount(pe->passed_pawns(strongSide));
             else
                 sf = 22 + 3 * pos.count<ALL_PIECES>(strongSide);
         }
