@@ -1077,8 +1077,8 @@ namespace {
 #ifdef HELPMATE
     if (pos.is_helpmate())
     {
-        improving =   ss->staticEval >= (ss-2)->staticEval
-                   || (ss-2)->staticEval == VALUE_NONE;
+        improving =  (ss-2)->staticEval == VALUE_NONE ? (ss->staticEval > (ss-4)->staticEval
+                  || (ss-4)->staticEval == VALUE_NONE) : ss->staticEval > (ss-2)->staticEval;
         goto moves_loop;
     }
 #endif
@@ -1101,9 +1101,6 @@ namespace {
     // Step 8. Futility pruning: child node (~50 Elo)
 #ifdef EXTINCTION
     if (pos.is_extinction()) {} else
-#endif
-#ifdef HELPMATE
-    if (pos.is_helpmate()) {} else
 #endif
     if (   !PvNode
         &&  depth < 6
