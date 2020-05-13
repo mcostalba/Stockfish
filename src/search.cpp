@@ -1061,8 +1061,7 @@ namespace {
 #ifdef ANTI
     if (pos.is_anti() && pos.can_capture())
     {
-        improving =   ss->staticEval >= (ss-2)->staticEval
-                   || (ss-2)->staticEval == VALUE_NONE;
+        improving = false;
         goto moves_loop;
     }
 #endif
@@ -1077,16 +1076,14 @@ namespace {
 #ifdef HELPMATE
     if (pos.is_helpmate())
     {
-        improving =  (ss-2)->staticEval == VALUE_NONE ? (ss->staticEval > (ss-4)->staticEval
-                  || (ss-4)->staticEval == VALUE_NONE) : ss->staticEval > (ss-2)->staticEval;
+        improving = false;
         goto moves_loop;
     }
 #endif
 #ifdef RACE
     if (pos.is_race() && (pos.pieces(KING) & (Rank7BB | Rank8BB)))
     {
-        improving =   ss->staticEval >= (ss-2)->staticEval
-                   || (ss-2)->staticEval == VALUE_NONE;
+        improving = false;
         goto moves_loop;
     }
 #endif
