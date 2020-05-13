@@ -292,7 +292,7 @@ const char* PawnlessDtzSuffixes[SUBVARIANT_NB] = {
 constexpr int TBPIECES = 7; // Max number of supported pieces
 
 enum { BigEndian, LittleEndian };
-enum TBType { KEY, WDL, DTZ }; // Used as template parameter
+enum TBType { WDL, DTZ }; // Used as template parameter
 
 // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
 enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, Wide = 16, SingleValue = 128 };
@@ -756,7 +756,18 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdl) : TBTable() {
 // at init time, accessed at probe time.
 class TBTables {
 
-    typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
+    struct Entry
+    {
+        Key key;
+        TBTable<WDL>* wdl;
+        TBTable<DTZ>* dtz;
+
+        template <TBType Type>
+        TBTable<Type>* get() const {
+            return (TBTable<Type>*)(Type == WDL ? (void*)wdl : (void*)dtz);
+        }
+    };
+    static_assert(std::is_trivially_copyable<Entry>::value, "");
 
 #if defined(ANTI)
     static constexpr int Size = 1 << 15; // 32K table, indexed by key's 15 lsb
@@ -772,12 +783,12 @@ class TBTables {
 
     void insert(Key key, TBTable<WDL>* wdl, TBTable<DTZ>* dtz) {
         uint32_t homeBucket = (uint32_t)key & (Size - 1);
-        Entry entry = std::make_tuple(key, wdl, dtz);
+        Entry entry{ key, wdl, dtz };
 
         // Ensure last element is empty to avoid overflow when looking up
         for (uint32_t bucket = homeBucket; bucket < Size + Overflow - 1; ++bucket) {
-            Key otherKey = std::get<KEY>(hashTable[bucket]);
-            if (otherKey == key || !std::get<WDL>(hashTable[bucket])) {
+            Key otherKey = hashTable[bucket].key;
+            if (otherKey == key || !hashTable[bucket].get<WDL>()) {
                 hashTable[bucket] = entry;
                 return;
             }
@@ -786,7 +797,7 @@ class TBTables {
             // insert here and search for a new spot for the other element instead.
             uint32_t otherHomeBucket = (uint32_t)otherKey & (Size - 1);
             if (otherHomeBucket > homeBucket) {
-                swap(entry, hashTable[bucket]);
+                std::swap(entry, hashTable[bucket]);
                 key = otherKey;
                 homeBucket = otherHomeBucket;
             }
@@ -799,8 +810,8 @@ public:
     template<TBType Type>
     TBTable<Type>* get(Key key) {
         for (const Entry* entry = &hashTable[(uint32_t)key & (Size - 1)]; ; ++entry) {
-            if (std::get<KEY>(*entry) == key || !std::get<Type>(*entry))
-                return std::get<Type>(*entry);
+            if (entry->key == key || !entry->get<Type>())
+                return entry->get<Type>();
         }
     }
 
