@@ -1596,6 +1596,7 @@ namespace {
                     + 24 * infiltration
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
+                    -  2 * pos.rule50_count()
                     -110 ;
 
     Value mg = mg_value(score);
@@ -1652,8 +1653,6 @@ namespace {
         }
         else
             sf = std::min(sf, 36 + 7 * pos.count<PAWN>(strongSide));
-
-        sf = std::max(0, sf - (pos.rule50_count() - 12) / 4);
     }
 
     return ScaleFactor(sf);
@@ -1747,7 +1746,8 @@ namespace {
         Trace::add(TOTAL, score);
     }
 
-    return  (pos.side_to_move() == WHITE ? v : -v) + Tempo; // Side to move point of view
+    // Side to move point of view
+    return (pos.side_to_move() == WHITE ? v : -v) + Tempo;
   }
 
 } // namespace
