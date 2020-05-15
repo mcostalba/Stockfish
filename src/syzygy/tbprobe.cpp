@@ -767,7 +767,6 @@ class TBTables {
             return (TBTable<Type>*)(Type == WDL ? (void*)wdl : (void*)dtz);
         }
     };
-    static_assert(std::is_trivially_copyable<Entry>::value, "");
 
 #if defined(ANTI)
     static constexpr int Size = 1 << 15; // 32K table, indexed by key's 15 lsb
