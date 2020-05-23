@@ -72,10 +72,10 @@ constexpr int MoveHorizon[VARIANT_NB] = { // Plan time management at most this m
 
 void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int ply) {
 
-  TimePoint minThinkingTime = Options["Minimum Thinking Time"];
-  TimePoint moveOverhead    = Options["Move Overhead"];
-  TimePoint slowMover       = Options["Slow Mover"];
-  TimePoint npmsec          = Options["nodestime"];
+  TimePoint minThinkingTime = TimePoint(Options["Minimum Thinking Time"]);
+  TimePoint moveOverhead    = TimePoint(Options["Move Overhead"]);
+  TimePoint slowMover       = TimePoint(Options["Slow Mover"]);
+  TimePoint npmsec          = TimePoint(Options["nodestime"]);
 
   // opt_scale is a percentage of available time to use for the current move.
   // max_scale is a multiplier applied to optimumTime.
@@ -128,8 +128,8 @@ void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int
   }
 
   // Never use more than 80% of the available time for this move
-  optimumTime = std::max<int>(minThinkingTime, opt_scale * timeLeft);
-  maximumTime = std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime);
+  optimumTime = std::max(minThinkingTime, TimePoint(opt_scale * timeLeft));
+  maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime));
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;

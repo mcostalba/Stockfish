@@ -1254,10 +1254,10 @@ bool Position::pseudo_legal(const Move m) const {
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
 #ifdef HORDE
-               && (rank_of(from) == relative_rank(us, RANK_2)
-                   || (is_horde() && rank_of(from) == relative_rank(us, RANK_1)))
+               && ((relative_rank(us, from) == RANK_2)
+                   || (is_horde() && relative_rank(us, from) == RANK_1))
 #else
-               && (rank_of(from) == relative_rank(us, RANK_2))
+               && (relative_rank(us, from) == RANK_2)
 #endif
                && empty(to)
                && empty(to - pawn_push(us))))
