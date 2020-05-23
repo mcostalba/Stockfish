@@ -68,7 +68,7 @@ namespace {
     S(17, 11),
 #endif
   };
-  constexpr Score BlockedStorm    = S(82, 82);
+  constexpr Score BlockedStorm  = S(82, 82);
   constexpr Score Doubled[VARIANT_NB] = {
     S(11, 56),
 #ifdef ANTI
@@ -105,7 +105,6 @@ namespace {
     S(13, 40),
 #endif
   };
-  constexpr Score DoubledIsolated = S(15, 57);
   constexpr Score Isolated[VARIANT_NB] = {
     S( 5, 15),
 #ifdef ANTI
@@ -142,8 +141,8 @@ namespace {
     S(13, 16),
 #endif
   };
-  constexpr Score WeakLever       = S( 0, 56);
-  constexpr Score WeakUnopposed   = S(13, 27);
+  constexpr Score WeakLever     = S( 0, 56);
+  constexpr Score WeakUnopposed = S(13, 27);
 
   // Connected pawn bonus
   constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
@@ -355,7 +354,7 @@ namespace {
             if (   (ourPawns & forward_file_bb(Them, s))
                 && popcount(opposed) == 1
                 && !(theirPawns & adjacent_files_bb(s)))
-                score -= DoubledIsolated;
+                score -= Doubled[pos.variant()];
         }
 
         else if (backward)
