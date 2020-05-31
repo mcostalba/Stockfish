@@ -408,7 +408,13 @@ namespace {
 #endif
 #ifdef ATOMIC
     if (V == ATOMIC_VARIANT)
+    {
+        // Blasts that explode the opposing king or explode all checkers
+        // are counted among evasive moves.
+        if (EVASIONS)
+            target |= pos.pieces(~Us) & (pos.checkers() | adjacent_squares_bb(pos.checkers() | pos.square<KING>(~Us)));
         target &= ~(pos.pieces(~Us) & adjacent_squares_bb(pos.pieces(Us, KING)));
+    }
 #endif
 #ifdef LOSERS
     if (V == LOSERS_VARIANT && pos.can_capture_losers())
