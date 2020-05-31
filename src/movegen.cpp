@@ -87,7 +87,7 @@ namespace {
 #ifdef HORDE
     if (V == HORDE_VARIANT && ksq == SQ_NONE) {} else
 #endif
-    if (Type == QUIET_CHECKS && (PseudoAttacks[KNIGHT][to] & ksq))
+    if (Type == QUIET_CHECKS && (attacks_bb<KNIGHT>(to) & ksq))
         *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
     else
         (void)ksq; // Silence a warning under MSVC
@@ -136,7 +136,7 @@ namespace {
     while (kings)
     {
         Square ksq = pop_lsb(&kings);
-        Bitboard b = pos.attacks_from<KING>(ksq) & target;
+        Bitboard b = attacks_bb<KING>(ksq) & target;
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
     }
@@ -207,8 +207,8 @@ namespace {
 
         if (Type == QUIET_CHECKS)
         {
-            b1 &= pos.attacks_from<PAWN>(ksq, Them);
-            b2 &= pos.attacks_from<PAWN>(ksq, Them);
+            b1 &= pawn_attacks_bb(Them, ksq);
+            b2 &= pawn_attacks_bb(Them, ksq);
 
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
@@ -299,7 +299,7 @@ namespace {
             for (b1 = pos.pieces(Us, PAWN); b1; )
             {
                 Square from = pop_lsb(&b1);
-                if ((b2 = pos.attacks_from<KNIGHT>(from)) & pos.pieces(Us, KNIGHT))
+                if ((b2 = attacks_bb<KNIGHT>(from)) & pos.pieces(Us, KNIGHT))
                     for (b2 &= target & ~(Rank1BB | Rank8BB); b2; )
                         *moveList++ = make_move(from, pop_lsb(&b2));
             }
@@ -315,7 +315,7 @@ namespace {
             if (Type == EVASIONS && !(target & (pos.ep_square() - Up)))
                 return moveList;
 
-            b1 = pawnsNotOn7 & pos.attacks_from<PAWN>(pos.ep_square(), Them);
+            b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
 
@@ -341,28 +341,28 @@ namespace {
         if (Checks)
         {
             if (    (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
-                && !(PseudoAttacks[Pt][from] & target & pos.check_squares(Pt)))
+                && !(attacks_bb<Pt>(from) & target & pos.check_squares(Pt)))
                 continue;
 
             if (pos.blockers_for_king(~us) & from)
                 continue;
         }
 
-        Bitboard b = pos.attacks_from<Pt>(from) & target;
+        Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
 #ifdef KNIGHTRELAY
         if (V == KNIGHTRELAY_VARIANT)
         {
             if (Pt == KNIGHT)
                 b &= ~pos.pieces();
-            else if (pos.attacks_from(KNIGHT, from) & pos.pieces(us, KNIGHT))
-                b |= pos.attacks_from(KNIGHT, from) & target;
+            else if (attacks_bb(KNIGHT, from) & pos.pieces(us, KNIGHT))
+                b |= attacks_bb(KNIGHT, from) & target;
         }
 #endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
             for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-                if (pos.attacks_from(pt, from) & pos.pieces(us, pt))
-                    b |= pos.attacks_from(pt, from) & target;
+                if (attacks_bb(pt, from, pos.pieces()) & pos.pieces(us, pt))
+                    b |= attacks_bb(pt, from, pos.pieces()) & target;
 #endif
 
         if (Checks)
@@ -446,6 +446,10 @@ namespace {
             moveList = generate_drops<Us, KING, Checks>(pos, moveList, b);
 #endif
     }
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(Us))
+        return moveList;
+#endif
 #endif
 
 #ifdef HORDE
@@ -476,13 +480,13 @@ namespace {
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
-        Bitboard b = pos.attacks_from<KING>(ksq) & target;
+        Bitboard b = attacks_bb<KING>(ksq) & target;
 #ifdef RACE
         if (V == RACE_VARIANT)
         {
             // Early generate king advance moves
             if (Type == CAPTURES)
-                b |= pos.attacks_from<KING>(ksq) & passed_pawn_span(WHITE, ksq) & ~pos.pieces();
+                b |= attacks_bb<KING>(ksq) & passed_pawn_span(WHITE, ksq) & ~pos.pieces();
             if (Type == QUIETS)
                 b &= ~passed_pawn_span(WHITE, ksq);
         }
@@ -490,8 +494,8 @@ namespace {
 #ifdef RELAY
         if (V == RELAY_VARIANT)
             for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-                if (pos.attacks_from(pt, ksq) & pos.pieces(Us, pt))
-                    b |= pos.attacks_from(pt, ksq) & target;
+                if (attacks_bb(pt, ksq, pos.pieces()) & pos.pieces(Us, pt))
+                    b |= attacks_bb(pt, ksq, pos.pieces()) & target;
 #endif
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
@@ -651,10 +655,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      Square from = pop_lsb(&dc);
      PieceType pt = type_of(pos.piece_on(from));
 
-     Bitboard b = pos.attacks_from(pt, from) & ~pos.pieces();
+     Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
 
      if (pt == KING)
-         b &= ~PseudoAttacks[QUEEN][pos.square<KING>(~us)];
+         b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
 
      while (b)
          *moveList++ = make_move(from, pop_lsb(&b));
@@ -763,11 +767,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   if (pos.is_atomic()) // Generate evasions for king, non capture moves
   {
       Bitboard kingRing = adjacent_squares_bb(pos.pieces(~us, KING));
-      b = pos.attacks_from<KING>(ksq) & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
+      b = attacks_bb<KING>(ksq) & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
   }
   else
 #endif
-  b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
+  b = attacks_bb<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
 #ifdef LOSERS
   if (pos.is_losers() && pos.can_capture_losers())
       b &= pos.pieces(~us);
@@ -780,7 +784,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       while (kings)
       {
           Square ksq2 = pop_lsb(&kings);
-          Bitboard b2 = pos.attacks_from<KING>(ksq2) & ~pos.pieces(us);
+          Bitboard b2 = attacks_bb<KING>(ksq2) & ~pos.pieces(us);
           while (b2)
               *moveList++ = make_move(ksq2, pop_lsb(&b2));
       }

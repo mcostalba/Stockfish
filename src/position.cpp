@@ -160,7 +160,7 @@ void Position::init() {
   for (Piece pc : Pieces)
       for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
           for (Square s2 = Square(s1 + 1); s2 <= SQ_H8; ++s2)
-              if (PseudoAttacks[type_of(pc)][s1] & s2)
+              if ((type_of(pc) != PAWN) && (attacks_bb(type_of(pc), s1, 0) & s2))
               {
                   Move move = make_move(s1, s2);
                   Key key = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::side;
@@ -515,6 +515,7 @@ void Position::set_check_info(StateInfo* si) const {
   }
 #endif
   Square ksq = square<KING>(~sideToMove);
+
 #ifdef ANTI
   if (is_anti()) { // There are no checks in antichess
   si->checkSquares[PAWN]   = 0;
@@ -539,10 +540,10 @@ void Position::set_check_info(StateInfo* si) const {
 #endif
 #ifdef GRID
   if (is_grid()) {
-  si->checkSquares[PAWN]   = attacks_from<PAWN>(ksq, ~sideToMove) & ~grid_bb(ksq);
-  si->checkSquares[KNIGHT] = attacks_from<KNIGHT>(ksq) & ~grid_bb(ksq);
-  si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq) & ~grid_bb(ksq);
-  si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[PAWN]   = pawn_attacks_bb(~sideToMove, ksq) & ~grid_bb(ksq);
+  si->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq) & ~grid_bb(ksq);
+  si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq) & ~grid_bb(ksq);
   si->checkSquares[QUEEN]  = (si->checkSquares[BISHOP] | si->checkSquares[ROOK]) & ~grid_bb(ksq);
   si->checkSquares[KING]   = 0;
   return;
@@ -559,27 +560,27 @@ void Position::set_check_info(StateInfo* si) const {
   return;
   }
 #endif
-  si->checkSquares[PAWN]   = attacks_from<PAWN>(ksq, ~sideToMove);
-  si->checkSquares[KNIGHT] = attacks_from<KNIGHT>(ksq);
-  si->checkSquares[BISHOP] = attacks_from<BISHOP>(ksq);
-  si->checkSquares[ROOK]   = attacks_from<ROOK>(ksq);
+  si->checkSquares[PAWN]   = pawn_attacks_bb(~sideToMove, ksq);
+  si->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq);
+  si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq, pieces());
+  si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq, pieces());
   si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
 #ifdef TWOKINGS
   if (is_two_kings())
-      si->checkSquares[KING] = attacks_from<KING>(ksq);
+      si->checkSquares[KING] = attacks_bb<KING>(ksq);
   else
 #endif
   si->checkSquares[KING]   = 0;
 #ifdef KNIGHTRELAY
   if (is_knight_relay())
       for (Bitboard b = si->checkSquares[KNIGHT] & (pieces(sideToMove) ^ pieces(sideToMove, PAWN)); b; )
-          si->checkSquares[KNIGHT] |= attacks_from(KNIGHT, pop_lsb(&b));
+          si->checkSquares[KNIGHT] |= attacks_bb(KNIGHT, pop_lsb(&b));
 #endif
 #ifdef RELAY
   if (is_relay())
       for (PieceType pt = KNIGHT; pt <= KING; ++pt)
           for (Bitboard b = si->checkSquares[pt] & (pieces(sideToMove) ^ pieces(sideToMove, PAWN)); b; )
-              si->checkSquares[pt] |= attacks_from(pt, pop_lsb(&b));
+              si->checkSquares[pt] |= attacks_bb(pt, pop_lsb(&b));
 #endif
 }
 
@@ -794,8 +795,8 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   pinners = 0;
 
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
-  Bitboard snipers = (  (PseudoAttacks[  ROOK][s] & pieces(QUEEN, ROOK))
-                      | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
+  Bitboard snipers = (  (attacks_bb<  ROOK>(s) & pieces(QUEEN, ROOK))
+                      | (attacks_bb<BISHOP>(s) & pieces(QUEEN, BISHOP))) & sliders;
 #ifdef RELAY
   if (is_relay())
       snipers |= PseudoAttacks[QUEEN][s] & relayed_attackers_to<BISHOP, QUEEN>(s, ~color_of(piece_on(s))) & (pieces() ^ pieces(PAWN)) & sliders;
@@ -824,23 +825,23 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 
 #ifdef GRID
   if (is_grid())
-      return  (  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
-               | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-               | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+      return  (  (pawn_attacks_bb(BLACK, s)       & pieces(WHITE, PAWN))
+               | (pawn_attacks_bb(WHITE, s)       & pieces(BLACK, PAWN))
+               | (attacks_bb<KNIGHT>(s)           & pieces(KNIGHT))
                | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
                | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-               | (attacks_from<KING>(s)           & pieces(KING)))
+               | (attacks_bb<KING>(s)             & pieces(KING)))
              & ~grid_bb(s);
 #endif
 #ifdef KNIGHTRELAY
   if (is_knight_relay())
   {
-      Bitboard b =  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
-                  | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-                  | (empty(s) ? (attacks_from<KNIGHT>(s) & pieces(KNIGHT)) : 0)
-                  | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
-                  | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-                  | (attacks_from<KING>(s)           & pieces(KING));
+      Bitboard b =  (pawn_attacks_bb(BLACK, s)         & pieces(WHITE, PAWN))
+                  | (pawn_attacks_bb(WHITE, s)         & pieces(BLACK, PAWN))
+                  | (empty(s) ? (attacks_bb<KNIGHT>(s) & pieces(KNIGHT)) : 0)
+                  | (attacks_bb<  ROOK>(s, occupied)   & pieces(  ROOK, QUEEN))
+                  | (attacks_bb<BISHOP>(s, occupied)   & pieces(BISHOP, QUEEN))
+                  | (attacks_bb<KING>(s)               & pieces(KING));
       for (Color c : { WHITE, BLACK })
           b |= relayed_attackers_to<KNIGHT, KNIGHT>(s, c, occupied);
       return b & ~pieces(KNIGHT);
@@ -849,23 +850,23 @@ Bitboard Position::attackers_to(Square s, Bitboard occupied) const {
 #ifdef RELAY
   if (is_relay())
   {
-      Bitboard b =  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
-                  | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-                  | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+      Bitboard b =  (pawn_attacks_bb(BLACK, s)       & pieces(WHITE, PAWN))
+                  | (pawn_attacks_bb(WHITE, s)       & pieces(BLACK, PAWN))
+                  | (attacks_bb<KNIGHT>(s)           & pieces(KNIGHT))
                   | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
                   | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-                  | (attacks_from<KING>(s)           & pieces(KING));
+                  | (attacks_bb<KING>(s)             & pieces(KING));
       for (Color c : { WHITE, BLACK })
           b |= relayed_attackers_to<KNIGHT, KING>(s, c, occupied);
       return b;
   }
 #endif
-  return  (attacks_from<PAWN>(s, BLACK)    & pieces(WHITE, PAWN))
-        | (attacks_from<PAWN>(s, WHITE)    & pieces(BLACK, PAWN))
-        | (attacks_from<KNIGHT>(s)         & pieces(KNIGHT))
+  return  (pawn_attacks_bb(BLACK, s)       & pieces(WHITE, PAWN))
+        | (pawn_attacks_bb(WHITE, s)       & pieces(BLACK, PAWN))
+        | (attacks_bb<KNIGHT>(s)           & pieces(KNIGHT))
         | (attacks_bb<  ROOK>(s, occupied) & pieces(  ROOK, QUEEN))
         | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-        | (attacks_from<KING>(s)           & pieces(KING));
+        | (attacks_bb<KING>(s)             & pieces(KING));
 }
 
 #ifdef RELAY
@@ -1234,11 +1235,11 @@ bool Position::pseudo_legal(const Move m) const {
   if (is_house() && type_of(m) == DROP) {} else
 #endif
 #ifdef KNIGHTRELAY
-  if (is_knight_relay() && type_of(pc) != KNIGHT && type_of(pc) != KING && (attacks_from<KNIGHT>(from) & to))
+  if (is_knight_relay() && type_of(pc) != KNIGHT && type_of(pc) != KING && (attacks_bb<KNIGHT>(from) & to))
   {
       if (type_of(pc) == PAWN && (Rank8BB | Rank1BB) & to)
           return false;
-      if (!(attacks_from<KNIGHT>(from) & pieces(us, KNIGHT)))
+      if (!(attacks_bb<KNIGHT>(from) & pieces(us, KNIGHT)))
           return false;
   }
   else
@@ -1250,7 +1251,7 @@ bool Position::pseudo_legal(const Move m) const {
       if ((Rank8BB | Rank1BB) & to)
           return false;
 
-      if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
+      if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
 #ifdef HORDE
@@ -1263,15 +1264,15 @@ bool Position::pseudo_legal(const Move m) const {
                && empty(to - pawn_push(us))))
           return false;
   }
-  else if (!(attacks_from(type_of(pc), from) & to))
+  else if (!(attacks_bb(type_of(pc), from, pieces()) & to))
   {
 #ifdef RELAY
       if (is_relay())
       {
           Bitboard b = 0;
           for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-              if (attacks_from(pt, from) & pieces(us, pt))
-                  b |= attacks_from(pt, from);
+              if (attacks_bb(pt, from) & pieces(us, pt))
+                  b |= attacks_bb(pt, from);
           if (!(b & to))
               return false;
       }
@@ -1451,7 +1452,7 @@ bool Position::gives_check(Move m) const {
           return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove) & ~grid_bb(rto))
                 && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
 #endif
-      return   (PseudoAttacks[ROOK][rto] & square<KING>(~sideToMove))
+      return   (attacks_bb<ROOK>(rto) & square<KING>(~sideToMove))
             && (attacks_bb<ROOK>(rto, (pieces() ^ kfrom ^ rfrom) | rto | kto) & square<KING>(~sideToMove));
   }
   default:
@@ -1751,7 +1752,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
           && !(is_atomic() && (attacks_bb(KING, to - pawn_push(us), 0) & square<KING>(them)))
 #endif
-          && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
+          && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
           k ^= Zobrist::enpassant[file_of(st->epSquare)];
@@ -2294,7 +2295,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       {
           // Direct checks
           for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-              if (attacks_from(pt, to) & square<KING>(~stm))
+              if (attacks_bb(pt, to) & square<KING>(~stm))
                   stmAttackers &= ~pieces(stm, pt);
 
           // Discovered checks

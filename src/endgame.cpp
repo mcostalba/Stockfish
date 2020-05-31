@@ -415,8 +415,8 @@ ScaleFactor Endgame<CHESS_VARIANT, KQKRPs>::operator()(const Position& pos) cons
       &&  relative_rank(weakSide, pos.square<KING>(strongSide)) >= RANK_4
       &&  relative_rank(weakSide, rsq) == RANK_3
       && (  pos.pieces(weakSide, PAWN)
-          & pos.attacks_from<KING>(kingSq)
-          & pos.attacks_from<PAWN>(rsq, strongSide)))
+          & attacks_bb<KING>(kingSq)
+          & pawn_attacks_bb(strongSide, rsq)))
           return SCALE_FACTOR_DRAW;
 
   return SCALE_FACTOR_NONE;
@@ -561,7 +561,7 @@ ScaleFactor Endgame<CHESS_VARIANT, KRPKB>::operator()(const Position& pos) const
       // the corner
       if (   rk == RANK_6
           && distance(psq + 2 * push, ksq) <= 1
-          && (PseudoAttacks[BISHOP][bsq] & (psq + push))
+          && (attacks_bb<BISHOP>(bsq) & (psq + push))
           && distance<File>(bsq, psq) >= 2)
           return ScaleFactor(8);
   }
@@ -700,14 +700,14 @@ ScaleFactor Endgame<CHESS_VARIANT, KBPPKB>::operator()(const Position& pos) cons
     if (   ksq == blockSq1
         && opposite_colors(ksq, wbsq)
         && (   bbsq == blockSq2
-            || (pos.attacks_from<BISHOP>(blockSq2) & pos.pieces(weakSide, BISHOP))
+            || (attacks_bb<BISHOP>(blockSq2, pos.pieces()) & pos.pieces(weakSide, BISHOP))
             || distance<Rank>(psq1, psq2) >= 2))
         return SCALE_FACTOR_DRAW;
 
     else if (   ksq == blockSq2
              && opposite_colors(ksq, wbsq)
              && (   bbsq == blockSq1
-                 || (pos.attacks_from<BISHOP>(blockSq1) & pos.pieces(weakSide, BISHOP))))
+                 || (attacks_bb<BISHOP>(blockSq1, pos.pieces()) & pos.pieces(weakSide, BISHOP))))
         return SCALE_FACTOR_DRAW;
     else
         return SCALE_FACTOR_NONE;
@@ -807,9 +807,9 @@ Value Endgame<ANTI_VARIANT, KN>::operator()(const Position& pos) const {
   Square NSq = pos.square<KNIGHT>(weakSide);
 
   // wins for knight
-  if (pos.side_to_move() == strongSide && (pos.attacks_from<KNIGHT>(NSq) & KSq))
+  if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq))
       return -VALUE_KNOWN_WIN;
-  if (pos.side_to_move() == weakSide && (pos.attacks_from<KNIGHT>(NSq) & pos.attacks_from<KING>(KSq)))
+  if (pos.side_to_move() == weakSide && (attacks_bb<KNIGHT>(NSq) & attacks_bb<KING>(KSq)))
       return VALUE_KNOWN_WIN;
 
   Value result = VALUE_KNOWN_WIN + push_to_edge(NSq) - push_to_edge(KSq);

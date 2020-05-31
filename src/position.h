@@ -136,9 +136,6 @@ public:
   Bitboard slider_attackers_to(Square s) const;
   Bitboard slider_attackers_to(Square s, Bitboard occupied) const;
 #endif
-  Bitboard attacks_from(PieceType pt, Square s) const;
-  template<PieceType> Bitboard attacks_from(Square s) const;
-  template<PieceType> Bitboard attacks_from(Square s, Color c) const;
   Bitboard slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const;
 
   // Properties of moves
@@ -532,24 +529,6 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
   return castlingRookSquare[cr];
 }
 
-template<PieceType Pt>
-inline Bitboard Position::attacks_from(Square s) const {
-  static_assert(Pt != PAWN, "Pawn attacks need color");
-
-  return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, pieces())
-        : Pt == QUEEN  ? attacks_from<ROOK>(s) | attacks_from<BISHOP>(s)
-        : PseudoAttacks[Pt][s];
-}
-
-template<>
-inline Bitboard Position::attacks_from<PAWN>(Square s, Color c) const {
-  return PawnAttacks[c][s];
-}
-
-inline Bitboard Position::attacks_from(PieceType pt, Square s) const {
-  return attacks_bb(pt, s, pieces());
-}
-
 inline Bitboard Position::attackers_to(Square s) const {
   return attackers_to(s, pieces());
 }
@@ -767,7 +746,7 @@ inline bool Position::is_anti_win() const {
 inline bool Position::can_capture() const {
   Square ep = ep_square();
   assert(ep == SQ_NONE
-         || (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+         || (pawn_attacks_bb(~sideToMove, ep) & pieces(sideToMove, PAWN)));
   if (ep != SQ_NONE)
       return true;
   Bitboard target = pieces(~sideToMove);
@@ -777,7 +756,7 @@ inline bool Position::can_capture() const {
   while (b2)
   {
       Square s = pop_lsb(&b2);
-      if (attacks_from(type_of(piece_on(s)), s) & target)
+      if (attacks_bb(type_of(piece_on(s)), s, pieces()) & target)
           return true;
   }
   return false;
@@ -815,7 +794,7 @@ inline bool Position::can_capture_losers() const {
 
   // A king may capture undefended pieces
   Square ksq = square<KING>(sideToMove);
-  Bitboard attacks = attacks_from<KING>(ksq) & pieces(~sideToMove);
+  Bitboard attacks = attacks_bb<KING>(ksq) & pieces(~sideToMove);
 
   // If not in check, unpinned non-king pieces and pawns may freely capture
   if (!attacks && !checkers() && !st->blockersForKing[sideToMove] && ep_square() == SQ_NONE)
@@ -831,10 +810,10 @@ inline bool Position::can_capture_losers() const {
 
   Square ep = ep_square();
   assert(ep == SQ_NONE
-         || (attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN)));
+         || (pawn_attacks_bb(~sideToMove, ep) & pieces(sideToMove, PAWN)));
   if (ep != SQ_NONE)
   {
-      Bitboard b = attacks_from<PAWN>(ep, ~sideToMove) & pieces(sideToMove, PAWN);
+      Bitboard b = pawn_attacks_bb(~sideToMove, ep) & pieces(sideToMove, PAWN);
       while (b)
       {
           // Test en passant legality by simulating the move
@@ -857,7 +836,7 @@ inline bool Position::can_capture_losers() const {
   {
       Square s = pop_lsb(&b);
       PieceType pt = type_of(piece_on(s));
-      attacks = pt == PAWN ? attacks_from<PAWN>(s, sideToMove) : attacks_from(pt, s);
+      attacks = pt == PAWN ? pawn_attacks_bb(sideToMove, s) : attacks_bb(pt, s, pieces());
 
       // A pinned piece may only capture along the pin
       if (st->blockersForKing[sideToMove] & s)
@@ -981,7 +960,7 @@ inline bool Position::is_race_loss() const {
   if (rank_of(square<KING>(sideToMove)) < (sideToMove == WHITE ? RANK_8 : RANK_7))
       return true;
   // Check whether the black king can move to the eighth rank
-  Bitboard b = attacks_from<KING>(square<KING>(sideToMove)) & rank_bb(RANK_8) & ~pieces(sideToMove);
+  Bitboard b = attacks_bb<KING>(square<KING>(sideToMove)) & rank_bb(RANK_8) & ~pieces(sideToMove);
   while (b)
       if (!(attackers_to(pop_lsb(&b)) & pieces(~sideToMove)))
           return false;
