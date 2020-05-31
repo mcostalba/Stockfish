@@ -411,7 +411,7 @@ namespace {
     {
         // Blasts that explode the opposing king or explode all checkers
         // are counted among evasive moves.
-        if (EVASIONS)
+        if (Type == EVASIONS)
             target |= pos.pieces(~Us) & (pos.checkers() | adjacent_squares_bb(pos.checkers() | pos.square<KING>(~Us)));
         target &= ~(pos.pieces(~Us) & adjacent_squares_bb(pos.pieces(Us, KING)));
     }
