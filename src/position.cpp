@@ -574,13 +574,13 @@ void Position::set_check_info(StateInfo* si) const {
 #ifdef KNIGHTRELAY
   if (is_knight_relay())
       for (Bitboard b = si->checkSquares[KNIGHT] & (pieces(sideToMove) ^ pieces(sideToMove, PAWN)); b; )
-          si->checkSquares[KNIGHT] |= attacks_bb(KNIGHT, pop_lsb(&b));
+          si->checkSquares[KNIGHT] |= attacks_bb(KNIGHT, pop_lsb(&b), 0);
 #endif
 #ifdef RELAY
   if (is_relay())
       for (PieceType pt = KNIGHT; pt <= KING; ++pt)
           for (Bitboard b = si->checkSquares[pt] & (pieces(sideToMove) ^ pieces(sideToMove, PAWN)); b; )
-              si->checkSquares[pt] |= attacks_bb(pt, pop_lsb(&b));
+              si->checkSquares[pt] |= attacks_bb(pt, pop_lsb(&b), 0);
 #endif
 }
 
@@ -1271,8 +1271,8 @@ bool Position::pseudo_legal(const Move m) const {
       {
           Bitboard b = 0;
           for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-              if (attacks_bb(pt, from) & pieces(us, pt))
-                  b |= attacks_bb(pt, from);
+              if (attacks_bb(pt, from, 0) & pieces(us, pt))
+                  b |= attacks_bb(pt, from, 0);
           if (!(b & to))
               return false;
       }
@@ -2295,7 +2295,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       {
           // Direct checks
           for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
-              if (attacks_bb(pt, to) & square<KING>(~stm))
+              if (attacks_bb(pt, to, 0) & square<KING>(~stm))
                   stmAttackers &= ~pieces(stm, pt);
 
           // Discovered checks

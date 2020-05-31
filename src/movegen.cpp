@@ -354,8 +354,8 @@ namespace {
         {
             if (Pt == KNIGHT)
                 b &= ~pos.pieces();
-            else if (attacks_bb(KNIGHT, from) & pos.pieces(us, KNIGHT))
-                b |= attacks_bb(KNIGHT, from) & target;
+            else if (attacks_bb<KNIGHT>(from) & pos.pieces(us, KNIGHT))
+                b |= attacks_bb<KNIGHT>(from) & target;
         }
 #endif
 #ifdef RELAY

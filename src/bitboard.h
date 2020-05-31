@@ -312,7 +312,7 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
   }
 }
 
-inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) {
+inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied) {
 
   assert((pt != PAWN) && (is_ok(s)));
 
