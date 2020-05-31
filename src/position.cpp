@@ -941,6 +941,9 @@ bool Position::legal(Move m) const {
   assert(!(is_losers() && !capture(m) && can_capture_losers()));
 #endif
 
+  // Pseudo-illegal moves are illegal
+  if ((var != CHESS_VARIANT || subvar != CHESS_VARIANT) && type_of(m) == NORMAL && !pseudo_legal(m))
+      return false;
 #ifdef RACE
   // Checking moves are illegal
   if (is_race() && gives_check(m))
@@ -992,9 +995,6 @@ bool Position::legal(Move m) const {
           Bitboard blast = attacks_bb(KING, to, 0) & (pieces() ^ pieces(PAWN));
 
           assert(!(blast & square<KING>(us)));
-          // Pawn capture which is not pseudo_legal
-          if (type_of(piece_on(from)) == PAWN && file_of(from) == file_of(to))
-              return false;
           if (blast & square<KING>(~us))
               return true;
           Bitboard b = pieces() ^ ((blast | capsq) | from);
