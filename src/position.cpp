@@ -297,7 +297,7 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           continue;
 #endif
 #ifdef PLACEMENT
-      if (is_placement() && pieceCountInHand[c][KING])
+      if (is_placement() && count_in_hand<KING>(c))
           continue;
 #endif
       Rank rank = relative_rank(c, RANK_1);
@@ -484,7 +484,7 @@ void Position::set_check_info(StateInfo* si) const {
   else
 #endif
 #ifdef PLACEMENT
-  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
+  if (is_placement() && count_in_hand<KING>())
   {
       si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
       si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
@@ -618,7 +618,7 @@ void Position::set_state(StateInfo* si) const {
   else
 #endif
 #ifdef PLACEMENT
-  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
+  if (is_placement() && count_in_hand<KING>())
       si->checkersBB = 0;
   else
 #endif
@@ -926,13 +926,13 @@ bool Position::legal(Move m) const {
 #endif
 #ifdef HORDE
 #ifdef PLACEMENT
-  assert((is_horde() && is_horde_color(us)) || (is_placement() && pieceCountInHand[us][KING]) || piece_on(square<KING>(us)) == make_piece(us, KING));
+  assert((is_horde() && is_horde_color(us)) || (is_placement() && count_in_hand<KING>(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
 #else
   assert((is_horde() && is_horde_color(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
 #endif
 #else
 #ifdef PLACEMENT
-  assert((is_placement() && pieceCountInHand[us][KING]) || piece_on(square<KING>(us)) == make_piece(us, KING));
+  assert((is_placement() && count_in_hand<KING>(us)) || piece_on(square<KING>(us)) == make_piece(us, KING));
 #else
   assert(piece_on(square<KING>(us)) == make_piece(us, KING));
 #endif
@@ -968,7 +968,7 @@ bool Position::legal(Move m) const {
               if (pieces(us, BISHOP) & ~DarkSquares)
                   b &= DarkSquares;
           }
-          else if (pieceCountInHand[us][BISHOP])
+          else if (count_in_hand<BISHOP>(us))
           {
               if (!(pieces(us, BISHOP) & DarkSquares) && !more_than_one(b & DarkSquares))
                   b &= ~DarkSquares;
@@ -978,7 +978,7 @@ bool Position::legal(Move m) const {
           if (to_sq(m) & ~b)
               return false;
       }
-      else if (pieceCountInHand[us][ALL_PIECES])
+      else if (count_in_hand<ALL_PIECES>(us))
           return false;
   }
 #endif
@@ -1723,7 +1723,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       drop_piece(pc, to);
       st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]-1];
 #ifdef PLACEMENT
-      if (is_placement() && !pieceCountInHand[us][ALL_PIECES])
+      if (is_placement() && !count_in_hand<ALL_PIECES>(us))
       {
           Square rsq, ksq = square<KING>(us);
           if (ksq == relative_square(us, SQ_E1))
@@ -2559,7 +2559,7 @@ bool Position::pos_is_ok() const {
   else
 #endif
 #ifdef PLACEMENT
-  if (is_placement() && (pieceCountInHand[WHITE][KING] || pieceCountInHand[BLACK][KING]))
+  if (is_placement() && count_in_hand<KING>())
   {
       if ((sideToMove != WHITE && sideToMove != BLACK))
           assert(0 && "pos_is_ok: Default");

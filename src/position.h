@@ -198,6 +198,7 @@ public:
 #ifdef CRAZYHOUSE
   bool is_house() const;
   template<PieceType Pt> int count_in_hand(Color c) const;
+  template<PieceType Pt> int count_in_hand() const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
   bool is_promoted(Square s) const;
@@ -867,6 +868,10 @@ inline bool Position::is_house() const {
 
 template<PieceType Pt> inline int Position::count_in_hand(Color c) const {
   return pieceCountInHand[c][Pt];
+}
+
+template<PieceType Pt> inline int Position::count_in_hand() const {
+  return count_in_hand<Pt>(WHITE) + count_in_hand<Pt>(BLACK);
 }
 
 inline void Position::add_to_hand(Color c, PieceType pt) {
