@@ -982,6 +982,10 @@ bool Position::legal(Move m) const {
           return false;
   }
 #endif
+#ifdef CRAZYHOUSE
+  if (is_house() && type_of(m) == DROP)
+      return pseudo_legal(m);
+#endif
 #ifdef ATOMIC
   // Atomic and atomic960 normal (non-castling), en passant, and promotion moves
   if (is_atomic() && type_of(m) != CASTLING)
@@ -1040,11 +1044,6 @@ bool Position::legal(Move m) const {
       return   !(attacks_bb<  ROOK>(ksq, occupied) & pieces(~us, QUEEN, ROOK))
             && !(attacks_bb<BISHOP>(ksq, occupied) & pieces(~us, QUEEN, BISHOP));
   }
-
-#ifdef CRAZYHOUSE
-  if (is_house() && type_of(m) == DROP)
-      return pieceCountInHand[us][type_of(moved_piece(m))] && empty(to_sq(m));
-#endif
 
   // Castling moves generation does not check if the castling path is clear of
   // enemy attacks, it is delayed at a later time: now!
