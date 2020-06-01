@@ -349,13 +349,13 @@ namespace {
 
         else if (!neighbours)
         {
-            score -=   Isolated[pos.variant()]
-                     + WeakUnopposed * !opposed;
-
-            if (   (ourPawns & forward_file_bb(Them, s))
-                && popcount(opposed) == 1
+            if (     opposed
+                &&  (ourPawns & forward_file_bb(Them, s))
                 && !(theirPawns & adjacent_files_bb(s)))
                 score -= Doubled[pos.variant()];
+            else
+                score -=   Isolated[pos.variant()]
+                         + WeakUnopposed * !opposed;
         }
 
         else if (backward)
