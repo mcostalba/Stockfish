@@ -33,15 +33,13 @@ fi
 
 # variants
 if [[ $1 == "" || $1 == "variant" ]]; then
-  expect perft.exp giveaway startpos 5 2732672 > /dev/null
+  expect perft.exp 3check startpos 5 4865609 > /dev/null
+  expect perft.exp antichess startpos 5 2732672 > /dev/null
   expect perft.exp atomic startpos 5 4864979 > /dev/null
   expect perft.exp crazyhouse startpos 5 4888832 > /dev/null
-  expect perft.exp grid startpos 5 3814913 > /dev/null
   expect perft.exp horde startpos 6 5396554 > /dev/null
-  expect perft.exp losers startpos 5 2723795 > /dev/null
+  expect perft.exp kingofthehill startpos 5 4865609 > /dev/null
   expect perft.exp racingkings startpos 5 9472927 > /dev/null
-  expect perft.exp twokings startpos 5 4629168 > /dev/null
-  expect perft.exp placement startpos 4 1597696 > /dev/null
 fi
 
 rm perft.exp
