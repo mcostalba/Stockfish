@@ -328,13 +328,12 @@ namespace {
   }
 
 
-  template<Variant V, PieceType Pt, bool Checks>
-  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Color us,
-                          Bitboard target) {
+  template<Variant V, Color Us, PieceType Pt, bool Checks>
+  ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
     static_assert(Pt != KING && Pt != PAWN, "Unsupported piece type in generate_moves()");
 
-    const Square* pl = pos.squares<Pt>(us);
+    const Square* pl = pos.squares<Pt>(Us);
 
     for (Square from = *pl; from != SQ_NONE; from = *++pl)
     {
@@ -344,7 +343,7 @@ namespace {
                 && !(attacks_bb<Pt>(from) & target & pos.check_squares(Pt)))
                 continue;
 
-            if (pos.blockers_for_king(~us) & from)
+            if (pos.blockers_for_king(~Us) & from)
                 continue;
         }
 
@@ -354,14 +353,14 @@ namespace {
         {
             if (Pt == KNIGHT)
                 b &= ~pos.pieces();
-            else if (attacks_bb<KNIGHT>(from) & pos.pieces(us, KNIGHT))
+            else if (attacks_bb<KNIGHT>(from) & pos.pieces(Us, KNIGHT))
                 b |= attacks_bb<KNIGHT>(from) & target;
         }
 #endif
 #ifdef RELAY
         if (V == RELAY_VARIANT)
             for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-                if (attacks_bb(pt, from, pos.pieces()) & pos.pieces(us, pt))
+                if (attacks_bb(pt, from, pos.pieces()) & pos.pieces(Us, pt))
                     b |= attacks_bb(pt, from, pos.pieces()) & target;
 #endif
 
@@ -426,10 +425,10 @@ namespace {
     {
 #endif
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
-    moveList = generate_moves<V, KNIGHT, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V, BISHOP, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V,   ROOK, Checks>(pos, moveList, Us, target);
-    moveList = generate_moves<V,  QUEEN, Checks>(pos, moveList, Us, target);
+    moveList = generate_moves<V, Us, KNIGHT, Checks>(pos, moveList, target);
+    moveList = generate_moves<V, Us, BISHOP, Checks>(pos, moveList, target);
+    moveList = generate_moves<V, Us,   ROOK, Checks>(pos, moveList, target);
+    moveList = generate_moves<V, Us,  QUEEN, Checks>(pos, moveList, target);
 #ifdef PLACEMENT
     }
 #endif
