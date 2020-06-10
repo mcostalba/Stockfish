@@ -242,7 +242,7 @@ namespace {
   struct Skill {
     explicit Skill(int l) : level(l) {}
     bool enabled() const { return level < 20; }
-    bool time_to_pick(Depth depth) const { return depth == 1 + level; }
+    bool time_to_pick(Depth depth) const { return depth == 1 + std::max(level, 0); }
     Move pick_best(size_t multiPV);
 
     int level;
@@ -478,12 +478,10 @@ void Thread::search() {
 
   // Pick integer skill levels, but non-deterministically round up or down
   // such that the average integer skill corresponds to the input floating point one.
-  // UCI_Elo is converted to a suitable fractional skill level, using anchoring
-  // to CCRL Elo (goldfish 1.13 = 2000) and a fit through Ordo derived Elo
-  // for match (TC 60+0.6) results spanning a wide range of k values.
+  // UCI_Elo (between 0 and 3000) is converted to a suitable fractional skill level.
   PRNG rng(now());
   double floatLevel = Options["UCI_LimitStrength"] ?
-                      Utility::clamp(std::pow((Options["UCI_Elo"] - 1346.6) / 143.4, 1 / 0.806), -20.0, 20.0) :
+                      Utility::clamp((Options["UCI_Elo"] - 1500.0) / 75.0, -20.0, 20.0) :
                         double(Options["Skill Level"]);
   int intLevel = int(floatLevel) +
                  ((floatLevel - int(floatLevel)) * 1024 > rng.rand<unsigned>() % 1024  ? 1 : 0);
