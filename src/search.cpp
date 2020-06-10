@@ -383,14 +383,8 @@ void MainThread::search() {
   }
   else
   {
-      for (Thread* th : Threads)
-      {
-          th->bestMoveChanges = 0;
-          if (th != this)
-              th->start_searching();
-      }
-
-      Thread::search(); // Let's start searching!
+      Threads.start_searching(); // start non-main threads
+      Thread::search();          // main thread start searching
   }
 
   // When we reach the maximum depth, we can arrive here without a raise of
@@ -407,9 +401,7 @@ void MainThread::search() {
   Threads.stop = true;
 
   // Wait until all threads have finished
-  for (Thread* th : Threads)
-      if (th != this)
-          th->wait_for_search_finished();
+  Threads.wait_for_search_finished();
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
   // the available ones before exiting.
@@ -417,82 +409,18 @@ void MainThread::search() {
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
 
   Thread* bestThread = this;
-#ifdef USELONGESTPV
-  size_t longestPlies = 0;
-  Thread* longestPVThread = this;
-  const size_t minPlies = 6;
-#endif
 
-  // Check if there are threads with a better score than main thread
-  if (    int(Options["MultiPV"]) == 1
-      && !Limits.depth
-      && !(Skill(Options["Skill Level"]).enabled() || int(Options["UCI_LimitStrength"]))
-      &&  rootMoves[0].pv[0] != MOVE_NONE)
-  {
-      std::map<Move, int64_t> votes;
-      Value minScore = this->rootMoves[0].score;
-
-      // Find minimum score
-      for (Thread* th: Threads)
-          minScore = std::min(minScore, th->rootMoves[0].score);
-
-      // Vote according to score and depth, and select the best thread
-      for (Thread* th : Threads)
-      {
-          votes[th->rootMoves[0].pv[0]] +=
-              (th->rootMoves[0].score - minScore + 14) * int(th->completedDepth);
-
-          if (abs(bestThread->rootMoves[0].score) >= VALUE_TB_WIN_IN_MAX_PLY)
-          {
-              // Make sure we pick the shortest mate / TB conversion or stave off mate the longest
-              if (th->rootMoves[0].score > bestThread->rootMoves[0].score)
-                  bestThread = th;
-          }
-          else if (   th->rootMoves[0].score >= VALUE_TB_WIN_IN_MAX_PLY
-                   || (   th->rootMoves[0].score > VALUE_TB_LOSS_IN_MAX_PLY
-                       && votes[th->rootMoves[0].pv[0]] > votes[bestThread->rootMoves[0].pv[0]]))
-              bestThread = th;
-#ifdef USELONGESTPV
-          longestPlies = std::max(th->rootMoves[0].pv.size(), longestPlies);
-#endif
-      }
-
-#ifdef USELONGESTPV
-      longestPVThread = bestThread;
-      if (bestThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies))
-      {
-          const int64_t maxVoteDiff = (int)longestPlies * Tempo;
-          for (Thread* th : Threads)
-          {
-              if (   votes[th->rootMoves[0].pv[0]] + maxVoteDiff < votes[bestThread->rootMoves[0].pv[0]]
-                  || th->rootMoves[0].pv.size() < std::min(minPlies, longestPVThread->rootMoves[0].pv.size()))
-                  continue;
-              auto begin = bestThread->rootMoves[0].pv.begin(),
-                     end = bestThread->rootMoves[0].pv.end();
-              if (std::mismatch(begin, end, th->rootMoves[0].pv.begin()).first != end)
-                  continue;
-
-              // Select among highly-voted PVs of length minPlies or longer
-              // If our current longest is short, allow a weakening of votes
-              if (   votes[th->rootMoves[0].pv[0]] > votes[longestPVThread->rootMoves[0].pv[0]]
-                  || (   longestPVThread->rootMoves[0].pv.size() < std::min(minPlies, longestPlies)
-                      && th->rootMoves[0].pv.size() > longestPVThread->rootMoves[0].pv.size()))
-                  longestPVThread = th;
-          }
-      }
-#endif
-  }
+  if (int(Options["MultiPV"]) == 1 &&
+      !Limits.depth &&
+      !(Skill(Options["Skill Level"]).enabled() || int(Options["UCI_LimitStrength"])) &&
+      rootMoves[0].pv[0] != MOVE_NONE)
+      bestThread = Threads.get_best_thread();
 
   bestPreviousScore = bestThread->rootMoves[0].score;
 
-#ifdef USELONGESTPV
-  if (longestPVThread != this)
-      sync_cout << UCI::pv(longestPVThread->rootPos, longestPVThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
-#else
   // Send again PV info if we have a new best thread
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
-#endif
 
   // Best move could be MOVE_NONE when searching on a terminal position
   sync_cout << "bestmove " << UCI::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());

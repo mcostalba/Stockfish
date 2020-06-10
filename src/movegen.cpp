@@ -764,7 +764,7 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       }
       else
 #endif
-      sliderAttacks |= LineBB[ksq][pop_lsb(&sliders)] & ~pos.checkers();
+      sliderAttacks |= line_bb(ksq, pop_lsb(&sliders)) & ~pos.checkers();
 
   // Generate evasions for king, capture and non capture moves
   Bitboard b;
