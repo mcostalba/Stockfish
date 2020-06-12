@@ -1853,7 +1853,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
         set<Type>(e, data);
 
 #ifdef ANTI
-        if (!e.hasPawns) {
+        if (pos.is_anti() && !e.hasPawns) {
             // Recalculate table key.
             std::string w2, b2;
             for (int i = 0; i < e.pieceCount; i++) {
