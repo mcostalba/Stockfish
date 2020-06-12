@@ -1563,23 +1563,21 @@ namespace {
   template<Tracing T>
   Value Evaluation<T>::winnable(Score score) const {
 
+    int complexity = 0;
+
 #ifdef ANTI
-    if (pos.is_anti())
-        return VALUE_ZERO;
+    if (pos.is_anti()) {} else
 #endif
 #ifdef HORDE
-    if (pos.is_horde())
-        return VALUE_ZERO;
+    if (pos.is_horde()) {} else
 #endif
 #ifdef PLACEMENT
-    if (pos.is_placement() && (pos.count_in_hand<KING>(WHITE) || pos.count_in_hand<KING>(BLACK)))
-        return VALUE_ZERO;
+    if (pos.is_placement() && (pos.count_in_hand<KING>(WHITE) || pos.count_in_hand<KING>(BLACK))) {} else
 #endif
 #ifdef LOSERS
-    if (pos.is_losers())
-        return VALUE_ZERO;
+    if (pos.is_losers()) {} else
 #endif
-
+    {
     int outflanking =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                      - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
 
@@ -1593,7 +1591,7 @@ namespace {
                      || rank_of(pos.square<KING>(BLACK)) < RANK_5;
 
     // Compute the initiative bonus for the attacking side
-    int complexity =   9 * pe->passed_count()
+    complexity =   9 * pe->passed_count()
                     + 12 * pos.count<PAWN>()
                     +  9 * outflanking
                     + 21 * pawnsOnBothFlanks
@@ -1601,6 +1599,7 @@ namespace {
                     + 51 * !pos.non_pawn_material()
                     - 43 * almostUnwinnable
                     -110 ;
+    }
 
     Value mg = mg_value(score);
     Value eg = eg_value(score);
