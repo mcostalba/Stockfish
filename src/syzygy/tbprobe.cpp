@@ -1853,7 +1853,7 @@ void* mapped(TBTable<Type>& e, const Position& pos) {
         set<Type>(e, data);
 
 #ifdef ANTI
-        if (pos.is_anti() && !e.hasPawns) {
+        if (main_variant(e.variant) == ANTI_VARIANT && !e.hasPawns) {
             // Recalculate table key.
             std::string w2, b2;
             for (int i = 0; i < e.pieceCount; i++) {
@@ -2339,13 +2339,15 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     // one as in case the best move is a losing ep, so it cannot be probed.
     if (*result == ZEROING_BEST_MOVE)
         return dtz_before_zeroing(wdl);
-
 #ifdef ANTI
-    if (pos.pieces(pos.side_to_move()) == pos.pieces(pos.side_to_move(), PAWN))
-        return dtz_before_zeroing(wdl);
+    if (pos.is_anti())
+    {
+        if (pos.pieces(pos.side_to_move()) == pos.pieces(pos.side_to_move(), PAWN))
+            return dtz_before_zeroing(wdl);
 
-    if (*result == THREAT && wdl > WDLDraw)
-        return wdl == WDLWin ? 2 : 102;
+        if (*result == THREAT && wdl > WDLDraw)
+            return wdl == WDLWin ? 2 : 102;
+    }
 #endif
 
     int dtz = probe_table<DTZ>(pos, result, wdl);
