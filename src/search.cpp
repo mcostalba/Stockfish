@@ -1250,7 +1250,8 @@ moves_loop: // When in check, search starts from here
                   && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
-                    + (*contHist[3])[movedPiece][to_sq(move)] < 27400)
+                    + (*contHist[3])[movedPiece][to_sq(move)]
+                    + (*contHist[5])[movedPiece][to_sq(move)] / 2 < 31400)
                   continue;
 
               // Prune moves with negative SEE (~20 Elo)
