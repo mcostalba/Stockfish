@@ -1927,7 +1927,7 @@ WDLScore sprobe_captures(Position &pos, WDLScore alpha, WDLScore beta, ProbeStat
 
     *result = OK;
 
-    for (const Move& move : moveList) {
+    for (const Move move : moveList) {
         pos.do_move(move, st);
         WDLScore v = -sprobe_ab(pos, -beta, -alpha, result);
         pos.undo_move(move);
@@ -1970,7 +1970,7 @@ WDLScore sprobe_ab(Position &pos, WDLScore alpha, WDLScore beta, ProbeState* res
         StateInfo st;
         auto moveList = MoveList<LEGAL>(pos);
 
-        for (const Move& move : moveList) {
+        for (const Move move : moveList) {
             pos.do_move(move, st);
             v = -sprobe_captures(pos, -beta, -alpha, result);
             pos.undo_move(move);
@@ -2031,7 +2031,7 @@ WDLScore search(Position& pos, ProbeState* result) {
     auto moveList = MoveList<LEGAL>(pos);
     size_t totalCount = moveList.size(), moveCount = 0;
 
-    for (const Move& move : moveList)
+    for (const Move move : moveList)
     {
         if (   !pos.capture(move)
             && (!CheckZeroingMoves || type_of(pos.moved_piece(move)) != PAWN))
@@ -2203,7 +2203,6 @@ void Tablebases::init(Variant variant, const std::string& paths) {
             LeadPawnsSize[leadPawnsCnt][f] = idx;
         }
 
-    // Add entries in TB tables if the corresponding files exsist
 #ifdef ANTI
     if (main_variant(variant) == ANTI_VARIANT) {
         for (PieceType p1 = PAWN; p1 <= KING; ++p1) {
@@ -2247,6 +2246,7 @@ void Tablebases::init(Variant variant, const std::string& paths) {
         }
     } else
 #endif
+    // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1) {
         TBTables.add(variant, {KING, p1}, {KING});
 
@@ -2363,7 +2363,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
     StateInfo st;
     int minDTZ = 0xFFFF;
 
-    for (const Move& move : MoveList<LEGAL>(pos))
+    for (const Move move : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN;
 

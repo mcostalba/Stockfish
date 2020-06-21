@@ -815,7 +815,7 @@ Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 void init() {
 
 for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
-  for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
+  for (Piece pc : {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING})
   {
       Score score = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
 
