@@ -809,9 +809,10 @@ Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 #endif
 
-// init() initializes piece-square tables: the white halves of the tables are
-// copied from Bonus[] adding the piece value, then the black halves of the
-// tables are initialized by flipping and changing the sign of the white scores.
+
+// PSQT::init() initializes piece-square tables: the white halves of the tables are
+// copied from Bonus[] and PBonus[], adding the piece value, then the black halves of
+// the tables are initialized by flipping and changing the sign of the white scores.
 void init() {
 
 for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
@@ -822,8 +823,8 @@ for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
           File f = File(edge_distance(file_of(s)));
-          psq[var][ pc][ s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
-                                                                                     : Bonus[var][pc][rank_of(s)][f]);
+          psq[var][ pc][s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
+                                                                                    : Bonus[var][pc][rank_of(s)][f]);
 #ifdef RACE
           if (var == RACE_VARIANT)
               psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];

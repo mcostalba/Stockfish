@@ -65,14 +65,13 @@ constexpr int MoveHorizon[VARIANT_NB] = { // Plan time management at most this m
 #endif
 };
 
-/// init() is called at the beginning of the search and calculates the bounds
-/// of time allowed for the current game ply.  We currently support:
-//      1) x basetime (+z increment)
-//      2) x moves in y seconds (+z increment)
+/// TimeManagement::init() is called at the beginning of the search and calculates
+/// the bounds of time allowed for the current game ply. We currently support:
+//      1) x basetime (+ z increment)
+//      2) x moves in y seconds (+ z increment)
 
 void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int ply) {
 
-  TimePoint minThinkingTime = TimePoint(Options["Minimum Thinking Time"]);
   TimePoint moveOverhead    = TimePoint(Options["Move Overhead"]);
   TimePoint slowMover       = TimePoint(Options["Slow Mover"]);
   TimePoint npmsec          = TimePoint(Options["nodestime"]);
@@ -98,7 +97,7 @@ void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int
 
   startTime = limits.startTime;
 
-  //Maximum move horizon of 50 moves
+  // Maximum move horizon of 50 moves
   int mtg = limits.movestogo ? std::min(limits.movestogo, MoveHorizon[var]) : MoveHorizon[var];
 
   // Make sure timeLeft is > 0 since we may use it as a divisor
@@ -128,7 +127,7 @@ void TimeManagement::init(Variant var, Search::LimitsType& limits, Color us, int
   }
 
   // Never use more than 80% of the available time for this move
-  optimumTime = std::max(minThinkingTime, TimePoint(opt_scale * timeLeft));
+  optimumTime = TimePoint(opt_scale * timeLeft);
   maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, max_scale * optimumTime));
 
   if (Options["Ponder"])
