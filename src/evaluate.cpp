@@ -1627,6 +1627,15 @@ namespace {
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
     int sf = me->scale_factor(pos, strongSide);
 
+#ifdef ANTI
+    if (pos.is_anti()) {} else
+#endif
+#ifdef EXTINCTION
+    if (pos.is_extinction()) {} else
+#endif
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<KING>(~strongSide)) {} else
+#endif
 #ifdef ATOMIC
     if (pos.is_atomic())
     {
@@ -1655,6 +1664,13 @@ namespace {
             else
                 sf = 22 + 3 * pos.count<ALL_PIECES>(strongSide);
         }
+        else if(   pos.non_pawn_material(WHITE) == RookValueMg
+                && pos.non_pawn_material(BLACK) == RookValueMg
+                && !pe->passed_pawns(strongSide)
+                && pos.count<PAWN>(strongSide) - pos.count<PAWN>(~strongSide) <= 1
+                && bool(KingSide & pos.pieces(strongSide, PAWN)) != bool(QueenSide & pos.pieces(strongSide, PAWN))
+                && (attacks_bb<KING>(pos.square<KING>(~strongSide)) & pos.pieces(~strongSide, PAWN)))
+            sf = 36;
         else
             sf = std::min(sf, 36 + 7 * pos.count<PAWN>(strongSide));
     }
