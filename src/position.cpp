@@ -1679,11 +1679,11 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 #ifdef TWOKINGS
   // Moving any king loses the castling rights
-  else if (st->castlingRights && type_of(pc) == KING)
+  else if (is_two_kings() && st->castlingRights && type_of(pc) == KING)
   {
-      int cr = castlingRightsMask[square<KING>(us)];
-      k ^= Zobrist::castling[st->castlingRights & cr];
-      st->castlingRights &= ~cr;
+      k ^= Zobrist::castling[st->castlingRights];
+      st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
+      k ^= Zobrist::castling[st->castlingRights];
   }
 #endif
 
