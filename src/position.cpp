@@ -1631,9 +1631,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
                   // Update castling rights if needed
                   if (st->castlingRights && castlingRightsMask[bsq])
                   {
-                      int cr = castlingRightsMask[bsq];
-                      k ^= Zobrist::castling[st->castlingRights & cr];
-                      st->castlingRights &= ~cr;
+                      k ^= Zobrist::castling[st->castlingRights];
+                      st->castlingRights &= ~castlingRightsMask[bsq];
+                      k ^= Zobrist::castling[st->castlingRights];
                   }
               }
           }
