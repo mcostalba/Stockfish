@@ -1,0 +1,21 @@
+name: Make CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: sudo apt install expect && pip3 install python-chess && git clone https://github.com/ddugovic/chess-artist.git ./tests/chess-artist --depth 1
+    - name: make
+      run: cd src && make -j3 build ARCH=x86-64-bmi2 COMP=clang debug=yes
+    - name: make check
+      run: cd src && ../tests/perft.sh && ../tests/reprosearch.sh && ../tests/puzzle.sh
