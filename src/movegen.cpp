@@ -69,28 +69,37 @@ namespace {
     }
 #endif
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+    {
         *moveList++ = make<PROMOTION>(to - D, to, QUEEN);
+#ifdef HORDE
+        if (V == HORDE_VARIANT && ksq == SQ_NONE) {} else
+#endif
+        if (attacks_bb<KNIGHT>(to) & ksq)
+        {
+            *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
+#ifdef EXTINCTION
+            if (V == EXTINCTION_VARIANT)
+                *moveList++ = make<PROMOTION>(to - D, to, KING);
+#endif
+        }
+    }
 
     if (Type == QUIETS || Type == EVASIONS || Type == NON_EVASIONS)
     {
         *moveList++ = make<PROMOTION>(to - D, to, ROOK);
         *moveList++ = make<PROMOTION>(to - D, to, BISHOP);
-        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
-#ifdef EXTINCTION
-        if (V == EXTINCTION_VARIANT)
-            *moveList++ = make<PROMOTION>(to - D, to, KING);
-#endif
-    }
-
-    // Knight promotion is the only promotion that can give a direct check
-    // that's not already included in the queen promotion.
 #ifdef HORDE
-    if (V == HORDE_VARIANT && ksq == SQ_NONE) {} else
+        if (V == HORDE_VARIANT && ksq == SQ_NONE) {} else
 #endif
-    if (Type == QUIET_CHECKS && (attacks_bb<KNIGHT>(to) & ksq))
-        *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
-    else
-        (void)ksq; // Silence a warning under MSVC
+        if (!(attacks_bb<KNIGHT>(to) & ksq))
+        {
+            *moveList++ = make<PROMOTION>(to - D, to, KNIGHT);
+#ifdef EXTINCTION
+            if (V == EXTINCTION_VARIANT)
+                *moveList++ = make<PROMOTION>(to - D, to, KING);
+#endif
+        }
+    }
 
     return moveList;
   }
@@ -537,8 +546,8 @@ namespace {
 } // namespace
 
 
-/// <CAPTURES>     Generates all pseudo-legal captures and queen promotions
-/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions
+/// <CAPTURES>     Generates all pseudo-legal captures plus queen and checking knight promotions
+/// <QUIETS>       Generates all pseudo-legal non-captures and underpromotions(except checking knight)
 /// <NON_EVASIONS> Generates all pseudo-legal captures and non-captures
 ///
 /// Returns a pointer to the end of the move list.
@@ -621,8 +630,8 @@ template ExtMove* generate<QUIETS>(const Position&, ExtMove*);
 template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 
 
-/// generate<QUIET_CHECKS> generates all pseudo-legal non-captures and knight
-/// underpromotions that give check. Returns a pointer to the end of the move list.
+/// generate<QUIET_CHECKS> generates all pseudo-legal non-captures.
+/// Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 #ifdef ANTI

@@ -199,9 +199,9 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 
    4) En passant target square (in algebraic notation). If there's no en passant
       target square, this is "-". If a pawn has just made a 2-square move, this
-      is the position "behind" the pawn. This is recorded only if there is a pawn
-      in position to make an en passant capture, and if there really is a pawn
-      that might have advanced two squares.
+      is the position "behind" the pawn. Following X-FEN standard, this is recorded only
+      if there is a pawn in position to make an en passant capture, and if there really
+      is a pawn that might have advanced two squares.
 
    5) Halfmove clock. This is the number of halfmoves since the last pawn advance
       or capture. This is used to determine if a draw can be claimed under the
@@ -344,21 +344,29 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           set_castling_right(c, ksq, rsq);
   }
 
-  // 4. En passant square. Ignore if no pawn capture is possible
+  // 4. En passant square.
+  // Ignore if square is invalid or not on side to move relative rank 6.
+  bool enpassant = false;
+
   if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
-      && ((ss >> row) && (sideToMove ? row == '3' : row == '6')))
+      && ((ss >> row) && (row == (sideToMove == WHITE ? '6' : '3'))))
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
-      if (   !(attackers_to(st->epSquare) & pieces(sideToMove, PAWN))
-          || !(pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove))))
-          st->epSquare = SQ_NONE;
+      // En passant square will be considered only if
+      // a) side to move have a pawn threatening epSquare
+      // b) there is an enemy pawn in front of epSquare
+      // c) there is no piece on epSquare or behind epSquare
+      enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
+               && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
+               && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
 #ifdef ATOMIC
-      else if (is_atomic() && (attacks_bb(KING, st->epSquare, 0) & square<KING>(sideToMove)))
-          st->epSquare = SQ_NONE;
+      if (is_atomic() && (attacks_bb(KING, st->epSquare, 0) & square<KING>(sideToMove)))
+          enpassant = false;
 #endif
   }
-  else
+
+  if (!enpassant)
       st->epSquare = SQ_NONE;
 
 #ifdef THREECHECK
