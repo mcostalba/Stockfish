@@ -138,7 +138,7 @@ const string engine_info(bool to_uci) {
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "Multi-Variant Stockfish " << Version << setfill('0');
+  ss << "Stockfish " << Version << setfill('0');
 
   if (Version.empty())
   {
@@ -148,7 +148,8 @@ const string engine_info(bool to_uci) {
          << setw(2) << day;
   }
 
-  ss << (to_uci  ? "\nid author ": " by ")
+  ss << " Multi-Variant"
+     << (to_uci  ? "\nid author ": " by ")
      << "D. Dugovic, F. Fichter et al.";
 
   return ss.str();
