@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -46,6 +44,7 @@ typedef bool(*fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
 #if defined(__linux__) && !defined(__ANDROID__)
 #include <stdlib.h>
@@ -139,7 +138,7 @@ const string engine_info(bool to_uci) {
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "Stockfish " << Version << setfill('0');
+  ss << "Multi-Variant Stockfish " << Version << setfill('0');
 
   if (Version.empty())
   {
@@ -149,10 +148,7 @@ const string engine_info(bool to_uci) {
          << setw(2) << day;
   }
 
-  ss << (Is64Bit ? " 64" : "")
-     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
-     << " Multi-Variant"
-     << (to_uci  ? "\nid author ": " by ")
+  ss << (to_uci  ? "\nid author ": " by ")
      << "D. Dugovic, F. Fichter et al.";
 
   return ss.str();
@@ -218,7 +214,33 @@ const std::string compiler_info() {
      compiler += " on unknown system";
   #endif
 
-  compiler += "\n __VERSION__ macro expands to: ";
+  compiler += "\nCompilation settings include: ";
+  compiler += (Is64Bit ? " 64bit" : " 32bit");
+  #if defined(USE_AVX512)
+    compiler += " AVX512";
+  #endif
+  #if defined(USE_AVX2)
+    compiler += " AVX2";
+  #endif
+  #if defined(USE_SSE42)
+    compiler += " SSE42";
+  #endif
+  #if defined(USE_SSE41)
+    compiler += " SSE41";
+  #endif
+  #if defined(USE_SSSE3)
+    compiler += " SSSE3";
+  #endif
+  #if defined(USE_SSE3)
+    compiler += " SSE3";
+  #endif
+    compiler += (HasPext ? " BMI2" : "");
+    compiler += (HasPopCnt ? " POPCNT" : "");
+  #if !defined(NDEBUG)
+    compiler += " DEBUG";
+  #endif
+
+  compiler += "\n__VERSION__ macro expands to: ";
   #ifdef __VERSION__
      compiler += __VERSION__;
   #else
@@ -296,6 +318,29 @@ void prefetch(void* addr) {
 
 #endif
 
+/// Wrappers for systems where the c++17 implementation doesn't guarantee the availability of aligned_alloc.
+/// Memory allocated with std_aligned_alloc must be freed with std_aligned_free.
+///
+
+void* std_aligned_alloc(size_t alignment, size_t size) {
+#if defined(__APPLE__)
+  return aligned_alloc(alignment, size);
+#elif defined(_WIN32)
+  return _mm_malloc(size, alignment);
+#else
+  return std::aligned_alloc(alignment, size);
+#endif
+}
+
+void std_aligned_free(void* ptr) {
+#if defined(__APPLE__)
+  free(ptr);
+#elif defined(_WIN32)
+  _mm_free(ptr);
+#else
+  free(ptr);
+#endif
+}
 
 /// aligned_ttmem_alloc() will return suitably aligned memory, and if possible use large pages.
 /// The returned pointer is the aligned one, while the mem argument is the one that needs

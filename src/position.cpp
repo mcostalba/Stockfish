@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -223,6 +221,9 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   subvar = v;
   var = main_variant(v);
 
+  // Each piece on board gets a unique ID used to track the piece later
+  PieceId piece_id, next_piece_id = PIECE_ID_ZERO;
+
   ss >> std::noskipws;
 
   // 1. Piece placement
@@ -242,7 +243,19 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 
       else if ((idx = PieceToChar.find(token)) != string::npos)
       {
-          put_piece(Piece(idx), sq);
+          auto pc = Piece(idx);
+          put_piece(pc, sq);
+
+          if (Eval::useNNUE)
+          {
+              // Kings get a fixed ID, other pieces get ID in order of placement
+              piece_id =
+                (idx == W_KING) ? PIECE_ID_WKING :
+                (idx == B_KING) ? PIECE_ID_BKING :
+                next_piece_id++;
+              evalList.put_piece(piece_id, sq, pc);
+          }
+
           ++sq;
       }
 #ifdef CRAZYHOUSE
@@ -1504,6 +1517,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   ++st->rule50;
   ++st->pliesFromNull;
 
+  // Used by NNUE
+  st->accumulator.computed_accumulation = false;
+  st->accumulator.computed_score = false;
+  PieceId dp0 = PIECE_ID_NONE;
+  PieceId dp1 = PIECE_ID_NONE;
+  auto& dp = st->dirtyPiece;
+  dp.dirty_num = 1;
+
   Color us = sideToMove;
   Color them = ~us;
   Square from = from_sq(m);
@@ -1586,6 +1607,16 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               }
           }
 #endif
+      }
+
+      if (Eval::useNNUE)
+      {
+          dp.dirty_num = 2; // 2 pieces moved
+          dp1 = piece_id_on(capsq);
+          dp.pieceId[1] = dp1;
+          dp.old_piece[1] = evalList.piece_with_id(dp1);
+          evalList.put_piece(dp1, capsq, NO_PIECE);
+          dp.new_piece[1] = evalList.piece_with_id(dp1);
       }
 
       // Update board and piece lists
@@ -1741,7 +1772,18 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   else
 #endif
   if (type_of(m) != CASTLING)
+  {
+      if (Eval::useNNUE)
+      {
+          dp0 = piece_id_on(from);
+          dp.pieceId[0] = dp0;
+          dp.old_piece[0] = evalList.piece_with_id(dp0);
+          evalList.put_piece(dp0, to, pc);
+          dp.new_piece[0] = evalList.piece_with_id(dp0);
+      }
+
       move_piece(from, to);
+  }
 
   // If the moving piece is a pawn do some special extra work
   if (type_of(pc) == PAWN)
@@ -1793,6 +1835,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #endif
               promotedPieces |= to;
 #endif
+
+          if (Eval::useNNUE)
+          {
+              dp0 = piece_id_on(to);
+              evalList.put_piece(dp0, to, promotion);
+              dp.new_piece[0] = evalList.piece_with_id(dp0);
+          }
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -1986,6 +2035,12 @@ void Position::undo_move(Move m) {
           promotedPieces = (promotedPieces ^ to) | from;
 #endif
 
+      if (Eval::useNNUE)
+      {
+          PieceId dp0 = st->dirtyPiece.pieceId[0];
+          evalList.put_piece(dp0, from, pc);
+      }
+
       if (st->capturedPiece)
       {
           Square capsq = to;
@@ -2030,6 +2085,14 @@ void Position::undo_move(Move m) {
                   promotedPieces |= to;
           }
 #endif
+
+          if (Eval::useNNUE)
+          {
+              PieceId dp1 = st->dirtyPiece.pieceId[1];
+              assert(evalList.piece_with_id(dp1).from[WHITE] == PS_NONE);
+              assert(evalList.piece_with_id(dp1).from[BLACK] == PS_NONE);
+              evalList.put_piece(dp1, capsq, st->capturedPiece);
+          }
       }
   }
 
@@ -2051,6 +2114,34 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   rto = relative_square(us, kingSide ? SQ_F1 : SQ_D1);
   to = relative_square(us, kingSide ? SQ_G1 : SQ_C1);
 
+  if (Eval::useNNUE)
+  {
+      PieceId dp0, dp1;
+      auto& dp = st->dirtyPiece;
+      dp.dirty_num = 2; // 2 pieces moved
+
+      if (Do)
+      {
+          dp0 = piece_id_on(from);
+          dp1 = piece_id_on(rfrom);
+          dp.pieceId[0] = dp0;
+          dp.old_piece[0] = evalList.piece_with_id(dp0);
+          evalList.put_piece(dp0, to, make_piece(us, KING));
+          dp.new_piece[0] = evalList.piece_with_id(dp0);
+          dp.pieceId[1] = dp1;
+          dp.old_piece[1] = evalList.piece_with_id(dp1);
+          evalList.put_piece(dp1, rto, make_piece(us, ROOK));
+          dp.new_piece[1] = evalList.piece_with_id(dp1);
+      }
+      else
+      {
+          dp0 = piece_id_on(to);
+          dp1 = piece_id_on(rto);
+          evalList.put_piece(dp0, from, make_piece(us, KING));
+          evalList.put_piece(dp1, rfrom, make_piece(us, ROOK));
+      }
+  }
+
   // Remove both pieces first since squares could overlap in Chess960
   remove_piece(Do ? from : to);
   remove_piece(Do ? rfrom : rto);
@@ -2071,7 +2162,14 @@ void Position::do_null_move(StateInfo& newSt) {
   assert(!(is_anti() && can_capture()));
 #endif
 
-  std::memcpy(&newSt, st, sizeof(StateInfo));
+  if (Eval::useNNUE)
+  {
+      std::memcpy(&newSt, st, sizeof(StateInfo));
+      st->accumulator.computed_score = false;
+  }
+  else
+      std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+
   newSt.previous = st;
   st = &newSt;
 
