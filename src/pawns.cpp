@@ -31,7 +31,7 @@ namespace {
 
   // Pawn penalties
   constexpr Score Backward[VARIANT_NB] = {
-    S( 9, 24),
+    S( 8, 27),
 #ifdef ANTI
     S(26, 50),
 #endif
@@ -67,7 +67,7 @@ namespace {
 #endif
   };
   constexpr Score Doubled[VARIANT_NB] = {
-    S(11, 56),
+    S(11, 55),
 #ifdef ANTI
     S( 4, 51),
 #endif
@@ -103,7 +103,7 @@ namespace {
 #endif
   };
   constexpr Score Isolated[VARIANT_NB] = {
-    S( 5, 15),
+    S( 5, 17),
 #ifdef ANTI
     S(54, 69),
 #endif
@@ -138,18 +138,18 @@ namespace {
     S(13, 16),
 #endif
   };
-  constexpr Score WeakLever     = S( 0, 56);
-  constexpr Score WeakUnopposed = S(13, 27);
+  constexpr Score WeakLever     = S( 2, 54);
+  constexpr Score WeakUnopposed = S(15, 25);
 
   // Bonus for blocked pawns at 5th or 6th rank
-  constexpr Score BlockedPawn[2] = { S(-11, -4), S(-3, 4) };
+  constexpr Score BlockedPawn[2] = { S(-13, -4), S(-4, 3) };
 
   constexpr Score BlockedStorm[RANK_NB] = {
     S(0, 0), S(0, 0), S(76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2)
   };
 
   // Connected pawn bonus
-  constexpr int Connected[RANK_NB] = { 0, 7, 8, 12, 29, 48, 86 };
+  constexpr int Connected[RANK_NB] = { 0, 7, 8, 11, 24, 45, 85 };
 
   // Strength of pawn shelter for our king by [distance from edge][rank].
   // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
