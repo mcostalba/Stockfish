@@ -68,10 +68,8 @@ endif
 # prefetch = yes/no   --- -DUSE_PREFETCH   --- Use prefetch asm-instruction
 # popcnt = yes/no     --- -DUSE_POPCNT     --- Use popcnt asm-instruction
 # sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
-# sse3 = yes/no       --- -msse3           --- Use Intel Streaming SIMD Extensions 3
 # ssse3 = yes/no      --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41 = yes/no      --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
-# sse42 = yes/no      --- -msse4.2         --- Use Intel Streaming SIMD Extensions 4.2
 # avx2 = yes/no       --- -mavx2           --- Use Intel Advanced Vector Extensions 2
 # pext = yes/no       --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
 # avx512 = yes/no     --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
@@ -88,11 +86,10 @@ sanitize = no
 bits = 64
 prefetch = no
 popcnt = no
+mmx = no
 sse = no
-sse3 = no
 ssse3 = no
 sse41 = no
-sse42 = no
 avx2 = no
 pext = no
 avx512 = no
@@ -114,6 +111,7 @@ ifeq ($(ARCH),x86-32)
 	arch = i386
 	bits = 32
 	prefetch = yes
+	mmx = yes
 	sse = yes
 endif
 
@@ -127,18 +125,10 @@ ifeq ($(ARCH),x86-64)
 	sse = yes
 endif
 
-ifeq ($(ARCH),x86-64-sse3)
-	arch = x86_64
-	prefetch = yes
-	sse = yes
-	sse3 = yes
-endif
-
 ifeq ($(ARCH),x86-64-sse3-popcnt)
 	arch = x86_64
 	prefetch = yes
 	sse = yes
-	sse3 = yes
 	popcnt = yes
 endif
 
@@ -146,18 +136,7 @@ ifeq ($(ARCH),x86-64-ssse3)
 	arch = x86_64
 	prefetch = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
-endif
-
-ifeq ($(ARCH),x86-64-sse41)
-	arch = x86_64
-	prefetch = yes
-	popcnt = yes
-	sse = yes
-	sse3 = yes
-	ssse3 = yes
-	sse41 = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
@@ -165,20 +144,17 @@ ifeq ($(ARCH),x86-64-modern)
 	prefetch = yes
 	popcnt = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
 	sse41 = yes
 endif
 
-ifeq ($(ARCH),x86-64-sse42)
+ifeq ($(ARCH),x86-64-sse41-popcnt)
 	arch = x86_64
 	prefetch = yes
 	popcnt = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
 	sse41 = yes
-	sse42 = yes
 endif
 
 ifeq ($(ARCH),x86-64-avx2)
@@ -186,10 +162,8 @@ ifeq ($(ARCH),x86-64-avx2)
 	prefetch = yes
 	popcnt = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
 	sse41 = yes
-	sse42 = yes
 	avx2 = yes
 endif
 
@@ -198,10 +172,8 @@ ifeq ($(ARCH),x86-64-bmi2)
 	prefetch = yes
 	popcnt = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
 	sse41 = yes
-	sse42 = yes
 	avx2 = yes
 	pext = yes
 endif
@@ -211,10 +183,8 @@ ifeq ($(ARCH),x86-64-avx512)
 	prefetch = yes
 	popcnt = yes
 	sse = yes
-	sse3 = yes
 	ssse3 = yes
 	sse41 = yes
-	sse42 = yes
 	avx2 = yes
 	pext = yes
 	avx512 = yes
@@ -282,7 +252,7 @@ ifeq ($(COMP),gcc)
 	ifneq ($(KERNEL),Darwin)
 	   LDFLAGS += -Wl,--no-as-needed
 	endif
-	
+
 	gccversion = $(shell $(CXX) --version)
 	gccisclang = $(findstring clang,$(gccversion))
 endif
@@ -501,13 +471,6 @@ ifeq ($(avx512),yes)
 	endif
 endif
 
-ifeq ($(sse42),yes)
-	CXXFLAGS += -DUSE_SSE42
-	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
-		CXXFLAGS += -msse4.2
-	endif
-endif
-
 ifeq ($(sse41),yes)
 	CXXFLAGS += -DUSE_SSE41
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
@@ -522,10 +485,10 @@ ifeq ($(ssse3),yes)
 	endif
 endif
 
-ifeq ($(sse3),yes)
-	CXXFLAGS += -DUSE_SSE3
+ifeq ($(mmx),yes)
+	CXXFLAGS += -DUSE_MMX
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
-		CXXFLAGS += -msse3
+		CXXFLAGS += -mmmx
 	endif
 endif
 
@@ -608,14 +571,12 @@ help:
 	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
 	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
 	@echo "x86-64-avx2             > x86 64-bit with avx2 support"
-	@echo "x86-64-sse42            > x86 64-bit with sse42 support"
-	@echo "x86-64-modern           > x86 64-bit with sse41 support (x86-64-sse41)"
-	@echo "x86-64-sse41            > x86 64-bit with sse41 support"
+	@echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"
+	@echo "x86-64-modern           > the same as previous (x86-64-sse41-popcnt)"
 	@echo "x86-64-ssse3            > x86 64-bit with ssse3 support"
 	@echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 and popcnt support"
-	@echo "x86-64-sse3             > x86 64-bit with sse3 support"
 	@echo "x86-64                  > x86 64-bit generic"
-	@echo "x86-32                  > x86 32-bit (also enables SSE)"
+	@echo "x86-32                  > x86 32-bit (also enables MMX and SSE)"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "ppc-64                  > PPC 64-bit"
 	@echo "ppc-32                  > PPC 32-bit"
@@ -720,10 +681,8 @@ config-sanity:
 	@echo "prefetch: '$(prefetch)'"
 	@echo "popcnt: '$(popcnt)'"
 	@echo "sse: '$(sse)'"
-	@echo "sse3: '$(sse3)'"
 	@echo "ssse3: '$(ssse3)'"
 	@echo "sse41: '$(sse41)'"
-	@echo "sse42: '$(sse42)'"
 	@echo "avx2: '$(avx2)'"
 	@echo "pext: '$(pext)'"
 	@echo "avx512: '$(avx512)'"
@@ -746,10 +705,8 @@ config-sanity:
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(sse3)" = "yes" || test "$(sse3)" = "no"
 	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
 	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
-	@test "$(sse42)" = "yes" || test "$(sse42)" = "no"
 	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
 	@test "$(pext)" = "yes" || test "$(pext)" = "no"
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
