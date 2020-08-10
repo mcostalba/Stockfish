@@ -149,7 +149,7 @@ namespace {
     Value(12222),
 #endif
   };
-  constexpr Value NNUEThreshold  =   Value(460);
+  constexpr Value NNUEThreshold  =   Value(575);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[VARIANT_NB][PIECE_TYPE_NB] = {
@@ -1833,7 +1833,7 @@ Value Eval::evaluate(const Position& pos) {
   {
       Value v = eg_value(pos.psq_score());
       // Take NNUE eval only on balanced positions
-      if (abs(v) < NNUEThreshold + 20 * pos.count<PAWN>())
+      if (abs(v) < NNUEThreshold)
          return NNUE::evaluate(pos) + Tempo;
   }
   return Evaluation<NO_TRACE>(pos).value();
