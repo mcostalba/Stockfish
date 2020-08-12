@@ -70,6 +70,7 @@ for args in "eval" \
             "go depth 10" \
             "go movetime 1000" \
             "go wtime 8000 btime 8000 winc 500 binc 500" \
+            "bench chess 128 $threads 8 default depth" \
             "bench 128 $threads 8 default depth"
 do
 
@@ -121,8 +122,8 @@ cat << EOF > syzygy.exp
  send "uci\n"
  send "setoption name SyzygyPath value ../tests/syzygy/\n"
  expect "info string Found 35 tablebases" {} timeout {exit 1}
+ send "bench chess 128 1 8 default depth\n"
  send "bench 128 1 8 default depth\n"
- send "bench twokings 128 1 8 default depth\n"
  send "quit\n"
  expect eof
 

@@ -474,7 +474,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   string limit     = (is >> token) ? token : to_string(defaultDepth[mainVariant]);
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
-  string evalType  = (is >> token) ? token : "mixed";
+  string evalType  = (is >> token) ? token : varname == "chess" ? "mixed" : "classical";
 
   go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
