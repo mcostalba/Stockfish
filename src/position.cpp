@@ -1504,8 +1504,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic())
   {
-      std::memset(newSt.blastByTypeBB, 0, sizeof(newSt.blastByTypeBB));
-      std::memset(newSt.blastByColorBB, 0, sizeof(newSt.blastByColorBB));
+      std::memset(newSt.dirtyPiece.blastByTypeBB, 0, sizeof(newSt.dirtyPiece.blastByTypeBB));
+      std::memset(newSt.dirtyPiece.blastByColorBB, 0, sizeof(newSt.dirtyPiece.blastByColorBB));
   }
 #endif
   newSt.previous = st;
@@ -1568,8 +1568,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
       if (is_atomic())
       {
-          std::memcpy(st->blastByTypeBB, byTypeBB, sizeof(st->blastByTypeBB));
-          std::memcpy(st->blastByColorBB, byColorBB, sizeof(st->blastByColorBB));
+          std::memcpy(st->dirtyPiece.blastByTypeBB, byTypeBB, sizeof(st->dirtyPiece.blastByTypeBB));
+          std::memcpy(st->dirtyPiece.blastByColorBB, byColorBB, sizeof(st->dirtyPiece.blastByColorBB));
       }
 #endif
 
@@ -1945,7 +1945,7 @@ void Position::undo_move(Move m) {
   if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
   {
       for (PieceType pt = PAWN; pt <= KING; ++pt)
-          if (st->blastByTypeBB[pt] & from)
+          if (st->dirtyPiece.blastByTypeBB[pt] & from)
           {
               pc = make_piece(us, pt);
               break;
@@ -2065,7 +2065,7 @@ void Position::undo_move(Move m) {
                   Square bsq = pop_lsb(&blast);
                   for (Color c : { WHITE, BLACK })
                       for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-                          if (st->blastByColorBB[c] & st->blastByTypeBB[pt] & bsq)
+                          if (st->dirtyPiece.blastByColorBB[c] & st->dirtyPiece.blastByTypeBB[pt] & bsq)
                               put_piece(make_piece(c, pt), bsq);
               }
           }

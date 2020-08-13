@@ -53,10 +53,6 @@ struct StateInfo {
   Key        key;
   Bitboard   checkersBB;
   Piece      capturedPiece;
-#ifdef ATOMIC
-  Bitboard   blastByTypeBB[PIECE_TYPE_NB];
-  Bitboard   blastByColorBB[COLOR_NB];
-#endif
 #ifdef CRAZYHOUSE
   bool       capturedpromoted;
 #endif

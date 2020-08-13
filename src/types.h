@@ -716,6 +716,10 @@ struct DirtyPiece {
   // What changed from the piece with that piece number
   ExtPieceSquare old_piece[2];
   ExtPieceSquare new_piece[2];
+#ifdef ATOMIC
+  Bitboard blastByTypeBB[PIECE_TYPE_NB];
+  Bitboard blastByColorBB[COLOR_NB];
+#endif
 };
 
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
