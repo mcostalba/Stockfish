@@ -1736,17 +1736,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 #endif
 
-#ifdef ATOMIC
-  if (is_atomic() && captured) // Remove the blast piece(s)
-  {
-      remove_piece(from);
-      // Update material (hash key already updated)
-      st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
-      if (type_of(pc) != PAWN)
-          st->nonPawnMaterial[us] -= PieceValue[CHESS_VARIANT][MG][type_of(pc)];
-  }
-  else
-#endif
   // Move the piece. The tricky Chess960 castling is handled earlier
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
@@ -1782,6 +1771,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           dp.new_piece[0] = evalList.piece_with_id(dp0);
       }
 
+#ifdef ATOMIC
+      if (is_atomic() && captured) // Remove the blast piece(s)
+      {
+          remove_piece(from);
+          // Update material (hash key already updated)
+          st->materialKey ^= Zobrist::psq[pc][pieceCount[pc]];
+          if (type_of(pc) != PAWN)
+              st->nonPawnMaterial[us] -= PieceValue[CHESS_VARIANT][MG][type_of(pc)];
+      }
+      else
+#endif
       move_piece(from, to);
   }
 
