@@ -434,7 +434,7 @@ const int defaultDepth[VARIANT_NB] = {
 const string defaultEvalType[VARIANT_NB] = {
   "mixed",
 #ifdef ANTI
-  "classical",
+  "mixed",
 #endif
 #ifdef ATOMIC
   "classical",
@@ -464,7 +464,7 @@ const string defaultEvalType[VARIANT_NB] = {
   "mixed",
 #endif
 #ifdef TWOKINGS
-  "classical",
+  "mixed",
 #endif
 };
 

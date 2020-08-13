@@ -250,6 +250,12 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           {
               // Kings get a fixed ID, other pieces get ID in order of placement
               piece_id =
+#ifdef ANTI
+                is_anti() ? next_piece_id++ :
+#endif
+#ifdef TWOKINGS
+                is_two_kings() ? next_piece_id++ :
+#endif
                 (idx == W_KING) ? PIECE_ID_WKING :
                 (idx == B_KING) ? PIECE_ID_BKING :
                 next_piece_id++;
