@@ -443,7 +443,7 @@ const string defaultEvalType[VARIANT_NB] = {
   "classical",
 #endif
 #ifdef EXTINCTION
-  "classical",
+  "mixed",
 #endif
 #ifdef GRID
   "mixed",
@@ -464,7 +464,7 @@ const string defaultEvalType[VARIANT_NB] = {
   "mixed",
 #endif
 #ifdef TWOKINGS
-  "mixed",
+  "classical",
 #endif
 };
 
