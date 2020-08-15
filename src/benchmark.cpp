@@ -548,7 +548,11 @@ vector<string> setup_bench(const Position& current, istream& is) {
 
   for (const string& fen : fens)
       if (fen.find("setoption") != string::npos)
+      {
           list.emplace_back(fen);
+          if (fen.find("setoption name UCI_Variant") != string::npos)
+              posCounter = 0;
+      }
       else
       {
           if (evalType == "classical" || (evalType == "mixed" && posCounter % 2 == 0))
