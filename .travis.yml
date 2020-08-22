@@ -133,7 +133,7 @@ script:
   #
   # Build snapshot
   #
-  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag oldstable-slim-for-sf -f ../deploy/oldstable-slim.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) oldstable-slim-for-sf; fi
+  - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish" ]]; then make clean && git apply ../deploy/old-gcc.patch && docker build --tag stable-slim-for-sf -f ../deploy/stable-slim.dockerfile ../deploy && docker run --volume "$PWD/..:/home/builder/Stockfish" --user $(id -u) stable-slim-for-sf; fi
   - if [[ "${TRAVIS_PULL_REQUEST}" = "false" && "$DEPLOY" == "stockfish-osx" ]]; then make clean && make build ARCH=x86-64 EXE=stockfish-osx-x86_64; fi
 
 deploy:
