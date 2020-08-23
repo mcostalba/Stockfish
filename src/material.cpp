@@ -481,7 +481,7 @@ Entry* probe(const Position& pos) {
 
   Value npm_w = pos.non_pawn_material(WHITE);
   Value npm_b = pos.non_pawn_material(BLACK);
-  Value npm   = Utility::clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
+  Value npm   = std::clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
 #ifdef ANTI
   if (pos.is_anti())
       npm = 2 * std::min(npm_w, npm_b);
