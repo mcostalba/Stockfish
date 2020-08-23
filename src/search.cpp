@@ -1818,6 +1818,10 @@ moves_loop: // When in check, search starts from here
       {
           assert(type_of(move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
+          // moveCount pruning
+          if (moveCount > abs(depth) + 2)
+              continue;
+
 #ifdef ATOMIC
           if (pos.is_atomic())
               futilityValue = futilityBase + pos.see<ATOMIC_VARIANT>(move);
@@ -1844,7 +1848,7 @@ moves_loop: // When in check, search starts from here
       }
 
       // Do not search moves with negative SEE values
-      if (  !ss->inCheck && !pos.see_ge(move))
+      if (!ss->inCheck && !pos.see_ge(move))
           continue;
 
       // Speculative prefetch as early as possible
