@@ -7,7 +7,7 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['g++-8', 'g++-8-multilib', 'g++-multilib', 'valgrind', 'expect', 'curl', 'python3.6', 'python3-pip']
+          packages: ['g++-8', 'g++-8-multilib', 'g++-multilib', 'valgrind', 'expect', 'curl']
         artifacts:
           bucket: variant-stockfish
           s3_region: us-west-2
@@ -34,7 +34,7 @@ matrix:
       compiler: clang
       addons:
         apt:
-          packages: ['clang-10', 'llvm-10-dev', 'g++-multilib', 'valgrind', 'expect', 'curl', 'python3.6', 'python3-pip']
+          packages: ['clang-10', 'llvm-10-dev', 'g++-multilib', 'valgrind', 'expect', 'curl']
       env:
         - COMPILER=clang++-10
         - COMP=clang
@@ -68,8 +68,6 @@ matrix:
             secure: OWJPxKbGK4xyIkHMqUE100hfXLd4QHAQXLaYj5PemcJxT9vbWurrWHCtkIqhikKMgw6ii12JrdGvOd/wT31ZMR3g1xxc5cu0/cRx1zyBNZkGEScVZE6R3Y1Y5Y812xFY98mdq84mGILsS+mlL0HUqv68331kxTnWHLc8h+59wSOviPUzDCmyAarMd+AfHLqEi4QqR5g377TXImKFhSzOvpQtSlK3LH1Kfyl1LlPlVhBGf7jNlECr7GTGy1y89ahMF4ZEYDQED4qD2IbA988FaaN7GYQWQZ9esZ9mVMco+CIfjk/0+3+6K99tqQYFU7MW4w7AVwCnQqMLZZHz7JlCAInRv99fx3G4QHwjaZbTbfNashHKC7qu1Wvvqsim2RSLb+RkEH/cUXT6PcUHL1K/muHypHDYHxyY7dj8M35rTXaDjYypl0hmGxWPLLoqH7jJRXQpW3Z6ho+4ThTAlQZ3qoBMW+Ses53v93clq6Hr9RaVWNHZ2mCnq/6LAHWz19TPVu3QyrP6nhO1XM1/t/zFsvjTe83/Rp/kRxOjUksUjQRpvlHW4OoxjerQQ8Gu+K+fW6hdryPFyO1hpkJpQ0vPOBRuK81HAIN9BRf9CREhdJ4rj1PvYocKk0FqZVaJIHUtW2jwcwtxAIPephLJJvLyhwa6yx0veeSXSQW0domzxnA=
 
 before_script:
-  - pip3 install python-chess
-  - git clone https://github.com/ddugovic/chess-artist.git ./tests/chess-artist --depth 1
   - cd src
 
 script:
@@ -116,7 +114,6 @@ script:
   - make clean && make -j2 ARCH=x86-64-modern build
   - ../tests/perft.sh
   - ../tests/reprosearch.sh
-  - ../tests/puzzle.sh
 
   #
   # Valgrind
