@@ -1488,8 +1488,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
   if (is_atomic())
   {
-      std::memset(newSt.dirtyPiece.blastByTypeBB, 0, sizeof(newSt.dirtyPiece.blastByTypeBB));
-      std::memset(newSt.dirtyPiece.blastByColorBB, 0, sizeof(newSt.dirtyPiece.blastByColorBB));
+      std::memset(newSt.blastByTypeBB, 0, sizeof(newSt.blastByTypeBB));
+      std::memset(newSt.blastByColorBB, 0, sizeof(newSt.blastByColorBB));
   }
 #endif
   newSt.previous = st;
@@ -1505,9 +1505,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef USE_NNUE
   st->accumulator.computed_accumulation = false;
   st->accumulator.computed_score = false;
-#endif
   auto& dp = st->dirtyPiece;
   dp.dirty_num = 1;
+#endif
 
   Color us = sideToMove;
   Color them = ~us;
@@ -1552,8 +1552,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #ifdef ATOMIC
       if (is_atomic())
       {
-          std::memcpy(st->dirtyPiece.blastByTypeBB, byTypeBB, sizeof(st->dirtyPiece.blastByTypeBB));
-          std::memcpy(st->dirtyPiece.blastByColorBB, byColorBB, sizeof(st->dirtyPiece.blastByColorBB));
+          std::memcpy(st->blastByTypeBB, byTypeBB, sizeof(st->blastByTypeBB));
+          std::memcpy(st->blastByColorBB, byColorBB, sizeof(st->blastByColorBB));
       }
 #endif
 
@@ -1934,7 +1934,7 @@ void Position::undo_move(Move m) {
   if (is_atomic() && st->capturedPiece) // Restore the blast piece(s)
   {
       for (PieceType pt = PAWN; pt <= KING; ++pt)
-          if (st->dirtyPiece.blastByTypeBB[pt] & from)
+          if (st->blastByTypeBB[pt] & from)
           {
               pc = make_piece(us, pt);
               break;
@@ -2048,7 +2048,7 @@ void Position::undo_move(Move m) {
                   Square bsq = pop_lsb(&blast);
                   for (Color c : { WHITE, BLACK })
                       for (PieceType pt = KNIGHT; pt <= KING; ++pt)
-                          if (st->dirtyPiece.blastByColorBB[c] & st->dirtyPiece.blastByTypeBB[pt] & bsq)
+                          if (st->blastByColorBB[c] & st->blastByTypeBB[pt] & bsq)
                               put_piece(make_piece(c, pt), bsq);
               }
           }
@@ -2564,7 +2564,7 @@ void Position::flip() {
 
 bool Position::pos_is_ok() const {
 
-  constexpr bool Fast = false; // Quick (default) or full check?
+  constexpr bool Fast = true; // Quick (default) or full check?
 
   Square wksq, bksq;
 #ifdef ATOMIC

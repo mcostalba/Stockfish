@@ -628,10 +628,6 @@ struct DirtyPiece {
   // From and to squares, which may be SQ_NONE
   Square from[3];
   Square to[3];
-#ifdef ATOMIC
-  Bitboard blastByTypeBB[PIECE_TYPE_NB];
-  Bitboard blastByColorBB[COLOR_NB];
-#endif
 };
 
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
