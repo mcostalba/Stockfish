@@ -1502,8 +1502,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   ++st->pliesFromNull;
 
   // Used by NNUE
+#ifdef USE_NNUE
   st->accumulator.computed_accumulation = false;
   st->accumulator.computed_score = false;
+#endif
   auto& dp = st->dirtyPiece;
   dp.dirty_num = 1;
 
@@ -1591,6 +1593,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #endif
       }
 
+#ifdef USE_NNUE
       if (Eval::useNNUE)
       {
           dp.dirty_num = 2;  // 1 piece moved, 1 piece captured
@@ -1598,6 +1601,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           dp.from[1] = capsq;
           dp.to[1] = SQ_NONE;
       }
+#endif
 
       // Update board and piece lists
       remove_piece(capsq);
@@ -1742,12 +1746,14 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 #endif
   if (type_of(m) != CASTLING)
   {
+#ifdef USE_NNUE
       if (Eval::useNNUE)
       {
           dp.piece[0] = pc;
           dp.from[0] = from;
           dp.to[0] = to;
       }
+#endif
 
 #ifdef ATOMIC
       if (is_atomic() && captured) // Remove the blast piece(s)
@@ -1814,6 +1820,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               promotedPieces |= to;
 #endif
 
+#ifdef USE_NNUE
           if (Eval::useNNUE)
           {
               // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
@@ -1823,6 +1830,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               dp.to[dp.dirty_num] = to;
               dp.dirty_num++;
           }
+#endif
 
           // Update hash keys
           k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
@@ -2081,6 +2089,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
   rto = relative_square(us, kingSide ? SQ_F1 : SQ_D1);
   to = relative_square(us, kingSide ? SQ_G1 : SQ_C1);
 
+#ifdef USE_NNUE
   if (Do && Eval::useNNUE)
   {
       auto& dp = st->dirtyPiece;
@@ -2092,6 +2101,7 @@ void Position::do_castling(Color us, Square from, Square& to, Square& rfrom, Squ
       dp.to[1] = rto;
       dp.dirty_num = 2;
   }
+#endif
 
   // Remove both pieces first since squares could overlap in Chess960
   remove_piece(Do ? from : to);
@@ -2113,13 +2123,17 @@ void Position::do_null_move(StateInfo& newSt) {
   assert(!(is_anti() && can_capture()));
 #endif
 
+#ifdef USE_NNUE
   if (Eval::useNNUE)
   {
+#endif
       std::memcpy(&newSt, st, sizeof(StateInfo));
+#ifdef USE_NNUE
       st->accumulator.computed_score = false;
   }
   else
       std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+#endif
 
   newSt.previous = st;
   st = &newSt;
@@ -2550,7 +2564,7 @@ void Position::flip() {
 
 bool Position::pos_is_ok() const {
 
-  constexpr bool Fast = true; // Quick (default) or full check?
+  constexpr bool Fast = false; // Quick (default) or full check?
 
   Square wksq, bksq;
 #ifdef ATOMIC

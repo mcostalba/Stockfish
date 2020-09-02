@@ -28,7 +28,9 @@
 #include "evaluate.h"
 #include "types.h"
 
+#ifdef USE_NNUE
 #include "nnue/nnue_accumulator.h"
+#endif
 
 
 /// StateInfo struct stores information needed to restore a Position object to
@@ -63,7 +65,9 @@ struct StateInfo {
   int        repetition;
 
   // Used by NNUE
+#ifdef USE_NNUE
   Eval::NNUE::Accumulator accumulator;
+#endif
   DirtyPiece dirtyPiece;
 };
 

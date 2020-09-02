@@ -36,14 +36,27 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = ./$(EXE) bench
 
 ### Source and object files
+ifneq ($(nnue),no)
+CXXFLAGS += -DUSE_NNUE
+endif
+ifeq (,$(filter -DUSE_NNUE,$(CXXFLAGS)))
+SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp \
+	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
+	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp
+else
 SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp \
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp
+endif
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
+ifeq (,$(filter -DUSE_NNUE,$(CXXFLAGS)))
+VPATH = syzygy
+else
 VPATH = syzygy:nnue:nnue/features
+endif
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
@@ -78,6 +91,7 @@ endif
 # vnni256 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 256
 # vnni512 = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
 # neon = yes/no       --- -DUSE_NEON       --- Use ARM SIMD architecture
+# nnue = yes/no       --- -DUSE_NNUE       --- Use Effectively Updateable Neural Network
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces

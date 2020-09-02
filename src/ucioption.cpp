@@ -42,8 +42,10 @@ void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option& o) { Threads.set(size_t(o)); }
 
 void on_tb_path(const Option& o) { Tablebases::init(UCI::variant_from_name(Options["UCI_Variant"]), o); }
+#ifdef USE_NNUE
 void on_use_NNUE(const Option& ) { Eval::init_NNUE(); }
 void on_eval_file(const Option& ) { Eval::init_NNUE(); }
+#endif
 
 /// Our case insensitive less() function as required by UCI protocol
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
@@ -81,8 +83,10 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+#ifdef USE_NNUE
   o["Use NNUE"]              << Option(true, on_use_NNUE);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+#endif
 }
 
 

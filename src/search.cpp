@@ -371,7 +371,9 @@ void MainThread::search() {
   Time.init(rootPos.variant(), Limits, us, rootPos.game_ply());
   TT.new_search();
 
+#ifdef USE_NNUE
   Eval::verify_NNUE();
+#endif
 
   if (rootMoves.empty())
   {

@@ -43,6 +43,7 @@
 //     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
 // Note that this does not work in Microsof Visual Studio.
+#ifdef USE_NNUE
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
   INCBIN(EmbeddedNNUE, EvalFileDefaultName);
 #else
@@ -50,9 +51,11 @@
   const unsigned char *const gEmbeddedNNUEEnd = &gEmbeddedNNUEData[1];
   const unsigned int         gEmbeddedNNUESize = 1;
 #endif
+#endif
 
 
 using namespace std;
+#ifdef USE_NNUE
 using namespace Eval::NNUE;
 
 namespace Eval {
@@ -142,6 +145,7 @@ namespace Eval {
         sync_cout << "info string classical evaluation enabled" << sync_endl;
   }
 }
+#endif
 
 namespace Trace {
 
@@ -225,8 +229,10 @@ namespace {
     Value(12222),
 #endif
   };
+#ifdef USE_NNUE
   constexpr Value NNUEThreshold1 =   Value(550);
   constexpr Value NNUEThreshold2 =   Value(150);
+#endif
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[VARIANT_NB][PIECE_TYPE_NB] = {
@@ -1903,13 +1909,19 @@ make_v:
 
 Value Eval::evaluate(const Position& pos) {
 
+#ifdef USE_NNUE
   bool classical = !Eval::useNNUE
                 ||  abs(eg_value(pos.psq_score())) * 16 > NNUEThreshold1 * (16 + pos.rule50_count());
   Value v = classical ? Evaluation<NO_TRACE>(pos).value()
                       : NNUE::evaluate(pos) * 5 / 4 + Tempo;
+#else
+  Value v = Evaluation<NO_TRACE>(pos).value();
+#endif
 
+#ifdef USE_NNUE
   if (classical && Eval::useNNUE && abs(v) * 16 < NNUEThreshold2 * (16 + pos.rule50_count()))
       v = NNUE::evaluate(pos) * 5 / 4 + Tempo;
+#endif
 
   // Damp down the evaluation linearly when shuffling
   v = v * (100 - pos.rule50_count()) / 100;
@@ -1966,12 +1978,14 @@ std::string Eval::trace(const Position& pos) {
 
   ss << "\nClassical evaluation: " << to_cp(v) << " (white side)\n";
 
+#ifdef USE_NNUE
   if (Eval::useNNUE)
   {
       v = NNUE::evaluate(pos);
       v = pos.side_to_move() == WHITE ? v : -v;
       ss << "\nNNUE evaluation:      " << to_cp(v) << " (white side)\n";
   }
+#endif
 
   v = evaluate(pos);
   v = pos.side_to_move() == WHITE ? v : -v;
