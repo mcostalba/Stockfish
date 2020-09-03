@@ -39,12 +39,13 @@ before_build:
            'project(Stockfish)',
            'set(CMAKE_CXX_STANDARD 17)',
            'set(CMAKE_CXX_STANDARD_REQUIRED ON)',
-           'set (CMAKE_CXX_EXTENSIONS OFF)',
+           'set(CMAKE_CXX_EXTENSIONS OFF)',
            'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
            'set(source_files', $src, ')',
-           'add_executable(stockfish ${source_files})'
+           'add_executable(stockfish ${source_files})',
+           'target_compile_definitions(stockfish PRIVATE USE_NNUE)'
 
-      # Write CMakeLists.txt withouth BOM
+      # Write CMakeLists.txt without BOM
       $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
       $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
       [System.IO.File]::WriteAllLines($MyPath, $t, $Utf8NoBomEncoding)
