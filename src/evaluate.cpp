@@ -810,55 +810,71 @@ namespace {
     mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them));
 
     // Initialize attackedBy[] for king and pawns
-#ifdef ANTI
-    if (pos.is_anti())
-    {
-        attackedBy[Us][KING] = 0;
-        Bitboard kings = pos.pieces(Us, KING);
-        while (kings)
-            attackedBy[Us][KING] |= attacks_bb<KING>(pop_lsb(&kings));
-    }
-    else
-#endif
-#ifdef EXTINCTION
-    if (pos.is_extinction())
-    {
-        attackedBy[Us][KING] = 0;
-        Bitboard kings = pos.pieces(Us, KING);
-        while (kings)
-            attackedBy[Us][KING] |= attacks_bb<KING>(pop_lsb(&kings));
-    }
-    else
-#endif
-#ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Us))
-        attackedBy[Us][KING] = 0;
-    else
-#endif
 #ifdef PLACEMENT
     if (pos.is_placement() && pos.count_in_hand<KING>(Us))
         attackedBy[Us][KING] = 0;
     else
 #endif
+    switch (pos.variant())
+    {
+#ifdef ANTI
+    case ANTI_VARIANT:
+        attackedBy[Us][KING] = 0;
+        for (Bitboard kings = pos.pieces(Us, KING); kings; )
+            attackedBy[Us][KING] |= attacks_bb<KING>(pop_lsb(&kings));
+    break;
+#endif
+#ifdef EXTINCTION
+    case EXTINCTION_VARIANT:
+        attackedBy[Us][KING] = 0;
+        for (Bitboard kings = pos.pieces(Us, KING); kings; )
+            attackedBy[Us][KING] |= attacks_bb<KING>(pop_lsb(&kings));
+    break;
+#endif
+#ifdef HORDE
+    case HORDE_VARIANT:
+        if (pos.is_horde_color(Us))
+        {
+            attackedBy[Us][KING] = 0;
+            break;
+        }
+    [[fallthrough]];
+#endif
+    default:
     attackedBy[Us][KING] = attacks_bb<KING>(ksq);
+    }
     attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
     attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
 
     // Init our king safety tables
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<KING>(Us))
+        kingRing[Us] = 0;
+    else
+#endif
+    switch (pos.variant())
+    {
 #ifdef ANTI
-    if (pos.is_anti()) {} else
+    case ANTI_VARIANT:
+        kingRing[Us] = 0;
+    break;
 #endif
 #ifdef EXTINCTION
-    if (pos.is_extinction()) {} else
+    case EXTINCTION_VARIANT:
+        kingRing[Us] = 0;
+    break;
 #endif
 #ifdef HORDE
-    if (pos.is_horde() && pos.is_horde_color(Us)) {} else
+    case HORDE_VARIANT:
+        if (pos.is_horde_color(Us))
+        {
+            kingRing[Us] = 0;
+            break;
+        }
+    [[fallthrough]];
 #endif
-#ifdef PLACEMENT
-    if (pos.is_placement() && pos.count_in_hand<KING>(Us)) {} else
-#endif
-    {
+    default:
     Square s = make_square(std::clamp(file_of(ksq), FILE_B, FILE_G),
                            std::clamp(rank_of(ksq), RANK_2, RANK_7));
     kingRing[Us] = attacks_bb<KING>(s) | s;
