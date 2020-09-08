@@ -438,130 +438,83 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-#ifdef ANTI
-  if (is_anti())
-  {
-      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
-      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
-  }
-  else
-#endif
-#ifdef ATOMIC
-  if (is_atomic() && (is_atomic_loss() || kings_adjacent()))
-  {
-      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
-      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
-  }
-  else
-#endif
-#ifdef EXTINCTION
-  if (is_extinction())
-  {
-      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
-      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
-  }
-  else
-#endif
-#ifdef GRID
-  if (is_grid())
-  {
-      si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK) & ~grid_bb(square<KING>(WHITE)), square<KING>(WHITE), si->pinners[BLACK]);
-      si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE) & ~grid_bb(square<KING>(BLACK)), square<KING>(BLACK), si->pinners[WHITE]);
-  }
-  else
-#endif
-#ifdef HORDE
-  if (is_horde())
-  {
-      si->blockersForKing[WHITE] = si->pinners[WHITE] = is_horde_color(WHITE)
-          ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
-      si->blockersForKing[BLACK] = si->pinners[BLACK] = is_horde_color(BLACK)
-          ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
-  }
-  else
-#endif
 #ifdef PLACEMENT
+  // Unplaced kings (during the placement phase) cannot be checked
   if (is_placement() && count_in_hand<KING>())
   {
       si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
       si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
-      si->checkSquares[PAWN]   = 0;
-      si->checkSquares[KNIGHT] = 0;
-      si->checkSquares[BISHOP] = 0;
-      si->checkSquares[ROOK]   = 0;
-      si->checkSquares[QUEEN]  = 0;
-      si->checkSquares[KING]   = 0;
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          si->checkSquares[pt] = 0;
       return;
   }
-  else
 #endif
+  switch (var)
   {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
+      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          si->checkSquares[pt] = 0;
+      return;
+#endif
+#ifdef EXTINCTION
+  case EXTINCTION_VARIANT:
+      si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
+      si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
+      for (PieceType pt = PAWN; pt <= KING; ++pt)
+          si->checkSquares[pt] = 0;
+      return;
+#endif
+#ifdef GRID
+  case GRID_VARIANT:
+      si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK) & ~grid_bb(square<KING>(WHITE)), square<KING>(WHITE), si->pinners[BLACK]);
+      si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE) & ~grid_bb(square<KING>(BLACK)), square<KING>(BLACK), si->pinners[WHITE]);
+  break;
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      si->blockersForKing[WHITE] = si->pinners[WHITE] = is_horde_color(WHITE)
+          ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
+      si->blockersForKing[BLACK] = si->pinners[BLACK] = is_horde_color(BLACK)
+          ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
+      if (is_horde_color(~sideToMove)) {
+          for (PieceType pt = PAWN; pt <= KING; ++pt)
+              si->checkSquares[pt] = 0;
+          return;
+      }
+  break;
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      if (is_atomic_loss() || kings_adjacent())
+      {
+          si->blockersForKing[WHITE] = si->pinners[WHITE] = 0;
+          si->blockersForKing[BLACK] = si->pinners[BLACK] = 0;
+          for (PieceType pt = PAWN; pt <= KING; ++pt)
+              si->checkSquares[pt] = 0;
+          return;
+      }
+  [[fallthrough]];
+#endif
+  default:
   si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
   }
 
-#ifdef HORDE
-  if (is_horde() && is_horde_color(~sideToMove)) {
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
   Square ksq = square<KING>(~sideToMove);
 
-#ifdef ANTI
-  if (is_anti()) { // There are no checks in antichess
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
-#ifdef EXTINCTION
-  if (is_extinction()) {
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
-#ifdef GRID
-  if (is_grid()) {
-  si->checkSquares[PAWN]   = pawn_attacks_bb(~sideToMove, ksq) & ~grid_bb(ksq);
-  si->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq) & ~grid_bb(ksq);
-  si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq) & ~grid_bb(ksq);
-  si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq) & ~grid_bb(ksq);
-  si->checkSquares[QUEEN]  = (si->checkSquares[BISHOP] | si->checkSquares[ROOK]) & ~grid_bb(ksq);
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
-#ifdef ATOMIC
-  if (is_atomic() && ksq == SQ_NONE) {
-  si->checkSquares[PAWN]   = 0;
-  si->checkSquares[KNIGHT] = 0;
-  si->checkSquares[BISHOP] = 0;
-  si->checkSquares[ROOK]   = 0;
-  si->checkSquares[QUEEN]  = 0;
-  si->checkSquares[KING]   = 0;
-  return;
-  }
-#endif
   si->checkSquares[PAWN]   = pawn_attacks_bb(~sideToMove, ksq);
   si->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq);
   si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq, pieces());
   si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq, pieces());
   si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
+#ifdef GRID
+  if (is_grid())
+      for (PieceType pt = PAWN; pt <= QUEEN; ++pt)
+          si->checkSquares[pt] &= ~grid_bb(ksq);
+#endif
 #ifdef TWOKINGS
   if (is_two_kings())
       si->checkSquares[KING] = attacks_bb<KING>(ksq);
