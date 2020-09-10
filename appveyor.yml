@@ -43,7 +43,7 @@ before_build:
            'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
            'set(source_files', $src, ')',
            'add_executable(stockfish ${source_files})',
-           'target_compile_definitions(stockfish PRIVATE USE_NNUE)'
+           'target_compile_definitions(stockfish PRIVATE USE_NNUE ANTI ATOMIC CRAZYHOUSE HORDE KOTH RACE THREECHECK)'
 
       # Write CMakeLists.txt without BOM
       $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
