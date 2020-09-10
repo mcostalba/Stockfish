@@ -437,7 +437,7 @@ const string defaultEvalType[VARIANT_NB] = {
   "classical",
 #endif
 #ifdef ATOMIC
-  "classical",
+  "mixed",
 #endif
 #ifdef CRAZYHOUSE
   "classical",
