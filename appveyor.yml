@@ -22,6 +22,10 @@ matrix:
   # The build fail immediately once one of the job fails
   fast_finish: true
 
+artifacts:
+  - path: 'src\$(configuration)\*.exe'
+    name: Stockfish
+
 # Scripts that are called at very beginning, before repo cloning
 init:
   - cmake --version
