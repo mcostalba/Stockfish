@@ -33,6 +33,10 @@ namespace Eval::NNUE::Features {
   inline IndexType HalfKP<AssociatedKing>::MakeIndex(
       Color perspective, Square s, Piece pc, Square ksq) {
 
+#if defined(ANTI) || defined(TWOKINGS)
+    if (ksq == SQ_NONE)
+      return IndexType(orient(perspective, s) + kpp_board_index[pc][perspective]);
+#endif
     return IndexType(orient(perspective, s) + kpp_board_index[pc][perspective] + PS_END * ksq);
   }
 
@@ -41,8 +45,19 @@ namespace Eval::NNUE::Features {
   void HalfKP<AssociatedKing>::AppendActiveIndices(
       const Position& pos, Color perspective, IndexList* active) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
-    Bitboard bb = pos.pieces() & ~pos.pieces(KING);
+    Square ksq;
+    Bitboard bb;
+    switch (pos.variant()) {
+#ifdef ANTI
+    case ANTI_VARIANT:
+      ksq = SQ_NONE;
+      bb = pos.pieces();
+    break;
+#endif
+    default:
+      ksq = orient(perspective, pos.square<KING>(perspective));
+      bb = pos.pieces() & ~pos.pieces(KING);
+    }
     while (bb) {
       Square s = pop_lsb(&bb);
       active->push_back(MakeIndex(perspective, s, pos.piece_on(s), ksq));
@@ -55,11 +70,36 @@ namespace Eval::NNUE::Features {
       const Position& pos, Color perspective,
       IndexList* removed, IndexList* added) {
 
-    Square ksq = orient(perspective, pos.square<KING>(perspective));
+    Square ksq;
+    switch (pos.variant()) {
+#ifdef ANTI
+    case ANTI_VARIANT:
+      ksq = SQ_NONE;
+    break;
+#endif
+#ifdef TWOKINGS
+    case TWOKINGS_VARIANT:
+      ksq = SQ_NONE;
+    break;
+#endif
+    default:
+      ksq = orient(perspective, pos.square<KING>(perspective));
+    }
     const auto& dp = pos.state()->dirtyPiece;
     for (int i = 0; i < dp.dirty_num; ++i) {
       Piece pc = dp.piece[i];
+      switch (pos.variant()) {
+#ifdef ANTI
+      case ANTI_VARIANT:
+      break;
+#endif
+#ifdef TWOKINGS
+      case TWOKINGS_VARIANT:
+      break;
+#endif
+      default:
       if (type_of(pc) == KING) continue;
+      }
       if (dp.from[i] != SQ_NONE)
         removed->push_back(MakeIndex(perspective, dp.from[i], pc, ksq));
       if (dp.to[i] != SQ_NONE)
