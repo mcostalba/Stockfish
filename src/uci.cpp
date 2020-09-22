@@ -159,7 +159,7 @@ namespace {
     p.set(pos.fen(), Options["UCI_Chess960"], pos.variant(), &states->back(), Threads.main());
 
 #ifdef USE_NNUE
-    Eval::verify_NNUE();
+    Eval::NNUE::verify();
 #endif
 
     sync_cout << "\n" << Eval::trace(p) << sync_endl;
