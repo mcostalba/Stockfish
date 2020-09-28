@@ -338,7 +338,7 @@ namespace {
 void Search::init() {
 
   for (int i = 1; i < MAX_MOVES; ++i)
-      Reductions[i] = int((22.0 + 2 * std::log(Threads.size())) * std::log(i));
+      Reductions[i] = int((22.0 + 2 * std::log(Threads.size())) * std::log(i + 0.25 * std::log(i)));
 }
 
 
@@ -1055,15 +1055,22 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (817 + 71 * depth) / 213 + std::min(int(eval - beta) / 192, 3);
+        Depth R;
+        switch (pos.variant())
+        {
 #ifdef ANTI
-        if (pos.is_anti())
+        case ANTI_VARIANT:
             R = (823 + 67 * depth) / 256 + std::min(int(eval - beta) / 400, 3);
+        break;
 #endif
 #ifdef ATOMIC
-        if (pos.is_atomic())
+        case ATOMIC_VARIANT:
             R = (823 + 67 * depth) / 256 + std::min(int(eval - beta) / 400, 3);
+        break;
 #endif
+        default:
+            R = (982 + 85 * depth) / 256 + std::min(int(eval - beta) / 192, 3);
+        }
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
