@@ -8,7 +8,7 @@ derived from Glaurung 2.1. It is not a complete chess program and requires a
 UCI-compatible GUI (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard, Arena,
 Sigma Chess, Shredder, Chess Partner or Fritz) in order to be used comfortably.
 Read the documentation for your GUI of choice for information about how to use
-Stockfish with it.
+Stockfish with it.Stockfish can use up to 512 CPU threads in multiprocessor systems. The maximal size of its transposition table is 32 TB. Stockfish implements an advanced alpha–beta search and uses bitboards. Compared to other engines, it is characterized by its great search depth, due in part to more aggressive pruning, and late move reductions.
 
 
 ## Files
