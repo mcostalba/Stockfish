@@ -42,7 +42,7 @@ namespace Zobrist {
   Key side, noPawns;
   Key variant[VARIANT_NB];
 #ifdef CRAZYHOUSE
-  Key inHand[PIECE_NB][17];
+  Key inHand[PIECE_NB][16];
 #endif
 #ifdef THREECHECK
   Key checks[COLOR_NB][CHECKS_NB];
@@ -139,7 +139,7 @@ void Position::init() {
 #endif
 #ifdef CRAZYHOUSE
   for (Piece pc : Pieces)
-      for (int n = 0; n < 17; ++n)
+      for (int n = 0; n < 16; ++n)
           Zobrist::inHand[pc][n] = rng.rand<Key>();
 #endif
 
@@ -605,7 +605,8 @@ void Position::set_state(StateInfo* si) const {
       {
           if (type_of(pc) != PAWN && type_of(pc) != KING)
               si->nonPawnMaterial[color_of(pc)] += pieceCountInHand[color_of(pc)][type_of(pc)] * PieceValue[CHESS_VARIANT][MG][pc];
-          si->key ^= Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+          for (int cnt = 0; cnt < pieceCountInHand[color_of(pc)][type_of(pc)]; ++cnt)
+              si->key ^= Zobrist::inHand[pc][cnt];
       }
 #endif
   }
@@ -1570,8 +1571,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           {
               Piece add = is_promoted(capsq) ? make_piece(~color_of(captured), PAWN) : ~captured;
               add_to_hand(color_of(add), type_of(add));
-              k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1]
-                  ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
+              k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] - 1];
           }
           promotedPieces -= capsq;
       }
@@ -1629,8 +1629,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update hash key
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
-      k ^=  Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1]
-          ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]];
+      k ^=  Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1];
   else
 #endif
   k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
@@ -2153,16 +2152,14 @@ Key Position::key_after(Move m) const {
       if (is_house())
       {
           Piece add = is_promoted(to) ? make_piece(~color_of(captured), PAWN) : ~captured;
-          k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)] + 1]
-              ^ Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
+          k ^= Zobrist::inHand[add][pieceCountInHand[color_of(add)][type_of(add)]];
       }
 #endif
   }
 
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP)
-      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]]
-            ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1];
+      return k ^ Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] - 1];
 #endif
   return k ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
 }
