@@ -54,6 +54,16 @@ namespace Eval::NNUE::Features {
       bb = pos.pieces();
     break;
 #endif
+#ifdef HORDE
+    case HORDE_VARIANT:
+      if (pos.is_horde_color(perspective))
+        ksq = SQ_NONE;
+      // Limit piece count per player to 32 (prevent segmentation fault)
+      bb = pos.pieces() & (perspective == WHITE
+           ? (RANK_1 | RANK_2 | RANK_3 | RANK_4)
+           : (RANK_5 | RANK_6 | RANK_7 | RANK_8));
+    break;
+#endif
     default:
       ksq = orient(perspective, pos.square<KING>(perspective));
       bb = pos.pieces() & ~pos.pieces(KING);
@@ -76,6 +86,11 @@ namespace Eval::NNUE::Features {
     case ANTI_VARIANT:
       ksq = SQ_NONE;
     break;
+#endif
+#ifdef HORDE
+    case HORDE_VARIANT:
+      // Safeguard against segmentation fault
+      return;
 #endif
 #ifdef TWOKINGS
     case TWOKINGS_VARIANT:

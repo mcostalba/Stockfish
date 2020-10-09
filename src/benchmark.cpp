@@ -449,7 +449,7 @@ const string defaultEvalType[VARIANT_NB] = {
   "mixed",
 #endif
 #ifdef HORDE
-  "classical",
+  "mixed",
 #endif
 #ifdef KOTH
   "mixed",
