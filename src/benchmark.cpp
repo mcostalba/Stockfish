@@ -394,43 +394,6 @@ const vector<string> Defaults[SUBVARIANT_NB] = {
 #endif
 };
 
-const int defaultDepth[VARIANT_NB] = {
-  13,
-#ifdef ANTI
-  13,
-#endif
-#ifdef ATOMIC
-  13,
-#endif
-#ifdef CRAZYHOUSE
-  12,
-#endif
-#ifdef EXTINCTION
-  13,
-#endif
-#ifdef GRID
-  13,
-#endif
-#ifdef HORDE
-  13,
-#endif
-#ifdef KOTH
-  13,
-#endif
-#ifdef LOSERS
-  13,
-#endif
-#ifdef RACE
-  13,
-#endif
-#ifdef THREECHECK
-  13,
-#endif
-#ifdef TWOKINGS
-  13,
-#endif
-};
-
 } // namespace
 
 /// setup_bench() builds a list of UCI commands to be run by bench. There
@@ -466,12 +429,10 @@ vector<string> setup_bench(const Position& current, istream& is) {
   Variant variant = varname == "all" ? CHESS_VARIANT : UCI::variant_from_name(varname);
 
   do {
-  Variant mainVariant = main_variant(variant);
-
   // Assign default values to missing arguments
   string ttSize    = (is >> token) ? token : "16";
   string threads   = (is >> token) ? token : "1";
-  string limit     = (is >> token) ? token : to_string(defaultDepth[mainVariant]);
+  string limit     = (is >> token) ? token : (variant == CHESS_VARIANT ? "13" : "12");
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
   string evalType  = (is >> token) ? token : "mixed";
