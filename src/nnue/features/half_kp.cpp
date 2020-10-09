@@ -58,10 +58,8 @@ namespace Eval::NNUE::Features {
     case HORDE_VARIANT:
       if (pos.is_horde_color(perspective))
         ksq = SQ_NONE;
-      // Limit piece count per player to 32 (prevent segmentation fault)
-      bb = pos.pieces() & (perspective == WHITE
-           ? (RANK_1 | RANK_2 | RANK_3 | RANK_4)
-           : (RANK_5 | RANK_6 | RANK_7 | RANK_8));
+      // Safeguard against segmentation fault on some architectures
+      bb = 0;
     break;
 #endif
     default:
