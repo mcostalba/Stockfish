@@ -87,6 +87,11 @@ namespace Eval::NNUE::Features {
       ksq = SQ_NONE;
     break;
 #endif
+#ifdef CRAZYHOUSE
+    case CRAZYHOUSE_VARIANT:
+      // Safeguard against segmentation fault
+      return;
+#endif
 #ifdef HORDE
     case HORDE_VARIANT:
       // Safeguard against segmentation fault

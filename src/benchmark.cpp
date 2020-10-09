@@ -431,43 +431,6 @@ const int defaultDepth[VARIANT_NB] = {
 #endif
 };
 
-const string defaultEvalType[VARIANT_NB] = {
-  "mixed",
-#ifdef ANTI
-  "mixed",
-#endif
-#ifdef ATOMIC
-  "mixed",
-#endif
-#ifdef CRAZYHOUSE
-  "classical",
-#endif
-#ifdef EXTINCTION
-  "mixed",
-#endif
-#ifdef GRID
-  "mixed",
-#endif
-#ifdef HORDE
-  "mixed",
-#endif
-#ifdef KOTH
-  "mixed",
-#endif
-#ifdef LOSERS
-  "mixed",
-#endif
-#ifdef RACE
-  "mixed",
-#endif
-#ifdef THREECHECK
-  "mixed",
-#endif
-#ifdef TWOKINGS
-  "mixed",
-#endif
-};
-
 } // namespace
 
 /// setup_bench() builds a list of UCI commands to be run by bench. There
@@ -511,7 +474,7 @@ vector<string> setup_bench(const Position& current, istream& is) {
   string limit     = (is >> token) ? token : to_string(defaultDepth[mainVariant]);
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
-  string evalType  = (is >> token) ? token : defaultEvalType[mainVariant];
+  string evalType  = (is >> token) ? token : "mixed";
 
   go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
