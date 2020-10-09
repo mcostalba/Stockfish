@@ -58,8 +58,8 @@ namespace Eval::NNUE::Features {
     case HORDE_VARIANT:
       if (pos.is_horde_color(perspective))
         ksq = SQ_NONE;
-      // Safeguard against segmentation fault on some architectures
-      bb = 0;
+      // Safeguard against segmentation fault
+      bb = (pos.count<PAWN>(WHITE) <= 8 && pos.count<PAWN>(BLACK) <= 8) ? pos.pieces() & ~pos.pieces(KING) : 0;
     break;
 #endif
     default:
