@@ -107,25 +107,6 @@ namespace {
   ExtMove* generate_drops(const Position& pos, ExtMove* moveList, Bitboard b) {
     if (pos.count_in_hand<Pt>(Us))
     {
-#ifdef PLACEMENT
-        if (pos.is_placement() && pos.count_in_hand<BISHOP>(Us))
-        {
-            if (Pt == BISHOP)
-            {
-                if (pos.pieces(Us, BISHOP) & DarkSquares)
-                    b &= ~DarkSquares;
-                if (pos.pieces(Us, BISHOP) & ~DarkSquares)
-                    b &= DarkSquares;
-            }
-            else
-            {
-                if (!(pos.pieces(Us, BISHOP) & DarkSquares) && popcount((b & DarkSquares)) <= 1)
-                    b &= ~DarkSquares;
-                if (!(pos.pieces(Us, BISHOP) & ~DarkSquares) && popcount((b & ~DarkSquares)) <= 1)
-                    b &= DarkSquares;
-            }
-        }
-#endif
         if (Checks)
             b &= pos.check_squares(Pt);
         while (b)
@@ -426,18 +407,11 @@ namespace {
         target &= pos.pieces(~Us);
 #endif
 
-#ifdef PLACEMENT
-    if (V == CRAZYHOUSE_VARIANT && pos.is_placement() && pos.count_in_hand<ALL_PIECES>(Us)) {} else
-    {
-#endif
     moveList = generate_pawn_moves<V, Us, Type>(pos, moveList, target);
     moveList = generate_moves<V, Us, KNIGHT, Checks>(pos, moveList, target);
     moveList = generate_moves<V, Us, BISHOP, Checks>(pos, moveList, target);
     moveList = generate_moves<V, Us,   ROOK, Checks>(pos, moveList, target);
     moveList = generate_moves<V, Us,  QUEEN, Checks>(pos, moveList, target);
-#ifdef PLACEMENT
-    }
-#endif
 #ifdef CRAZYHOUSE
     if (V == CRAZYHOUSE_VARIANT && Type != CAPTURES && pos.count_in_hand<ALL_PIECES>(Us))
     {
@@ -454,13 +428,12 @@ namespace {
         moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
 #ifdef PLACEMENT
         if (pos.is_placement())
+        {
             moveList = generate_drops<Us, KING, Checks>(pos, moveList, b);
+            return moveList;
+        }
 #endif
     }
-#ifdef PLACEMENT
-    if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(Us))
-        return moveList;
-#endif
 #endif
 
     switch (V)
@@ -910,6 +883,9 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #ifdef TWOKINGS
   if (pos.is_two_kings()) validate = true;
 #endif
+#ifdef PLACEMENT
+  if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(us)) validate = true;
+#endif
 #ifdef KNIGHTRELAY
   if (pos.is_knight_relay()) validate = pos.pieces(KNIGHT);
 #endif
@@ -929,7 +905,11 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   while (cur != moveList)
       if (   (validate || from_sq(*cur) == ksq || type_of(*cur) == ENPASSANT)
 #ifdef CRAZYHOUSE
+#ifdef PLACEMENT
+          && !(pos.is_house() && !pos.is_placement() && type_of(*cur) == DROP)
+#else
           && !(pos.is_house() && type_of(*cur) == DROP)
+#endif
 #endif
           && !pos.legal(*cur))
           *cur = (--moveList)->move;
