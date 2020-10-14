@@ -799,18 +799,17 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
       else
 #endif
       sliderAttacks |= line_bb(ksq, pop_lsb(&sliders)) & ~pos.checkers();
+#ifdef ATOMIC
+  if (pos.is_atomic())
+      sliderAttacks &= ~adjacent_squares_bb(pos.pieces(~us, KING));
+#endif
 
   // Generate evasions for king, capture and non capture moves
-  Bitboard b;
+  Bitboard b = attacks_bb<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
 #ifdef ATOMIC
-  if (pos.is_atomic()) // Generate evasions for king, non capture moves
-  {
-      Bitboard kingRing = adjacent_squares_bb(pos.pieces(~us, KING));
-      b = attacks_bb<KING>(ksq) & ~pos.pieces() & ~(sliderAttacks & ~kingRing);
-  }
-  else
+  if (pos.is_atomic())
+      b &= ~pos.pieces(~us);
 #endif
-  b = attacks_bb<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
 #ifdef LOSERS
   if (pos.is_losers() && pos.can_capture_losers())
       b &= pos.pieces(~us);
