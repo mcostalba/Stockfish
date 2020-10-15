@@ -428,12 +428,13 @@ namespace {
         moveList = generate_drops<Us,  QUEEN, Checks>(pos, moveList, b);
 #ifdef PLACEMENT
         if (pos.is_placement())
-        {
             moveList = generate_drops<Us, KING, Checks>(pos, moveList, b);
-            return moveList;
-        }
 #endif
     }
+#ifdef PLACEMENT
+    if (pos.is_placement() && pos.count_in_hand<ALL_PIECES>(Us))
+        return moveList;
+#endif
 #endif
 
     switch (V)
