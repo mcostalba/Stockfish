@@ -404,6 +404,10 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   chess960 = isChess960;
   thisThread = th;
   set_state(st);
+#ifdef USE_NNUE
+  st->accumulator.state[WHITE] = Eval::NNUE::INIT;
+  st->accumulator.state[BLACK] = Eval::NNUE::INIT;
+#endif
 
   assert(pos_is_ok());
 
@@ -1457,7 +1461,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   // Used by NNUE
 #ifdef USE_NNUE
-  st->accumulator.computed_accumulation = false;
+  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
+  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
   auto& dp = st->dirtyPiece;
   dp.dirty_num = 1;
 #endif
@@ -2075,16 +2080,20 @@ void Position::do_null_move(StateInfo& newSt) {
 #endif
 
 #ifdef USE_NNUE
-  if (Eval::useNNUE)
-#endif
-      std::memcpy(&newSt, st, sizeof(StateInfo));
-#ifdef USE_NNUE
-  else
-      std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+  std::memcpy(&newSt, st, offsetof(StateInfo, accumulator));
+#else
+  std::memcpy(&newSt, st, sizeof(StateInfo));
 #endif
 
   newSt.previous = st;
   st = &newSt;
+
+#ifdef USE_NNUE
+  st->dirtyPiece.dirty_num = 0;
+  st->dirtyPiece.piece[0] = NO_PIECE; // Avoid checks in UpdateAccumulator()
+  st->accumulator.state[WHITE] = Eval::NNUE::EMPTY;
+  st->accumulator.state[BLACK] = Eval::NNUE::EMPTY;
+#endif
 
   if (st->epSquare != SQ_NONE)
   {
