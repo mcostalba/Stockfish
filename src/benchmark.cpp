@@ -491,7 +491,9 @@ vector<string> setup_bench(const Position& current, istream& is) {
       }
   } while (varname == "all" && ++variant < SUBVARIANT_NB && (is.clear(), is.seekg(args)));
 
+#ifdef USE_NNUE
   list.emplace_back("setoption name Use NNUE value true");
+#endif
 
   return list;
 }
