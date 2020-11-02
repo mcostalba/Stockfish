@@ -1189,18 +1189,18 @@ namespace {
     int kingFlankDefense = popcount(b3);
 
     const auto KDP = KingDangerParams[pos.variant()];
-    kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                 + KDP[0] * popcount(kingRing[Us] & weak)
-                 + KDP[1] * popcount(unsafeChecks)
-                 + KDP[2] * popcount(pos.blockers_for_king(Us))
-                 + KDP[3] * kingAttacksCount[Them]
-                 + KDP[4] * kingFlankAttack * kingFlankAttack / 8
-                 +          mg_value(mobility[Them] - mobility[Us])
-                 + KDP[5] * !pos.count<QUEEN>(Them)
-                 + KDP[6] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])
-                 + KDP[7] * mg_value(score) / 8
-                 + KDP[8] * kingFlankDefense
-                 + KDP[9];
+    kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them] // (~10 Elo)
+                 + KDP[0] * popcount(kingRing[Us] & weak)                        // (~15 Elo)
+                 + KDP[1] * popcount(unsafeChecks)                               // (~4 Elo)
+                 + KDP[2] * popcount(pos.blockers_for_king(Us))                  // (~2 Elo)
+                 + KDP[3] * kingAttacksCount[Them]                               // (~0.5 Elo)
+                 + KDP[4] * kingFlankAttack * kingFlankAttack / 8                // (~0.5 Elo)
+                 +       mg_value(mobility[Them] - mobility[Us])              // (~0.5 Elo)
+                 + KDP[5] * !pos.count<QUEEN>(Them)                              // (~24 Elo)
+                 + KDP[6] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])  // (~5 Elo)
+                 + KDP[7] * mg_value(score) / 8                                  // (~8 Elo)
+                 + KDP[8] * kingFlankDefense                                     // (~5 Elo)
+                 + KDP[9];                                                       // (~0.5 Elo)
 #ifdef CRAZYHOUSE
     if (pos.is_house())
     {
