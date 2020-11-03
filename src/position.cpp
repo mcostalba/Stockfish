@@ -2237,12 +2237,12 @@ bool Position::see_ge(Move m, Value threshold) const {
           return false;
 
       Bitboard occupied = pieces() ^ from;
-      Bitboard stmAttackers = attackers_to(to, occupied) & occupied & pieces(stm) & ~pieces(KING);
+      Bitboard attackers = attackers_to(to, occupied) & occupied & pieces(~stm) & ~pieces(KING);
 
       // Loop over attacking pieces
-      while (stmAttackers)
+      while (attackers)
       {
-          Square s = pop_lsb(&stmAttackers);
+          Square s = pop_lsb(&attackers);
           if (see<ATOMIC_VARIANT>(m, nextVictim, s) < threshold)
               return false;
       }
