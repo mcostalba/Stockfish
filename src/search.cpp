@@ -310,6 +310,10 @@ namespace {
   uint64_t perft(Position& pos, Depth depth) {
 
     StateInfo st;
+#ifdef USE_NNUE
+    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+#endif
+
     uint64_t cnt, nodes = 0;
     const bool leaf = (depth == 2);
 
@@ -744,6 +748,10 @@ namespace {
 
     Move pv[MAX_PLY+1], capturesSearched[32], quietsSearched[64];
     StateInfo st;
+#ifdef USE_NNUE
+    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+#endif
+
     TTEntry* tte;
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
@@ -1687,6 +1695,10 @@ moves_loop: // When in check, search starts from here
 
     Move pv[MAX_PLY+1];
     StateInfo st;
+#ifdef USE_NNUE
+    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+#endif
+
     TTEntry* tte;
     Key posKey;
     Move ttMove, move, bestMove;
@@ -2208,6 +2220,10 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
 bool RootMove::extract_ponder_from_tt(Position& pos) {
 
     StateInfo st;
+#ifdef USE_NNUE
+    ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+#endif
+
     bool ttHit;
 
     assert(pv.size() == 1);

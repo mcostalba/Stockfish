@@ -84,6 +84,10 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
       && !pos.can_castle(ANY_CASTLING))
   {
       StateInfo st;
+#ifdef USE_NNUE
+      ASSERT_ALIGNED(&st, Eval::NNUE::kCacheLineSize);
+#endif
+
       Position p;
       p.set(pos.fen(), pos.is_chess960(), pos.subvariant(), &st, pos.this_thread());
       Tablebases::ProbeState s1, s2;
@@ -2713,6 +2717,10 @@ bool Position::pos_is_ok() const {
               assert(0 && "pos_is_ok: Bitboards");
 
   StateInfo si = *st;
+#ifdef USE_NNUE
+  ASSERT_ALIGNED(&si, Eval::NNUE::kCacheLineSize);
+#endif
+
   set_state(&si);
   if (std::memcmp(&si, st, sizeof(StateInfo)))
       assert(0 && "pos_is_ok: State");
