@@ -2,9 +2,9 @@ name: Make CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, no-nnue ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, no-nnue ]
 
 jobs:
   build:
