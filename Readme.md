@@ -167,7 +167,7 @@ and view the current tests on [Fishtest](http://tests.stockfishchess.org/tests).
 
 ### Improving the code
 
-If you want to help improve the code, there are several valuable ressources:
+If you want to help improve the code, there are several valuable resources:
 
 * [In this wiki,](https://www.chessprogramming.org) many techniques used in
 Stockfish are explained with a lot of background information.
