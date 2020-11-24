@@ -1222,10 +1222,6 @@ namespace {
             kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
 #endif
         int v = kingDanger * kingDanger / 4096;
-#ifdef ATOMIC
-        if (pos.is_atomic())
-            v = std::min(v, (int)QueenValueMg);
-#endif
 #ifdef CRAZYHOUSE
         if (pos.is_house() && Us == pos.side_to_move())
             v -= v / 10;
