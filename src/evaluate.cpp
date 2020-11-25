@@ -191,47 +191,47 @@ using namespace Trace;
 namespace {
 
   // Threshold for lazy and space evaluation
-  constexpr Value LazyThreshold1  = Value(1400);
-  constexpr Value LazyThreshold2  = Value(1300);
+  constexpr Value LazyThreshold1 =  Value(1565);
+  constexpr Value LazyThreshold2 =  Value(1102);
   constexpr Value SpaceThreshold[VARIANT_NB] = {
-    Value(12222),
+    Value(11551),
 #ifdef ANTI
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef ATOMIC
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef CRAZYHOUSE
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef EXTINCTION
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef GRID
     2 * MidgameLimit,
 #endif
 #ifdef HORDE
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef KOTH
     VALUE_ZERO,
 #endif
 #ifdef LOSERS
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef RACE
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef THREECHECK
-    Value(12222),
+    Value(11551),
 #endif
 #ifdef TWOKINGS
-    Value(12222),
+    Value(11551),
 #endif
   };
 #ifdef USE_NNUE
-  constexpr Value NNUEThreshold1 =   Value(550);
-  constexpr Value NNUEThreshold2 =   Value(150);
+  constexpr Value NNUEThreshold1 =   Value(682);
+  constexpr Value NNUEThreshold2 =   Value(176);
 #endif
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
