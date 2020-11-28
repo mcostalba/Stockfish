@@ -650,7 +650,6 @@ namespace {
   constexpr int KingDangerInHand[PIECE_TYPE_NB] = {
     79, 16, 200, 61, 138, 152
   };
-  constexpr Score DropMobilityBonus = S(30, 30);
 #endif
 #ifdef RACE
   // Bonus for distance of king from 8th rank
@@ -1869,14 +1868,6 @@ namespace {
             + pieces<WHITE, BISHOP>() - pieces<BLACK, BISHOP>()
             + pieces<WHITE, ROOK  >() - pieces<BLACK, ROOK  >()
             + pieces<WHITE, QUEEN >() - pieces<BLACK, QUEEN >();
-
-#ifdef CRAZYHOUSE
-    if (pos.is_house()) {
-        // Positional bonus for potential drop points - unoccupied squares in enemy territory that are not attacked by enemy non-KQ pieces
-        mobility[WHITE] += DropMobilityBonus * popcount(~(attackedBy[BLACK][PAWN] | attackedBy[BLACK][KNIGHT] | attackedBy[BLACK][BISHOP] | attackedBy[BLACK][ROOK] | pos.pieces() | Rank1BB | Rank2BB | Rank3BB | Rank4BB));
-        mobility[BLACK] += DropMobilityBonus * popcount(~(attackedBy[WHITE][PAWN] | attackedBy[WHITE][KNIGHT] | attackedBy[WHITE][BISHOP] | attackedBy[WHITE][ROOK] | pos.pieces() | Rank5BB | Rank6BB | Rank7BB | Rank8BB));
-    }
-#endif
 
     score += mobility[WHITE] - mobility[BLACK];
 
