@@ -220,7 +220,6 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
 
   std::memset(this, 0, sizeof(Position));
   std::memset(si, 0, sizeof(StateInfo));
-  std::fill_n(&pieceList[0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
   st = si;
   subvar = v;
   var = main_variant(v);
@@ -300,9 +299,9 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       {
           // X-FEN is ambiguous if there are multiple kings
           // Assume the first king on the rank has castling rights
-          const Square* kl = squares<KING>(c);
-          while ((ksq = *kl++) != SQ_NONE)
+          for (Bitboard b = pieces(c, KING); b; )
           {
+              ksq = pop_lsb(&b);
               assert(piece_on(ksq) == make_piece(c, KING));
               if (rank_of(ksq) == rank)
                   break;
@@ -314,9 +313,9 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       {
           // X-FEN is ambiguous if there are multiple kings
           // Assume the first king on the rank has castling rights
-          const Square* kl = squares<KING>(c);
-          while ((ksq = *kl++) != SQ_NONE)
+          for (Bitboard b = pieces(c, KING); b; )
           {
+              ksq = pop_lsb(&b);
               assert(piece_on(ksq) == make_piece(c, KING));
               if (rank_of(ksq) == rank)
                   break;
@@ -2738,15 +2737,9 @@ bool Position::pos_is_ok() const {
 #endif
 
   for (Piece pc : Pieces)
-  {
       if (   pieceCount[pc] != popcount(pieces(color_of(pc), type_of(pc)))
           || pieceCount[pc] != std::count(board, board + SQUARE_NB, pc))
           assert(0 && "pos_is_ok: Pieces");
-
-      for (int i = 0; i < pieceCount[pc]; ++i)
-          if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
-              assert(0 && "pos_is_ok: Index");
-  }
 
   for (Color c : { WHITE, BLACK })
       for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
