@@ -274,7 +274,7 @@ namespace {
 
   // Per-variant king danger malus factors
   constexpr int KingDangerParams[VARIANT_NB][11] = {
-    {   185,  148,   98,   69,    3, -873, -100,   -6,   -4,   37,    0 },
+    {   183,  148,   98,   69,    3, -873, -100,   -6,   -4,   37,    0 },
 #ifdef ANTI
     {},
 #endif
@@ -1200,11 +1200,11 @@ namespace {
 
     const auto KDP = KingDangerParams[pos.variant()];
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them] // (~10 Elo)
-                 + KDP[0] * popcount(kingRing[Us] & weak)                        // (~15 Elo)
-                 + KDP[1] * popcount(unsafeChecks)                               // (~4 Elo)
-                 + KDP[2] * popcount(pos.blockers_for_king(Us))                  // (~2 Elo)
-                 + KDP[3] * kingAttacksCount[Them]                               // (~0.5 Elo)
-                 + KDP[4] * kingFlankAttack * kingFlankAttack / 8                // (~0.5 Elo)
+                 + KDP[0] * popcount(kingRing[Us] & weak)                     // (~15 Elo)
+                 + KDP[1] * popcount(unsafeChecks)                            // (~4 Elo)
+                 + KDP[2] * popcount(pos.blockers_for_king(Us))               // (~2 Elo)
+                 + KDP[3] * kingAttacksCount[Them]                            // (~0.5 Elo)
+                 + KDP[4] * kingFlankAttack * kingFlankAttack / 8             // (~0.5 Elo)
                  +       mg_value(mobility[Them] - mobility[Us])              // (~0.5 Elo)
                  + KDP[5] * !pos.count<QUEEN>(Them)                              // (~24 Elo)
                  + KDP[6] * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])  // (~5 Elo)
