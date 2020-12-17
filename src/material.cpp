@@ -416,12 +416,6 @@ namespace {
 #ifdef ANTI
                       pos.is_anti() ? KING :
 #endif
-#ifdef HORDE
-                      pos.is_horde() ? KING :
-#endif
-#ifdef TWOKINGS
-                      pos.is_two_kings() ? KING :
-#endif
                       QUEEN;
 
     for (int pt1 = NO_PIECE_TYPE; pt1 <= pt_max; ++pt1)
@@ -446,7 +440,7 @@ namespace {
 
             int v = 0;
 
-            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
+            for (int pt2 = NO_PIECE_TYPE; pt2 < pt1; ++pt2)
                 v +=  QuadraticOursInHand[pt1][pt2] * pieceCountInHand[Us][pt2]
                     + QuadraticTheirsInHand[pt1][pt2] * pieceCountInHand[Them][pt2];
 
