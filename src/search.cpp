@@ -1010,9 +1010,10 @@ namespace {
         eval = -eval;
 #endif
 
-    if ((ss-1)->moveCount > 1 && is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture && depth < 7)
+    // Use static evaluation difference to improve quiet move ordering
+    if (is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture)
     {
-        int bonus = std::clamp(- (depth+1) * 2 * int((ss-1)->staticEval + ss->staticEval - 2 * Tempo), -1000, 1000);
+        int bonus = std::clamp(-depth * 4 * int((ss-1)->staticEval + ss->staticEval - 2 * Tempo), -1000, 1000);
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
     }
 
