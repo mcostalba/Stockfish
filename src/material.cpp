@@ -440,7 +440,7 @@ namespace {
 
             int v = 0;
 
-            for (int pt2 = NO_PIECE_TYPE; pt2 < pt1; ++pt2)
+            for (int pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2)
                 v +=  QuadraticOursInHand[pt1][pt2] * pieceCountInHand[Us][pt2]
                     + QuadraticTheirsInHand[pt1][pt2] * pieceCountInHand[Them][pt2];
 
