@@ -981,16 +981,12 @@ namespace {
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
     }
 
-    // Razoring (~1 Elo; removed)
+    // Set up improving flag that is used in various pruning heuristics
+    // We define position as improving if static evaluation of position is better
+    // Than the previous static evaluation at our turn
+    // In case of us being in check at our previous move we look at move prior to it
 #ifdef ANTI
     if (pos.is_anti() && pos.can_capture())
-    {
-        improving = false;
-        goto moves_loop;
-    }
-#endif
-#ifdef HELPMATE
-    if (pos.is_helpmate())
     {
         improving = false;
         goto moves_loop;
@@ -1003,16 +999,15 @@ namespace {
         goto moves_loop;
     }
 #endif
-
-    // Set up improving flag that is used in various pruning heuristics
-    // We define position as improving if static evaluation of position is better
-    // Than the previous static evaluation at our turn
-    // In case of us being in check at our previous move we look at move prior to it
     improving =  (ss-2)->staticEval == VALUE_NONE
                ? ss->staticEval > (ss-4)->staticEval || (ss-4)->staticEval == VALUE_NONE
                : ss->staticEval > (ss-2)->staticEval;
 
     // Step 7. Futility pruning: child node (~50 Elo)
+#ifdef HELPMATE
+    if (pos.is_helpmate())
+        goto moves_loop;
+#endif
 #ifdef LOSERS
     if (pos.is_losers() && pos.can_capture_losers())
         goto moves_loop;
