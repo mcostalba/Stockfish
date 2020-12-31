@@ -989,14 +989,6 @@ namespace {
         goto moves_loop;
     }
 #endif
-#ifdef LOSERS
-    if (pos.is_losers() && pos.can_capture_losers())
-    {
-        improving =   ss->staticEval >= (ss-2)->staticEval
-                   || (ss-2)->staticEval == VALUE_NONE;
-        goto moves_loop;
-    }
-#endif
 #ifdef HELPMATE
     if (pos.is_helpmate())
     {
@@ -1021,6 +1013,10 @@ namespace {
                : ss->staticEval > (ss-2)->staticEval;
 
     // Step 7. Futility pruning: child node (~50 Elo)
+#ifdef LOSERS
+    if (pos.is_losers() && pos.can_capture_losers())
+        goto moves_loop;
+#endif
 #ifdef EXTINCTION
     if (pos.is_extinction()) {} else
 #endif
