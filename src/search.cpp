@@ -934,7 +934,23 @@ namespace {
     CapturePieceToHistory& captureHistory = thisThread->captureHistory;
 
     // Step 6. Static evaluation of the position
-    if (ss->inCheck)
+    bool skipEarlyPruning;
+    switch (pos.variant())
+    {
+#ifdef ANTI
+    case ANTI_VARIANT:
+        skipEarlyPruning = pos.can_capture();
+        break;
+#endif
+#ifdef RACE
+    case RACE_VARIANT:
+        skipEarlyPruning = pos.pieces(KING) & (Rank7BB | Rank8BB);
+        break;
+#endif
+    default:
+        skipEarlyPruning = ss->inCheck;
+    }
+    if (skipEarlyPruning)
     {
         // Skip early pruning when in check
         ss->staticEval = eval = VALUE_NONE;
@@ -985,20 +1001,6 @@ namespace {
     // We define position as improving if static evaluation of position is better
     // Than the previous static evaluation at our turn
     // In case of us being in check at our previous move we look at move prior to it
-#ifdef ANTI
-    if (pos.is_anti() && pos.can_capture())
-    {
-        improving = false;
-        goto moves_loop;
-    }
-#endif
-#ifdef RACE
-    if (pos.is_race() && (pos.pieces(KING) & (Rank7BB | Rank8BB)))
-    {
-        improving = false;
-        goto moves_loop;
-    }
-#endif
     improving =  (ss-2)->staticEval == VALUE_NONE
                ? ss->staticEval > (ss-4)->staticEval || (ss-4)->staticEval == VALUE_NONE
                : ss->staticEval > (ss-2)->staticEval;
@@ -1133,7 +1135,7 @@ namespace {
                 probCutCount++;
 
                 ss->currentMove = move;
-                ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+                ss->continuationHistory = &thisThread->continuationHistory[skipEarlyPruning]
                                                                           [captureOrPromotion]
                                                                           [pos.moved_piece(move)]
                                                                           [to_sq(move)];
@@ -1265,7 +1267,7 @@ moves_loop: // When in check, search starts from here
               if (pos.is_losers()) {} else
 #endif
               if (   lmrDepth < 7
-                  && !ss->inCheck
+                  && !skipEarlyPruning
                   && ss->staticEval + FutilityMarginParent[pos.variant()][0] + FutilityMarginParent[pos.variant()][1] * lmrDepth <= alpha
                   &&  (*contHist[0])[movedPiece][to_sq(move)]
                     + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1374,7 +1376,7 @@ moves_loop: // When in check, search starts from here
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
-      ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+      ss->continuationHistory = &thisThread->continuationHistory[skipEarlyPruning]
                                                                 [captureOrPromotion]
                                                                 [movedPiece]
                                                                 [to_sq(move)];
