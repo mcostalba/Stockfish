@@ -31,7 +31,7 @@ namespace {
 
   // Pawn penalties
   constexpr Score Backward[VARIANT_NB] = {
-    S( 8, 25),
+    S( 6, 23),
 #ifdef ANTI
     S(26, 50),
 #endif
@@ -67,7 +67,7 @@ namespace {
 #endif
   };
   constexpr Score Doubled[VARIANT_NB] = {
-    S(10, 55),
+    S(13, 53),
 #ifdef ANTI
     S( 4, 51),
 #endif
@@ -103,7 +103,7 @@ namespace {
 #endif
   };
   constexpr Score Isolated[VARIANT_NB] = {
-    S( 3, 15),
+    S( 2, 15),
 #ifdef ANTI
     S(54, 69),
 #endif
@@ -138,8 +138,8 @@ namespace {
     S(13, 16),
 #endif
   };
-  constexpr Score WeakLever     = S( 3, 55);
-  constexpr Score WeakUnopposed = S(13, 25);
+  constexpr Score WeakLever     = S( 5, 57);
+  constexpr Score WeakUnopposed = S(16, 22);
 
   // Bonus for blocked pawns at 5th or 6th rank
   constexpr Score BlockedPawn[2] = { S(-15, -3), S(-6, 3) };
@@ -249,8 +249,8 @@ namespace {
 
   // KingOnFile[semi-open Us][semi-open Them] contains bonuses/penalties
   // for king when the king is on a semi-open or open file.
-  constexpr Score KingOnFile[2][2] = {{ S(-19,12), S(-6, 7)  },
-                                     {  S(  0, 2), S( 6,-5) }};
+  constexpr Score KingOnFile[2][2] = {{ S(-21,10), S(-7, 1)  },
+                                     {  S(  0,-3), S( 9,-4) }};
 
 #ifdef HORDE
   constexpr Score ImbalancedHorde = S(49, 39);
@@ -376,7 +376,7 @@ namespace {
 
         else if (backward)
             score -=  Backward[pos.variant()]
-                    + WeakUnopposed * !opposed;
+                    + WeakUnopposed * !opposed * bool(~(FileABB | FileHBB) & s);
 
 #ifdef HORDE
         if (!support || pos.is_horde())
