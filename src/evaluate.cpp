@@ -761,6 +761,7 @@ namespace {
     explicit Evaluation(const Position& p) : pos(p) {}
     Evaluation& operator=(const Evaluation&) = delete;
     Value value();
+    Value variantValue(Value v);
 
   private:
     template<Color Us> void initialize();
@@ -1968,6 +1969,22 @@ make_v:
     return v;
   }
 
+  template<Tracing T>
+  Value Evaluation<T>::variantValue(Value v) {
+    me = Material::probe(pos);
+    if (me->specialized_eval_exists())
+        return me->evaluate(pos);
+
+    Score score = variant<WHITE>() - variant<BLACK>();
+    Value mg = mg_value(score), eg = eg_value(score);
+    int sf = me->scale_factor(pos, eg > VALUE_DRAW ? WHITE : BLACK);
+    Value v2 =  mg * int(me->game_phase())
+              + eg * int(PHASE_MIDGAME - me->game_phase()) * ScaleFactor(sf) / SCALE_FACTOR_NORMAL;
+    v2 /= PHASE_MIDGAME;
+
+    return v + (pos.side_to_move() == WHITE ? v2 : -v2);
+  }
+
 } // namespace
 
 
@@ -1988,7 +2005,10 @@ Value Eval::evaluate(const Position& pos) {
       // Scale and shift NNUE for compatibility with search and classical evaluation
       auto  adjusted_NNUE = [&](){
          int mat = pos.non_pawn_material() + PawnValueMg * pos.count<PAWN>();
-         return NNUE::evaluate(pos) * (679 + mat / 32) / 1024 + Tempo;
+         Value v = NNUE::evaluate(pos) * (679 + mat / 32) / 1024 + Tempo;
+         if (pos.variant() != CHESS_VARIANT)
+             return Evaluation<NO_TRACE>(pos).variantValue(v);
+         return v;
       };
 
       // If there is PSQ imbalance use classical eval, with small probability if it is small
