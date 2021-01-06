@@ -338,7 +338,7 @@ namespace {
     {     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0 },
 #endif
 #ifdef THREECHECK
-    {   136,  106,   98,   85,    3, -613, -100,   -7,   -4,   37,  181 },
+    {   183,  148,   98,   69,    3, -873, -100,   -6,   -4,   37,  181 },
 #endif
 #ifdef TWOKINGS
     {   155,  136,   98,   92,    3, -967, -100,   -8,   -4,   37,    0 },
@@ -350,10 +350,6 @@ namespace {
   constexpr int SafeCheck[][2] = {
       {}, {450, 900}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}
   };
-#ifdef THREECHECK
-  // In Q8 fixed point
-  constexpr int ThreeCheckKSFactors[CHECKS_NB] = { 573, 581, 856, 0 };
-#endif
 
 #define S(mg, eg) make_score(mg, eg)
 
@@ -638,14 +634,6 @@ namespace {
 #endif
 #ifdef HORDE
   constexpr Score HordeShelter = S(71, 61);
-#endif
-#ifdef THREECHECK
-  constexpr Score ChecksGivenBonus[CHECKS_NB] = {
-      S(0, 0),
-      S(444, 181),
-      S(2425, 603),
-      S(0, 0)
-  };
 #endif
 #ifdef KOTH
   constexpr Score KothDistanceBonus[6] = {
@@ -1158,11 +1146,6 @@ namespace {
     Bitboard dqko = ~attackedBy2[Us] & (attackedBy[Us][QUEEN] | attackedBy[Us][KING]);
     Bitboard dropSafe = (safe | (attackedBy[Them][ALL_PIECES] & dqko)) & ~pos.pieces(Us);
 
-#ifdef THREECHECK
-    if (pos.is_three_check() && pos.checks_given(Them))
-        safe = ~pos.pieces(Them);
-#endif
-
     // Enemy rooks checks
 #ifdef CRAZYHOUSE
     h = pos.is_house() && pos.count_in_hand<ROOK>(Them) ? ~pos.pieces() : 0;
@@ -1275,19 +1258,11 @@ namespace {
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 100)
     {
-#ifdef THREECHECK
-        if (pos.is_three_check())
-            kingDanger = ThreeCheckKSFactors[pos.checks_given(Them)] * kingDanger / 256;
-#endif
         int v = kingDanger * kingDanger / 4096;
 #ifdef CRAZYHOUSE
         if (pos.is_house() && Us == pos.side_to_move())
             v -= v / 10;
         if (pos.is_house())
-            v = std::min(v, (int)QueenValueMg);
-#endif
-#ifdef THREECHECK
-        if (pos.is_three_check())
             v = std::min(v, (int)QueenValueMg);
 #endif
         score -= make_score(v, kingDanger / 16 + KDP[10] * v / 256);
@@ -1732,11 +1707,10 @@ namespace {
             score += ThreatsLosers[1] * popcount(attackedBy[Them][ALL_PIECES] & (unprotectedPawnPushes | unprotectedPieceMoves));
         }
     }
-    else
 #endif
 #ifdef THREECHECK
     if (pos.is_three_check())
-        score += ChecksGivenBonus[pos.checks_given(Us)];
+        score += (popcount(pos.pieces(Us, BISHOP, KNIGHT) & WideCenter) * pos.checks_given(Us)) * pos.non_pawn_material(Us) / 16;
 #endif
 
     if (T)
