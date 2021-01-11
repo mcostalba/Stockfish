@@ -273,7 +273,7 @@ static std::vector<std::string> variants = {
 /// bit  6-11: origin square (from 0 to 63)
 /// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 /// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
-/// NOTE: EN-PASSANT bit is set only when a pawn can be captured
+/// NOTE: en passant bit is set only when a pawn can be captured
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 /// any normal move destination square is always different from origin square
@@ -287,11 +287,11 @@ enum Move : int {
 enum MoveType {
   NORMAL,
   PROMOTION = 1 << 14,
-  ENPASSANT = 2 << 14,
+  EN_PASSANT = 2 << 14,
   CASTLING  = 3 << 14,
   // special moves use promotion piece type bits as flags
 #if defined(ANTI) || defined(CRAZYHOUSE) || defined(EXTINCTION)
-  SPECIAL = ENPASSANT,
+  SPECIAL = EN_PASSANT,
 #endif
 #ifdef CRAZYHOUSE
   DROP = 1 << 12,
