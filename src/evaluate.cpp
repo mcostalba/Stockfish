@@ -1616,15 +1616,27 @@ namespace {
 #ifdef ATOMIC
     if (pos.is_atomic())
     {
-        Bitboard b = pos.pieces(Them) & attackedBy[Us][ALL_PIECES] & ~attackedBy[Us][KING];
-        while (b)
+        // attackedBy may be undefined for lazy and hybrid evaluations
+        // Rather than generating attackedBy (which would be complex and slow)
+        // use the same (non-queen) occupancy mask for all sliding attackers
+        Bitboard pieces = pos.pieces() ^ pos.pieces(QUEEN);
+        for (Bitboard b = pos.pieces(Them) & ~attacks_bb<KING>(pos.square<KING>(Us)); b; )
         {
             Square s = pop_lsb(&b);
+            Bitboard attackers = pos.attackers_to(s, pieces) & pos.pieces(Us);
+            if (! attackers)
+                continue;
             Bitboard blast = (attacks_bb<KING>(s) & (pos.pieces() ^ pos.pieces(PAWN))) | s;
             int count = popcount(blast & pos.pieces(Them)) - popcount(blast & pos.pieces(Us)) - 1;
             if (blast & pos.pieces(Them, KING, QUEEN))
                 count++;
-            if ((blast & pos.pieces(Us, QUEEN)) || ((attackedBy[Us][QUEEN] & s) & ~attackedBy2[Us]))
+            // attackedBy2 may be undefined
+            // (Attacked by queen and not by 2 pieces) was inspired by "dqko"
+            // since generating the full attackers set is costly and even if
+            // multiple queens attack the same square, why should that matter?
+            // Regardless, this is functionally equivalent and therefore cannot
+            // cause a regression although attacker count is meaningless.
+            if ((blast & pos.pieces(Us, QUEEN)) || (attackers == pos.pieces(Us, QUEEN) && popcount(attackers) == 1))
                 count--;
             score += std::max(SCORE_ZERO, ThreatByBlast * count);
         }
