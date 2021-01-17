@@ -197,7 +197,7 @@ namespace {
     2 * MidgameLimit,
 #endif
 #ifdef ATOMIC
-    2 * MidgameLimit,
+    Value(1547),
 #endif
 #ifdef CRAZYHOUSE
     2 * MidgameLimit,
@@ -629,8 +629,8 @@ namespace {
 
   // Assorted bonuses and penalties
 #ifdef ATOMIC
-  constexpr Score AtomicConfinedKing = S(100, 100);
-  constexpr Score ThreatByBlast = S(80, 80);
+  constexpr Score AtomicConfinedKing = S(104, 97);
+  constexpr Score ThreatByBlast      = S( 84, 78);
 #endif
 #ifdef HORDE
   constexpr Score HordeShelter = S(71, 61);
