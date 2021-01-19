@@ -221,7 +221,7 @@ namespace {
     2 * MidgameLimit,
 #endif
 #ifdef THREECHECK
-    2 * MidgameLimit,
+    Value(1565),
 #endif
 #ifdef TWOKINGS
     Value(1565),
