@@ -221,7 +221,7 @@ namespace {
     2 * MidgameLimit,
 #endif
 #ifdef THREECHECK
-    Value(1565),
+    Value(1529),
 #endif
 #ifdef TWOKINGS
     Value(1565),
@@ -300,7 +300,7 @@ namespace {
     {},
 #endif
 #ifdef THREECHECK
-    { 0, 0, 115, 64, 62, 35 },
+    { 0, 0, 118, 66, 62, 35 },
 #endif
 #ifdef TWOKINGS
     { 0, 0, 77, 55, 44, 10 },
@@ -338,7 +338,7 @@ namespace {
     {     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0 },
 #endif
 #ifdef THREECHECK
-    {   183,  148,   98,   69,    3, -873, -100,   -6,   -4,   37,  181 },
+    {   203,  149,  101,   72,    3, -787,  -91,   -6,   -4,   38,  192 },
 #endif
 #ifdef TWOKINGS
     {   155,  136,   98,   92,    3, -967, -100,   -8,   -4,   37,    0 },
