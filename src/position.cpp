@@ -2105,7 +2105,7 @@ void Position::do_null_move(StateInfo& newSt) {
   }
 
   st->key ^= Zobrist::side;
-  prefetch(TT.first_entry(st->key));
+  prefetch(TT.first_entry(key()));
 
   ++st->rule50;
   st->pliesFromNull = 0;
@@ -2221,7 +2221,7 @@ bool Position::see_ge(Move m, Value threshold) const {
       return true;
 #endif
 
-  // Only deal with normal moves, assume others pass a simple see
+  // Only deal with normal moves, assume others pass a simple SEE
 #ifdef CRAZYHOUSE
   if (is_house() && type_of(m) == DROP) {} else
 #endif

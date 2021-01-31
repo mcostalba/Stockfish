@@ -29,10 +29,11 @@ namespace {
 
   // Polynomial material imbalance parameters
 
+  // One Score parameter for each pair (our piece, another of our pieces)
   constexpr Score QuadraticOurs[VARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -42,8 +43,8 @@ namespace {
     },
 #ifdef ANTI
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(-129, -129)                                                                                     }, // Bishop pair
     {S(-205, -205), S( -49,  -49)                                                                      }, // Pawn
     {S( -81,  -81), S( 436,  436), S( -81,  -81)                                                       }, // Knight      OUR PIECES
@@ -55,8 +56,8 @@ namespace {
 #endif
 #ifdef ATOMIC
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -67,8 +68,8 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S( 983,  983)                                                                     }, // Bishop pair
     {S( 129,  129), S( -16,  -16)                                                      }, // Pawn
     {S(   6,    6), S( 151,  151), S(  0,   0)                                         }, // Knight      OUR PIECES
@@ -79,8 +80,8 @@ namespace {
 #endif
 #ifdef EXTINCTION
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -91,11 +92,11 @@ namespace {
 #endif
 #ifdef GRID
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
-    {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
+    {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECE 1
     {S(   0,    0), S(118, 137), S( 10,  27), S(  0,   0)                           }, // Bishop
     {S( -63,  -68), S( -5,   3), S(100,  81), S(132, 118), S(-246, -244)            }, // Rook
     {S(-210, -211), S( 37,  14), S(147, 141), S(161, 105), S(-158, -174), S(-9,-31) }  // Queen
@@ -103,8 +104,8 @@ namespace {
 #endif
 #ifdef HORDE
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S( 13,  13)                                                                  }, // Bishop pair
     {S( -2,  -2), S(  0,   0)                                                     }, // Pawn
     {S(-65, -65), S( 66,  66), S( 15,  15)                                        }, // Knight      OUR PIECES
@@ -115,8 +116,8 @@ namespace {
 #endif
 #ifdef KOTH
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -127,8 +128,8 @@ namespace {
 #endif
 #ifdef LOSERS
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -139,8 +140,8 @@ namespace {
 #endif
 #ifdef RACE
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S(   0,    0), S(  0,   0)                                                     }, // Pawn
     {S(  57,   64), S(  0,   0), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -151,8 +152,8 @@ namespace {
 #endif
 #ifdef THREECHECK
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -163,8 +164,8 @@ namespace {
 #endif
 #ifdef TWOKINGS
     {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
+    // OUR PIECE 2
+    // bishop pair    pawn         knight       bishop       rook           queen
     {S(1419, 1455)                                                                  }, // Bishop pair
     {S( 101,   28), S( 37,  39)                                                     }, // Pawn
     {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
@@ -176,32 +177,33 @@ namespace {
   };
 #ifdef CRAZYHOUSE
   const int QuadraticOursInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
-      //            OUR PIECES
-      //empty pawn knight bishop rook queen
-      {-148                               }, // Empty hand
-      {   1,  -33                         }, // Pawn
-      {  64,   34,   5                    }, // Knight      OUR PIECES
-      { -17, -128, -35,     6             }, // Bishop
-      {  14,  -18,  55,   -60,    76      }, // Rook
-      { -22,   17,  39,   -20,    26,  -8 }  // Queen
+    //            OUR PIECES
+    //empty pawn knight bishop rook queen
+    {-148                               }, // Empty hand
+    {   1,  -33                         }, // Pawn
+    {  64,   34,   5                    }, // Knight      OUR PIECES
+    { -17, -128, -35,     6             }, // Bishop
+    {  14,  -18,  55,   -60,    76      }, // Rook
+    { -22,   17,  39,   -20,    26,  -8 }  // Queen
   };
 #endif
 
+  // One Score parameter for each pair (our piece, their piece)
   constexpr Score QuadraticTheirs[VARIANT_NB][PIECE_TYPE_NB][PIECE_TYPE_NB] = {
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                               }, // Bishop pair
     {S(  33,  30)                                                                   }, // Pawn
-    {S(  46,  18), S(106,  84)                                                      }, // Knight      OUR PIECES
+    {S(  46,  18), S(106,  84)                                                      }, // Knight      OUR PIECE
     {S(  75,  35), S( 59,  44), S( 60,  15)                                         }, // Bishop
     {S(  26,  35), S(  6,  22), S( 38,  39), S(-12,  -2)                            }, // Rook
     {S(  97,  93), S(100, 163), S(-58, -91), S(112, 192), S(276, 225)               }  // Queen
     },
 #ifdef ANTI
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                                     }, // Bishop pair
     {S(  55,  55)                                                                         }, // Pawn
     {S(  23,  23),  S(  27,   27)                                                         }, // Knight      OUR PIECES
@@ -213,8 +215,8 @@ namespace {
 #endif
 #ifdef ATOMIC
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -225,8 +227,8 @@ namespace {
 #endif
 #ifdef CRAZYHOUSE
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                        }, // Bishop pair
     {S(44, 44)                                               }, // Pawn
     {S(32, 32), S( 1,  1)                                    }, // Knight      OUR PIECES
@@ -237,8 +239,8 @@ namespace {
 #endif
 #ifdef EXTINCTION
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -249,8 +251,8 @@ namespace {
 #endif
 #ifdef GRID
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -261,8 +263,8 @@ namespace {
 #endif
 #ifdef HORDE
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen king
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                                  }, // Bishop pair
     { S(0, 0)                                                                          }, // Pawn
     { S(0, 0), S(   0,    0)                                                           }, // Knight      OUR PIECES
@@ -274,8 +276,8 @@ namespace {
 #endif
 #ifdef KOTH
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -286,8 +288,8 @@ namespace {
 #endif
 #ifdef LOSERS
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                    }, // Bishop pair
     {S(-132, -132)                                                       }, // Pawn
     {S(  -5,   -5), S(185, 185)                                          }, // Knight      OUR PIECES
@@ -298,8 +300,8 @@ namespace {
 #endif
 #ifdef RACE
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(   0,   0)                                                     }, // Pawn
     {S(   9,   9), S(  0,   0)                                        }, // Knight      OUR PIECES
@@ -310,8 +312,8 @@ namespace {
 #endif
 #ifdef THREECHECK
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -322,8 +324,8 @@ namespace {
 #endif
 #ifdef TWOKINGS
     {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
+    // THEIR PIECE
+    // bishop pair   pawn         knight       bishop       rook         queen
     {                                                                 }, // Bishop pair
     {S(  33,  30)                                                     }, // Pawn
     {S(  46,  18), S(106,  84)                                        }, // Knight      OUR PIECES
@@ -335,14 +337,14 @@ namespace {
   };
 #ifdef CRAZYHOUSE
   const int QuadraticTheirsInHand[PIECE_TYPE_NB][PIECE_TYPE_NB] = {
-      //           THEIR PIECES
-      //empty pawn knight bishop rook queen
-      { -40                               }, // Empty hand
-      {  41,   11                         }, // Pawn
-      { -62,   -9,  26                    }, // Knight      OUR PIECES
-      {  34,   33,  42,    88             }, // Bishop
-      { -24,    0,  58,    90,   -38      }, // Rook
-      {  78,    3,  46,    37,   -26,  -1 }  // Queen
+    //           THEIR PIECES
+    //empty pawn knight bishop rook queen
+    { -40                               }, // Empty hand
+    {  41,   11                         }, // Pawn
+    { -62,   -9,  26                    }, // Knight      OUR PIECES
+    {  34,   33,  42,    88             }, // Bishop
+    { -24,    0,  58,    90,   -38      }, // Rook
+    {  78,    3,  46,    37,   -26,  -1 }  // Queen
   };
 #endif
 
@@ -626,7 +628,7 @@ Entry* probe(const Position& pos) {
   else
       e->score = (imbalance<WHITE>(pos, pieceCount, NULL) - imbalance<BLACK>(pos, pieceCount, NULL)) / 16;
 #else
-  e->score = (imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16;
+  e->score = (imbalance<WHITE>(pos, pieceCount) - imbalance<BLACK>(pos, pieceCount)) / 16;
 #endif
   return e;
 }

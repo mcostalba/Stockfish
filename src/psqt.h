@@ -16,38 +16,27 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
 
-#include "bitboard.h"
-#include "endgame.h"
-#include "position.h"
-#include "psqt.h"
-#include "search.h"
-#include "syzygy/tbprobe.h"
-#include "thread.h"
-#include "tt.h"
-#include "uci.h"
+#ifndef PSQT_H_INCLUDED
+#define PSQT_H_INCLUDED
 
-int main(int argc, char* argv[]) {
 
-  std::cout << engine_info() << std::endl;
+#include "types.h"
 
-  CommandLine::init(argc, argv);
-  UCI::init(Options);
-  Tune::init();
-  PSQT::init();
-  Bitboards::init();
-  Position::init();
-  Bitbases::init();
-  Endgames::init();
-  Threads.set(size_t(Options["Threads"]));
-  Search::clear(); // After threads are up
-#ifdef USE_NNUE
-  Eval::NNUE::init();
+
+namespace PSQT
+{
+
+#ifdef CRAZYHOUSE
+extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
+#else
+extern Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 #endif
 
-  UCI::loop(argc, argv);
+// Fill psqt array from a set of internally linked parameters
+extern void init();
 
-  Threads.set(0);
-  return 0;
-}
+} // namespace PSQT
+
+
+#endif // PSQT_H_INCLUDED

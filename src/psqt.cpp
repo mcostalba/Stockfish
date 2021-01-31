@@ -16,19 +16,22 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#include "psqt.h"
+
 #include <algorithm>
 
-#include "types.h"
 #include "bitboard.h"
+#include "types.h"
 
-namespace PSQT {
 
-#define S(mg, eg) make_score(mg, eg)
+namespace
+{
 
-// Bonus[PieceType][Square / 2] contains Piece-Square scores. For each piece
-// type on a given square a (middlegame, endgame) score pair is assigned. Table
-// is defined for files A..D and white side: it is symmetric for black side and
-// second half of the files.
+auto constexpr S = make_score;
+
+// 'Bonus' contains Piece-Square parameters.
+// Scores are explicit for files A to D, implicitly mirrored for E to H.
 constexpr Score Bonus[VARIANT_NB][PIECE_TYPE_NB][RANK_NB][int(FILE_NB) / 2] = {
   {
     { },
@@ -799,14 +802,17 @@ constexpr Score inHandBonus[PIECE_TYPE_NB] = {
 };
 #endif
 
-#undef S
+} // namespace
+
+
+namespace PSQT
+{
 
 #ifdef CRAZYHOUSE
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
 #else
 Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 #endif
-
 
 // PSQT::init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] and PBonus[], adding the piece value, then the black halves of
@@ -816,26 +822,26 @@ void init() {
 for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
   for (Piece pc : {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING})
   {
-      Score score = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
+    Score score = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
 
-      for (Square s = SQ_A1; s <= SQ_H8; ++s)
-      {
-          File f = File(edge_distance(file_of(s)));
-          psq[var][ pc][s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
-                                                                                    : Bonus[var][pc][rank_of(s)][f]);
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+      File f = File(edge_distance(file_of(s)));
+      psq[var][ pc][s] = score + ((var == CHESS_VARIANT && type_of(pc) == PAWN) ? PBonus[rank_of(s)][file_of(s)]
+                                                                                : Bonus[var][pc][rank_of(s)][f]);
 #ifdef RACE
-          if (var == RACE_VARIANT)
-              psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
-          else
+      if (var == RACE_VARIANT)
+        psq[var][~pc][horizontal_flip(s)] = -psq[var][pc][s];
+      else
 #endif
-          psq[var][~pc][flip_rank(s)] = -psq[var][pc][s];
-      }
+      psq[var][~pc][flip_rank(s)] = -psq[var][pc][s];
+    }
 #ifdef CRAZYHOUSE
-      if (var == CRAZYHOUSE_VARIANT)
-      {
-          psq[var][ pc][SQ_NONE] = score + inHandBonus[type_of(pc)];
-          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
-      }
+    if (var == CRAZYHOUSE_VARIANT)
+    {
+      psq[var][ pc][SQ_NONE] = score + inHandBonus[type_of(pc)];
+      psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
+    }
 #endif
   }
 }
