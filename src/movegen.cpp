@@ -871,7 +871,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 
   Color us = pos.side_to_move();
   Bitboard pinned = pos.blockers_for_king(us) & pos.pieces(us);
-  bool validate = pinned;
+  bool validate = false;
 #ifdef GRID
   if (pos.is_grid()) validate = true;
 #endif
@@ -901,7 +901,15 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
   moveList = pos.checkers() ? generate<EVASIONS    >(pos, moveList)
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
-      if (   (validate || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
+  {
+      // Dropped pieces have a from square of SQ_NONE, which triggers an assertion
+      Square s;
+#ifdef CRAZYHOUSE
+      s = type_of(*cur) == DROP ? ksq : from_sq(*cur);
+#else
+      s = from_sq(*cur);
+#endif
+      if (  (validate || (pinned && pinned & s) || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
 #ifdef CRAZYHOUSE
 #ifdef PLACEMENT
           && !(pos.is_house() && !pos.is_placement() && type_of(*cur) == DROP)
@@ -917,6 +925,7 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #endif
       else
           ++cur;
+  }
 
   return moveList;
 }
