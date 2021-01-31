@@ -902,27 +902,24 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
                             : generate<NON_EVASIONS>(pos, moveList);
   while (cur != moveList)
   {
-      // Dropped pieces have a from square of SQ_NONE, which triggers an assertion
-      Square s;
+      bool illegal;
 #ifdef CRAZYHOUSE
-      s = type_of(*cur) == DROP ? ksq : from_sq(*cur);
-#else
-      s = from_sq(*cur);
+      // Move validation is not designed to handle drop moves (from undefined)
+      if (type_of(*cur) == DROP)
+          // Protect against drop moves being generated for other variants
+          // This validation has been defined for years, but seems unnecessary
+          // since the move generator never caches moves nor leaks this list
+          illegal = !pos.is_house();
+      else
 #endif
-      if (  (validate || (pinned && pinned & s) || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
-#ifdef CRAZYHOUSE
-#ifdef PLACEMENT
-          && !(pos.is_house() && !pos.is_placement() && type_of(*cur) == DROP)
-#else
-          && !(pos.is_house() && type_of(*cur) == DROP)
-#endif
-#endif
-          && !pos.legal(*cur))
-          *cur = (--moveList)->move;
+      illegal =  (validate
 #ifdef ATOMIC
-      else if (pos.is_atomic() && pos.capture(*cur) && !pos.legal(*cur))
-          *cur = (--moveList)->move;
+                  || (pos.is_atomic() && pos.capture(*cur))
 #endif
+                  || (pinned && pinned & from_sq(*cur)) || from_sq(*cur) == ksq || type_of(*cur) == EN_PASSANT)
+               && !pos.legal(*cur);
+      if (illegal)
+          *cur = (--moveList)->move;
       else
           ++cur;
   }
