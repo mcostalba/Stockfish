@@ -1736,7 +1736,13 @@ moves_loop: // When in check, search starts from here
         && ttValue != VALUE_NONE // Only in case of TT access race
         && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
                             : (tte->bound() & BOUND_UPPER)))
+    {
+        // When infinite looping in quiescent search give some update
+        // (without cluttering the UI)
+        if (Threads.nodes_searched() % (PV_MIN_ELAPSED * 4) == 0)
+            sync_cout << UCI::pv(pos, ttDepth, alpha, beta) << sync_endl;
         return ttValue;
+    }
 
     // Evaluate the position statically
     if (ss->inCheck)
