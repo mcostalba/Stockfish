@@ -20,7 +20,7 @@ Multi Variant Stockfish is a [Stockfish](https://github.com/official-stockfish/S
 - Grid
 - Two Kings
 
-The project has the goal to develop and to improve the playing strength of some chess variants not already played natively by Stockfish. Once a month the maintainers will merge the new upstream Stockfish patches to also keep the playing strength for Chess and Chess960 up to date. If you are interested in playing only Chess and/or Chess960, or to play Chess and/or Chess960 at maximum strength possible, simply use Stockfish. Multi Variant Stockfish, though using the same code base for Chess and Chess960, is a bit slower.
+If you are interested in playing only Chess and/or Chess960, or to play Chess and/or Chess960 at maximum strength possible, simply use Stockfish. Multi Variant Stockfish, though using the same code base for Chess and Chess960, is a bit slower. Please consider sponsoring [Fairy-Stockfish](https://github.com/ianfab/Fairy-Stockfish) which has a more robust architecture and supports a wider array of variants.
 
 Multi Variant Stockfish is currently used in these [lichess.org](https://lichess.org/) projects: 
 - [lichess.org custom Stockfish](https://github.com/niklasf/Stockfish): as engine used to play against the users on lichess.org, also running on contributed remote servers for games analysis
