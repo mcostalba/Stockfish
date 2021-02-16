@@ -963,8 +963,6 @@ namespace {
             score += BishopOnKingRing;
 
         int mob = popcount(b & mobilityArea[Us]);
-
-        mobility[Us] += MobilityBonus[pos.variant()][Pt - 2][mob];
 #ifdef ANTI
         if (pos.is_anti())
             continue;
@@ -981,6 +979,7 @@ namespace {
         if (pos.is_losers())
             continue;
 #endif
+        mobility[Us] += MobilityBonus[pos.variant()][Pt - 2][mob];
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {

@@ -368,8 +368,8 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
                && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
                && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))))
-               && (file_of(square<KING>(sideToMove)) == file_of(st->epSquare)
-               || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
+               && (   file_of(square<KING>(sideToMove)) == file_of(st->epSquare)
+                   || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
   }
 
   // It's necessary for st->previous to be intialized in this way because legality check relies on its existence
@@ -1002,8 +1002,8 @@ bool Position::legal(Move m) const {
               return false;
       }
 #endif
-      return !(st->previous->blockersForKing[sideToMove] & from) ||
-               aligned(from, to, square<KING>(us));
+      return   !(st->previous->blockersForKing[sideToMove] & from)
+            || aligned(from, to, square<KING>(us));
   }
 
   // Castling moves generation does not check if the castling path is clear of
@@ -1087,8 +1087,8 @@ bool Position::legal(Move m) const {
   if (is_relay() && relayed_attackers_to<BISHOP, QUEEN>(square<KING>(us), ~us, pieces() ^ from))
       return false;
 #endif
-  return   !(blockers_for_king(us) & from)
-        ||  aligned(from, to, square<KING>(us));
+  return !(blockers_for_king(us) & from)
+      || aligned(from, to, square<KING>(us));
 }
 
 
@@ -1392,8 +1392,10 @@ bool Position::gives_check(Move m) const {
   // So the King must be in the same rank as fromsq to consider this possibility.
   // st->previous->blockersForKing consider capsq as empty.
   case EN_PASSANT:
-      return st->previous->checkersBB || (rank_of(square<KING>(~sideToMove)) == rank_of(from)
-          && st->previous->blockersForKing[~sideToMove] & from);
+      return st->previous->checkersBB
+          || (   rank_of(square<KING>(~sideToMove)) == rank_of(from)
+              && st->previous->blockersForKing[~sideToMove] & from);
+
   default: //CASTLING
   {
       // Castling is encoded as 'king captures the rook'
