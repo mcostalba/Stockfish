@@ -376,9 +376,18 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
   if (enpassant) {
       st->previous = new StateInfo();
       remove_piece(st->epSquare - pawn_push(sideToMove));
+#ifdef ANTI
+      if (is_anti()) {
+          st->previous->checkersBB = 0;
+          si->previous->blockersForKing[WHITE] = si->previous->blockersForKing[BLACK] = 0;
+      } else {
+#endif
       st->previous->checkersBB = attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
       st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
       st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
+#ifdef ANTI
+      }
+#endif
       put_piece(make_piece(~sideToMove, PAWN), st->epSquare - pawn_push(sideToMove));
   }
   else
