@@ -360,16 +360,42 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       // b) there is an enemy pawn in front of epSquare
       // c) there is no piece on epSquare or behind epSquare
       // d) enemy pawn didn't block a check of its own color by moving forward
+      switch (var)
+      {
 #ifdef ATOMIC
-      if (is_atomic() && (attacks_bb(KING, st->epSquare, 0) & square<KING>(sideToMove)))
-          enpassant = false;
-      else
+      case ATOMIC_VARIANT:
+          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
+                   && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
+                   && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))))
+                   && (     kings_adjacent()
+                       ||   file_of(square<KING>(sideToMove)) == file_of(st->epSquare)
+                       || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
+      break;
 #endif
+#ifdef ANTI
+      case ANTI_VARIANT:
+          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
+                   && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
+                   && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))));
+      break;
+#endif
+#ifdef HORDE
+      case HORDE_VARIANT:
+          enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
+                   && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
+                   && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))))
+                   && (     is_horde_color(sideToMove)
+                       ||   file_of(square<KING>(sideToMove)) == file_of(st->epSquare)
+                       || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
+      break;
+#endif
+      default:
       enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
                && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
                && !(pieces() & (st->epSquare | (st->epSquare + pawn_push(sideToMove))))
                && (   file_of(square<KING>(sideToMove)) == file_of(st->epSquare)
                    || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
+      }
   }
 
   // It's necessary for st->previous to be intialized in this way because legality check relies on its existence
@@ -386,6 +412,13 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       if (is_anti()) {
           st->previous->checkersBB = 0;
           st->previous->blockersForKing[WHITE] = st->previous->blockersForKing[BLACK] = 0;
+      } else
+#endif
+#ifdef HORDE
+      if (is_horde()) {
+          st->previous->checkersBB = is_horde_color(~sideToMove) ? 0 : attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
+          st->previous->blockersForKing[WHITE] = is_horde_color(WHITE) ? 0 : slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
+          st->previous->blockersForKing[BLACK] = is_horde_color(BLACK) ? 0 : slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
       } else
 #endif
       {
