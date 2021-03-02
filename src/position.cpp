@@ -389,6 +389,23 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
                        || !(blockers_for_king(sideToMove) & (st->epSquare + pawn_push(~sideToMove))));
       break;
 #endif
+#ifdef EXTINCTION
+      case EXTINCTION_VARIANT:
+          enpassant = false;
+      break;
+#endif
+#ifdef PLACEMENT
+      case CRAZYHOUSE_VARIANT:
+          if (is_placement() && count_in_hand<KING>(sideToMove))
+              enpassant = false;
+      [[fallthrough]];
+#endif
+#ifdef KNIGHTRELAY
+      case RELAY_VARIANT:
+          if (is_knight_relay())
+              enpassant = false;
+      [[fallthrough]];
+#endif
       default:
       enpassant = pawn_attacks_bb(~sideToMove, st->epSquare) & pieces(sideToMove, PAWN)
                && (pieces(~sideToMove, PAWN) & (st->epSquare + pawn_push(~sideToMove)))
