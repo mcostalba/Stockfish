@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,6 +59,11 @@ const vector<string> Defaults = {
   "1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1",
   "6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1",
   "8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1",
+  "5rk1/q6p/2p3bR/1pPp1rP1/1P1Pp3/P3B1Q1/1K3P2/R7 w - - 93 90",
+  "4rrk1/1p1nq3/p7/2p1P1pp/3P2bp/3Q1Bn1/PPPB4/1K2R1NR w - - 40 21",
+  "r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16",
+  "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
+  "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1",
 
   // 5-man positions
   "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - mate
@@ -83,17 +86,20 @@ const vector<string> Defaults = {
 
   // Chess 960
   "setoption name UCI_Chess960 value true",
-  "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
+  "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
   "setoption name UCI_Chess960 value false"
 };
 
 } // namespace
 
+namespace Stockfish {
+
 /// setup_bench() builds a list of UCI commands to be run by bench. There
 /// are five parameters: TT size in MB, number of search threads that
 /// should be used, the limit value spent for each position, a file name
-/// where to look for positions in FEN format and the type of the limit:
-/// depth, perft, nodes and movetime (in millisecs).
+/// where to look for positions in FEN format, the type of the limit:
+/// depth, perft, nodes and movetime (in millisecs), and evaluation type
+/// mixed (default), classical, NNUE.
 ///
 /// bench -> search default positions up to depth 13
 /// bench 64 1 15 -> search default positions up to depth 15 (TT = 64MB)
@@ -112,8 +118,9 @@ vector<string> setup_bench(const Position& current, istream& is) {
   string limit     = (is >> token) ? token : "13";
   string fenFile   = (is >> token) ? token : "default";
   string limitType = (is >> token) ? token : "depth";
+  string evalType  = (is >> token) ? token : "mixed";
 
-  go = "go " + limitType + " " + limit;
+  go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
   if (fenFile == "default")
       fens = Defaults;
@@ -143,14 +150,25 @@ vector<string> setup_bench(const Position& current, istream& is) {
   list.emplace_back("setoption name Hash value " + ttSize);
   list.emplace_back("ucinewgame");
 
+  size_t posCounter = 0;
+
   for (const string& fen : fens)
       if (fen.find("setoption") != string::npos)
           list.emplace_back(fen);
       else
       {
+          if (evalType == "classical" || (evalType == "mixed" && posCounter % 2 == 0))
+              list.emplace_back("setoption name Use NNUE value false");
+          else if (evalType == "NNUE" || (evalType == "mixed" && posCounter % 2 != 0))
+              list.emplace_back("setoption name Use NNUE value true");
           list.emplace_back("position fen " + fen);
           list.emplace_back(go);
+          ++posCounter;
       }
+
+  list.emplace_back("setoption name Use NNUE value true");
 
   return list;
 }
+
+} // namespace Stockfish
