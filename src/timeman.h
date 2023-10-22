@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,12 +19,17 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
+#include <cstdint>
+
 #include "misc.h"
 #include "search.h"
 #include "thread.h"
+#include "types.h"
 
-/// The TimeManagement class computes the optimal time to think depending on
-/// the maximum available time, the game move number and other parameters.
+namespace Stockfish {
+
+// The TimeManagement class computes the optimal time to think depending on
+// the maximum available time, the game move number, and other parameters.
 
 class TimeManagement {
 public:
@@ -45,5 +48,7 @@ private:
 };
 
 extern TimeManagement Time;
+
+} // namespace Stockfish
 
 #endif // #ifndef TIMEMAN_H_INCLUDED

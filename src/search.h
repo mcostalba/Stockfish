@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,23 +19,23 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
+#include <cstdint>
 #include <vector>
 
 #include "misc.h"
 #include "movepick.h"
 #include "types.h"
 
+namespace Stockfish {
+
 class Position;
 
 namespace Search {
 
-/// Threshold used for countermoves based pruning
-constexpr int CounterMovePruneThreshold = 0;
 
-
-/// Stack struct keeps track of the information we need to remember from nodes
-/// shallower and deeper in the tree during the search. Each search thread has
-/// its own array of Stack objects, indexed by the current ply.
+// Stack struct keeps track of the information we need to remember from nodes
+// shallower and deeper in the tree during the search. Each search thread has
+// its own array of Stack objects, indexed by the current ply.
 
 struct Stack {
   Move* pv;
@@ -49,12 +47,17 @@ struct Stack {
   Value staticEval;
   int statScore;
   int moveCount;
+  bool inCheck;
+  bool ttPv;
+  bool ttHit;
+  int doubleExtensions;
+  int cutoffCnt;
 };
 
 
-/// RootMove struct is used for moves at the root of the tree. For each root move
-/// we store a score and a PV (really a refutation in the case of moves which
-/// fail low). Score is normally set at -VALUE_INFINITE for all non-pv moves.
+// RootMove struct is used for moves at the root of the tree. For each root move
+// we store a score and a PV (really a refutation in the case of moves which
+// fail low). Score is normally set at -VALUE_INFINITE for all non-pv moves.
 
 struct RootMove {
 
@@ -68,17 +71,21 @@ struct RootMove {
 
   Value score = -VALUE_INFINITE;
   Value previousScore = -VALUE_INFINITE;
+  Value averageScore = -VALUE_INFINITE;
+  Value uciScore = -VALUE_INFINITE;
+  bool scoreLowerbound = false;
+  bool scoreUpperbound = false;
   int selDepth = 0;
   int tbRank = 0;
   Value tbScore;
   std::vector<Move> pv;
 };
 
-typedef std::vector<RootMove> RootMoves;
+using RootMoves = std::vector<RootMove>;
 
 
-/// LimitsType struct stores information sent by GUI about available time to
-/// search the current move, maximum depth/time, or if we are in analysis mode.
+// LimitsType struct stores information sent by GUI about available time to
+// search the current move, maximum depth/time, or if we are in analysis mode.
 
 struct LimitsType {
 
@@ -89,7 +96,7 @@ struct LimitsType {
   }
 
   bool use_time_management() const {
-    return !(mate | movetime | depth | nodes | perft | infinite);
+    return time[WHITE] || time[BLACK];
   }
 
   std::vector<Move> searchmoves;
@@ -104,5 +111,7 @@ void init();
 void clear();
 
 } // namespace Search
+
+} // namespace Stockfish
 
 #endif // #ifndef SEARCH_H_INCLUDED

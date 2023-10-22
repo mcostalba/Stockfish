@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,27 +21,28 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <mutex>
-#include <thread>
 #include <vector>
 
-#include "material.h"
 #include "movepick.h"
-#include "pawns.h"
 #include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
+#include "types.h"
 
+namespace Stockfish {
 
-/// Thread class keeps together all the thread-related stuff. We use
-/// per-thread pawn and material hash tables so that once we get a
-/// pointer to an entry its life time is unlimited and we don't have
-/// to care about someone changing the entry under our feet.
+// Thread class keeps together all the thread-related stuff. We use
+// per-thread pawn and material hash tables so that once we get a
+// pointer to an entry its lifetime is unlimited and we don't have
+// to care about someone changing the entry under our feet.
 
 class Thread {
 
-  Mutex mutex;
-  ConditionVariable cv;
+  std::mutex mutex;
+  std::condition_variable cv;
   size_t idx;
   bool exit = false, searching = true; // Set before starting std::thread
   NativeThread stdThread;
@@ -56,26 +55,27 @@ public:
   void idle_loop();
   void start_searching();
   void wait_for_search_finished();
+  size_t id() const { return idx; }
 
-  Pawns::Table pawnsTable;
-  Material::Table materialTable;
-  size_t pvIdx, multiPV, pvLast, shuffleExts;
-  int selDepth, nmpMinPly;
-  Color nmpColor;
+  size_t pvIdx, pvLast;
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
+  int selDepth, nmpMinPly;
+  Value bestValue, optimism[COLOR_NB];
 
   Position rootPos;
+  StateInfo rootState;
   Search::RootMoves rootMoves;
   Depth rootDepth, completedDepth;
+  Value rootDelta;
+  Value rootSimpleEval;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
-  ContinuationHistory continuationHistory;
-  Score contempt;
+  ContinuationHistory continuationHistory[2][2];
 };
 
 
-/// MainThread is a derived class specific for main thread
+// MainThread is a derived class specific for main thread
 
 struct MainThread : public Thread {
 
@@ -85,41 +85,56 @@ struct MainThread : public Thread {
   void check_time();
 
   double previousTimeReduction;
-  Value previousScore;
+  Value bestPreviousScore;
+  Value bestPreviousAverageScore;
+  Value iterValue[4];
   int callsCnt;
   bool stopOnPonderhit;
   std::atomic_bool ponder;
 };
 
 
-/// ThreadPool struct handles all the threads-related stuff like init, starting,
-/// parking and, most importantly, launching a thread. All the access to threads
-/// is done through this class.
+// ThreadPool struct handles all the threads-related stuff like init, starting,
+// parking and, most importantly, launching a thread. All the access to threads
+// is done through this class.
 
-struct ThreadPool : public std::vector<Thread*> {
+struct ThreadPool {
 
   void start_thinking(Position&, StateListPtr&, const Search::LimitsType&, bool = false);
   void clear();
   void set(size_t);
 
-  MainThread* main()        const { return static_cast<MainThread*>(front()); }
+  MainThread* main()        const { return static_cast<MainThread*>(threads.front()); }
   uint64_t nodes_searched() const { return accumulate(&Thread::nodes); }
   uint64_t tb_hits()        const { return accumulate(&Thread::tbHits); }
+  Thread* get_best_thread() const;
+  void start_searching();
+  void wait_for_search_finished() const;
 
-  std::atomic_bool stop;
+  std::atomic_bool stop, increaseDepth;
+
+  auto cbegin() const noexcept { return threads.cbegin(); }
+  auto begin() noexcept { return threads.begin(); }
+  auto end() noexcept { return threads.end(); }
+  auto cend() const noexcept { return threads.cend(); }
+  auto size() const noexcept { return threads.size(); }
+  auto empty() const noexcept { return threads.empty(); }
 
 private:
   StateListPtr setupStates;
+  std::vector<Thread*> threads;
 
   uint64_t accumulate(std::atomic<uint64_t> Thread::* member) const {
 
     uint64_t sum = 0;
-    for (Thread* th : *this)
+    for (Thread* th : threads)
         sum += (th->*member).load(std::memory_order_relaxed);
     return sum;
   }
 };
 
 extern ThreadPool Threads;
+
+} // namespace Stockfish
 
 #endif // #ifndef THREAD_H_INCLUDED

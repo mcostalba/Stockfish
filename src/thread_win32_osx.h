@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,63 +19,21 @@
 #ifndef THREAD_WIN32_OSX_H_INCLUDED
 #define THREAD_WIN32_OSX_H_INCLUDED
 
-/// STL thread library used by mingw and gcc when cross compiling for Windows
-/// relies on libwinpthread. Currently libwinpthread implements mutexes directly
-/// on top of Windows semaphores. Semaphores, being kernel objects, require kernel
-/// mode transition in order to lock or unlock, which is very slow compared to
-/// interlocked operations (about 30% slower on bench test). To work around this
-/// issue, we define our wrappers to the low level Win32 calls. We use critical
-/// sections to support Windows XP and older versions. Unfortunately, cond_wait()
-/// is racy between unlock() and WaitForSingleObject() but they have the same
-/// speed performance as the SRW locks.
-
-#include <condition_variable>
-#include <mutex>
 #include <thread>
 
-#if defined(_WIN32) && !defined(_MSC_VER)
+// On OSX threads other than the main thread are created with a reduced stack
+// size of 512KB by default, this is too low for deep searches, which require
+// somewhat more than 1MB stack, so adjust it to TH_STACK_SIZE.
+// The implementation calls pthread_create() with the stack size parameter
+// equal to the Linux 8MB default, on platforms that support it.
 
-#ifndef NOMINMAX
-#  define NOMINMAX // Disable macros min() and max()
-#endif
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#undef WIN32_LEAN_AND_MEAN
-#undef NOMINMAX
-
-/// Mutex and ConditionVariable struct are wrappers of the low level locking
-/// machinery and are modeled after the corresponding C++11 classes.
-
-struct Mutex {
-  Mutex() { InitializeCriticalSection(&cs); }
- ~Mutex() { DeleteCriticalSection(&cs); }
-  void lock() { EnterCriticalSection(&cs); }
-  void unlock() { LeaveCriticalSection(&cs); }
-
-private:
-  CRITICAL_SECTION cs;
-};
-
-typedef std::condition_variable_any ConditionVariable;
-
-#else // Default case: use STL classes
-
-typedef std::mutex Mutex;
-typedef std::condition_variable ConditionVariable;
-
-#endif
-
-/// On OSX threads other than the main thread are created with a reduced stack
-/// size of 512KB by default, this is dangerously low for deep searches, so
-/// adjust it to TH_STACK_SIZE. The implementation calls pthread_create() with
-/// proper stack size parameter.
-
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
 #include <pthread.h>
 
-static const size_t TH_STACK_SIZE = 2 * 1024 * 1024;
+namespace Stockfish {
+
+static const size_t TH_STACK_SIZE = 8 * 1024 * 1024;
 
 template <class T, class P = std::pair<T*, void(T::*)()>>
 void* start_routine(void* ptr)
@@ -85,7 +41,7 @@ void* start_routine(void* ptr)
    P* p = reinterpret_cast<P*>(ptr);
    (p->first->*(p->second))(); // Call member function pointer
    delete p;
-   return NULL;
+   return nullptr;
 }
 
 class NativeThread {
@@ -100,12 +56,18 @@ public:
     pthread_attr_setstacksize(attr, TH_STACK_SIZE);
     pthread_create(&thread, attr, start_routine<T>, new P(obj, fun));
   }
-  void join() { pthread_join(thread, NULL); }
+  void join() { pthread_join(thread, nullptr); }
 };
+
+} // namespace Stockfish
 
 #else // Default case: use STL classes
 
-typedef std::thread NativeThread;
+namespace Stockfish {
+
+using NativeThread = std::thread;
+
+} // namespace Stockfish
 
 #endif
 
